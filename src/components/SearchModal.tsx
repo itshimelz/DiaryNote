@@ -62,6 +62,12 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     const q = query.toLowerCase().trim();
 
     return notes.filter((note) => {
+      // If note is locked, do not leak text content or tags in search query matching
+      if (note.isLocked) {
+        const title = 'locked note'.toLowerCase();
+        return title.includes(q);
+      }
+
       const title = (note.title || '').toLowerCase();
       const content = (note.content || '').toLowerCase();
 
@@ -296,7 +302,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                         ID: {note.id.includes('-') ? note.id.split('-').pop()?.toUpperCase() : note.id.toUpperCase()}
                       </span>
                       <h4 className="font-semibold text-xs truncate">
-                        {note.title || 'Untitled Note'}
+                        {note.isLocked ? '🔒 Locked Note' : note.title || 'Untitled Note'}
                       </h4>
                     </div>
 
@@ -305,7 +311,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                         isDark ? 'text-slate-400' : 'text-slate-600'
                       }`}
                     >
-                      {note.content.replace(/#|\*|\[|\]|\(|\)/g, '') || 'Empty note...'}
+                      {note.isLocked
+                        ? 'Passcode required to view contents...'
+                        : note.content.replace(/#|\*|\[|\]|\(|\)/g, '') || 'Empty note...'}
                     </p>
 
                     <div className="flex items-center gap-3 text-[10px] font-mono pt-1">

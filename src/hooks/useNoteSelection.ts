@@ -14,7 +14,8 @@ export function useNoteSelection(
   onToggleTheme?: () => void,
   onToggleSnapToGrid?: () => void,
   onToggleConnections?: () => void,
-  onToggleZenMode?: () => void
+  onToggleZenMode?: () => void,
+  onLockSelectedNotes?: (ids: string[]) => void
 ) {
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -29,6 +30,7 @@ export function useNoteSelection(
   const onToggleSnapToGridRef = useRef(onToggleSnapToGrid);
   const onToggleConnectionsRef = useRef(onToggleConnections);
   const onToggleZenModeRef = useRef(onToggleZenMode);
+  const onLockSelectedNotesRef = useRef(onLockSelectedNotes);
 
   useEffect(() => {
     onCreateNoteRef.current = onCreateNote;
@@ -39,6 +41,7 @@ export function useNoteSelection(
     onToggleSnapToGridRef.current = onToggleSnapToGrid;
     onToggleConnectionsRef.current = onToggleConnections;
     onToggleZenModeRef.current = onToggleZenMode;
+    onLockSelectedNotesRef.current = onLockSelectedNotes;
   });
 
   const handleSelectNote = useCallback((noteId: string | null, isMultiSelect?: boolean) => {
@@ -157,6 +160,15 @@ export function useNoteSelection(
       if (key === 'z' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         onToggleZenModeRef.current?.();
+        return;
+      }
+
+      // Lock Selected Notes Shortcut (Ctrl+L)
+      if ((e.ctrlKey || e.metaKey) && key === 'l') {
+        if (selectedNoteIds.length > 0) {
+          e.preventDefault();
+          onLockSelectedNotesRef.current?.(selectedNoteIds);
+        }
         return;
       }
 

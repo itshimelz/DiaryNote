@@ -175,7 +175,7 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
                     <h3 className={`font-semibold text-xs transition-colors line-clamp-1 ${
                       isDark ? 'text-slate-200 group-hover:text-white' : 'text-slate-800 group-hover:text-slate-900'
                     }`}>
-                      {note.title || 'Untitled Note'}
+                      {note.isLocked ? '🔒 Locked Note' : note.title || 'Untitled Note'}
                     </h3>
                   </div>
                   <button
@@ -193,7 +193,9 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
                 <p className={`text-[11px] line-clamp-2 leading-relaxed ${
                   isDark ? 'text-slate-400' : 'text-slate-600'
                 }`}>
-                  {note.content.replace(/#|\*|\[|\]|\(|\)/g, '') || 'Empty note...'}
+                  {note.isLocked
+                    ? 'Passcode required to view contents...'
+                    : note.content.replace(/#|\*|\[|\]|\(|\)/g, '') || 'Empty note...'}
                 </p>
 
                 <div className={`flex items-center justify-between text-[10px] text-slate-400 font-mono pt-1.5 border-t ${

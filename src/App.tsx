@@ -26,6 +26,10 @@ export default function App() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [notesToDelete, setNotesToDelete] = useState<string[]>([]);
 
+  const [isZenMode, setIsZenMode] = useState(false);
+  const [securityModalNoteId, setSecurityModalNoteId] = useState<string | null>(null);
+  const [securityModalMode, setSecurityModalMode] = useState<'set' | 'unlock'>('set');
+
   // 1. History Stack Hook
   const {
     pushHistorySnapshot,
@@ -72,11 +76,26 @@ export default function App() {
   const handleUndo = useCallback(() => triggerUndo(setNotes), [triggerUndo, setNotes]);
   const handleRedo = useCallback(() => triggerRedo(setNotes), [triggerRedo, setNotes]);
 
-  const requestDeleteNotes = useCallback((ids: string[]) => {
-    if (ids.length === 0) return;
-    setNotesToDelete(ids);
-    setIsDeleteModalOpen(true);
-  }, []);
+  // Request deletion of notes - if any targeted note is locked, require passcode verification first
+  const requestDeleteNotes = useCallback(
+    (ids: string[]) => {
+      if (ids.length === 0) return;
+      const hasLockedNote = ids.some((id) => notes.find((n) => n.id === id)?.isLocked);
+      if (hasLockedNote) {
+        // Find first locked note id to verify passcode before deletion
+        const firstLockedId = ids.find((id) => notes.find((n) => n.id === id)?.isLocked)!;
+        setSecurityModalNoteId(firstLockedId);
+        setSecurityModalMode('unlock');
+        // Pending notes to delete after passcode verification
+        setNotesToDelete(ids);
+        return;
+      }
+      setNotesToDelete(ids);
+      setIsDeleteModalOpen(true);
+    },
+    [notes]
+  );
+
 
   const handleResetZoom = useCallback(() => {
     handleCanvasTransformChange({ x: Math.round(window.innerWidth / 2 - 400), y: Math.round(window.innerHeight / 2 - 300), zoom: 1 });
@@ -97,6 +116,27 @@ export default function App() {
   const handleToggleConnections = useCallback(() => {
     setSettings((prev) => ({ ...prev, showConnections: !prev.showConnections }));
   }, [setSettings]);
+
+  // Lock selected notes — if global master passcode already set, lock immediately; otherwise open setup modal
+  const handleLockSelectedNotes = useCallback(
+    (ids: string[]) => {
+      if (ids.length === 0) return;
+      if (settings.masterPasswordHash) {
+        // Master passcode configured — lock all selected notes immediately
+        const notesToLock = notes
+          .filter((n) => ids.includes(n.id) && !n.isLocked)
+          .map((n) => ({ ...n, isLocked: true, updatedAt: new Date().toISOString() }));
+        if (notesToLock.length > 0) {
+          handleUpdateBatchNotes(notesToLock);
+        }
+      } else {
+        // First time global setup — open setup modal for the first selected note
+        setSecurityModalNoteId(ids[0]);
+        setSecurityModalMode('set');
+      }
+    },
+    [notes, settings.masterPasswordHash, handleUpdateBatchNotes]
+  );
 
   // 4. Note Selection & Keyboard Shortcuts Hook
   const {
@@ -120,7 +160,23 @@ export default function App() {
     handleToggleTheme,
     handleToggleSnapToGrid,
     handleToggleConnections,
-    () => setIsZenMode((prev) => !prev)
+    () => setIsZenMode((prev) => !prev),
+    handleLockSelectedNotes
+  );
+
+  const handleDeleteProtectedNote = useCallback(
+    (noteId: string) => {
+      const target = notes.find((n) => n.id === noteId);
+      if (target?.isLocked) {
+        setSecurityModalNoteId(noteId);
+        setSecurityModalMode('unlock');
+        setNotesToDelete([noteId]);
+      } else {
+        handleDeleteNote(noteId);
+        setSelectedNoteIds((prev) => prev.filter((id) => id !== noteId));
+      }
+    },
+    [notes, handleDeleteNote, setSelectedNoteIds]
   );
 
   const handleCreateNote = useCallback(
@@ -164,13 +220,14 @@ export default function App() {
     setIsDeleteModalOpen(false);
   }, [handleDeleteMultipleNotes, notesToDelete, setSelectedNoteIds]);
 
-  const [isZenMode, setIsZenMode] = useState(false);
-  const [securityModalNoteId, setSecurityModalNoteId] = useState<string | null>(null);
-  const [securityModalMode, setSecurityModalMode] = useState<'set' | 'unlock'>('set');
-
   const securityModalNote = notes.find((n) => n.id === securityModalNoteId);
 
   const handleExportNote = useCallback((note: Note, format: 'md' | 'txt') => {
+    if (note.isLocked) {
+      setSecurityModalNoteId(note.id);
+      setSecurityModalMode('unlock');
+      return;
+    }
     const text = `# ${note.title || 'Untitled Note'}\n\n${note.content || ''}`;
     const blob = new Blob([text], { type: 'text/markdown;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -212,12 +269,25 @@ export default function App() {
         onNavigateToNote={(id) => handleNavigateToNote(id, setSelectedNoteIds)}
         onUpdateNote={handleUpdateNote}
         onUpdateBatchNotes={handleUpdateBatchNotes}
-        onDeleteNote={handleDeleteNote}
+        onDeleteNote={handleDeleteProtectedNote}
         onBringToFront={bringToFront}
         onDoubleClickCanvas={handleCreateNote}
         onRequestLockNote={(id) => {
-          setSecurityModalNoteId(id);
-          setSecurityModalMode('set');
+          if (settings.masterPasswordHash) {
+            // Global master passcode already set — lock immediately without modal
+            const note = notes.find((n) => n.id === id);
+            if (note) {
+              handleUpdateNote({
+                ...note,
+                isLocked: true,
+                updatedAt: new Date().toISOString(),
+              });
+            }
+          } else {
+            // First time setup — prompt to set app-wide global master passcode
+            setSecurityModalNoteId(id);
+            setSecurityModalMode('set');
+          }
         }}
         onRequestUnlockNote={(id) => {
           setSecurityModalNoteId(id);
@@ -266,7 +336,7 @@ export default function App() {
         onClose={() => setIsNotesListOpen(false)}
         onSelectNote={(id) => handleNavigateToNote(id, setSelectedNoteIds)}
         onAddNote={() => handleCreateNote()}
-        onDeleteNote={handleDeleteNote}
+        onDeleteNote={handleDeleteProtectedNote}
       />
 
       {/* Command Palette Search Modal */}
@@ -287,28 +357,45 @@ export default function App() {
         onClose={() => setIsDeleteModalOpen(false)}
       />
 
-      {/* Note Security Lock & Unlock Modal */}
+      {/* App Global Master Security Lock & Unlock Modal */}
       <SecurityModal
         isOpen={securityModalNoteId !== null}
         mode={securityModalMode}
         themeMode={settings.themeMode}
-        existingQuestion={securityModalNote?.securityQuestion}
-        existingPasswordHash={securityModalNote?.passwordHash}
-        existingAnswerHash={securityModalNote?.securityAnswerHash}
+        existingQuestion={settings.masterSecurityQuestion}
+        existingPasswordHash={settings.masterPasswordHash}
+        existingAnswerHash={settings.masterSecurityAnswerHash}
         onClose={() => setSecurityModalNoteId(null)}
-        onSuccessSet={(passwordHash, securityQuestion, securityAnswerHash) => {
-          if (!securityModalNote) return;
-          handleUpdateNote({
-            ...securityModalNote,
-            isLocked: true,
-            passwordHash,
-            securityQuestion,
-            securityAnswerHash,
-            updatedAt: new Date().toISOString(),
-          });
+        onSuccessSet={(masterPasswordHash, masterSecurityQuestion, masterSecurityAnswerHash) => {
+          // Store global master passcode & recovery question in App Settings
+          setSettings((prev) => ({
+            ...prev,
+            masterPasswordHash,
+            masterSecurityQuestion,
+            masterSecurityAnswerHash,
+          }));
+
+          // Lock target note immediately
+          if (securityModalNote) {
+            handleUpdateNote({
+              ...securityModalNote,
+              isLocked: true,
+              updatedAt: new Date().toISOString(),
+            });
+          }
         }}
         onSuccessUnlock={() => {
           if (!securityModalNote) return;
+          
+          // If pending deletion was requested, proceed with deletion after successful unlock
+          if (notesToDelete.length > 0) {
+            handleDeleteMultipleNotes(notesToDelete);
+            setSelectedNoteIds((prev) => prev.filter((id) => !notesToDelete.includes(id)));
+            setNotesToDelete([]);
+            return;
+          }
+
+          // Otherwise unlock note view
           handleUpdateNote({
             ...securityModalNote,
             isLocked: false,

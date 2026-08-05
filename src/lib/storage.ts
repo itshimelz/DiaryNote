@@ -11,6 +11,9 @@ export interface AppSettings {
   snapToGrid: boolean;
   showConnections: boolean;
   showMinimap: boolean;
+  masterPasswordHash?: string;
+  masterSecurityQuestion?: string;
+  masterSecurityAnswerHash?: string;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
