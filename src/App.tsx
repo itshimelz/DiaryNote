@@ -17,6 +17,7 @@ import {
   DeleteConfirmationModal,
   SecurityModal,
 } from './components';
+import { sendNativeAppNotification } from './lib/notifications';
 
 export default function App() {
   const [isNotesListOpen, setIsNotesListOpen] = useState(false);
@@ -128,6 +129,11 @@ export default function App() {
           .map((n) => ({ ...n, isLocked: true, updatedAt: new Date().toISOString() }));
         if (notesToLock.length > 0) {
           handleUpdateBatchNotes(notesToLock);
+          const count = notesToLock.length;
+          sendNativeAppNotification(
+            'Note Locked',
+            count === 1 ? `Locked note "${notesToLock[0].title || 'Untitled Note'}"` : `Locked ${count} notes`
+          );
         }
       } else {
         // First time global setup — open setup modal for the first selected note
@@ -174,6 +180,10 @@ export default function App() {
       } else {
         handleDeleteNote(noteId);
         setSelectedNoteIds((prev) => prev.filter((id) => id !== noteId));
+        sendNativeAppNotification(
+          'Note Deleted',
+          `Deleted note "${target?.title || 'Untitled Note'}"`
+        );
       }
     },
     [notes, handleDeleteNote, setSelectedNoteIds]
@@ -215,6 +225,11 @@ export default function App() {
     if (notesToDelete.length > 0) {
       handleDeleteMultipleNotes(notesToDelete);
       setSelectedNoteIds((prev) => prev.filter((id) => !notesToDelete.includes(id)));
+      const count = notesToDelete.length;
+      sendNativeAppNotification(
+        'Notes Deleted',
+        count === 1 ? `Deleted 1 note` : `Deleted ${count} notes`
+      );
       setNotesToDelete([]);
     }
     setIsDeleteModalOpen(false);
@@ -282,6 +297,10 @@ export default function App() {
                 isLocked: true,
                 updatedAt: new Date().toISOString(),
               });
+              sendNativeAppNotification(
+                'Note Locked',
+                `Locked note "${note.title || 'Untitled Note'}"`
+              );
             }
           } else {
             // First time setup — prompt to set app-wide global master passcode
@@ -391,6 +410,11 @@ export default function App() {
           if (notesToDelete.length > 0) {
             handleDeleteMultipleNotes(notesToDelete);
             setSelectedNoteIds((prev) => prev.filter((id) => !notesToDelete.includes(id)));
+            const count = notesToDelete.length;
+            sendNativeAppNotification(
+              'Note Deleted',
+              count === 1 ? `Deleted protected note "${securityModalNote.title || 'Untitled Note'}"` : `Deleted ${count} protected notes`
+            );
             setNotesToDelete([]);
             return;
           }

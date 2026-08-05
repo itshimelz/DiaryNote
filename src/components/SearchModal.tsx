@@ -302,7 +302,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                         ID: {note.id.includes('-') ? note.id.split('-').pop()?.toUpperCase() : note.id.toUpperCase()}
                       </span>
                       <h4 className="font-semibold text-xs truncate">
-                        {note.isLocked ? '🔒 Locked Note' : note.title || 'Untitled Note'}
+                        {note.isLocked ? 'Locked Note' : note.title || 'Untitled Note'}
                       </h4>
                     </div>
 

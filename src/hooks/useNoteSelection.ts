@@ -47,6 +47,7 @@ export function useNoteSelection(
   const handleSelectNote = useCallback((noteId: string | null, isMultiSelect?: boolean) => {
     if (noteId === null) {
       setSelectedNoteIds([]);
+      setEditingNoteId(null);
       return;
     }
 

@@ -9,7 +9,7 @@ import { NoteMarkdownView } from './NoteMarkdownView';
 import { NoteStylePicker } from './NoteStylePicker';
 import { MentionAutocomplete } from '../MentionAutocomplete';
 import { getUniqueTitleForDay } from '../../lib/markdownMention';
-import { normalizeNoteText, resizeNoteEditor } from '../../lib/noteTextEngine';
+import { normalizeNoteText, resizeNoteEditor, applyMarkdownFormatting, FormattingType } from '../../lib/noteTextEngine';
 import { Note } from '../../types';
 
 const NoteCardComponent: React.FC<NoteCardProps> = ({
@@ -62,6 +62,13 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
   useEffect(() => {
     setMentionSelectedIndex(0);
   }, [mentionQuery]);
+
+  // Exit edit mode if the card is deselected
+  useEffect(() => {
+    if (!isSelected) {
+      setIsEditing(false);
+    }
+  }, [isSelected]);
 
   // Auto-focus textarea when entering edit mode with reliable layout paint fallback
   useEffect(() => {
@@ -517,6 +524,44 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
               onKeyDown={(e) => {
                 // Keep typing keys inside the editor; card-level shortcuts must not receive them.
                 e.stopPropagation();
+
+                const key = e.key.toLowerCase();
+                const isMod = e.ctrlKey || e.metaKey;
+
+                // Rich text formatting shortcuts inside note editor
+                let formatType: FormattingType | null = null;
+                if (isMod && key === 'b') {
+                  formatType = 'bold';
+                } else if (isMod && key === 'i') {
+                  formatType = 'italic';
+                } else if (isMod && (key === 'x' && e.shiftKey)) {
+                  formatType = 'strikethrough';
+                } else if (isMod && (key === 'e' || key === '`')) {
+                  formatType = 'code';
+                } else if (isMod && key === 'k' && !mentionQuery) {
+                  formatType = 'link';
+                }
+
+                if (formatType && textareaRef.current) {
+                  e.preventDefault();
+                  const { newContent, newSelectionStart, newSelectionEnd } = applyMarkdownFormatting(
+                    textareaRef.current,
+                    formatType
+                  );
+                  onUpdateNote({
+                    ...note,
+                    content: newContent,
+                    updatedAt: new Date().toISOString(),
+                  });
+                  setTimeout(() => {
+                    if (textareaRef.current) {
+                      textareaRef.current.focus();
+                      textareaRef.current.setSelectionRange(newSelectionStart, newSelectionEnd);
+                    }
+                  }, 10);
+                  return;
+                }
+
                 if (e.key === 'Escape') {
                   e.preventDefault();
                   setMentionQuery(null);

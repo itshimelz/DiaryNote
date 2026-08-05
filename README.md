@@ -70,6 +70,11 @@ An Infinite Spatial Canvas Note-Taking & Diary Application built with React, Vit
 | `C` | Canvas | Toggle Note Connection Lines |
 | `Ctrl + Z` / `Cmd + Z` | Editing | Undo last canvas operation |
 | `Ctrl + Shift + Z` / `Ctrl + Y` | Editing | Redo canvas operation |
+| `Ctrl + B` | Note Editor | Format selected text as **Bold** |
+| `Ctrl + I` | Note Editor | Format selected text as *Italic* |
+| `Ctrl + Shift + X` | Note Editor | Format selected text as ~~Strikethrough~~ |
+| `Ctrl + E` / ``Ctrl + ` `` | Note Editor | Format selected text as `Inline Code` |
+| `Ctrl + K` *(in editor)* | Note Editor | Format selected text as `[link](url)` |
 | `@` | Note Editor | Trigger internal note autocomplete |
 
 ---

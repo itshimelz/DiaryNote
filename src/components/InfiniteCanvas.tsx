@@ -192,9 +192,13 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
 
       setSelectionBox({ startX, startY, currentX: startX, currentY: startY });
 
+      let hasDragged = false;
       const handleMouseMove = (moveEvt: MouseEvent) => {
         const curX = moveEvt.clientX - rect.left;
         const curY = moveEvt.clientY - rect.top;
+        if (Math.abs(curX - startX) > 3 || Math.abs(curY - startY) > 3) {
+          hasDragged = true;
+        }
         setSelectionBox({ startX, startY, currentX: curX, currentY: curY });
 
         const minPx = Math.min(startX, curX);
@@ -216,6 +220,9 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
 
       const handleMouseUp = () => {
         setSelectionBox(null);
+        if (!hasDragged && !e.shiftKey) {
+          onSelectNote(null);
+        }
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
       };

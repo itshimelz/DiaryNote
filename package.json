@@ -16,6 +16,7 @@
   "dependencies": {
     "@google/genai": "^2.4.0",
     "@tailwindcss/vite": "^4.1.14",
+    "@tauri-apps/plugin-notification": "^2.3.3",
     "@vitejs/plugin-react": "^5.0.4",
     "dexie": "^4.4.4",
     "dotenv": "^17.2.3",

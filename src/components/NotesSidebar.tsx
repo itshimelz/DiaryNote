@@ -175,7 +175,7 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
                     <h3 className={`font-semibold text-xs transition-colors line-clamp-1 ${
                       isDark ? 'text-slate-200 group-hover:text-white' : 'text-slate-800 group-hover:text-slate-900'
                     }`}>
-                      {note.isLocked ? '🔒 Locked Note' : note.title || 'Untitled Note'}
+                      {note.isLocked ? 'Locked Note' : note.title || 'Untitled Note'}
                     </h3>
                   </div>
                   <button
