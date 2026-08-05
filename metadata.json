@@ -1,0 +1,6 @@
+{
+  "name": "Infinite Canvas Notes",
+  "description": "An offline-first infinite canvas for unstructured handwritten diary notes with markdown and @note reference links.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

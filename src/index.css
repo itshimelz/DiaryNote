@@ -1,0 +1,138 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .font-hand-caveat {
+    font-family: 'Caveat', 'Hind Siliguri', cursive, sans-serif;
+  }
+  .font-hand-kalam {
+    font-family: 'Kalam', 'Anek Bangla', cursive, sans-serif;
+  }
+  .font-hand-patrick {
+    font-family: 'Patrick Hand', 'Hind Siliguri', cursive, sans-serif;
+  }
+  .font-hand-architect {
+    font-family: 'Architects Daughter', 'Noto Serif Bengali', cursive, sans-serif;
+  }
+  .font-hand-hind {
+    font-family: 'Hind Siliguri', 'Plus Jakarta Sans', sans-serif;
+  }
+  .font-hand-anek {
+    font-family: 'Anek Bangla', 'Plus Jakarta Sans', sans-serif;
+  }
+  .font-hand-noto-bengali {
+    font-family: 'Noto Serif Bengali', serif;
+  }
+  .font-sans {
+    font-family: 'Google Sans Flex', 'Google Sans', 'Plus Jakarta Sans', 'Hind Siliguri', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  .font-mono-code {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+:root {
+  font-family: 'Google Sans Flex', 'Plus Jakarta Sans', 'Hind Siliguri', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Geometric Balance Radial Canvas Dots */
+.bg-canvas-dots-light {
+  background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.bg-canvas-dots-dark {
+  background-image: radial-gradient(#334155 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.bg-canvas-grid-light {
+  background-image: linear-gradient(to right, #e2e8f0 1px, transparent 1px),
+                    linear-gradient(to bottom, #e2e8f0 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.bg-canvas-grid-dark {
+  background-image: linear-gradient(to right, #1e293b 1px, transparent 1px),
+                    linear-gradient(to bottom, #1e293b 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.bg-canvas-ruled-light {
+  background-image: repeating-linear-gradient(transparent, transparent 27px, #e2e8f0 28px);
+  background-size: 100% 28px;
+}
+
+.bg-canvas-ruled-dark {
+  background-image: repeating-linear-gradient(transparent, transparent 27px, #1e293b 28px);
+  background-size: 100% 28px;
+}
+
+/* Note Ruled Lined Paper Backgrounds */
+.bg-note-ruled {
+  background-color: #fdfdf8;
+  background-image: repeating-linear-gradient(transparent, transparent 31px, #cbd5e1 32px);
+  background-size: 100% 32px;
+  background-origin: content-box;
+  background-position: 0 4px;
+}
+
+.bg-note-ruled-dark {
+  background-color: #0d1527;
+  background-image: repeating-linear-gradient(transparent, transparent 31px, #1e293b 32px);
+  background-size: 100% 32px;
+  background-origin: content-box;
+  background-position: 0 4px;
+}
+
+/* Perfect alignment for ruled lined notes */
+.ruled-text-alignment {
+  line-height: 32px !important;
+}
+
+.ruled-text-alignment,
+textarea.ruled-text-alignment {
+  line-height: 32px !important;
+  padding: 0 !important;
+  padding-top: 0px !important;
+  margin: 0 !important;
+}
+
+.ruled-text-alignment p,
+.ruled-text-alignment div,
+.ruled-text-alignment span,
+.ruled-text-alignment li {
+  line-height: 32px !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.ruled-text-alignment h1,
+.ruled-text-alignment h2,
+.ruled-text-alignment h3,
+.ruled-text-alignment h4,
+.ruled-text-alignment blockquote {
+  line-height: 32px !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Custom scrollbars inside notes */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+
