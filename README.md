@@ -1,6 +1,6 @@
 <div align="center">
 
-# 📓 DiaryNote
+# DiaryNote
 
 An Infinite Spatial Canvas Note-Taking & Diary Application built with React, Vite, TypeScript, TailwindCSS, Dexie/SQLite, and Tauri v2.
 
@@ -16,42 +16,65 @@ An Infinite Spatial Canvas Note-Taking & Diary Application built with React, Vit
 
 </div>
 
-## 🌟 Overview
+## Overview
 
-**DiaryNote** combines the freedom of an infinite spatial canvas with local-first database persistence and native desktop performance. Organize thoughts, journals, and daily notes visually, draw bi-directional links between cards, and query notes with embedded AI vector search.
+**DiaryNote** combines the freedom of an infinite spatial canvas with local-first database persistence, native security features, and desktop performance. Organize thoughts, journals, and daily notes visually, draw bi-directional links between cards, and query notes with embedded AI vector search.
 
 ---
 
-## ✨ Features
+## Features
 
-### 🎨 Infinite Spatial Canvas
+### Infinite Spatial Canvas
 - **Pan & Zoom Navigation**: Smooth infinite canvas zooming (0.1x – 3.0x) and panning with mouse wheel or spacebar drag.
 - **Grid Snapping**: Toggleable snap-to-grid movement with release spring physics.
 - **Custom Patterns**: Switch background patterns dynamically (`dots`, `grid`, `ruled`, `blank`).
 - **Canvas Minimap**: Interactive mini-map viewport overview placed at top right.
 
-### 📝 Rich Card Rendering
+### Rich Card Rendering
 - **Live Markdown View**: Full GitHub Flavored Markdown (GFM) with soft line breaks and ruled paper line alignment.
 - **Checklist Mode**: Create interactive task lists with completion status.
 - **Image Mode**: Embed visual assets and images into spatial cards.
 - **Curated Themes & Fonts**: 9 paper themes (`white`, `cream`, `ruled`, `dark`, `kraft`, `graphite`) and custom typography (Google Sans, Caveat, Kalam, Architects Daughter, JetBrains Mono, and Bengali fonts).
 
-### 🧠 Local SQLite & RAG Vector Engine
+### Security & Local Persistence
+- **App-Wide Master Passcode**: Protect private notes using a secure SHA-256 hashed master passcode and recovery question.
+- **Protected Actions**: Deleting, exporting, or viewing locked notes requires passcode verification.
+- **Privacy Search & Previews**: Locked note contents and tags are masked in search modals and sidebar lists.
 - **Local-First Storage**: Offline Dexie/SQLite database storage with automatic background synchronization.
+- **Native Notifications**: Desktop system notifications trigger on key security actions (locking, deleting notes).
 - **RAG Embedding Ready**: Built-in vector embedding field (`embedding?: number[]`) and cosine similarity search helper (`searchNotesByVector`).
-- **Safe Persistence**: Deleted notes stay permanently deleted without forced sample re-seeding.
 
-### 🔗 Bi-Directional Links & Visual Graph
+### Bi-Directional Links & Visual Graph
 - **@Note Autocomplete**: Type `@NoteTitle` or `@[NoteTitle]` to open instant autocomplete search and insert internal links.
 - **SVG Connection Graph**: Interactive connection lines link reference notes across the canvas visually.
 
-### ⌨️ Command Palette & Quick Search
-- **Fuzzy Search (`Ctrl + K`)**: Command palette searching titles, markdown contents, tags, and ISO dates.
-- **Undo / Redo (`Ctrl + Z` / `Ctrl + Y`)**: 50-step undo and redo state stack.
+---
+
+## Keyboard Shortcuts
+
+| Shortcut | Category | Description |
+| :--- | :--- | :--- |
+| `Ctrl + L` / `Cmd + L` | Security | Lock selected note(s) immediately |
+| `N` / `Ctrl + N` | Notes | Create a new note card |
+| `Enter` | Notes | Start editing the selected note |
+| `Delete` / `Backspace` | Notes | Delete selected note card(s) (requires passcode if locked) |
+| `Escape` | Actions | Deselect active card / exit edit mode / close modals |
+| `Ctrl + K` / `Ctrl + F` / `/` | Navigation | Open Command Palette / Fuzzy Search Modal |
+| `F` | Navigation | Fit all notes into the viewport view |
+| `H` / `Home` | Navigation | Reset zoom to default centered view |
+| `Space` *(Hold)* | Canvas | Temporary Pan mode while dragging mouse |
+| `P` | Canvas | Toggle Pan mode on/off |
+| `Z` | View | Toggle Zen mode (hide UI control bars) |
+| `T` | View | Toggle Canvas Theme (Dark / Light / Gradient) |
+| `S` | Canvas | Toggle Snap to Grid |
+| `C` | Canvas | Toggle Note Connection Lines |
+| `Ctrl + Z` / `Cmd + Z` | Editing | Undo last canvas operation |
+| `Ctrl + Shift + Z` / `Ctrl + Y` | Editing | Redo canvas operation |
+| `@` | Note Editor | Trigger internal note autocomplete |
 
 ---
 
-## 📋 Requirements
+## Requirements
 
 - **Linux**: Arch Linux / Hyprland / Ubuntu / Debian / Fedora (WebKitGTK)
 - **macOS**: 10.15+ (Catalina or newer)
@@ -59,9 +82,9 @@ An Infinite Spatial Canvas Note-Taking & Diary Application built with React, Vit
 
 ---
 
-## 🚀 Installation
+## Installation
 
-### 📦 Linux Prebuilt Package (`.deb` / Standalone Binary)
+### Linux Prebuilt Package (`.deb` / Standalone Binary)
 
 Download the latest prebuilt packages from the [GitHub Releases](https://github.com/itshimelz/DiaryNote/releases/latest) page.
 
@@ -77,7 +100,7 @@ chmod +x DiaryNote_0.1.0_x86_64
 ```
 
 <details>
-<summary><b>🛠️ Build from Source</b></summary>
+<summary><b>Build from Source</b></summary>
 
 #### 1. Prerequisites
 - **Node.js**: `v18+`
@@ -111,21 +134,7 @@ Output location: `src-tauri/target/release/bundle/deb/DiaryNote_0.1.0_amd64.deb`
 
 ---
 
-## ⌨️ Keyboard Shortcuts
-
-| Shortcut | Action |
-| :--- | :--- |
-| `Ctrl + K` / `Cmd + K` | Open Command Palette / Fuzzy Search Modal |
-| `Ctrl + Z` / `Cmd + Z` | Undo last canvas operation |
-| `Ctrl + Y` / `Cmd + Shift + Z` | Redo canvas operation |
-| `Enter` | Edit selected note card |
-| `Delete` / `Backspace` | Delete selected note card(s) |
-| `Escape` | Deselect active card / close modals |
-| `Space + Drag` | Pan spatial canvas |
-
----
-
-## 📁 Architecture
+## Architecture
 
 ```
 src/
@@ -138,6 +147,7 @@ src/
 │   ├── NoteConnections.tsx     # SVG bi-directional connection lines
 │   ├── NotesSidebar.tsx         # Drawer overview panel
 │   ├── SearchModal.tsx          # Command palette search dialog
+│   ├── SecurityModal.tsx        # Passcode & recovery modal
 │   └── NoteCard/                # Note Card component & theme renderers
 │       ├── NoteChecklist.tsx
 │       ├── NoteHeader.tsx
@@ -155,6 +165,8 @@ src/
 │   └── useNoteSelection.ts     # Single & multi-select logic & hotkeys
 │
 ├── lib/                         # Core Services & DB Layer
+│   ├── notifications.ts         # Native desktop & Web notifications engine
+│   ├── security.ts              # SHA-256 Web Crypto hashing engine
 │   ├── sqliteStorage.ts         # Dexie / SQLite storage layer & RAG vector search
 │   ├── storage.ts               # Local backups, export/import, settings storage
 │   ├── markdownMention.ts       # @Note link parser & connection extractor
@@ -170,7 +182,7 @@ src/
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Feel free to open an issue or submit a pull request.
 
@@ -182,6 +194,6 @@ Contributions are welcome! Feel free to open an issue or submit a pull request.
 
 ---
 
-## 📜 License
+## License
 
 Distributed under the MIT License. See [`LICENSE`](LICENSE) for details.
