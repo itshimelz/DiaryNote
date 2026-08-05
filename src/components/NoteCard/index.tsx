@@ -577,6 +577,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
                 onSelect={(targetNote) => handleSelectMention(targetNote)}
                 onClose={() => setMentionQuery(null)}
                 position={mentionPos}
+                themeMode={themeConfig.isDark ? 'dark' : 'light'}
               />
             )}
           </div>

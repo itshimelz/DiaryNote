@@ -262,6 +262,7 @@ export default function App() {
       <NotesSidebar
         isOpen={isNotesListOpen}
         notes={notes}
+        themeMode={settings.themeMode}
         onClose={() => setIsNotesListOpen(false)}
         onSelectNote={(id) => handleNavigateToNote(id, setSelectedNoteIds)}
         onAddNote={() => handleCreateNote()}

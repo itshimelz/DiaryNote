@@ -153,19 +153,25 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({
             <div className={`p-3 rounded-xl border flex items-start gap-2.5 ${
               isDark ? 'bg-slate-800/60 border-slate-700/80 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
             }`}>
-              <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5 text-slate-400" />
+              <ShieldAlert className={`w-4 h-4 shrink-0 mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`} />
               <div>
-                <p className="font-semibold text-[11px] uppercase tracking-wider mb-0.5 text-slate-200 dark:text-slate-100">
+                <p className={`font-semibold text-[11px] uppercase tracking-wider mb-0.5 ${
+                  isDark ? 'text-slate-200' : 'text-slate-900'
+                }`}>
                   Security Warning
                 </p>
-                <p className="leading-relaxed text-[11px]">
+                <p className={`leading-relaxed text-[11px] ${
+                  isDark ? 'text-slate-300' : 'text-slate-600'
+                }`}>
                   Passcodes are hashed locally. Fill out the recovery question below to prevent permanent loss if you forget your password.
                 </p>
               </div>
             </div>
 
             <div>
-              <label className="block font-semibold mb-1 text-slate-300 dark:text-slate-200">Set Passcode</label>
+              <label className={`block font-semibold mb-1 ${
+                isDark ? 'text-slate-200' : 'text-slate-700'
+              }`}>Set Passcode</label>
               <input
                 type="password"
                 required
@@ -181,7 +187,9 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({
             </div>
 
             <div>
-              <label className="block font-semibold mb-1 text-slate-300 dark:text-slate-200">Confirm Passcode</label>
+              <label className={`block font-semibold mb-1 ${
+                isDark ? 'text-slate-200' : 'text-slate-700'
+              }`}>Confirm Passcode</label>
               <input
                 type="password"
                 required
@@ -196,9 +204,13 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({
               />
             </div>
 
-            <div className="pt-2 border-t border-slate-800/60 dark:border-slate-800">
-              <label className="block font-semibold mb-1 text-slate-300 dark:text-slate-200 flex items-center gap-1.5">
-                <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
+            <div className={`pt-2 border-t ${
+              isDark ? 'border-slate-800' : 'border-slate-200'
+            }`}>
+              <label className={`block font-semibold mb-1 flex items-center gap-1.5 ${
+                isDark ? 'text-slate-200' : 'text-slate-700'
+              }`}>
+                <HelpCircle className={`w-3.5 h-3.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
                 <span>Security Recovery Question</span>
               </label>
               <select
@@ -262,7 +274,9 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({
         {mode === 'unlock' && !isForgotView && (
           <form onSubmit={handleVerifyPassword} className="space-y-4 text-xs">
             <div>
-              <label className="block font-semibold mb-1 text-slate-300 dark:text-slate-200">Enter Note Passcode</label>
+              <label className={`block font-semibold mb-1 ${
+                isDark ? 'text-slate-200' : 'text-slate-700'
+              }`}>Enter Note Passcode</label>
               <input
                 type="password"
                 required
@@ -282,7 +296,9 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsForgotView(true)}
-                className="text-[11px] underline underline-offset-2 text-slate-400 hover:text-slate-200 transition-colors"
+                className={`text-[11px] underline underline-offset-2 transition-colors ${
+                  isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
+                }`}
               >
                 Forgot Password?
               </button>
@@ -308,16 +324,22 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({
             <div className={`p-3 rounded-xl border ${
               isDark ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50 border-slate-200'
             }`}>
-              <span className="block text-[10px] uppercase font-mono tracking-wider text-slate-400 mb-1">
+              <span className={`block text-[10px] uppercase font-mono tracking-wider mb-1 ${
+                isDark ? 'text-slate-400' : 'text-slate-500'
+              }`}>
                 Security Question:
               </span>
-              <p className="font-semibold text-slate-200 dark:text-slate-100 leading-relaxed">
+              <p className={`font-semibold leading-relaxed ${
+                isDark ? 'text-slate-100' : 'text-slate-900'
+              }`}>
                 "{existingQuestion}"
               </p>
             </div>
 
             <div>
-              <label className="block font-semibold mb-1 text-slate-300 dark:text-slate-200">Your Recovery Answer</label>
+              <label className={`block font-semibold mb-1 ${
+                isDark ? 'text-slate-200' : 'text-slate-700'
+              }`}>Your Recovery Answer</label>
               <input
                 type="text"
                 required
@@ -337,7 +359,9 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsForgotView(false)}
-                className="text-[11px] underline underline-offset-2 text-slate-400 hover:text-slate-200 transition-colors"
+                className={`text-[11px] underline underline-offset-2 transition-colors ${
+                  isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
+                }`}
               >
                 Back to Password
               </button>
