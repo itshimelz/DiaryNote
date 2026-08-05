@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Note, CanvasTransform } from '../types';
 import { extractNoteConnections } from '../lib/markdownMention';
 
@@ -15,11 +15,15 @@ export const NoteConnections: React.FC<NoteConnectionsProps> = ({
   selectedNoteId,
   onSelectNote,
 }) => {
-  const connections = extractNoteConnections(notes);
-  if (connections.length === 0) return null;
+  const connections = useMemo(() => extractNoteConnections(notes), [notes]);
 
-  const noteMap = new Map<string, Note>();
-  notes.forEach((n) => noteMap.set(n.id, n));
+  const noteMap = useMemo(() => {
+    const map = new Map<string, Note>();
+    notes.forEach((n) => map.set(n.id, n));
+    return map;
+  }, [notes]);
+
+  if (connections.length === 0) return null;
 
   return (
     <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible">

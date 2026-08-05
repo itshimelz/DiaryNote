@@ -50,16 +50,21 @@ export function extractNoteConnections(notes: Note[]): Connection[] {
 export function processMarkdownMentions(content: string, notes: Note[]): string {
   if (!content) return '';
 
+  const idMap = new Map<string, Note>();
   const titleMap = new Map<string, Note>();
+
   (notes || []).forEach((n) => {
-    if (n && n.title) {
-      titleMap.set(n.title.trim().toLowerCase(), n);
+    if (n) {
+      idMap.set(n.id, n);
+      if (n.title) {
+        titleMap.set(n.title.trim().toLowerCase(), n);
+      }
     }
   });
 
   // Replace @[Title] or @[Title](id) with custom markdown link syntax
   return content.replace(/@\[([^\]]+)\](?:\(([^)]+)\))?/g, (fullMatch, title, explicitId) => {
-    let targetNote = explicitId ? (notes || []).find((n) => n && n.id === explicitId) : null;
+    let targetNote = explicitId ? idMap.get(explicitId) : null;
     if (!targetNote && title) {
       targetNote = titleMap.get(title.trim().toLowerCase()) || null;
     }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
@@ -6,6 +6,8 @@ import { Note } from '../../types';
 import { processMarkdownMentions } from '../../lib/markdownMention';
 import { isNoteTextEmpty, normalizeNoteText } from '../../lib/noteTextEngine';
 import { PAPER_THEMES } from './types';
+
+const REMARK_PLUGINS = [remarkGfm, remarkBreaks];
 
 interface NoteMarkdownViewProps {
   note: Note;
@@ -26,8 +28,11 @@ export const NoteMarkdownView: React.FC<NoteMarkdownViewProps> = ({
   onDoubleClick,
   markdownRef,
 }) => {
-  const sourceText = normalizeNoteText(note.content);
-  const processedContent = processMarkdownMentions(sourceText, allNotes);
+  const sourceText = useMemo(() => normalizeNoteText(note.content), [note.content]);
+  const processedContent = useMemo(
+    () => processMarkdownMentions(sourceText, allNotes),
+    [sourceText, allNotes]
+  );
   const themeConfig = PAPER_THEMES[note.paperTheme || 'white'];
 
   const isRuled = note.paperTheme === 'ruled' || note.paperTheme === 'ruled-dark';
@@ -45,7 +50,7 @@ export const NoteMarkdownView: React.FC<NoteMarkdownViewProps> = ({
     >
       <div>
         <ReactMarkdown
-          remarkPlugins={[remarkGfm, remarkBreaks]}
+          remarkPlugins={REMARK_PLUGINS}
           components={{
             p: ({ children }) => (
               <p

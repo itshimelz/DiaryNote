@@ -11,7 +11,7 @@ import { getUniqueTitleForDay } from '../../lib/markdownMention';
 import { normalizeNoteText, resizeNoteEditor } from '../../lib/noteTextEngine';
 import { Note } from '../../types';
 
-export const NoteCard: React.FC<NoteCardProps> = ({
+const NoteCardComponent: React.FC<NoteCardProps> = ({
   note,
   allNotes,
   zoom,
@@ -613,3 +613,29 @@ export const NoteCard: React.FC<NoteCardProps> = ({
     </div>
   );
 };
+
+export const NoteCard = React.memo(NoteCardComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.isFocused === nextProps.isFocused &&
+    prevProps.shouldStartEditing === nextProps.shouldStartEditing &&
+    prevProps.snapToGrid === nextProps.snapToGrid &&
+    prevProps.isPanMode === nextProps.isPanMode &&
+    prevProps.zoom === nextProps.zoom &&
+    prevProps.note.id === nextProps.note.id &&
+    prevProps.note.x === nextProps.note.x &&
+    prevProps.note.y === nextProps.note.y &&
+    prevProps.note.width === nextProps.note.width &&
+    prevProps.note.height === nextProps.note.height &&
+    prevProps.note.zIndex === nextProps.note.zIndex &&
+    prevProps.note.title === nextProps.note.title &&
+    prevProps.note.content === nextProps.note.content &&
+    prevProps.note.updatedAt === nextProps.note.updatedAt &&
+    prevProps.note.paperTheme === nextProps.note.paperTheme &&
+    prevProps.note.fontFamily === nextProps.note.fontFamily &&
+    prevProps.note.fontSize === nextProps.note.fontSize &&
+    prevProps.note.activeMode === nextProps.note.activeMode &&
+    prevProps.note.isPinned === nextProps.note.isPinned &&
+    prevProps.selectedNoteIds?.length === nextProps.selectedNoteIds?.length
+  );
+});

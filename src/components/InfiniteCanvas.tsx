@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Note, CanvasTransform, GridType, CanvasTheme } from '../types';
 import { NoteCard } from './NoteCard';
 import { NoteConnections } from './NoteConnections';
@@ -286,29 +286,50 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   const visibleMaxY = (viewportHeight - transform.y) / transform.zoom + renderBuffer;
 
   // Only render NoteCards that are within or touching the active viewport
-  const visibleNotes = notes.length > 60
-    ? notes.filter(
-        (n) =>
-          n.id === selectedNoteId ||
-          n.id === focusedNoteId ||
-          n.isPinned ||
-          (n.x + n.width >= visibleMinX &&
-            n.x <= visibleMaxX &&
-            n.y + n.height >= visibleMinY &&
-            n.y <= visibleMaxY)
-      )
-    : notes;
+  const visibleNotes = useMemo(() => {
+    if (notes.length <= 60) return notes;
+    return notes.filter(
+      (n) =>
+        n.id === selectedNoteId ||
+        n.id === focusedNoteId ||
+        n.isPinned ||
+        (n.x + n.width >= visibleMinX &&
+          n.x <= visibleMaxX &&
+          n.y + n.height >= visibleMinY &&
+          n.y <= visibleMaxY)
+    );
+  }, [notes, selectedNoteId, focusedNoteId, visibleMinX, visibleMaxX, visibleMinY, visibleMaxY]);
 
-  // Minimap bounding calculations
-  const minimapPadding = 100;
-  const minX = Math.min(...notes.map((n) => n.x), 0) - minimapPadding;
-  const maxX = Math.max(...notes.map((n) => n.x + n.width), 1000) + minimapPadding;
-  const minY = Math.min(...notes.map((n) => n.y), 0) - minimapPadding;
-  const maxY = Math.max(...notes.map((n) => n.y + n.height), 800) + minimapPadding;
+  // Minimap bounding calculations memoized in a single O(N) pass
+  const { minX, minY, worldWidth, worldHeight, minimapScale } = useMemo(() => {
+    if (notes.length === 0) {
+      return { minX: -100, minY: -100, worldWidth: 1200, worldHeight: 1000, minimapScale: 0.12 };
+    }
+    let minXVal = 0;
+    let maxXVal = 1000;
+    let minYVal = 0;
+    let maxYVal = 800;
 
-  const worldWidth = maxX - minX;
-  const worldHeight = maxY - minY;
-  const minimapScale = Math.min(150 / worldWidth, 90 / worldHeight);
+    for (let i = 0; i < notes.length; i++) {
+      const n = notes[i];
+      if (n.x < minXVal) minXVal = n.x;
+      if (n.x + n.width > maxXVal) maxXVal = n.x + n.width;
+      if (n.y < minYVal) minYVal = n.y;
+      if (n.y + n.height > maxYVal) maxYVal = n.y + n.height;
+    }
+
+    const padding = 100;
+    const minXBoundary = minXVal - padding;
+    const maxXBoundary = maxXVal + padding;
+    const minYBoundary = minYVal - padding;
+    const maxYBoundary = maxYVal + padding;
+
+    const wWidth = maxXBoundary - minXBoundary;
+    const wHeight = maxYBoundary - minYBoundary;
+    const scale = Math.min(150 / wWidth, 90 / wHeight);
+
+    return { minX: minXBoundary, minY: minYBoundary, worldWidth: wWidth, worldHeight: wHeight, minimapScale: scale };
+  }, [notes]);
 
   return (
     <div

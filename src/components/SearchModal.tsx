@@ -50,20 +50,23 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   // Fast search filter logic
   const filteredNotes = useMemo(() => {
     if (!query.trim()) {
-      // Return notes sorted by updatedAt
-      return [...notes].sort(
-        (a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()
-      );
+      // Return notes sorted by updatedAt without Date allocations
+      return [...notes].sort((a, b) => {
+        const timeA = a.updatedAt || a.createdAt || '';
+        const timeB = b.updatedAt || b.createdAt || '';
+        return timeB > timeA ? 1 : timeB < timeA ? -1 : 0;
+      });
     }
 
     const q = query.toLowerCase().trim();
 
     return notes.filter((note) => {
-      const title = note.title.toLowerCase();
-      const content = note.content.toLowerCase();
-      const formattedCreated = formatDate(note.createdAt).toLowerCase();
-      const formattedUpdated = formatDate(note.updatedAt).toLowerCase();
-      const isoCreated = note.createdAt.toLowerCase();
+      const title = (note.title || '').toLowerCase();
+      const content = (note.content || '').toLowerCase();
+
+      // Quick keyword match check
+      const matchesKeyword = title.includes(q) || content.includes(q);
+      if (filterType === 'all' && matchesKeyword) return true;
 
       // Check hashtags or tags
       const noteTags = [
@@ -75,17 +78,16 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         return noteTags.some((t) => t.includes(q)) || (q.startsWith('#') && noteTags.some((t) => t.includes(q.substring(1))));
       }
 
+      const isoCreated = (note.createdAt || '').toLowerCase();
+      const formattedCreated = formatDate(note.createdAt).toLowerCase();
+      const formattedUpdated = formatDate(note.updatedAt).toLowerCase();
+      const matchesDate = formattedCreated.includes(q) || formattedUpdated.includes(q) || isoCreated.includes(q);
+
       if (filterType === 'date') {
-        return (
-          formattedCreated.includes(q) ||
-          formattedUpdated.includes(q) ||
-          isoCreated.includes(q)
-        );
+        return matchesDate;
       }
 
       // Default 'all': match title, content, dates, or tags
-      const matchesKeyword = title.includes(q) || content.includes(q);
-      const matchesDate = formattedCreated.includes(q) || formattedUpdated.includes(q) || isoCreated.includes(q);
       const matchesTag = noteTags.some((t) => t.includes(q));
 
       return matchesKeyword || matchesDate || matchesTag;
