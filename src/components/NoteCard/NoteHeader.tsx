@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Share2, X, Pin, Check } from 'lucide-react';
 import { Note } from '../../types';
 import { getUniqueTitleForDay } from '../../lib/markdownMention';
@@ -12,6 +12,7 @@ interface NoteHeaderProps {
   onTogglePin: () => void;
   onDeleteNote: () => void;
   onShareNote?: () => void;
+  onDeselectNote?: () => void;
   headerDragProps?: Record<string, any>;
   themeConfig?: PaperThemeConfig;
 }
@@ -24,12 +25,14 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
   onTogglePin,
   onDeleteNote,
   onShareNote,
+  onDeselectNote,
   headerDragProps = {},
   themeConfig,
 }) => {
   const [title, setTitle] = useState(note.title || 'Untitled Note');
   const [isEditingTitleLocal, setIsEditingTitleLocal] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const skipBlurSaveRef = useRef(false);
 
   useEffect(() => {
     setTitle(note.title || 'Untitled Note');
@@ -98,10 +101,22 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              onBlur={() => handleSaveTitle(title)}
+              onBlur={() => {
+                if (skipBlurSaveRef.current) {
+                  skipBlurSaveRef.current = false;
+                  return;
+                }
+                handleSaveTitle(title);
+              }}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === 'Escape') {
+                if (e.key === 'Enter') {
                   handleSaveTitle(title);
+                  (e.target as HTMLInputElement).blur();
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  skipBlurSaveRef.current = true;
+                  setTitle(note.title || 'Untitled Note');
+                  setIsEditingTitleLocal(false);
                   (e.target as HTMLInputElement).blur();
                 }
               }}
@@ -145,6 +160,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                 : actionBtnClass
             }`}
             title={note.isPinned ? 'Unpin note' : 'Pin note'}
+            aria-label={note.isPinned ? 'Unpin note' : 'Pin note'}
           >
             <Pin className={`w-4 h-4 ${note.isPinned ? 'fill-amber-500' : ''}`} />
           </button>
@@ -158,6 +174,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
             }}
             className={`p-1 rounded-full transition-colors relative ${actionBtnClass}`}
             title={isCopied ? 'Copied to clipboard!' : 'Share note'}
+            aria-label={isCopied ? 'Copied to clipboard' : 'Copy note to clipboard'}
           >
             {isCopied ? <Check className="w-4 h-4 text-emerald-600" /> : <Share2 className="w-4 h-4" />}
           </button>
@@ -173,6 +190,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
               isDarkCard ? 'hover:bg-rose-950/40 text-slate-400' : 'hover:bg-rose-50 text-slate-500'
             } transition-colors`}
             title="Delete note"
+            aria-label="Delete note"
           >
             <X className="w-4 h-4" />
           </button>

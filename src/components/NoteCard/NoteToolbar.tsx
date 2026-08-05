@@ -13,22 +13,8 @@ interface NoteToolbarProps {
   themeConfig?: PaperThemeConfig;
 }
 
-const TypeIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
+const TypeIcon = () => (
   <span className="font-sans font-bold text-sm sm:text-base leading-none select-none">T</span>
-);
-
-const ScribbleIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M 3 14 C 6 8, 9 8, 12 14 C 15 20, 18 20, 21 14" />
-  </svg>
 );
 
 export const NoteToolbar: React.FC<NoteToolbarProps> = ({
@@ -57,12 +43,23 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
   const toolbarBg = themeConfig?.toolbarBg || 'bg-white';
   const divider = themeConfig?.divider || 'border-slate-100';
   const normalBtnClass = themeConfig?.toolbarBtn || 'text-slate-700 hover:text-slate-900 hover:bg-slate-100/80';
-  const activeBtnClass = themeConfig?.toolbarActiveBtn || 'bg-[#e0edff] text-[#2563eb]';
   const isDarkCard = themeConfig?.isDark ?? false;
 
-  const getBtnClass = (isActive: boolean) =>
+  // Text mode active: blue border, blue icon
+  const textActiveBtnClass = 'border border-[#2563eb] text-[#2563eb] font-bold';
+  // Checklist mode active: violet border, violet icon
+  const checklistActiveBtnClass = isDarkCard
+    ? 'border border-violet-400 text-violet-400 font-bold'
+    : 'border border-violet-500 text-violet-500 font-bold';
+
+  const getTextBtnClass = (isActive: boolean) =>
     `flex items-center justify-center w-8 h-8 rounded-lg transition-all ${
-      isActive ? `${activeBtnClass} font-bold shadow-2xs` : normalBtnClass
+      isActive ? textActiveBtnClass : normalBtnClass
+    }`;
+
+  const getChecklistBtnClass = (isActive: boolean) =>
+    `flex items-center justify-center w-8 h-8 rounded-lg transition-all ${
+      isActive ? checklistActiveBtnClass : normalBtnClass
     }`;
 
   return (
@@ -71,49 +68,43 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
       <button
         type="button"
         onClick={() => onSelectMode('text')}
-        className={getBtnClass(activeMode === 'text')}
+        className={getTextBtnClass(activeMode === 'text')}
         title="Text mode"
+        aria-label="Text mode"
       >
-        <TypeIcon className="w-4 h-4" />
+        <TypeIcon />
       </button>
 
-      {/* 2. Scribble / Draw Mode Button */}
-      <button
-        type="button"
-        onClick={() => onSelectMode('draw')}
-        className={getBtnClass(activeMode === 'draw')}
-        title="Scribble / Draw mode"
-      >
-        <ScribbleIcon className="w-4 h-4" />
-      </button>
-
-      {/* 3. Checklist Mode Button */}
+      {/* 2. Checklist Mode Button */}
       <button
         type="button"
         onClick={() => onSelectMode('checklist')}
-        className={getBtnClass(activeMode === 'checklist')}
+        className={getChecklistBtnClass(activeMode === 'checklist')}
         title="Checklist mode"
+        aria-label="Checklist mode"
       >
         <ListChecks className="w-4 h-4" />
       </button>
 
-      {/* 4. Palette / Style Theme Button */}
+      {/* 3. Palette / Style Theme Button */}
       <button
         type="button"
         onClick={onToggleStylePicker}
         className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all ${normalBtnClass}`}
         title="Theme & Font settings"
+        aria-label="Theme and font settings"
       >
         <Palette className="w-4 h-4" />
       </button>
 
-      {/* 5. More Options Button */}
+      {/* 4. More Options Button */}
       <div className="relative" ref={moreRef}>
         <button
           type="button"
           onClick={() => setShowMoreMenu(!showMoreMenu)}
           className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all ${normalBtnClass}`}
           title="More options"
+          aria-label="More note options"
         >
           <MoreVertical className="w-4 h-4" />
         </button>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { X, Image as ImageIcon } from 'lucide-react';
 
 interface NoteImageViewProps {
@@ -14,8 +14,6 @@ export const NoteImageView: React.FC<NoteImageViewProps> = ({
   textSnippet = 'A cherry blossom, also known as Japanese cherry or sakura, is a flower of many trees of genus Prunus or Prunus subg. Cerasus.',
   fontClass = 'font-sans',
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-
   // Default sample sakura photo if no custom image URL provided
   const displayImage =
     imageUrl ||
@@ -42,19 +40,12 @@ export const NoteImageView: React.FC<NoteImageViewProps> = ({
           </button>
         </div>
 
-        {/* Text next to image with Read More toggle */}
+        {/* Full note text next to the image */}
         <div className="flex-1 text-xs sm:text-sm text-slate-700 leading-relaxed font-normal">
-          <p className={isExpanded ? '' : 'line-clamp-4 sm:line-clamp-5'}>
+          <p>
             {textSnippet ||
               'A cherry blossom, also known as Japanese cherry or sakura, is a flower of many trees of genus Prunus or Prunus subg. Cerasus. They are common species in East Asia, including China, Korea and especially in Japan.'}
           </p>
-          <button
-            type="button"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="mt-1 text-xs font-semibold text-[#2563eb] hover:underline inline-block cursor-pointer"
-          >
-            {isExpanded ? 'Show Less' : 'Read More'}
-          </button>
         </div>
       </div>
     </div>

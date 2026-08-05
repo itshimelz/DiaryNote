@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Note, CanvasTransform, GridType, CanvasTheme } from '../types';
 import { NoteCard } from './NoteCard';
+import { NoteConnections } from './NoteConnections';
 
 interface InfiniteCanvasProps {
   notes: Note[];
@@ -22,6 +23,10 @@ interface InfiniteCanvasProps {
   onDoubleClickCanvas: (x: number, y: number) => void;
   isPanMode: boolean;
   snapToGrid?: boolean;
+  editingNoteId?: string | null;
+  minZoom?: number;
+  maxZoom?: number;
+  onAnimateTransform?: (transform: CanvasTransform) => void;
 }
 
 export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
@@ -44,11 +49,18 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   onDoubleClickCanvas,
   isPanMode,
   snapToGrid = false,
+  editingNoteId,
+  minZoom = 0.15,
+  maxZoom = 3,
+  onAnimateTransform,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPanning, setIsPanning] = useState(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
+  const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight });
+  const wheelFrameRef = useRef<number | null>(null);
+  const pendingWheelTransformRef = useRef<CanvasTransform | null>(null);
   const panStartRef = useRef<{ x: number; y: number; transformX: number; transformY: number }>({
     x: 0,
     y: 0,
@@ -59,7 +71,8 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   // Spacebar key tracking for pan shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
+      const target = e.target as HTMLElement;
+      if (e.code === 'Space' && !['INPUT', 'TEXTAREA'].includes(target.tagName) && !target.isContentEditable) {
         setIsSpacePressed(true);
       }
     };
@@ -77,6 +90,20 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
     };
   }, []);
 
+  useEffect(() => () => {
+    if (wheelFrameRef.current !== null) cancelAnimationFrame(wheelFrameRef.current);
+  }, []);
+
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
+    const updateViewport = () => setViewport({ width: element.clientWidth, height: element.clientHeight });
+    updateViewport();
+    const observer = new ResizeObserver(updateViewport);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
   // Wheel zoom around mouse cursor & wheel pan
   const handleWheel = useCallback(
     (e: WheelEvent) => {
@@ -88,38 +115,51 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
 
       e.preventDefault();
       if (!containerRef.current) return;
+      const baseTransform = pendingWheelTransformRef.current || transform;
+      const scheduleWheelTransform = (nextTransform: CanvasTransform) => {
+        pendingWheelTransformRef.current = nextTransform;
+        if (wheelFrameRef.current !== null) return;
+        wheelFrameRef.current = requestAnimationFrame(() => {
+          const next = pendingWheelTransformRef.current;
+          pendingWheelTransformRef.current = null;
+          wheelFrameRef.current = null;
+          if (next) onTransformChange(next);
+        });
+      };
 
-      if (e.ctrlKey || e.metaKey || !e.shiftKey) {
-        // Pinch / Ctrl + Wheel -> Zooming
+      if (e.ctrlKey || e.metaKey) {
+        // Pinch / Ctrl + Wheel -> zoom around the pointer.
         const rect = containerRef.current.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
 
         const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
-        const newZoom = Math.max(0.15, Math.min(3.0, transform.zoom * zoomFactor));
+        const newZoom = Math.max(minZoom, Math.min(maxZoom, baseTransform.zoom * zoomFactor));
 
         // Keep point under mouse fixed in world coordinates
-        const worldX = (mouseX - transform.x) / transform.zoom;
-        const worldY = (mouseY - transform.y) / transform.zoom;
+        const worldX = (mouseX - baseTransform.x) / baseTransform.zoom;
+        const worldY = (mouseY - baseTransform.y) / baseTransform.zoom;
 
         const newX = mouseX - worldX * newZoom;
         const newY = mouseY - worldY * newZoom;
 
-        onTransformChange({
+        scheduleWheelTransform({
           x: Math.round(newX),
           y: Math.round(newY),
           zoom: newZoom,
         });
       } else {
-        // Shift + Wheel -> Horizontal / Vertical Pan
-        onTransformChange({
-          ...transform,
-          x: Math.round(transform.x - e.deltaX),
-          y: Math.round(transform.y - e.deltaY),
+        // Wheel pans naturally; Shift makes a vertical wheel movement horizontal.
+        const horizontalDelta = e.shiftKey ? (e.deltaY || e.deltaX) : e.deltaX;
+        const verticalDelta = e.shiftKey ? 0 : e.deltaY;
+        scheduleWheelTransform({
+          ...baseTransform,
+          x: Math.round(baseTransform.x - horizontalDelta),
+          y: Math.round(baseTransform.y - verticalDelta),
         });
       }
     },
-    [transform, onTransformChange]
+    [transform, onTransformChange, minZoom, maxZoom]
   );
 
   useEffect(() => {
@@ -129,14 +169,15 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
     return () => el.removeEventListener('wheel', handleWheel);
   }, [handleWheel]);
 
-  // Pan canvas drag or Ctrl+drag box selection
+  // Canvas gestures: select by default, pan with Space / pan mode / middle mouse.
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return; // Left click only
+    if (e.button !== 0 && e.button !== 1) return;
+    const target = e.target as HTMLElement;
+    const isCanvasClick = !target.closest('.note-card');
+    if (!isCanvasClick) return;
 
-    const isDirectCanvasClick = e.target === containerRef.current || (e.target as HTMLElement).id === 'canvas-grid-bg';
-
-    // Ctrl + Left Mouse Drag on Canvas -> Rubber-band multi selection box
-    if ((e.ctrlKey || e.metaKey) && isDirectCanvasClick) {
+    const shouldPan = e.button === 1 || isSpacePressed || isPanMode;
+    if (!shouldPan) {
       e.preventDefault();
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
@@ -164,9 +205,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
           .filter((n) => n.x + n.width >= boxMinX && n.x <= boxMaxX && n.y + n.height >= boxMinY && n.y <= boxMaxY)
           .map((n) => n.id);
 
-        if (onSelectMultipleNotes) {
-          onSelectMultipleNotes(matchedIds);
-        }
+        onSelectMultipleNotes?.(matchedIds);
       };
 
       const handleMouseUp = () => {
@@ -180,43 +219,39 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       return;
     }
 
-    // Pan if clicking canvas directly or space key pressed or pan mode active
-    if (isDirectCanvasClick || isSpacePressed || isPanMode) {
-      setIsPanning(true);
-      onSelectNote(null);
-      panStartRef.current = {
-        x: e.clientX,
-        y: e.clientY,
-        transformX: transform.x,
-        transformY: transform.y,
+    e.preventDefault();
+    setIsPanning(true);
+    onSelectNote(null);
+    panStartRef.current = { x: e.clientX, y: e.clientY, transformX: transform.x, transformY: transform.y };
+    let frame: number | null = null;
+    let nextPosition = { x: transform.x, y: transform.y };
+    const handleMouseMove = (moveEvt: MouseEvent) => {
+      nextPosition = {
+        x: Math.round(panStartRef.current.transformX + moveEvt.clientX - panStartRef.current.x),
+        y: Math.round(panStartRef.current.transformY + moveEvt.clientY - panStartRef.current.y),
       };
-
-      const handleMouseMove = (moveEvt: MouseEvent) => {
-        const dx = moveEvt.clientX - panStartRef.current.x;
-        const dy = moveEvt.clientY - panStartRef.current.y;
-
-        onTransformChange({
-          ...transform,
-          x: Math.round(panStartRef.current.transformX + dx),
-          y: Math.round(panStartRef.current.transformY + dy),
+      if (frame === null) {
+        frame = requestAnimationFrame(() => {
+          onTransformChange({ ...transform, ...nextPosition });
+          frame = null;
         });
-      };
-
-      const handleMouseUp = () => {
-        setIsPanning(false);
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
-      };
-
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    }
+      }
+    };
+    const handleMouseUp = () => {
+      if (frame !== null) cancelAnimationFrame(frame);
+      onTransformChange({ ...transform, ...nextPosition });
+      setIsPanning(false);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
   };
 
   // Double click canvas to add note at mouse pointer location
   const handleDoubleClick = (e: React.MouseEvent) => {
-    const isDirectCanvasClick = e.target === containerRef.current || (e.target as HTMLElement).id === 'canvas-grid-bg';
-    if (isDirectCanvasClick && containerRef.current) {
+    const isCanvasClick = !(e.target as HTMLElement).closest('.note-card');
+    if (isCanvasClick && containerRef.current && !isPanMode && !isSpacePressed) {
       const rect = containerRef.current.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
@@ -241,8 +276,8 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   };
 
   // Viewport Culling (Canvas Virtualization) for high performance with tens of thousands of notes
-  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
-  const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
+  const viewportWidth = viewport.width;
+  const viewportHeight = viewport.height;
   const renderBuffer = 600 / transform.zoom; // buffer margin in world coordinates
 
   const visibleMinX = -transform.x / transform.zoom - renderBuffer;
@@ -294,6 +329,15 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         }}
       />
 
+      {showConnections && (
+        <NoteConnections
+          notes={notes}
+          transform={transform}
+          selectedNoteId={selectedNoteId}
+          onSelectNote={onNavigateToNote}
+        />
+      )}
+
       {/* Rubber-band Drag Selection Box Overlay */}
       {selectionBox && (
         <div
@@ -311,7 +355,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       <div
         className="absolute inset-0 origin-top-left pointer-events-none"
         style={{
-          transform: `translate3d(${transform.x}px, ${transform.y}px, 0) scale(${transform.zoom})`,
+          transform: `translate3d(${Math.round(transform.x)}px, ${Math.round(transform.y)}px, 0) scale(${transform.zoom})`,
         }}
       >
         <div className="pointer-events-auto">
@@ -331,6 +375,8 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
               onDeleteNote={onDeleteNote}
               onBringToFront={onBringToFront}
               snapToGrid={snapToGrid}
+              isPanMode={isPanMode || isSpacePressed}
+              shouldStartEditing={editingNoteId === note.id}
             />
           ))}
         </div>
@@ -357,11 +403,13 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
             const targetWorldX = minX + clickX / minimapScale;
             const targetWorldY = minY + clickY / minimapScale;
 
-            onTransformChange({
+            const nextTransform = {
               ...transform,
-              x: Math.round(window.innerWidth / 2 - targetWorldX * transform.zoom),
-              y: Math.round(window.innerHeight / 2 - targetWorldY * transform.zoom),
-            });
+              x: Math.round(viewportWidth / 2 - targetWorldX * transform.zoom),
+              y: Math.round(viewportHeight / 2 - targetWorldY * transform.zoom),
+            };
+            if (onAnimateTransform) onAnimateTransform(nextTransform);
+            else onTransformChange(nextTransform);
           }}
         >
           {/* Note bounding boxes on minimap */}
@@ -397,8 +445,8 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
               style={{
                 left: `${(-transform.x / transform.zoom - minX) * minimapScale}px`,
                 top: `${(-transform.y / transform.zoom - minY) * minimapScale}px`,
-                width: `${(window.innerWidth / transform.zoom) * minimapScale}px`,
-                height: `${(window.innerHeight / transform.zoom) * minimapScale}px`,
+                width: `${(viewportWidth / transform.zoom) * minimapScale}px`,
+                height: `${(viewportHeight / transform.zoom) * minimapScale}px`,
               }}
               className="absolute border-2 border-blue-500 bg-blue-500/15 pointer-events-none rounded-[2px] shadow-sm"
             />

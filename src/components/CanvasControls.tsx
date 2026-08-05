@@ -156,6 +156,7 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
         <button
           onClick={onTogglePanMode}
           title={isPanMode ? 'Pan Mode (Active) - Click to switch to Select' : 'Select Mode - Click to switch to Pan'}
+          aria-label={isPanMode ? 'Switch to select mode' : 'Switch to pan mode'}
           className={`p-1.5 rounded-md transition-all ${
             isPanMode
               ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow'
@@ -174,6 +175,7 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
           <button
             onClick={onZoomOut}
             title="Zoom Out (Ctrl -)"
+            aria-label="Zoom out"
             className={`p-1.5 rounded-md transition-colors ${
               themeMode === 'light' ? 'hover:bg-slate-200/80 text-slate-600' : 'hover:bg-slate-700 text-slate-400'
             }`}
@@ -184,6 +186,7 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
           <button
             onClick={onResetZoom}
             title="Click to reset zoom to 100%"
+            aria-label="Reset zoom to 100 percent"
             className={`px-2 font-mono text-[11px] font-medium ${
               themeMode === 'light' ? 'text-slate-700 hover:text-slate-900' : 'text-slate-300 hover:text-white'
             }`}
@@ -194,6 +197,7 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
           <button
             onClick={onZoomIn}
             title="Zoom In (Ctrl +)"
+            aria-label="Zoom in"
             className={`p-1.5 rounded-md transition-colors ${
               themeMode === 'light' ? 'hover:bg-slate-200/80 text-slate-600' : 'hover:bg-slate-700 text-slate-400'
             }`}
@@ -204,6 +208,7 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
           <button
             onClick={onFitNotes}
             title="Fit All Notes on Canvas"
+            aria-label="Fit all notes on canvas"
             className={`p-1.5 rounded-md transition-colors border-l ml-0.5 ${
               themeMode === 'light'
                 ? 'border-slate-200 hover:bg-slate-200/80 text-slate-600'
@@ -246,6 +251,7 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
         <button
           onClick={onToggleTheme}
           title={`Switch to ${themeMode === 'dark' ? 'Monochrome Light' : 'Monochrome Dark'} Canvas`}
+          aria-label="Change canvas theme"
           className={`p-1.5 rounded-md transition-colors ${
             themeMode === 'light'
               ? 'hover:bg-slate-100 text-slate-600'
@@ -259,6 +265,7 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
         <button
           onClick={() => setIsSettingsOpen(true)}
           title="Open Canvas Settings"
+          aria-label="Open canvas settings"
           className={`p-1.5 rounded-md transition-colors ${
             themeMode === 'light'
               ? 'hover:bg-slate-100 text-slate-600'
@@ -272,6 +279,7 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
         <button
           onClick={onOpenNotesList}
           title="Open Notes Finder & List"
+          aria-label="Open notes list"
           className={`p-1.5 rounded-md transition-colors flex items-center gap-1 ${
             themeMode === 'light'
               ? 'hover:bg-slate-100 text-slate-600'

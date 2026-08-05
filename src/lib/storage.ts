@@ -83,7 +83,7 @@ export const SAMPLE_NOTES: Note[] = [
     fontFamily: 'sans',
     fontSize: 'md',
     paperTheme: 'white',
-    activeMode: 'draw',
+    activeMode: 'text',
     isPinned: false,
     zIndex: 8,
     tags: ['drawing', 'art'],
@@ -117,12 +117,12 @@ But when the going gets tough, sometimes all it takes to relight the burning fir
 export function loadNotes(): Note[] {
   try {
     const raw = localStorage.getItem(NOTES_STORAGE_KEY);
-    if (!raw) {
+    if (raw === null) {
       saveNotes(SAMPLE_NOTES);
       return SAMPLE_NOTES;
     }
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
+    if (Array.isArray(parsed)) {
       return parsed;
     }
     return SAMPLE_NOTES;

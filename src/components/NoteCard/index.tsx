@@ -3,12 +3,12 @@ import { NoteCardProps, NoteMode, FONT_CLASSES, PAPER_THEMES } from './types';
 import { NoteHeader } from './NoteHeader';
 import { NoteToolbar } from './NoteToolbar';
 import { NoteChecklist } from './NoteChecklist';
-import { NoteScribbleCanvas } from './NoteScribbleCanvas';
 import { NoteImageView } from './NoteImageView';
 import { NoteMarkdownView } from './NoteMarkdownView';
 import { NoteStylePicker } from './NoteStylePicker';
 import { MentionAutocomplete } from '../MentionAutocomplete';
 import { getUniqueTitleForDay } from '../../lib/markdownMention';
+import { normalizeNoteText, resizeNoteEditor } from '../../lib/noteTextEngine';
 import { Note } from '../../types';
 
 export const NoteCard: React.FC<NoteCardProps> = ({
@@ -25,6 +25,8 @@ export const NoteCard: React.FC<NoteCardProps> = ({
   onDeleteNote,
   onBringToFront,
   snapToGrid = false,
+  isPanMode = false,
+  shouldStartEditing = false,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [showStylePicker, setShowStylePicker] = useState(false);
@@ -40,6 +42,7 @@ export const NoteCard: React.FC<NoteCardProps> = ({
   const cardRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const markdownRef = useRef<HTMLDivElement>(null);
+  const handledEditRequestRef = useRef<string | null>(null);
 
   const dragStartRef = useRef<{ x: number; y: number; noteX: number; noteY: number }>({ x: 0, y: 0, noteX: 0, noteY: 0 });
   const resizeStartRef = useRef<{ x: number; y: number; w: number; h: number }>({ x: 0, y: 0, w: 0, h: 0 });
@@ -56,14 +59,44 @@ export const NoteCard: React.FC<NoteCardProps> = ({
     setMentionSelectedIndex(0);
   }, [mentionQuery]);
 
-  // Auto-focus textarea when entering edit mode
+  // Auto-focus textarea when entering edit mode with reliable layout paint fallback
   useEffect(() => {
-    if (isEditing && textareaRef.current) {
-      textareaRef.current.focus();
-      const len = textareaRef.current.value.length;
-      textareaRef.current.setSelectionRange(len, len);
+    if (isEditing) {
+      const focusTextarea = () => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          const len = textareaRef.current.value.length;
+          textareaRef.current.setSelectionRange(len, len);
+        }
+      };
+      focusTextarea();
+      const timer = setTimeout(focusTextarea, 40);
+      return () => clearTimeout(timer);
     }
   }, [isEditing]);
+
+  // Keep edit mode as tall as the rendered note, rather than creating a nested scrollbar.
+  useEffect(() => {
+    if (!isEditing || !textareaRef.current) return;
+    const textarea = textareaRef.current;
+    const resizeToContent = () => {
+      resizeNoteEditor(textarea);
+    };
+    resizeToContent();
+    const frame = requestAnimationFrame(resizeToContent);
+    return () => cancelAnimationFrame(frame);
+  }, [isEditing, note.content, note.fontSize, note.fontFamily]);
+
+  useEffect(() => {
+    if (!shouldStartEditing) {
+      handledEditRequestRef.current = null;
+      return;
+    }
+    if (handledEditRequestRef.current !== note.id && activeMode === 'text') {
+      handledEditRequestRef.current = note.id;
+      setIsEditing(true);
+    }
+  }, [shouldStartEditing, activeMode, note.id]);
 
   const handleSelectMention = (targetNote: Note) => {
     if (!textareaRef.current) return;
@@ -131,18 +164,9 @@ export const NoteCard: React.FC<NoteCardProps> = ({
     setActiveMode('image');
   };
 
-  // Update drawing canvas strokes
-  const handleUpdateDrawing = (drawingDataUrl: string) => {
-    onUpdateNote({
-      ...note,
-      drawingData: drawingDataUrl,
-      updatedAt: new Date().toISOString(),
-    });
-  };
-
   // Dragging logic
   const handleMouseDown = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('button, input, textarea, a, .no-drag')) {
+    if (isPanMode || (e.target as HTMLElement).closest('button, input, textarea, a, select, .no-drag')) {
       return;
     }
     onBringToFront(note.id);
@@ -151,6 +175,9 @@ export const NoteCard: React.FC<NoteCardProps> = ({
     if (!isSelected) {
       onSelectNote(note.id, isMulti);
     }
+
+    const currentPosRef = { current: { x: note.x, y: note.y } };
+    const currentBatchRef = { current: [] as Note[] };
 
     dragStartRef.current = {
       x: e.clientX,
@@ -172,6 +199,19 @@ export const NoteCard: React.FC<NoteCardProps> = ({
 
     let hasMoved = false;
 
+    let frame: number | null = null;
+    let pendingSingle: Note | null = null;
+    let pendingBatch: Note[] | null = null;
+    const flushMove = () => {
+      if (pendingBatch && onUpdateBatchNotes) onUpdateBatchNotes(pendingBatch);
+      else if (pendingSingle) onUpdateNote(pendingSingle);
+      pendingSingle = null;
+      pendingBatch = null;
+      frame = null;
+    };
+    const scheduleMove = () => {
+      if (frame === null) frame = requestAnimationFrame(flushMove);
+    };
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const distanceX = Math.abs(moveEvent.clientX - dragStartRef.current.x);
       const distanceY = Math.abs(moveEvent.clientY - dragStartRef.current.y);
@@ -203,7 +243,9 @@ export const NoteCard: React.FC<NoteCardProps> = ({
             }
             return { ...n, x: rawX, y: rawY, updatedAt: new Date().toISOString() };
           });
-        onUpdateBatchNotes(updatedBatch);
+        currentBatchRef.current = updatedBatch;
+        pendingBatch = updatedBatch;
+        scheduleMove();
       } else {
         let newX = dragStartRef.current.noteX + dx;
         let newY = dragStartRef.current.noteY + dy;
@@ -211,16 +253,46 @@ export const NoteCard: React.FC<NoteCardProps> = ({
           newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
           newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
         }
-        onUpdateNote({
+        currentPosRef.current = { x: newX, y: newY };
+        pendingSingle = {
           ...note,
           x: newX,
           y: newY,
           updatedAt: new Date().toISOString(),
-        });
+        };
+        scheduleMove();
       }
     };
 
     const handleMouseUp = () => {
+      const GRID_SIZE = 20;
+      if (frame !== null) {
+        cancelAnimationFrame(frame);
+      }
+      if (hasMoved) {
+        if (groupDragStartRef.current.length > 1 && onUpdateBatchNotes && currentBatchRef.current.length > 0) {
+          const snappedBatch = currentBatchRef.current.map((n) => ({
+            ...n,
+            x: Math.round(n.x / GRID_SIZE) * GRID_SIZE,
+            y: Math.round(n.y / GRID_SIZE) * GRID_SIZE,
+            updatedAt: new Date().toISOString(),
+          }));
+          onUpdateBatchNotes(snappedBatch);
+        } else {
+          const snappedX = Math.round(currentPosRef.current.x / GRID_SIZE) * GRID_SIZE;
+          const snappedY = Math.round(currentPosRef.current.y / GRID_SIZE) * GRID_SIZE;
+          onUpdateNote({
+            ...note,
+            x: snappedX,
+            y: snappedY,
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      }
+      pendingSingle = null;
+      pendingBatch = null;
+      currentBatchRef.current = [];
+      frame = null;
       setIsDragging(false);
       groupDragStartRef.current = [];
       window.removeEventListener('mousemove', handleMouseMove);
@@ -233,6 +305,7 @@ export const NoteCard: React.FC<NoteCardProps> = ({
 
   // Resize logic
   const handleResizeMouseDown = (e: React.MouseEvent) => {
+    if (isPanMode) return;
     e.stopPropagation();
     setIsResizing(true);
     resizeStartRef.current = {
@@ -242,21 +315,30 @@ export const NoteCard: React.FC<NoteCardProps> = ({
       h: note.height || 360,
     };
 
+    let frame: number | null = null;
+    let pendingSize: Pick<Note, 'width' | 'height'> | null = null;
+    const flushResize = () => {
+      if (pendingSize) {
+        onUpdateNote({ ...note, ...pendingSize, updatedAt: new Date().toISOString() });
+        pendingSize = null;
+      }
+      frame = null;
+    };
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const dx = (moveEvent.clientX - resizeStartRef.current.x) / zoom;
       const dy = (moveEvent.clientY - resizeStartRef.current.y) / zoom;
       const newW = Math.max(260, resizeStartRef.current.w + dx);
       const newH = Math.max(220, resizeStartRef.current.h + dy);
 
-      onUpdateNote({
-        ...note,
-        width: newW,
-        height: newH,
-        updatedAt: new Date().toISOString(),
-      });
+      pendingSize = { width: newW, height: newH };
+      if (frame === null) frame = requestAnimationFrame(flushResize);
     };
 
     const handleMouseUp = () => {
+      if (frame !== null) {
+        cancelAnimationFrame(frame);
+        flushResize();
+      }
       setIsResizing(false);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
@@ -285,23 +367,34 @@ export const NoteCard: React.FC<NoteCardProps> = ({
       ref={cardRef}
       onMouseDown={handleMouseDown}
       onDoubleClick={(e) => {
-        if ((e.target as HTMLElement).closest('.group\\/header, button, input')) return;
+        if (isPanMode || (e.target as HTMLElement).closest('.group\\/header, button, input')) return;
         setActiveMode('text');
         setIsEditing(true);
       }}
+      onKeyDown={(e) => {
+        // Keyboard shortcuts on the card must never override normal text entry.
+        if ((e.target as HTMLElement).closest('input, textarea, [contenteditable="true"]')) return;
+        if (e.key === 'Enter' && isSelected && activeMode === 'text') {
+          e.preventDefault();
+          setIsEditing(true);
+        }
+      }}
+      role="article"
+      tabIndex={0}
+      aria-label={`Note: ${note.title || 'Untitled Note'}`}
       style={{
-        transform: `translate3d(${note.x}px, ${note.y}px, 0)`,
+        transform: `translate3d(${Math.round(note.x)}px, ${Math.round(note.y)}px, 0)`,
         width: `${note.width || 340}px`,
         minHeight: `${note.height || 340}px`,
-        zIndex: note.zIndex || 10,
+        zIndex: isDragging ? 10000 : note.zIndex || 10,
       }}
-      className={`absolute top-0 left-0 rounded-2xl border flex flex-col justify-between transition-shadow duration-150 ${
-        themeConfig.headerBg
-      } ${themeConfig.border} ${themeConfig.text} ${
-        isSelected
-          ? 'ring-2 ring-blue-500 shadow-2xl'
-          : 'hover:shadow-xl shadow-md'
-      } ${isDragging ? 'opacity-90 cursor-grabbing' : ''}`}
+      className={`note-card absolute top-0 left-0 rounded-2xl border flex flex-col justify-between ${
+        isDragging
+          ? 'transition-none scale-[1.02] cursor-grabbing ring-2 ring-blue-500/70 shadow-md'
+          : 'transition-all duration-200 ease-out scale-100 shadow-sm'
+      } ${themeConfig.headerBg} ${themeConfig.border} ${themeConfig.text} ${
+        isSelected ? 'ring-2 ring-blue-500' : ''
+      }`}
     >
       {/* 1. Header */}
       <NoteHeader
@@ -325,10 +418,18 @@ export const NoteCard: React.FC<NoteCardProps> = ({
           })
         }
         onDeleteNote={() => onDeleteNote(note.id)}
+        onDeselectNote={() => onSelectNote(null)}
       />
 
       {/* 2. Main Body Content Area - Ruled lines background applied ONLY here */}
-      <div className={`flex-1 p-4 flex flex-col overflow-hidden min-h-[180px] ${themeConfig.bg}`}>
+      <div
+        onDoubleClick={(e) => {
+          if (isPanMode || (e.target as HTMLElement).closest('button, input, textarea, a, .no-drag')) return;
+          setActiveMode('text');
+          setIsEditing(true);
+        }}
+        className={`flex-1 p-4 flex flex-col overflow-hidden min-h-[180px] ${themeConfig.bg}`}
+      >
         {activeMode === 'checklist' ? (
           <NoteChecklist
             content={note.content}
@@ -341,11 +442,6 @@ export const NoteCard: React.FC<NoteCardProps> = ({
             }
             fontClass={fontClass}
             fontSizeClass={fontSizeClass}
-          />
-        ) : activeMode === 'draw' ? (
-          <NoteScribbleCanvas
-            drawingData={note.drawingData}
-            onUpdateDrawing={handleUpdateDrawing}
           />
         ) : activeMode === 'image' ? (
           <NoteImageView
@@ -363,12 +459,12 @@ export const NoteCard: React.FC<NoteCardProps> = ({
           />
         ) : isEditing ? (
           /* Text Editing Mode */
-          <div className="relative w-full flex-1 flex flex-col">
+          <div className="relative w-full flex-none flex flex-col">
             <textarea
               ref={textareaRef}
               value={note.content}
               onChange={(e) => {
-                const val = e.target.value;
+                const val = normalizeNoteText(e.target.value);
                 onUpdateNote({
                   ...note,
                   content: val,
@@ -386,14 +482,21 @@ export const NoteCard: React.FC<NoteCardProps> = ({
                   setMentionQuery(null);
                 }
               }}
+              onInput={(e) => resizeNoteEditor(e.currentTarget)}
               onKeyDown={(e) => {
+                // Keep typing keys inside the editor; card-level shortcuts must not receive them.
+                e.stopPropagation();
                 if (e.key === 'Escape') {
                   e.preventDefault();
-                  if (mentionQuery !== null) {
-                    setMentionQuery(null);
-                  } else {
-                    setIsEditing(false);
-                  }
+                  setMentionQuery(null);
+                  onUpdateNote({
+                    ...note,
+                    content: note.content,
+                    updatedAt: new Date().toISOString(),
+                  });
+                  setIsEditing(false);
+                  onSelectNote(null);
+                  (e.target as HTMLElement).blur();
                   return;
                 }
 
@@ -424,7 +527,9 @@ export const NoteCard: React.FC<NoteCardProps> = ({
                 setTimeout(() => setIsEditing(false), 200);
               }}
               placeholder="Write your note here... Use @ to reference another note."
-              className={`w-full flex-1 bg-transparent resize-none outline-none border-0 shadow-none ${
+              aria-label={`Edit ${note.title || 'Untitled Note'}`}
+              wrap="soft"
+              className={`w-full min-h-[180px] whitespace-pre-wrap bg-transparent resize-none overflow-y-hidden outline-none border-0 shadow-none ${
                 isRuled ? 'ruled-text-alignment' : 'leading-relaxed'
               } ${fontClass} ${fontSizeClass} ${
                 themeConfig.text

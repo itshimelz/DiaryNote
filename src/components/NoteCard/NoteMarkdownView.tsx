@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
 import { Note } from '../../types';
 import { processMarkdownMentions } from '../../lib/markdownMention';
+import { isNoteTextEmpty, normalizeNoteText } from '../../lib/noteTextEngine';
 import { PAPER_THEMES } from './types';
 
 interface NoteMarkdownViewProps {
@@ -11,7 +13,7 @@ interface NoteMarkdownViewProps {
   fontClass: string;
   fontSizeClass: string;
   onNavigateToNote: (targetNoteId: string) => void;
-  onDoubleClick?: () => void;
+  onDoubleClick?: (e: React.MouseEvent) => void;
   markdownRef?: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -24,30 +26,31 @@ export const NoteMarkdownView: React.FC<NoteMarkdownViewProps> = ({
   onDoubleClick,
   markdownRef,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const processedContent = processMarkdownMentions(note.content, allNotes);
+  const sourceText = normalizeNoteText(note.content);
+  const processedContent = processMarkdownMentions(sourceText, allNotes);
   const themeConfig = PAPER_THEMES[note.paperTheme || 'white'];
-
-  const isLongContent = (note.content || '').length > 280;
 
   const isRuled = note.paperTheme === 'ruled' || note.paperTheme === 'ruled-dark';
 
   return (
     <div
       ref={markdownRef}
-      onDoubleClick={onDoubleClick}
-      className={`w-full flex-1 break-words preview-content ${
+      onDoubleClick={(e) => {
+        if ((e.target as HTMLElement).closest('button, a, input, textarea')) return;
+        if (onDoubleClick) onDoubleClick(e);
+      }}
+      className={`w-full flex-1 break-words preview-content cursor-text ${
         isRuled ? 'ruled-text-alignment' : 'leading-relaxed'
       } ${fontClass} ${fontSizeClass} ${themeConfig.text}`}
     >
-      <div className={!isExpanded && isLongContent ? 'line-clamp-6' : ''}>
+      <div>
         <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
+          remarkPlugins={[remarkGfm, remarkBreaks]}
           components={{
             p: ({ children }) => (
               <p
-                className={`font-inherit whitespace-pre-wrap ${
-                  isRuled ? 'ruled-text-alignment mb-0' : 'mb-3.5 last:mb-0 leading-relaxed'
+                className={`font-inherit ${
+                  isRuled ? 'ruled-text-alignment mb-8 last:mb-0' : 'mb-3.5 last:mb-0 leading-relaxed'
                 }`}
               >
                 {children}
@@ -83,23 +86,9 @@ export const NoteMarkdownView: React.FC<NoteMarkdownViewProps> = ({
             },
           }}
         >
-          {processedContent || 'Write your note here...'}
+          {isNoteTextEmpty(sourceText) ? 'Write your note here...' : processedContent}
         </ReactMarkdown>
       </div>
-
-      {/* Read More button if text is long */}
-      {isLongContent && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsExpanded(!isExpanded);
-          }}
-          className="mt-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
-        >
-          {isExpanded ? 'Show Less' : 'Read More'}
-        </button>
-      )}
     </div>
   );
 };
