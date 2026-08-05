@@ -3,5 +3,6 @@ export { CanvasControls } from './CanvasControls';
 export { NotesSidebar } from './NotesSidebar';
 export { SearchModal } from './SearchModal';
 export { DeleteConfirmationModal } from './DeleteConfirmationModal';
+export { SecurityModal } from './SecurityModal';
 export { NoteCard } from './NoteCard';
 export { MentionAutocomplete } from './MentionAutocomplete';

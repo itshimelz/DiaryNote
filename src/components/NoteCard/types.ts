@@ -16,6 +16,9 @@ export interface NoteCardProps {
   snapToGrid?: boolean;
   isPanMode?: boolean;
   shouldStartEditing?: boolean;
+  onRequestLockNote?: (noteId: string) => void;
+  onRequestUnlockNote?: (noteId: string) => void;
+  onExportNote?: (note: Note, format: 'md' | 'txt') => void;
 }
 
 export type NoteMode = 'text' | 'image' | 'checklist';

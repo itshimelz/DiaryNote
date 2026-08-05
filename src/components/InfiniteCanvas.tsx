@@ -27,6 +27,9 @@ interface InfiniteCanvasProps {
   minZoom?: number;
   maxZoom?: number;
   onAnimateTransform?: (transform: CanvasTransform) => void;
+  onRequestLockNote?: (noteId: string) => void;
+  onRequestUnlockNote?: (noteId: string) => void;
+  onExportNote?: (note: Note, format: 'md' | 'txt') => void;
 }
 
 export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
@@ -53,6 +56,9 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   minZoom = 0.15,
   maxZoom = 3,
   onAnimateTransform,
+  onRequestLockNote,
+  onRequestUnlockNote,
+  onExportNote,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPanning, setIsPanning] = useState(false);
@@ -398,6 +404,9 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
               snapToGrid={snapToGrid}
               isPanMode={isPanMode || isSpacePressed}
               shouldStartEditing={editingNoteId === note.id}
+              onRequestLockNote={onRequestLockNote}
+              onRequestUnlockNote={onRequestUnlockNote}
+              onExportNote={onExportNote}
             />
           ))}
         </div>

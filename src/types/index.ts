@@ -44,6 +44,10 @@ export interface Note {
   drawingData?: string;
   activeMode?: 'text' | 'image' | 'checklist';
   embedding?: number[];
+  isLocked?: boolean;
+  passwordHash?: string;
+  securityQuestion?: string;
+  securityAnswerHash?: string;
 }
 
 export interface CanvasTransform {

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ListChecks, Palette, MoreVertical, Trash2, Copy } from 'lucide-react';
+import { ListChecks, Palette, MoreVertical, Trash2, Copy, Lock, Unlock, Download } from 'lucide-react';
 import { NoteMode, PaperThemeConfig } from './types';
 import { Note } from '../../types';
 
@@ -10,6 +10,8 @@ interface NoteToolbarProps {
   onToggleStylePicker: () => void;
   onDuplicateNote?: () => void;
   onDeleteNote: () => void;
+  onToggleLockNote?: () => void;
+  onExportNote?: (format: 'md' | 'txt') => void;
   themeConfig?: PaperThemeConfig;
 }
 
@@ -24,6 +26,8 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
   onToggleStylePicker,
   onDuplicateNote,
   onDeleteNote,
+  onToggleLockNote,
+  onExportNote,
   themeConfig,
 }) => {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -114,6 +118,49 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
           <div className={`absolute bottom-10 right-0 z-50 w-44 rounded-2xl shadow-xl border py-1.5 flex flex-col text-xs animate-in fade-in zoom-in-95 duration-150 ${
             isDarkCard ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-800'
           }`}>
+            {/* Lock / Unlock Note */}
+            {onToggleLockNote && (
+              <button
+                type="button"
+                onClick={() => {
+                  onToggleLockNote();
+                  setShowMoreMenu(false);
+                }}
+                className={`flex items-center gap-2 px-3 py-2 transition-colors text-left ${
+                  isDarkCard ? 'hover:bg-slate-800 text-slate-200' : 'hover:bg-slate-100 text-slate-700'
+                }`}
+              >
+                {note.isLocked ? (
+                  <>
+                    <Unlock className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Unlock Note</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Lock Access</span>
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* Export Note */}
+            {onExportNote && (
+              <button
+                type="button"
+                onClick={() => {
+                  onExportNote('md');
+                  setShowMoreMenu(false);
+                }}
+                className={`flex items-center gap-2 px-3 py-2 transition-colors text-left ${
+                  isDarkCard ? 'hover:bg-slate-800 text-slate-200' : 'hover:bg-slate-100 text-slate-700'
+                }`}
+              >
+                <Download className="w-3.5 h-3.5 text-slate-400" />
+                <span>Export (.md)</span>
+              </button>
+            )}
+
             {onDuplicateNote && (
               <button
                 type="button"

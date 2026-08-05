@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Lock } from 'lucide-react';
 import { NoteCardProps, NoteMode, FONT_CLASSES, PAPER_THEMES } from './types';
 import { NoteHeader } from './NoteHeader';
 import { NoteToolbar } from './NoteToolbar';
@@ -27,6 +28,9 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
   snapToGrid = false,
   isPanMode = false,
   shouldStartEditing = false,
+  onRequestLockNote,
+  onRequestUnlockNote,
+  onExportNote,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [showStylePicker, setShowStylePicker] = useState(false);
@@ -430,7 +434,34 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         }}
         className={`flex-1 p-4 flex flex-col overflow-hidden min-h-[180px] ${themeConfig.bg}`}
       >
-        {activeMode === 'checklist' ? (
+        {note.isLocked ? (
+          /* Locked Note Protection Screen */
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center select-none">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 border ${
+              themeConfig.isDark
+                ? 'bg-slate-800/80 border-slate-700 text-slate-200'
+                : 'bg-slate-100 border-slate-300 text-slate-700'
+            }`}>
+              <Lock className="w-6 h-6" />
+            </div>
+            <h3 className={`font-bold text-sm tracking-tight mb-1 ${themeConfig.text}`}>
+              Protected Note
+            </h3>
+            <p className={`text-xs mb-4 max-w-[200px] ${themeConfig.subtext}`}>
+              This note is locked with passcode protection.
+            </p>
+            <button
+              onClick={() => onRequestUnlockNote?.(note.id)}
+              className={`px-4 py-2 rounded-xl font-bold uppercase tracking-wider text-[10px] transition-all shadow-sm ${
+                themeConfig.isDark
+                  ? 'bg-white text-slate-900 hover:bg-slate-100'
+                  : 'bg-slate-900 text-white hover:bg-slate-800'
+              }`}
+            >
+              Unlock Note
+            </button>
+          </div>
+        ) : activeMode === 'checklist' ? (
           <NoteChecklist
             content={note.content}
             onChangeContent={(newContent) =>
@@ -597,6 +628,14 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
           };
           onUpdateNote(dupNote);
         }}
+        onToggleLockNote={() => {
+          if (note.isLocked) {
+            onRequestUnlockNote?.(note.id);
+          } else {
+            onRequestLockNote?.(note.id);
+          }
+        }}
+        onExportNote={(format) => onExportNote?.(note, format)}
         onDeleteNote={() => onDeleteNote(note.id)}
       />
 

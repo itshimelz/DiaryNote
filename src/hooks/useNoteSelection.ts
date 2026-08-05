@@ -13,7 +13,8 @@ export function useNoteSelection(
   onTogglePanMode?: () => void,
   onToggleTheme?: () => void,
   onToggleSnapToGrid?: () => void,
-  onToggleConnections?: () => void
+  onToggleConnections?: () => void,
+  onToggleZenMode?: () => void
 ) {
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -27,6 +28,7 @@ export function useNoteSelection(
   const onToggleThemeRef = useRef(onToggleTheme);
   const onToggleSnapToGridRef = useRef(onToggleSnapToGrid);
   const onToggleConnectionsRef = useRef(onToggleConnections);
+  const onToggleZenModeRef = useRef(onToggleZenMode);
 
   useEffect(() => {
     onCreateNoteRef.current = onCreateNote;
@@ -36,6 +38,7 @@ export function useNoteSelection(
     onToggleThemeRef.current = onToggleTheme;
     onToggleSnapToGridRef.current = onToggleSnapToGrid;
     onToggleConnectionsRef.current = onToggleConnections;
+    onToggleZenModeRef.current = onToggleZenMode;
   });
 
   const handleSelectNote = useCallback((noteId: string | null, isMultiSelect?: boolean) => {
@@ -147,6 +150,13 @@ export function useNoteSelection(
       if (key === 'c') {
         e.preventDefault();
         onToggleConnectionsRef.current?.();
+        return;
+      }
+
+      // Toggle Zen Mode Shortcut ('Z')
+      if (key === 'z' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        onToggleZenModeRef.current?.();
         return;
       }
 

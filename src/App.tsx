@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { CanvasTransform } from './types';
+import { CanvasTransform, Note } from './types';
 import { exportBackup, importBackup, SAMPLE_NOTES } from './lib/storage';
 
 // Custom Hooks
@@ -15,6 +15,7 @@ import {
   NotesSidebar,
   SearchModal,
   DeleteConfirmationModal,
+  SecurityModal,
 } from './components';
 
 export default function App() {
@@ -118,7 +119,8 @@ export default function App() {
     handleTogglePanMode,
     handleToggleTheme,
     handleToggleSnapToGrid,
-    handleToggleConnections
+    handleToggleConnections,
+    () => setIsZenMode((prev) => !prev)
   );
 
   const handleCreateNote = useCallback(
@@ -162,8 +164,35 @@ export default function App() {
     setIsDeleteModalOpen(false);
   }, [handleDeleteMultipleNotes, notesToDelete, setSelectedNoteIds]);
 
+  const [isZenMode, setIsZenMode] = useState(false);
+  const [securityModalNoteId, setSecurityModalNoteId] = useState<string | null>(null);
+  const [securityModalMode, setSecurityModalMode] = useState<'set' | 'unlock'>('set');
+
+  const securityModalNote = notes.find((n) => n.id === securityModalNoteId);
+
+  const handleExportNote = useCallback((note: Note, format: 'md' | 'txt') => {
+    const text = `# ${note.title || 'Untitled Note'}\n\n${note.content || ''}`;
+    const blob = new Blob([text], { type: 'text/markdown;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(note.title || 'note').replace(/[^a-z0-9]/gi, '_')}.${format}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, []);
+
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-slate-950 font-sans select-none">
+    <div className={`relative w-screen h-screen overflow-hidden ${settings.themeMode === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
+      {/* Zen Mode Exit Badge */}
+      {isZenMode && (
+        <button
+          onClick={() => setIsZenMode(false)}
+          className="fixed top-4 right-4 z-50 px-3.5 py-1.5 rounded-xl bg-slate-900/90 text-white text-xs font-mono border border-slate-700 shadow-xl backdrop-blur-md hover:bg-slate-800 transition-all select-none"
+        >
+          Zen Mode (Click or press Z to exit)
+        </button>
+      )}
+
       {/* Infinite Canvas */}
       <InfiniteCanvas
         notes={notes}
@@ -186,37 +215,48 @@ export default function App() {
         onDeleteNote={handleDeleteNote}
         onBringToFront={bringToFront}
         onDoubleClickCanvas={handleCreateNote}
+        onRequestLockNote={(id) => {
+          setSecurityModalNoteId(id);
+          setSecurityModalMode('set');
+        }}
+        onRequestUnlockNote={(id) => {
+          setSecurityModalNoteId(id);
+          setSecurityModalMode('unlock');
+        }}
+        onExportNote={handleExportNote}
       />
 
       {/* Docked Control Bar */}
-      <CanvasControls
-        notes={notes}
-        transform={transform}
-        gridType={settings.gridType}
-        themeMode={settings.themeMode}
-        snapToGrid={settings.snapToGrid}
-        showConnections={settings.showConnections}
-        isPanMode={isPanMode}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        onAddNote={() => handleCreateNote()}
-        onTogglePanMode={handleTogglePanMode}
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
-        onResetZoom={handleResetZoom}
-        onFitNotes={handleFitNotes}
-        onChangeGridType={(gridType) => setSettings((prev) => ({ ...prev, gridType }))}
-        onToggleTheme={handleToggleTheme}
-        onToggleSnapToGrid={handleToggleSnapToGrid}
-        onToggleConnections={handleToggleConnections}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
-        onOpenSearch={() => setIsSearchOpen(true)}
-        onOpenNotesList={() => setIsNotesListOpen(true)}
-        onExportBackup={() => exportBackup(notes, transform, settings)}
-        onImportBackup={handleImportBackupFile}
-        onResetSampleNotes={handleResetSampleNotes}
-      />
+      {!isZenMode && (
+        <CanvasControls
+          notes={notes}
+          transform={transform}
+          gridType={settings.gridType}
+          themeMode={settings.themeMode}
+          snapToGrid={settings.snapToGrid}
+          showConnections={settings.showConnections}
+          isPanMode={isPanMode}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onAddNote={() => handleCreateNote()}
+          onTogglePanMode={handleTogglePanMode}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onResetZoom={handleResetZoom}
+          onFitNotes={handleFitNotes}
+          onChangeGridType={(gridType) => setSettings((prev) => ({ ...prev, gridType }))}
+          onToggleTheme={handleToggleTheme}
+          onToggleSnapToGrid={handleToggleSnapToGrid}
+          onToggleConnections={handleToggleConnections}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onOpenSearch={() => setIsSearchOpen(true)}
+          onOpenNotesList={() => setIsNotesListOpen(true)}
+          onExportBackup={() => exportBackup(notes, transform, settings)}
+          onImportBackup={handleImportBackupFile}
+          onResetSampleNotes={handleResetSampleNotes}
+        />
+      )}
 
       {/* Sidebar Drawer */}
       <NotesSidebar
@@ -243,9 +283,36 @@ export default function App() {
         count={notesToDelete.length}
         themeMode={settings.themeMode}
         onConfirm={handleConfirmDelete}
-        onClose={() => {
-          setIsDeleteModalOpen(false);
-          setNotesToDelete([]);
+        onClose={() => setIsDeleteModalOpen(false)}
+      />
+
+      {/* Note Security Lock & Unlock Modal */}
+      <SecurityModal
+        isOpen={securityModalNoteId !== null}
+        mode={securityModalMode}
+        themeMode={settings.themeMode}
+        existingQuestion={securityModalNote?.securityQuestion}
+        existingPasswordHash={securityModalNote?.passwordHash}
+        existingAnswerHash={securityModalNote?.securityAnswerHash}
+        onClose={() => setSecurityModalNoteId(null)}
+        onSuccessSet={(passwordHash, securityQuestion, securityAnswerHash) => {
+          if (!securityModalNote) return;
+          handleUpdateNote({
+            ...securityModalNote,
+            isLocked: true,
+            passwordHash,
+            securityQuestion,
+            securityAnswerHash,
+            updatedAt: new Date().toISOString(),
+          });
+        }}
+        onSuccessUnlock={() => {
+          if (!securityModalNote) return;
+          handleUpdateNote({
+            ...securityModalNote,
+            isLocked: false,
+            updatedAt: new Date().toISOString(),
+          });
         }}
       />
     </div>
