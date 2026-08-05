@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { CanvasTransform, GridType, CanvasTheme } from '../types';
+import { CanvasTransform, GridType, CanvasTheme, Note } from '../types';
 import {
   Plus,
   ZoomIn,
@@ -19,9 +19,11 @@ import {
   Download,
   Upload,
   RotateCcw,
+  Info,
 } from 'lucide-react';
 
 interface CanvasControlsProps {
+  notes?: Note[];
   transform: CanvasTransform;
   gridType: GridType;
   themeMode: CanvasTheme;
@@ -50,6 +52,7 @@ interface CanvasControlsProps {
 }
 
 export const CanvasControls: React.FC<CanvasControlsProps> = ({
+  notes = [],
   transform,
   gridType,
   themeMode,
@@ -88,6 +91,7 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
   };
 
   const zoomPercent = Math.round(transform.zoom * 100);
+  const pinnedCount = notes.filter((n) => n.isPinned).length;
 
   return (
     <>
@@ -107,8 +111,12 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
       }`}>
         {/* Create Note CTA */}
         <button
-          onClick={onAddNote}
-          className={`flex items-center gap-1.5 px-3 py-1.5 font-bold tracking-wider uppercase text-[11px] rounded-md shadow transition-all hover:scale-105 active:scale-95 ${
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={(e) => {
+            e.currentTarget.blur();
+            onAddNote();
+          }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 font-bold tracking-wider uppercase text-[11px] rounded-md shadow transition-colors ${
             themeMode === 'light'
               ? 'bg-slate-900 text-white hover:bg-slate-800'
               : 'bg-white text-slate-900 hover:bg-slate-100'
@@ -125,7 +133,11 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
           themeMode === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-slate-800/80 border-slate-700/50'
         }`}>
           <button
-            onClick={onUndo}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
+              e.currentTarget.blur();
+              onUndo();
+            }}
             disabled={!canUndo}
             title="Undo (Ctrl+Z)"
             className={`p-1.5 rounded-md transition-colors ${
@@ -137,7 +149,11 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
             <Undo2 className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={onRedo}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
+              e.currentTarget.blur();
+              onRedo();
+            }}
             disabled={!canRedo}
             title="Redo (Ctrl+Y or Ctrl+Shift+Z)"
             className={`p-1.5 rounded-md transition-colors ${
@@ -154,7 +170,11 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
 
         {/* Pan vs Select Mode */}
         <button
-          onClick={onTogglePanMode}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={(e) => {
+            e.currentTarget.blur();
+            onTogglePanMode();
+          }}
           title={isPanMode ? 'Pan Mode (Active) - Click to switch to Select' : 'Select Mode - Click to switch to Pan'}
           aria-label={isPanMode ? 'Switch to select mode' : 'Switch to pan mode'}
           className={`p-1.5 rounded-md transition-all ${
@@ -173,7 +193,11 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
           themeMode === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-slate-800/80 border-slate-700/50'
         }`}>
           <button
-            onClick={onZoomOut}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
+              e.currentTarget.blur();
+              onZoomOut();
+            }}
             title="Zoom Out (Ctrl -)"
             aria-label="Zoom out"
             className={`p-1.5 rounded-md transition-colors ${
@@ -184,7 +208,11 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
           </button>
 
           <button
-            onClick={onResetZoom}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
+              e.currentTarget.blur();
+              onResetZoom();
+            }}
             title="Click to reset zoom to 100%"
             aria-label="Reset zoom to 100 percent"
             className={`px-2 font-mono text-[11px] font-medium ${
@@ -195,7 +223,11 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
           </button>
 
           <button
-            onClick={onZoomIn}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
+              e.currentTarget.blur();
+              onZoomIn();
+            }}
             title="Zoom In (Ctrl +)"
             aria-label="Zoom in"
             className={`p-1.5 rounded-md transition-colors ${
@@ -206,7 +238,11 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
           </button>
 
           <button
-            onClick={onFitNotes}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
+              e.currentTarget.blur();
+              onFitNotes();
+            }}
             title="Fit All Notes on Canvas"
             aria-label="Fit all notes on canvas"
             className={`p-1.5 rounded-md transition-colors border-l ml-0.5 ${
@@ -219,37 +255,17 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
           </button>
         </div>
 
-        <div className={`h-5 w-px mx-1 ${themeMode === 'light' ? 'bg-slate-200' : 'bg-slate-800'}`} />
 
-        {/* Grid Background Switcher */}
-        <div className={`flex items-center gap-0.5 rounded-md p-0.5 border ${
-          themeMode === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-slate-800/80 border-slate-700/50'
-        }`}>
-          {(['dots', 'grid', 'ruled', 'blank'] as GridType[]).map((g) => (
-            <button
-              key={g}
-              onClick={() => onChangeGridType(g)}
-              title={`Canvas background: ${g}`}
-              className={`px-2 py-1 rounded-md capitalize text-[11px] transition-all ${
-                gridType === g
-                  ? themeMode === 'light'
-                    ? 'bg-slate-900 text-white font-semibold shadow-sm'
-                    : 'bg-slate-700 text-white font-semibold shadow-sm'
-                  : themeMode === 'light'
-                  ? 'text-slate-500 hover:text-slate-900'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {g}
-            </button>
-          ))}
-        </div>
 
         <div className={`h-5 w-px mx-1 ${themeMode === 'light' ? 'bg-slate-200' : 'bg-slate-800'}`} />
 
         {/* Monochromatic Canvas Theme Toggle */}
         <button
-          onClick={onToggleTheme}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={(e) => {
+            e.currentTarget.blur();
+            onToggleTheme();
+          }}
           title={`Switch to ${themeMode === 'dark' ? 'Monochrome Light' : 'Monochrome Dark'} Canvas`}
           aria-label="Change canvas theme"
           className={`p-1.5 rounded-md transition-colors ${
@@ -263,7 +279,11 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
 
         {/* Canvas Settings Menu Modal Trigger */}
         <button
-          onClick={() => setIsSettingsOpen(true)}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={(e) => {
+            e.currentTarget.blur();
+            setIsSettingsOpen(true);
+          }}
           title="Open Canvas Settings"
           aria-label="Open canvas settings"
           className={`p-1.5 rounded-md transition-colors ${
@@ -277,7 +297,11 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
 
         {/* Search & All Notes Sidebar */}
         <button
-          onClick={onOpenNotesList}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={(e) => {
+            e.currentTarget.blur();
+            onOpenNotesList();
+          }}
           title="Open Notes Finder & List"
           aria-label="Open notes list"
           className={`p-1.5 rounded-md transition-colors flex items-center gap-1 ${
@@ -459,6 +483,39 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
                     }`}
                   />
                 </button>
+              </div>
+
+              {/* Canvas Overview & Stats Card */}
+              <div className={`p-3.5 rounded-lg border transition-colors ${
+                themeMode === 'dark'
+                  ? 'bg-slate-800/80 border-slate-700/60'
+                  : 'bg-slate-50 border-slate-200/90'
+              }`}>
+                <div className={`font-semibold flex items-center justify-between mb-2.5 ${
+                  themeMode === 'dark' ? 'text-slate-100' : 'text-slate-900'
+                }`}>
+                  <div className="flex items-center gap-1.5">
+                    <Info className={`w-4 h-4 ${themeMode === 'dark' ? 'text-emerald-400' : 'text-emerald-600'}`} />
+                    <span>Canvas Overview</span>
+                  </div>
+                  <span className="text-[10px] uppercase font-mono tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 font-bold">
+                    Active
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className={`p-2 rounded-md ${themeMode === 'dark' ? 'bg-slate-900/80 border border-slate-800' : 'bg-white border border-slate-200'}`}>
+                    <span className="block text-base font-bold text-blue-500">{notes.length}</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Total Notes</span>
+                  </div>
+                  <div className={`p-2 rounded-md ${themeMode === 'dark' ? 'bg-slate-900/80 border border-slate-800' : 'bg-white border border-slate-200'}`}>
+                    <span className="block text-base font-bold text-amber-500">{pinnedCount}</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Pinned</span>
+                  </div>
+                  <div className={`p-2 rounded-md ${themeMode === 'dark' ? 'bg-slate-900/80 border border-slate-800' : 'bg-white border border-slate-200'}`}>
+                    <span className="block text-base font-bold text-emerald-500">{zoomPercent}%</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Zoom</span>
+                  </div>
+                </div>
               </div>
 
               {/* Import/Export Backup Data */}

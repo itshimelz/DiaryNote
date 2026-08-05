@@ -45,12 +45,12 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
   const normalBtnClass = themeConfig?.toolbarBtn || 'text-slate-700 hover:text-slate-900 hover:bg-slate-100/80';
   const isDarkCard = themeConfig?.isDark ?? false;
 
-  // Text mode active: blue border, blue icon
-  const textActiveBtnClass = 'border border-[#2563eb] text-[#2563eb] font-bold';
-  // Checklist mode active: violet border, violet icon
+  // Text mode active: blue icon, no border
+  const textActiveBtnClass = 'text-[#2563eb] font-bold';
+  // Checklist mode active: violet icon, no border
   const checklistActiveBtnClass = isDarkCard
-    ? 'border border-violet-400 text-violet-400 font-bold'
-    : 'border border-violet-500 text-violet-500 font-bold';
+    ? 'text-violet-400 font-bold'
+    : 'text-violet-500 font-bold';
 
   const getTextBtnClass = (isActive: boolean) =>
     `flex items-center justify-center w-8 h-8 rounded-lg transition-all ${

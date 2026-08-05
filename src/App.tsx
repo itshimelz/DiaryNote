@@ -77,6 +77,26 @@ export default function App() {
     setIsDeleteModalOpen(true);
   }, []);
 
+  const handleResetZoom = useCallback(() => {
+    handleCanvasTransformChange({ x: Math.round(window.innerWidth / 2 - 400), y: Math.round(window.innerHeight / 2 - 300), zoom: 1 });
+  }, [handleCanvasTransformChange]);
+
+  const handleTogglePanMode = useCallback(() => {
+    setIsPanMode((prev) => !prev);
+  }, []);
+
+  const handleToggleTheme = useCallback(() => {
+    setSettings((prev) => ({ ...prev, themeMode: prev.themeMode === 'dark' ? 'light' : 'dark' }));
+  }, [setSettings]);
+
+  const handleToggleSnapToGrid = useCallback(() => {
+    setSettings((prev) => ({ ...prev, snapToGrid: !prev.snapToGrid }));
+  }, [setSettings]);
+
+  const handleToggleConnections = useCallback(() => {
+    setSettings((prev) => ({ ...prev, showConnections: !prev.showConnections }));
+  }, [setSettings]);
+
   // 4. Note Selection & Keyboard Shortcuts Hook
   const {
     selectedNoteIds,
@@ -86,7 +106,20 @@ export default function App() {
     setEditingNoteId,
     handleSelectNote,
     handleSelectMultipleNotes,
-  } = useNoteSelection(notes, handleUndo, handleRedo, requestDeleteNotes, setIsSearchOpen);
+  } = useNoteSelection(
+    notes,
+    handleUndo,
+    handleRedo,
+    requestDeleteNotes,
+    setIsSearchOpen,
+    (x, y) => handleCreateNote(x, y),
+    handleFitNotes,
+    handleResetZoom,
+    handleTogglePanMode,
+    handleToggleTheme,
+    handleToggleSnapToGrid,
+    handleToggleConnections
+  );
 
   const handleCreateNote = useCallback(
     (customX?: number, customY?: number) => {
@@ -96,19 +129,6 @@ export default function App() {
     },
     [handleAddNote, transform, settings, setSelectedNoteIds, setEditingNoteId]
   );
-
-  const handleConfirmDelete = useCallback(() => {
-    if (notesToDelete.length > 0) {
-      handleDeleteMultipleNotes(notesToDelete);
-      setSelectedNoteIds((prev) => prev.filter((id) => !notesToDelete.includes(id)));
-      setNotesToDelete([]);
-    }
-    setIsDeleteModalOpen(false);
-  }, [handleDeleteMultipleNotes, notesToDelete, setSelectedNoteIds]);
-
-  const handleResetZoom = useCallback(() => {
-    handleCanvasTransformChange({ x: Math.round(window.innerWidth / 2 - 400), y: Math.round(window.innerHeight / 2 - 300), zoom: 1 });
-  }, [handleCanvasTransformChange]);
 
   const handleResetSampleNotes = useCallback(() => {
     setNotes(SAMPLE_NOTES);
@@ -132,6 +152,15 @@ export default function App() {
     },
     [handleCanvasTransformChange, resetHistory, setNotes, setSettings]
   );
+
+  const handleConfirmDelete = useCallback(() => {
+    if (notesToDelete.length > 0) {
+      handleDeleteMultipleNotes(notesToDelete);
+      setSelectedNoteIds((prev) => prev.filter((id) => !notesToDelete.includes(id)));
+      setNotesToDelete([]);
+    }
+    setIsDeleteModalOpen(false);
+  }, [handleDeleteMultipleNotes, notesToDelete, setSelectedNoteIds]);
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-slate-950 font-sans select-none">
@@ -161,6 +190,7 @@ export default function App() {
 
       {/* Docked Control Bar */}
       <CanvasControls
+        notes={notes}
         transform={transform}
         gridType={settings.gridType}
         themeMode={settings.themeMode}
@@ -170,15 +200,15 @@ export default function App() {
         canUndo={canUndo}
         canRedo={canRedo}
         onAddNote={() => handleCreateNote()}
-        onTogglePanMode={() => setIsPanMode((prev) => !prev)}
+        onTogglePanMode={handleTogglePanMode}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         onResetZoom={handleResetZoom}
         onFitNotes={handleFitNotes}
         onChangeGridType={(gridType) => setSettings((prev) => ({ ...prev, gridType }))}
-        onToggleTheme={() => setSettings((prev) => ({ ...prev, themeMode: prev.themeMode === 'dark' ? 'light' : 'dark' }))}
-        onToggleSnapToGrid={() => setSettings((prev) => ({ ...prev, snapToGrid: !prev.snapToGrid }))}
-        onToggleConnections={() => setSettings((prev) => ({ ...prev, showConnections: !prev.showConnections }))}
+        onToggleTheme={handleToggleTheme}
+        onToggleSnapToGrid={handleToggleSnapToGrid}
+        onToggleConnections={handleToggleConnections}
         onUndo={handleUndo}
         onRedo={handleRedo}
         onOpenSearch={() => setIsSearchOpen(true)}
@@ -202,6 +232,7 @@ export default function App() {
       <SearchModal
         isOpen={isSearchOpen}
         notes={notes}
+        themeMode={settings.themeMode}
         onClose={() => setIsSearchOpen(false)}
         onSelectNote={(id) => handleNavigateToNote(id, setSelectedNoteIds)}
       />
