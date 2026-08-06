@@ -18,6 +18,25 @@ An Infinite Spatial Canvas Note-Taking & Journaling Application built with React
 
 ---
 
+## 📋 Table of Contents
+
+- [📌 Overview](#-overview)
+- [✨ Features & Highlights](#-features--highlights)
+  - [🎨 Infinite Spatial Canvas](#-infinite-spatial-canvas)
+  - [📝 Rich Note Cards & Editing](#-rich-note-cards--editing)
+  - [🔐 Security & Local-First Persistence](#-security--local-first-persistence)
+  - [🔗 Bi-Directional Linking & Visual Graph](#-bi-directional-linking--visual-graph)
+- [⌨️ Keyboard Shortcuts Reference](#-keyboard-shortcuts-reference)
+- [💻 System Requirements](#-system-requirements)
+- [📦 Installation Guide](#-installation-guide)
+  - [⚡ One-Line Automatic Install](#-one-line-automatic-install)
+  - [1. Download Prebuilt Package](#1-download-prebuilt-package-linux--windows--macos)
+  - [2. Building from Source](#2-building-from-source)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+
+---
+
 ## 📌 Overview
 
 **DiaryNote** is a modern, privacy-focused infinite spatial canvas note-taking and journaling app. It combines the visual freedom of an infinite 2D canvas with local-first database persistence, master passcode security, bi-directional `@Note` linking, markdown editing, and batch card management.
@@ -161,6 +180,12 @@ cd DiaryNote
    npm run tauri:build
    ```
    The compiled production bundles (`.deb`, `.app`, `.exe`) will be generated inside `src-tauri/target/release/bundle/`.
+
+---
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome! Check out our [**Contributing Guide**](CONTRIBUTING.md) for details on development setup, code standards, and pull request guidelines.
 
 ---
 

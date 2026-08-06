@@ -2,34 +2,36 @@ $ErrorActionPreference = 'Stop'
 
 Write-Host "==> Installing DiaryNote for Windows..." -ForegroundColor Cyan
 
-# Fetch latest release metadata from GitHub API
+# Resolve latest release tag via web redirect (bypasses GitHub API rate limits)
 $repo = "itshimelz/DiaryNote"
-$apiUrl = "https://api.github.com/repos/$repo/releases/latest"
+$webUrl = "https://github.com/$repo/releases/latest"
 
 try {
-    $release = Invoke-RestMethod -Uri $apiUrl -Headers @{ "User-Agent" = "DiaryNote-Installer" }
-    $tagName = $release.tag_name
+    $request = [System.Net.WebRequest]::Create($webUrl)
+    $request.AllowAutoRedirect = $false
+    $response = $request.GetResponse()
+    $location = $response.Headers["Location"]
+    $tagName = Split-Path $location -Leaf
 } catch {
-    Write-Error "Failed to fetch latest release metadata from GitHub."
-    exit 1
+    $tagName = "v0.1.1"
 }
 
 Write-Host "Found latest version: $tagName" -ForegroundColor Green
 
-# Find Windows installer asset (.exe or .msi)
-$asset = $release.assets | Where-Object { $_.name -like "*setup.exe" -or $_.name -like "*.exe" -or $_.name -like "*.msi" } | Select-Object -First 1
-
-if (-not $asset) {
-    Write-Error "No Windows installer (.exe or .msi) found in release $tagName."
-    exit 1
-}
-
-$downloadUrl = $asset.browser_download_url
-$fileName = $asset.name
+$versionNum = $tagName.TrimStart('v')
+$fileName = "DiaryNote_${versionNum}_x64-setup.exe"
+$downloadUrl = "https://github.com/$repo/releases/download/$tagName/$fileName"
 $tempPath = Join-Path $env:TEMP $fileName
 
 Write-Host "Downloading $fileName..." -ForegroundColor Cyan
-Invoke-WebRequest -Uri $downloadUrl -OutFile $tempPath
+try {
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $tempPath
+} catch {
+    $fileName = "DiaryNote_${versionNum}_x64_en-US.msi"
+    $downloadUrl = "https://github.com/$repo/releases/download/$tagName/$fileName"
+    $tempPath = Join-Path $env:TEMP $fileName
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $tempPath
+}
 
 Write-Host "Launching installer..." -ForegroundColor Green
 Start-Process -FilePath $tempPath -Wait

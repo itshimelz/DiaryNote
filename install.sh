@@ -35,32 +35,33 @@ esac
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-# Fetch latest release metadata from GitHub
+# Resolve latest release tag via web redirect (bypasses GitHub API rate limits)
 REPO="itshimelz/DiaryNote"
-RELEASE_JSON="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest")"
-TAG_NAME="$(echo "$RELEASE_JSON" | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4)"
+REDIRECT_URL="$(curl -sIL "https://github.com/${REPO}/releases/latest" | grep -i "^location:" | head -n1 | tr -d '\r\n' || true)"
+TAG_NAME="$(basename "$REDIRECT_URL")"
+
+if [ -z "$TAG_NAME" ] || [ "$TAG_NAME" = "latest" ]; then
+  # Fallback to API if redirect header is empty
+  TAG_NAME="$(curl -fsSL -H "User-Agent: DiaryNote-Installer" "https://api.github.com/repos/${REPO}/releases/latest" | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4 || true)"
+fi
 
 if [ -z "$TAG_NAME" ]; then
-  echo -e "${RED}Failed to fetch latest release from GitHub.${NC}"
+  echo -e "${RED}Failed to resolve latest release tag.${NC}"
   exit 1
 fi
 
+VERSION_NUM="${TAG_NAME#v}"
 echo -e "${BLUE}Found latest version: ${BOLD}${TAG_NAME}${NC}"
 
 # --- macOS Installation ---
 if [ "$OS" = "Darwin" ]; then
-  DMG_URL="$(echo "$RELEASE_JSON" | grep -o "https://[^\"]*${MAC_ARCH}\.dmg" | head -n1 || true)"
-  if [ -z "$DMG_URL" ]; then
-    DMG_URL="$(echo "$RELEASE_JSON" | grep -o 'https://[^\"]*\.dmg' | head -n1)"
-  fi
-
-  if [ -z "$DMG_URL" ]; then
-    echo -e "${RED}Could not find macOS installer (.dmg) in release ${TAG_NAME}.${NC}"
-    exit 1
-  fi
+  DMG_URL="https://github.com/${REPO}/releases/download/${TAG_NAME}/DiaryNote_${VERSION_NUM}_${MAC_ARCH}.dmg"
 
   echo -e "${BLUE}Downloading macOS installer (.dmg)...${NC}"
-  curl -fsSL "$DMG_URL" -o "$TMP_DIR/DiaryNote.dmg"
+  if ! curl -fsSL "$DMG_URL" -o "$TMP_DIR/DiaryNote.dmg"; then
+    DMG_URL="https://github.com/${REPO}/releases/download/${TAG_NAME}/DiaryNote_${VERSION_NUM}_x64.dmg"
+    curl -fsSL "$DMG_URL" -o "$TMP_DIR/DiaryNote.dmg"
+  fi
 
   echo -e "${BLUE}Mounting DMG and installing to /Applications...${NC}"
   mkdir -p "$TMP_DIR/mnt"
@@ -83,10 +84,9 @@ if [ "$OS" = "Linux" ]; then
 
   # Debian / Ubuntu / Mint / Pop!_OS .deb installer
   if [ "$IS_DEBIAN" = true ]; then
-    DEB_URL="$(echo "$RELEASE_JSON" | grep -o "https://[^\"]*${DEB_ARCH}\.deb" | head -n1 || true)"
-    if [ -n "$DEB_URL" ]; then
-      echo -e "${BLUE}Debian/Ubuntu system detected. Downloading .deb package...${NC}"
-      curl -fsSL "$DEB_URL" -o "$TMP_DIR/DiaryNote.deb"
+    DEB_URL="https://github.com/${REPO}/releases/download/${TAG_NAME}/DiaryNote_${VERSION_NUM}_${DEB_ARCH}.deb"
+    echo -e "${BLUE}Debian/Ubuntu system detected. Downloading .deb package...${NC}"
+    if curl -fsSL "$DEB_URL" -o "$TMP_DIR/DiaryNote.deb"; then
       if command -v sudo >/dev/null 2>&1; then
         sudo dpkg -i "$TMP_DIR/DiaryNote.deb" || sudo apt-get install -f -y
       else
@@ -98,18 +98,14 @@ if [ "$OS" = "Linux" ]; then
   fi
 
   # Arch Linux / Manjaro / Fedora / Standalone Linux package
-  TAR_URL="$(echo "$RELEASE_JSON" | grep -o 'https://[^\"]*linux-x86_64\.tar\.gz' | head -n1 || true)"
-  if [ -z "$TAR_URL" ]; then
-    TAR_URL="$(echo "$RELEASE_JSON" | grep -o 'https://[^\"]*linux[^\"]*\.tar\.gz' | head -n1 || true)"
-  fi
+  TAR_URL="https://github.com/${REPO}/releases/download/${TAG_NAME}/DiaryNote-linux-x86_64.tar.gz"
 
-  if [ -z "$TAR_URL" ]; then
-    echo -e "${RED}Could not find Linux package in release ${TAG_NAME}.${NC}"
+  echo -e "${BLUE}Downloading DiaryNote standalone Linux package...${NC}"
+  if ! curl -fsSL "$TAR_URL" -o "$TMP_DIR/package.tar.gz"; then
+    echo -e "${RED}Could not download package from ${TAR_URL}${NC}"
     exit 1
   fi
 
-  echo -e "${BLUE}Downloading DiaryNote standalone Linux package...${NC}"
-  curl -fsSL "$TAR_URL" -o "$TMP_DIR/package.tar.gz"
   tar -xzf "$TMP_DIR/package.tar.gz" -C "$TMP_DIR"
 
   mkdir -p ~/.local/bin ~/.local/share/applications ~/.local/share/icons/hicolor/128x128/apps
