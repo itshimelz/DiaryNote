@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Trash2, X, AlertCircle } from 'lucide-react';
+import { Trash2, X } from 'lucide-react';
 import { CanvasTheme } from '../types';
 
 interface DeleteConfirmationModalProps {
@@ -39,14 +39,14 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 dark:bg-black/70 backdrop-blur-xs animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-150 select-none"
       onClick={onClose}
     >
       <div
-        className={`relative w-full max-w-sm rounded-2xl border shadow-2xl p-5 overflow-hidden transition-all duration-200 animate-in zoom-in-95 font-sans ${
+        className={`relative w-full max-w-sm rounded-md border shadow-lg p-5 overflow-hidden transition-all duration-200 animate-in zoom-in-95 font-sans backdrop-blur-xl ${
           isLight
-            ? 'bg-white/95 border-slate-200 text-slate-800 shadow-slate-900/10'
-            : 'bg-slate-900/95 border-slate-800 text-slate-100 shadow-black/50'
+            ? 'bg-white/95 border-slate-200 text-slate-900'
+            : 'bg-slate-900/95 border-slate-800 text-slate-100'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -55,26 +55,26 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
           onClick={onClose}
           type="button"
           aria-label="Close"
-          className={`absolute top-4 right-4 p-1.5 rounded-lg transition-colors ${
+          className={`absolute top-4 right-4 p-1 rounded-sm transition-colors ${
             isLight
               ? 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
           }`}
         >
-          <X className="w-4 h-4" />
+          <X className="w-3.5 h-3.5" />
         </button>
 
         {/* Minimal Header Accent */}
         <div className="flex items-center gap-2">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-400 border border-red-200/80 dark:border-red-500/30">
-            <Trash2 className="w-3.5 h-3.5" />
+          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-semibold bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400 border border-red-200/80 dark:border-red-900/50">
+            <Trash2 className="w-3 h-3" />
             <span>Confirm Deletion</span>
           </div>
         </div>
 
         {/* Title & Description */}
         <div className="mt-3 space-y-1">
-          <h3 className={`text-base font-semibold tracking-tight ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
+          <h3 className={`text-sm font-semibold tracking-tight ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
             {count === 1 ? 'Delete Note?' : `Delete ${count} Selected Notes?`}
           </h3>
           <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
@@ -91,10 +91,10 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
         {/* Note Titles List Preview */}
         {noteTitles.length > 0 && (
           <div
-            className={`mt-3.5 max-h-36 overflow-y-auto rounded-xl p-3 border space-y-1.5 text-xs ${
+            className={`mt-3 max-h-36 overflow-y-auto rounded-sm p-2.5 border space-y-1 text-xs ${
               isLight
-                ? 'bg-slate-50 border-slate-200/80 text-slate-700'
-                : 'bg-slate-800/40 border-slate-800 text-slate-300'
+                ? 'bg-slate-50 border-slate-200 text-slate-700'
+                : 'bg-slate-850/50 border-slate-800 text-slate-300'
             }`}
           >
             {noteTitles.slice(0, 5).map((title, idx) => (
@@ -104,7 +104,7 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
               </div>
             ))}
             {noteTitles.length > 5 && (
-              <div className={`text-[11px] pt-0.5 pl-3.5 font-medium ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+              <div className={`text-[10px] pt-0.5 pl-3.5 font-medium ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
                 + {noteTitles.length - 5} more notes selected
               </div>
             )}
@@ -116,10 +116,10 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
           <button
             type="button"
             onClick={onClose}
-            className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-sm text-xs font-medium border transition-colors ${
               isLight
-                ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
+                ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
+                : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-slate-100'
             }`}
           >
             Cancel
@@ -127,7 +127,7 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
           <button
             type="button"
             onClick={onConfirm}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 active:scale-95 transition-all shadow-sm shadow-red-600/30 flex items-center gap-1.5"
+            className="px-3.5 py-1.5 rounded-sm text-xs font-semibold text-white bg-red-600 hover:bg-red-700 active:scale-98 transition-all shadow-xs flex items-center gap-1.5"
           >
             <Trash2 className="w-3.5 h-3.5" />
             <span>Delete {count > 1 ? `(${count})` : ''}</span>
