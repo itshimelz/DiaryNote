@@ -499,6 +499,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
             ...note,
             groupId: undefined,
             groupName: undefined,
+            tags: note.tags?.filter((t) => !/^#?Group\s/i.test(t)),
           })
         }
       />

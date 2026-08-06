@@ -271,15 +271,18 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
       const updated = selectedNotes.map((n) => ({
         ...n,
         groupId: undefined,
+        groupName: undefined,
+        tags: n.tags?.filter((t) => !/^#?Group\s/i.test(t)),
       }));
       onUpdateBatchNotes(updated);
     } else {
       const newGroupId = `group-${Date.now()}`;
-      const groupTag = `Group ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      const groupName = `Group ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
       const updated = selectedNotes.map((n) => ({
         ...n,
         groupId: newGroupId,
-        tags: Array.from(new Set([...(n.tags || []), groupTag])),
+        groupName,
+        tags: n.tags?.filter((t) => !/^#?Group\s/i.test(t)),
       }));
       onUpdateBatchNotes(updated);
     }
