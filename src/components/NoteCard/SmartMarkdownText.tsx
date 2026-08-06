@@ -3,8 +3,9 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { Check } from 'lucide-react';
-import { Note } from '../../types';
+import { Note, PaperTheme } from '../../types';
 import { processMarkdownMentions } from '../../lib/markdownMention';
+import { PAPER_THEMES } from './types';
 
 const REMARK_PLUGINS = [remarkGfm, remarkBreaks];
 
@@ -13,6 +14,7 @@ interface SmartMarkdownTextProps {
   allNotes?: Note[];
   fontClass?: string;
   fontSizeClass?: string;
+  paperTheme?: string;
   className?: string;
   inline?: boolean;
   onNavigateToNote?: (targetNoteId: string) => void;
@@ -24,11 +26,14 @@ export const SmartMarkdownText: React.FC<SmartMarkdownTextProps> = ({
   allNotes = [],
   fontClass = 'font-sans',
   fontSizeClass = 'text-sm',
+  paperTheme = 'white',
   className = '',
   inline = false,
   onNavigateToNote,
   onDoubleClick,
 }) => {
+  const themeConfig = PAPER_THEMES[(paperTheme as PaperTheme) || 'white'];
+
   const processedContent = useMemo(
     () => processMarkdownMentions(content || '', allNotes),
     [content, allNotes]
@@ -88,8 +93,8 @@ export const SmartMarkdownText: React.FC<SmartMarkdownTextProps> = ({
                 <span
                   className={`inline-flex items-center justify-center shrink-0 w-4 h-4 rounded border-2 transition-all select-none ${
                     checked
-                      ? 'bg-slate-900 border-slate-900 text-white shadow-2xs'
-                      : 'border-slate-500 bg-white hover:border-slate-900'
+                      ? themeConfig.checkboxChecked
+                      : themeConfig.checkboxUnchecked
                   }`}
                 >
                   {checked && <Check className="w-3 h-3 stroke-[3]" />}
@@ -108,7 +113,7 @@ export const SmartMarkdownText: React.FC<SmartMarkdownTextProps> = ({
                     e.stopPropagation();
                     onNavigateToNote?.(targetNoteId);
                   }}
-                  className="inline font-medium text-blue-600 hover:text-blue-700 hover:underline cursor-pointer transition-colors"
+                  className={`inline font-medium ${themeConfig.linkColor} hover:underline cursor-pointer transition-colors`}
                 >
                   {children}
                 </button>
@@ -119,7 +124,7 @@ export const SmartMarkdownText: React.FC<SmartMarkdownTextProps> = ({
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:underline inline"
+                className={`${themeConfig.linkColor} hover:underline inline`}
                 onClick={(e) => e.stopPropagation()}
               >
                 {children}

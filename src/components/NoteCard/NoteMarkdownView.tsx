@@ -133,8 +133,8 @@ export const NoteMarkdownView: React.FC<NoteMarkdownViewProps> = ({
                   <span
                     className={`inline-flex items-center justify-center shrink-0 w-4 h-4 rounded border-2 transition-all select-none ${
                       checked
-                        ? 'bg-slate-900 border-slate-900 text-white shadow-2xs'
-                        : 'border-slate-500 bg-white hover:border-slate-900'
+                        ? themeConfig.checkboxChecked
+                        : themeConfig.checkboxUnchecked
                     }`}
                   >
                     {checked && <Check className="w-3 h-3 stroke-[3]" />}
@@ -153,7 +153,7 @@ export const NoteMarkdownView: React.FC<NoteMarkdownViewProps> = ({
                       e.stopPropagation();
                       onNavigateToNote(targetNoteId);
                     }}
-                    className="inline font-medium text-blue-600 hover:text-blue-700 hover:underline cursor-pointer transition-colors"
+                    className={`inline font-medium ${themeConfig.linkColor} hover:underline cursor-pointer transition-colors`}
                   >
                     {children}
                   </button>
@@ -164,7 +164,7 @@ export const NoteMarkdownView: React.FC<NoteMarkdownViewProps> = ({
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
+                  className={`${themeConfig.linkColor} hover:underline`}
                   onClick={(e) => e.stopPropagation()}
                 >
                   {children}

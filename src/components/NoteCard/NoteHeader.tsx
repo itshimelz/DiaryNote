@@ -82,9 +82,11 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
   const headerBg = themeConfig?.headerBg || 'bg-white';
   const divider = themeConfig?.divider || 'border-slate-100';
 
-  const actionBtnClass = isDarkCard
+  const inputBg = themeConfig?.inputBg || 'bg-slate-50 focus:bg-white text-slate-900';
+  const inputBorder = themeConfig?.inputBorder || 'border-slate-200 focus:border-blue-400';
+  const actionBtnClass = themeConfig?.toolbarBtn || (isDarkCard
     ? 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
-    : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100/80';
+    : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100/80');
 
   const isEditingTitleActive = isEditingTitle || isEditingTitleLocal;
 
@@ -125,7 +127,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
               onClick={(e) => e.stopPropagation()}
               onDoubleClick={(e) => e.stopPropagation()}
               autoFocus
-              className={`w-full bg-slate-50/80 focus:bg-white ${textColor} font-bold text-base sm:text-lg px-2 py-0.5 rounded-lg border border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all`}
+              className={`w-full ${inputBg} font-bold text-base sm:text-lg px-2 py-0.5 rounded-lg border ${inputBorder} focus:ring-2 focus:ring-blue-500/20 outline-none transition-all`}
             />
           ) : (
             <h3
@@ -137,7 +139,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                 e.stopPropagation();
                 setIsEditingTitleLocal(true);
               }}
-              className={`${textColor} font-bold text-base sm:text-lg tracking-tight truncate leading-tight cursor-text hover:text-blue-600 transition-colors`}
+              className={`${textColor} font-bold text-base sm:text-lg tracking-tight truncate leading-tight cursor-text opacity-90 hover:opacity-100 transition-opacity`}
               title={note.title || 'Untitled Note'}
             >
               {note.title || 'Untitled Note'}
@@ -156,7 +158,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
             }}
             className={`p-1 rounded-full transition-colors ${
               note.isPinned
-                ? 'text-amber-500 bg-amber-50 hover:bg-amber-100'
+                ? 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
                 : actionBtnClass
             }`}
             title={note.isPinned ? 'Unpin note' : 'Pin note'}

@@ -246,7 +246,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       const dx = (moveEvent.clientX - dragStartRef.current.x) / zoom;
       const dy = (moveEvent.clientY - dragStartRef.current.y) / zoom;
 
-      const GRID_SIZE = 20;
+      const GRID_SIZE = 24;
       if (groupDragStartRef.current.length > 1 && onUpdateBatchNotes) {
         const updatedBatch = allNotes
           .filter((n) => selectedNoteIds.includes(n.id))
@@ -282,26 +282,26 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
     };
 
     const handleMouseUp = () => {
-      const GRID_SIZE = 20;
+      const GRID_SIZE = 24;
       if (frame !== null) {
         cancelAnimationFrame(frame);
       }
       if (hasMoved) {
         if (groupDragStartRef.current.length > 1 && onUpdateBatchNotes && currentBatchRef.current.length > 0) {
-          const snappedBatch = currentBatchRef.current.map((n) => ({
+          const finalBatch = currentBatchRef.current.map((n) => ({
             ...n,
-            x: Math.round(n.x / GRID_SIZE) * GRID_SIZE,
-            y: Math.round(n.y / GRID_SIZE) * GRID_SIZE,
+            x: snapToGrid ? Math.round(n.x / GRID_SIZE) * GRID_SIZE : n.x,
+            y: snapToGrid ? Math.round(n.y / GRID_SIZE) * GRID_SIZE : n.y,
             updatedAt: new Date().toISOString(),
           }));
-          onUpdateBatchNotes(snappedBatch);
+          onUpdateBatchNotes(finalBatch);
         } else {
-          const snappedX = Math.round(currentPosRef.current.x / GRID_SIZE) * GRID_SIZE;
-          const snappedY = Math.round(currentPosRef.current.y / GRID_SIZE) * GRID_SIZE;
+          const finalX = snapToGrid ? Math.round(currentPosRef.current.x / GRID_SIZE) * GRID_SIZE : currentPosRef.current.x;
+          const finalY = snapToGrid ? Math.round(currentPosRef.current.y / GRID_SIZE) * GRID_SIZE : currentPosRef.current.y;
           onUpdateNote({
             ...note,
-            x: snappedX,
-            y: snappedY,
+            x: finalX,
+            y: finalY,
             updatedAt: new Date().toISOString(),
           });
         }
@@ -408,8 +408,8 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       }}
       className={`note-card absolute top-0 left-0 rounded-2xl border flex flex-col justify-between ${
         isDragging || isCardDragging
-          ? 'transition-none scale-[1.02] cursor-grabbing ring-2 ring-blue-500/70 shadow-md'
-          : 'transition-all duration-200 ease-out scale-100 shadow-sm'
+          ? 'transition-none scale-[1.01] cursor-grabbing ring-2 ring-blue-500/70 shadow-md'
+          : 'transition-[box-shadow,ring-color,border-color,opacity] duration-150 ease-out scale-100 shadow-sm'
       } ${themeConfig.headerBg} ${themeConfig.border} ${themeConfig.text} ${
         isSelected ? 'ring-2 ring-blue-500' : ''
       }`}
@@ -504,6 +504,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
               })
             }
             fontClass={fontClass}
+            paperTheme={note.paperTheme}
           />
         ) : isEditing ? (
           /* Text Editing Mode */
@@ -698,7 +699,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       {/* Resize Handle at Bottom Right */}
       <div
         onMouseDown={handleResizeMouseDown}
-        className="absolute bottom-1 right-1 w-4 h-4 cursor-se-resize flex items-center justify-center text-slate-300 hover:text-slate-600 transition-colors z-20"
+        className={`absolute bottom-1 right-1 w-4 h-4 cursor-se-resize flex items-center justify-center ${themeConfig.subtext} opacity-60 hover:opacity-100 transition-opacity z-20`}
         title="Resize card"
       >
         <svg className="w-3 h-3" viewBox="0 0 12 12" fill="currentColor">

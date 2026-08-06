@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Check, Plus, Trash2 } from 'lucide-react';
-import { Note } from '../../types';
+import { Note, PaperTheme } from '../../types';
 import { SmartMarkdownText } from './SmartMarkdownText';
+import { PAPER_THEMES } from './types';
 
 interface ChecklistItem {
   id: string;
@@ -28,7 +29,9 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
   fontSizeClass = 'text-sm',
   paperTheme = 'white',
 }) => {
+  const themeConfig = PAPER_THEMES[(paperTheme as PaperTheme) || 'white'];
   const isRuled = paperTheme === 'ruled' || paperTheme === 'ruled-dark';
+
   // Parse markdown checklist lines: "- [x] Task" or "- [ ] Task" or plain lines
   const parseItemsFromContent = (rawText: string): ChecklistItem[] => {
     if (!rawText.trim()) {
@@ -108,7 +111,9 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
           return (
             <div
               key={item.id}
-              className={`flex items-start gap-3 p-1 rounded-xl hover:bg-slate-50/80 group transition-colors ${isRuled ? 'ruled-text-alignment' : ''}`}
+              className={`flex items-start gap-3 p-1 rounded-xl ${themeConfig.hoverBg} group transition-colors ${
+                isRuled ? 'ruled-text-alignment' : ''
+              }`}
             >
               {/* Custom rounded square checkbox */}
               <button
@@ -117,8 +122,8 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
                 style={isRuled ? { marginTop: '6px' } : { marginTop: '4px' }}
                 className={`shrink-0 w-5 h-5 rounded-md border-2 transition-all flex items-center justify-center ${
                   item.completed
-                    ? 'bg-slate-900 border-slate-900 text-white shadow-2xs'
-                    : 'border-slate-700 bg-white hover:border-slate-900'
+                    ? themeConfig.checkboxChecked
+                    : themeConfig.checkboxUnchecked
                 }`}
               >
                 {item.completed && <Check className="w-3.5 h-3.5 stroke-[3]" />}
@@ -149,13 +154,13 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
                       el.style.height = `${el.scrollHeight}px`;
                     }
                   }}
-                  className="flex-1 bg-transparent border-0 outline-none text-slate-800 font-medium text-sm tracking-tight resize-none overflow-hidden break-words whitespace-pre-wrap py-0"
+                  className={`flex-1 bg-transparent border-0 outline-none ${themeConfig.text} font-medium text-sm tracking-tight resize-none overflow-hidden break-words whitespace-pre-wrap py-0`}
                 />
               ) : (
                 <div
                   onClick={() => setEditingItemId(item.id)}
                   className={`flex-1 cursor-text min-h-[22px] font-medium tracking-tight ${
-                    item.completed ? 'line-through opacity-60' : 'text-slate-800'
+                    item.completed ? 'line-through opacity-50' : themeConfig.text
                   }`}
                 >
                   <SmartMarkdownText
@@ -164,6 +169,7 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
                     onNavigateToNote={onNavigateToNote}
                     fontClass={fontClass}
                     fontSizeClass={fontSizeClass}
+                    paperTheme={paperTheme}
                     inline
                   />
                 </div>
@@ -173,7 +179,7 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
               <button
                 type="button"
                 onClick={() => handleDeleteItem(item.id)}
-                className="opacity-0 group-hover:opacity-100 p-1 mt-0.5 text-slate-300 hover:text-rose-500 transition-opacity shrink-0"
+                className={`opacity-0 group-hover:opacity-100 p-1 mt-0.5 ${themeConfig.subtext} hover:text-rose-500 transition-opacity shrink-0`}
                 title="Delete task"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -184,7 +190,10 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
       </div>
 
       {/* Add new task item input */}
-      <form onSubmit={handleAddItem} className="mt-auto pt-2 border-t border-slate-100 flex items-center gap-2">
+      <form
+        onSubmit={handleAddItem}
+        className={`mt-auto pt-2 border-t ${themeConfig.divider} flex items-center gap-2`}
+      >
         <input
           type="text"
           placeholder="Add task item..."
@@ -195,11 +204,15 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
               e.currentTarget.blur();
             }
           }}
-          className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-blue-400 focus:bg-white transition-all"
+          className={`flex-1 ${themeConfig.inputBg} border ${themeConfig.inputBorder} rounded-xl px-3 py-1.5 text-xs outline-none transition-all`}
         />
         <button
           type="submit"
-          className="p-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl transition-colors shrink-0 shadow-2xs"
+          className={`p-1.5 ${
+            themeConfig.isDark
+              ? 'bg-blue-600 hover:bg-blue-500 text-white'
+              : 'bg-slate-900 hover:bg-slate-800 text-white'
+          } rounded-xl transition-colors shrink-0 shadow-2xs`}
           title="Add task"
         >
           <Plus className="w-4 h-4" />

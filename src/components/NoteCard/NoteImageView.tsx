@@ -1,11 +1,14 @@
 import React from 'react';
 import { X, Image as ImageIcon } from 'lucide-react';
+import { PaperTheme } from '../../types';
+import { PAPER_THEMES } from './types';
 
 interface NoteImageViewProps {
   imageUrl?: string;
   onRemoveImage: () => void;
   textSnippet?: string;
   fontClass?: string;
+  paperTheme?: string;
 }
 
 export const NoteImageView: React.FC<NoteImageViewProps> = ({
@@ -13,7 +16,10 @@ export const NoteImageView: React.FC<NoteImageViewProps> = ({
   onRemoveImage,
   textSnippet = 'A cherry blossom, also known as Japanese cherry or sakura, is a flower of many trees of genus Prunus or Prunus subg. Cerasus.',
   fontClass = 'font-sans',
+  paperTheme = 'white',
 }) => {
+  const themeConfig = PAPER_THEMES[(paperTheme as PaperTheme) || 'white'];
+
   // Default sample sakura photo if no custom image URL provided
   const displayImage =
     imageUrl ||
@@ -23,7 +29,7 @@ export const NoteImageView: React.FC<NoteImageViewProps> = ({
     <div className={`w-full flex-1 flex flex-col gap-2 p-1 ${fontClass}`}>
       <div className="flex gap-3 items-start">
         {/* Image Thumbnail */}
-        <div className="relative group/img shrink-0 w-28 h-28 sm:w-32 sm:h-32 rounded-xl overflow-hidden border border-slate-200/80 shadow-2xs bg-slate-100">
+        <div className={`relative group/img shrink-0 w-28 h-28 sm:w-32 sm:h-32 rounded-xl overflow-hidden border ${themeConfig.border} shadow-2xs ${themeConfig.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
           <img
             src={displayImage}
             alt="Note attachment"
@@ -41,7 +47,7 @@ export const NoteImageView: React.FC<NoteImageViewProps> = ({
         </div>
 
         {/* Full note text next to the image */}
-        <div className="flex-1 text-xs sm:text-sm text-slate-700 leading-relaxed font-normal">
+        <div className={`flex-1 text-xs sm:text-sm ${themeConfig.text} leading-relaxed font-normal`}>
           <p>
             {textSnippet ||
               'A cherry blossom, also known as Japanese cherry or sakura, is a flower of many trees of genus Prunus or Prunus subg. Cerasus. They are common species in East Asia, including China, Korea and especially in Japan.'}
