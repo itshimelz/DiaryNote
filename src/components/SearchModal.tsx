@@ -25,6 +25,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
   const isDark = themeMode === 'dark';
 
+  const selectedItemRef = useRef<HTMLDivElement>(null);
+
   // Auto focus on open
   useEffect(() => {
     if (isOpen) {
@@ -35,6 +37,16 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       }, 50);
     }
   }, [isOpen]);
+
+  // Auto-scroll selected item into view when navigating with Keyboard Arrow keys
+  useEffect(() => {
+    if (selectedItemRef.current) {
+      selectedItemRef.current.scrollIntoView({
+        block: 'nearest',
+        behavior: 'smooth',
+      });
+    }
+  }, [selectedIndex]);
 
   // Extract unique user tags (filtering out auto-generated group tags)
   const allTags = useMemo(() => {
@@ -195,7 +207,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
         {/* Filter Pills & Quick Tags Bar */}
         <div
-          className={`px-3 py-2 border-b flex items-center justify-between gap-2 overflow-x-auto text-xs ${
+          className={`px-3 py-2 border-b flex items-center justify-between gap-2 overflow-x-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden text-xs ${
             isDark ? 'border-slate-800/60 bg-slate-950/30' : 'border-slate-200/60 bg-slate-50/40'
           }`}
         >
@@ -248,7 +260,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
           {/* Quick Tag suggestions */}
           {allTags.length > 0 && (
-            <div className="flex items-center gap-1 overflow-x-auto shrink-0 max-w-[45%] no-scrollbar">
+            <div className="flex items-center gap-1 overflow-x-auto shrink-0 max-w-[45%] no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               {allTags.slice(0, 4).map((tag) => (
                 <button
                   key={tag}
@@ -291,6 +303,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
               return (
                 <div
                   key={note.id}
+                  ref={isSelected ? selectedItemRef : null}
                   onClick={() => {
                     onSelectNote(note.id);
                     onClose();
