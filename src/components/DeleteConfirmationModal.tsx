@@ -47,8 +47,8 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
       <div
         className={`relative w-full max-w-sm rounded-md border p-5 overflow-hidden transition-all duration-200 animate-in zoom-in-95 font-sans backdrop-blur-xl ${
           isDark
-            ? 'bg-slate-900/95 border-slate-800 text-slate-100 shadow-lg'
-            : 'bg-white/95 border-slate-200/90 text-slate-900 shadow-md'
+            ? 'bg-slate-900/95 border-slate-800 text-slate-100 shadow-sm'
+            : 'bg-white/95 border-slate-200/90 text-slate-900 shadow-sm'
         }`}
         onClick={(e) => e.stopPropagation()}
       >

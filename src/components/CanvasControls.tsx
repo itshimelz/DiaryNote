@@ -327,7 +327,7 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`w-full max-w-md rounded-2xl shadow-2xl border p-5 overflow-hidden transition-all duration-200 ${
+              className={`w-full max-w-md rounded-md shadow-sm border p-5 overflow-hidden transition-all duration-200 ${
                 themeMode === 'dark'
                   ? 'bg-slate-900 border-slate-800 text-slate-100'
                   : 'bg-white border-slate-200 text-slate-900'

@@ -162,7 +162,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`w-full max-w-2xl rounded-md shadow-lg overflow-hidden flex flex-col max-h-[80vh] border transition-all duration-200 backdrop-blur-xl ${
+        className={`w-full max-w-2xl rounded-md shadow-sm overflow-hidden flex flex-col max-h-[80vh] border transition-all duration-200 backdrop-blur-xl ${
           isDark
             ? 'bg-slate-900/95 border-slate-800 text-slate-100'
             : 'bg-white/95 border-slate-200 text-slate-900'

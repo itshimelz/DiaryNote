@@ -354,7 +354,7 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 4 }}
                 transition={{ duration: 0.15, ease: 'easeOut' }}
-                className={`absolute bottom-full mb-2 left-0 z-50 w-60 rounded-md border shadow-xl p-2.5 flex flex-col gap-2 ${popoverBg}`}
+                className={`absolute bottom-full mb-2 left-0 z-50 w-60 rounded-md border shadow-sm p-2.5 flex flex-col gap-2 ${popoverBg}`}
               >
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                   Change Paper Theme
@@ -406,7 +406,7 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 4 }}
                 transition={{ duration: 0.15, ease: 'easeOut' }}
-                className={`absolute bottom-full mb-2 left-0 z-50 w-52 rounded-md border shadow-xl p-2 flex flex-col gap-1 ${popoverBg}`}
+                className={`absolute bottom-full mb-2 left-0 z-50 w-52 rounded-md border shadow-sm p-2 flex flex-col gap-1 ${popoverBg}`}
               >
                 {/* Horizontal Alignment */}
                 <span className="text-[10px] font-semibold uppercase tracking-wider px-1 text-slate-400">

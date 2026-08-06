@@ -68,7 +68,7 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
 
   return (
     <div
-      className={`fixed inset-y-0 right-0 z-50 w-80 sm:w-96 border-l shadow-2xl backdrop-blur-xl flex flex-col animate-in slide-in-from-right duration-200 select-none font-sans ${
+      className={`fixed inset-y-0 right-0 z-50 w-80 sm:w-96 border-l shadow-sm backdrop-blur-xl flex flex-col animate-in slide-in-from-right duration-200 select-none font-sans ${
         isDark
           ? 'bg-slate-900/95 border-slate-800 text-slate-100'
           : 'bg-white/95 border-slate-200/90 text-slate-900'

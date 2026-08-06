@@ -106,7 +106,7 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150 select-none">
       <div
-        className={`w-full max-w-md rounded-2xl shadow-2xl border p-6 transition-all ${
+        className={`w-full max-w-md rounded-md shadow-sm border p-6 transition-all ${
           isDark
             ? 'bg-slate-900 border-slate-800 text-slate-100'
             : 'bg-white border-slate-200 text-slate-900'

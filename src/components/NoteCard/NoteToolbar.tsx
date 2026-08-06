@@ -115,7 +115,7 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
 
         {/* More Options Popover */}
         {showMoreMenu && (
-          <div className={`absolute bottom-10 right-0 z-50 w-44 rounded-2xl shadow-xl border py-1.5 flex flex-col text-xs animate-in fade-in zoom-in-95 duration-150 ${
+          <div className={`absolute bottom-10 right-0 z-50 w-44 rounded-md shadow-sm border py-1.5 flex flex-col text-xs animate-in fade-in zoom-in-95 duration-150 ${
             isDarkCard ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-800'
           }`}>
             {/* Lock / Unlock Note */}

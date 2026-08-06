@@ -682,7 +682,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       </div>
 
       {/* Upgraded Canvas MiniMap placed at Top Right */}
-      <div className={`fixed top-4 right-4 z-30 w-44 h-32 border rounded-lg shadow-lg backdrop-blur-md overflow-hidden p-2.5 hidden md:block select-none transition-all ${
+      <div className={`fixed top-4 right-4 z-30 w-44 h-32 border rounded-md shadow-sm backdrop-blur-md overflow-hidden p-2.5 hidden md:block select-none transition-all ${
         themeMode === 'light'
           ? 'bg-white/90 border-slate-200 text-slate-800 shadow-slate-200/50'
           : 'bg-slate-900/90 border-slate-800 text-slate-200 shadow-black/50'
