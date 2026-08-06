@@ -276,6 +276,7 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
         tags: n.tags?.filter((t) => !/^#?Group\s/i.test(t)),
       }));
       onUpdateBatchNotes(updated);
+      onClearSelection();
     } else {
       const newGroupId = `group-${Date.now()}`;
       const groupName = `Group ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
@@ -286,6 +287,7 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
         tags: n.tags?.filter((t) => !/^#?Group\s/i.test(t)),
       }));
       onUpdateBatchNotes(updated);
+      onClearSelection();
     }
   };
 

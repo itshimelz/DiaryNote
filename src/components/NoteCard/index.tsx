@@ -394,8 +394,9 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       }
     });
 
-    const cardW = note.width || 340;
-    const cardH = note.height || 340;
+    const targetEl = document.getElementById(`note-card-${note.id}`);
+    const cardW = targetEl ? targetEl.offsetWidth : note.width || 340;
+    const cardH = targetEl ? targetEl.offsetHeight : note.height || 340;
     const nMinX = note.x;
     const nMinY = note.y;
     const nMaxX = note.x + cardW;
@@ -403,10 +404,27 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
 
     for (const [groupId, g] of groupsMap.entries()) {
       if (g.notes.length === 0) continue;
-      const gMinX = Math.min(...g.notes.map((m) => m.x)) - 24;
-      const gMinY = Math.min(...g.notes.map((m) => m.y)) - 36;
-      const gMaxX = Math.max(...g.notes.map((m) => m.x + (m.width || 340))) + 24;
-      const gMaxY = Math.max(...g.notes.map((m) => m.y + (m.height || 340))) + 24;
+      let gMinX = Infinity;
+      let gMinY = Infinity;
+      let gMaxX = -Infinity;
+      let gMaxY = -Infinity;
+
+      g.notes.forEach((m) => {
+        const el = document.getElementById(`note-card-${m.id}`);
+        const realW = el ? el.offsetWidth : m.width || 340;
+        const realH = el ? el.offsetHeight : m.height || 340;
+
+        gMinX = Math.min(gMinX, m.x);
+        gMinY = Math.min(gMinY, m.y);
+        gMaxX = Math.max(gMaxX, m.x + realW);
+        gMaxY = Math.max(gMaxY, m.y + realH);
+      });
+
+      if (gMinX === Infinity) continue;
+      gMinX -= 24;
+      gMinY -= 36;
+      gMaxX += 24;
+      gMaxY += 24;
 
       const isOverlapping = nMinX < gMaxX && nMaxX > gMinX && nMinY < gMaxY && nMaxY > gMinY;
       if (isOverlapping) {
@@ -457,10 +475,12 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         <div className="absolute -top-7 left-2 z-50 pointer-events-auto select-none">
           <button
             type="button"
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
+              onSelectNote(null);
               onUpdateNote({
-                ...note,
+                ...noteRef.current,
                 groupId: overlappingGroup.id,
                 groupName: overlappingGroup.name,
               });
@@ -501,7 +521,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         onDeleteNote={() => onDeleteNote(note.id)}
         onDeselectNote={() => onSelectNote(null)}
         onRemoveFromGroup={() => {
-          onSelectNote(note.id, false);
+          onSelectNote(null);
           onUpdateNote({
             ...noteRef.current,
             groupId: undefined,
@@ -803,6 +823,9 @@ export const NoteCard = React.memo(NoteCardComponent, (prevProps, nextProps) => 
     prevProps.note.fontSize === nextProps.note.fontSize &&
     prevProps.note.activeMode === nextProps.note.activeMode &&
     prevProps.note.isPinned === nextProps.note.isPinned &&
+    prevProps.note.groupId === nextProps.note.groupId &&
+    prevProps.note.groupName === nextProps.note.groupName &&
+    prevProps.note.isLocked === nextProps.note.isLocked &&
     prevProps.selectedNoteIds?.length === nextProps.selectedNoteIds?.length
   );
 });

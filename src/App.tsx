@@ -186,6 +186,7 @@ export default function App() {
         tags: n.tags?.filter((t) => !/^#?Group\s/i.test(t)),
       }));
       handleUpdateBatchNotes(updated);
+      setSelectedNoteIds([]);
     },
     () => {
       // Ungroup shortcut (Ctrl+Shift+G) handler
@@ -199,6 +200,7 @@ export default function App() {
         tags: n.tags?.filter((t) => !/^#?Group\s/i.test(t)),
       }));
       handleUpdateBatchNotes(updated);
+      setSelectedNoteIds([]);
     },
     () => setIsShortcutsModalOpen((prev) => !prev)
   );
