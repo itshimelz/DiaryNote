@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Note, CanvasTheme } from '../types';
 import { formatDate } from '../lib/markdownMention';
 import { Search, Calendar, Tag, FileText, CornerDownLeft, X, Layers } from 'lucide-react';
+import { SmartMarkdownText } from './NoteCard/SmartMarkdownText';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -333,15 +334,28 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                       </h4>
                     </div>
 
-                    <p
+                    <div
                       className={`text-[11px] line-clamp-2 leading-relaxed ${
                         isDark ? 'text-slate-400' : 'text-slate-600'
                       }`}
                     >
-                      {note.isLocked
-                        ? 'Passcode required to view contents...'
-                        : note.content.replace(/#|\*|\[|\]|\(|\)/g, '') || 'Empty note...'}
-                    </p>
+                      {note.isLocked ? (
+                        <span>Passcode required to view contents...</span>
+                      ) : note.content ? (
+                        <SmartMarkdownText
+                          content={note.content}
+                          allNotes={notes}
+                          inline={true}
+                          className="line-clamp-2 text-[11px]"
+                          onNavigateToNote={(targetId) => {
+                            onSelectNote(targetId);
+                            onClose();
+                          }}
+                        />
+                      ) : (
+                        <span>Empty note...</span>
+                      )}
+                    </div>
 
                     <div className="flex items-center gap-3 text-[10px] font-mono pt-1">
                       <span className={`flex items-center gap-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
