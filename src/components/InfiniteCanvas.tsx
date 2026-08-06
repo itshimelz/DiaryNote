@@ -64,6 +64,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   const [isPanning, setIsPanning] = useState(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
+  const [draggingNoteIds, setDraggingNoteIds] = useState<string[]>([]);
   const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight });
   const wheelFrameRef = useRef<number | null>(null);
   const pendingWheelTransformRef = useRef<CanvasTransform | null>(null);
@@ -183,6 +184,9 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
     if (!isCanvasClick) return;
 
     const shouldPan = e.button === 1 || isSpacePressed || isPanMode;
+    if (document.activeElement && 'blur' in document.activeElement) {
+      (document.activeElement as HTMLElement).blur();
+    }
     if (!shouldPan) {
       e.preventDefault();
       if (!containerRef.current) return;
@@ -414,6 +418,8 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
               onRequestLockNote={onRequestLockNote}
               onRequestUnlockNote={onRequestUnlockNote}
               onExportNote={onExportNote}
+              isCardDragging={draggingNoteIds.includes(note.id)}
+              onDragStateChange={setDraggingNoteIds}
             />
           ))}
         </div>

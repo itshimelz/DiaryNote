@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
+import { Check } from 'lucide-react';
 import { Note } from '../../types';
 import { processMarkdownMentions } from '../../lib/markdownMention';
 import { isNoteTextEmpty, normalizeNoteText } from '../../lib/noteTextEngine';
@@ -29,12 +30,20 @@ export const NoteMarkdownView: React.FC<NoteMarkdownViewProps> = ({
   markdownRef,
 }) => {
   const sourceText = useMemo(() => normalizeNoteText(note.content), [note.content]);
-  const processedContent = useMemo(
-    () => processMarkdownMentions(sourceText, allNotes),
-    [sourceText, allNotes]
-  );
-  const themeConfig = PAPER_THEMES[note.paperTheme || 'white'];
+  const processedContent = useMemo(() => {
+    const withMentions = processMarkdownMentions(sourceText, allNotes);
+    // In CommonMark/GFM, a blank line between list items creates a "loose list"
+    // but keeps them ALL in ONE <ul>. To visually separate list groups with a
+    // blank line, we insert a thematic break (---) which forces the parser to
+    // split them into separate <ul> elements. We render <hr> as an invisible
+    // spacer with exact height.
+    return withMentions.replace(
+      /(\n[ \t]*\n)((?=[ \t]*[-*+] ))/g,
+      '\n\n---\n\n'
+    );
+  }, [sourceText, allNotes]);
 
+  const themeConfig = PAPER_THEMES[note.paperTheme || 'white'];
   const isRuled = note.paperTheme === 'ruled' || note.paperTheme === 'ruled-dark';
 
   return (
@@ -61,6 +70,79 @@ export const NoteMarkdownView: React.FC<NoteMarkdownViewProps> = ({
                 {children}
               </p>
             ),
+            hr: () => (
+              <div
+                className={isRuled ? 'h-8' : 'h-3.5'}
+                aria-hidden="true"
+              />
+            ),
+            ul: ({ children, className }) => {
+              const isTaskList = className?.includes('contains-task-list');
+              return (
+                <ul
+                  className={`mt-0 mb-0 space-y-0 ${isTaskList ? 'pl-0 list-none' : ''}`}
+                >
+                  {children}
+                </ul>
+              );
+            },
+            ol: ({ children }) => (
+              <ol className="my-1 first:mt-0 last:mb-0 space-y-1 list-decimal pl-5">{children}</ol>
+            ),
+            li: ({ children, className }) => {
+              const isTaskList = className?.includes('task-list-item');
+              if (isTaskList && Array.isArray(children)) {
+                const checkbox = children.find(
+                  (c: any) =>
+                    c &&
+                    typeof c === 'object' &&
+                    (c.type === 'input' || (c.props && c.props.type === 'checkbox'))
+                );
+                const textChildren = children.filter((c: any) => c !== checkbox);
+
+                return (
+                  <li
+                    className={`list-none flex items-start gap-2.5 leading-relaxed ${
+                      isRuled ? 'ruled-text-alignment' : ''
+                    }`}
+                  >
+                    {checkbox && (
+                      <span
+                        className="shrink-0 flex items-center"
+                        style={isRuled ? { height: '32px' } : { height: '24px' }}
+                      >
+                        {checkbox}
+                      </span>
+                    )}
+                    <div className={`flex-1 min-w-0 font-inherit break-words ${isRuled ? '' : 'leading-relaxed'}`}>
+                      {textChildren}
+                    </div>
+                  </li>
+                );
+              }
+
+              return (
+                <li className={`leading-relaxed ${isRuled ? 'ruled-text-alignment' : ''}`}>
+                  {children}
+                </li>
+              );
+            },
+            input: ({ type, checked }) => {
+              if (type === 'checkbox') {
+                return (
+                  <span
+                    className={`inline-flex items-center justify-center shrink-0 w-4 h-4 rounded border-2 transition-all select-none ${
+                      checked
+                        ? 'bg-slate-900 border-slate-900 text-white shadow-2xs'
+                        : 'border-slate-500 bg-white hover:border-slate-900'
+                    }`}
+                  >
+                    {checked && <Check className="w-3 h-3 stroke-[3]" />}
+                  </span>
+                );
+              }
+              return null;
+            },
             a: ({ href, children }) => {
               if (href?.startsWith('#note-')) {
                 const targetNoteId = href.replace('#note-', '');

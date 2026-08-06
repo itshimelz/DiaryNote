@@ -31,6 +31,8 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
   onRequestLockNote,
   onRequestUnlockNote,
   onExportNote,
+  isCardDragging = false,
+  onDragStateChange,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [showStylePicker, setShowStylePicker] = useState(false);
@@ -234,6 +236,11 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       if (!hasMoved) {
         hasMoved = true;
         setIsDragging(true);
+        if (groupDragStartRef.current.length > 1) {
+          onDragStateChange?.(selectedNoteIds);
+        } else {
+          onDragStateChange?.([note.id]);
+        }
       }
 
       const dx = (moveEvent.clientX - dragStartRef.current.x) / zoom;
@@ -252,7 +259,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
               rawX = Math.round(rawX / GRID_SIZE) * GRID_SIZE;
               rawY = Math.round(rawY / GRID_SIZE) * GRID_SIZE;
             }
-            return { ...n, x: rawX, y: rawY, updatedAt: new Date().toISOString() };
+            return { ...n, x: rawX, y: rawY };
           });
         currentBatchRef.current = updatedBatch;
         pendingBatch = updatedBatch;
@@ -269,7 +276,6 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
           ...note,
           x: newX,
           y: newY,
-          updatedAt: new Date().toISOString(),
         };
         scheduleMove();
       }
@@ -305,6 +311,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       currentBatchRef.current = [];
       frame = null;
       setIsDragging(false);
+      onDragStateChange?.([]);
       groupDragStartRef.current = [];
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
@@ -397,10 +404,10 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         transform: `translate3d(${Math.round(note.x)}px, ${Math.round(note.y)}px, 0)`,
         width: `${note.width || 340}px`,
         minHeight: `${note.height || 340}px`,
-        zIndex: isDragging ? 10000 : note.zIndex || 10,
+        zIndex: isDragging || isCardDragging ? 10000 : note.zIndex || 10,
       }}
       className={`note-card absolute top-0 left-0 rounded-2xl border flex flex-col justify-between ${
-        isDragging
+        isDragging || isCardDragging
           ? 'transition-none scale-[1.02] cursor-grabbing ring-2 ring-blue-500/70 shadow-md'
           : 'transition-all duration-200 ease-out scale-100 shadow-sm'
       } ${themeConfig.headerBg} ${themeConfig.border} ${themeConfig.text} ${
@@ -471,6 +478,8 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         ) : activeMode === 'checklist' ? (
           <NoteChecklist
             content={note.content}
+            allNotes={allNotes}
+            onNavigateToNote={onNavigateToNote}
             onChangeContent={(newContent) =>
               onUpdateNote({
                 ...note,
@@ -480,6 +489,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
             }
             fontClass={fontClass}
             fontSizeClass={fontSizeClass}
+            paperTheme={note.paperTheme}
           />
         ) : activeMode === 'image' ? (
           <NoteImageView
@@ -701,6 +711,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
 
 export const NoteCard = React.memo(NoteCardComponent, (prevProps, nextProps) => {
   return (
+    prevProps.isCardDragging === nextProps.isCardDragging &&
     prevProps.isSelected === nextProps.isSelected &&
     prevProps.isFocused === nextProps.isFocused &&
     prevProps.shouldStartEditing === nextProps.shouldStartEditing &&

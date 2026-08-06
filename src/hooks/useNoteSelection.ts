@@ -15,7 +15,8 @@ export function useNoteSelection(
   onToggleSnapToGrid?: () => void,
   onToggleConnections?: () => void,
   onToggleZenMode?: () => void,
-  onLockSelectedNotes?: (ids: string[]) => void
+  onLockSelectedNotes?: (ids: string[]) => void,
+  onNavigateToNote?: (id: string) => void
 ) {
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -31,6 +32,7 @@ export function useNoteSelection(
   const onToggleConnectionsRef = useRef(onToggleConnections);
   const onToggleZenModeRef = useRef(onToggleZenMode);
   const onLockSelectedNotesRef = useRef(onLockSelectedNotes);
+  const onNavigateToNoteRef = useRef(onNavigateToNote);
 
   useEffect(() => {
     onCreateNoteRef.current = onCreateNote;
@@ -42,6 +44,7 @@ export function useNoteSelection(
     onToggleConnectionsRef.current = onToggleConnections;
     onToggleZenModeRef.current = onToggleZenMode;
     onLockSelectedNotesRef.current = onLockSelectedNotes;
+    onNavigateToNoteRef.current = onNavigateToNote;
   });
 
   const handleSelectNote = useCallback((noteId: string | null, isMultiSelect?: boolean) => {
@@ -157,8 +160,15 @@ export function useNoteSelection(
         return;
       }
 
-      // Toggle Zen Mode Shortcut ('Z')
-      if (key === 'z' && !e.ctrlKey && !e.metaKey) {
+      // Zoom to Selected Note Shortcut (Shift+Z or Shift+F)
+      if (selectedNoteId && e.shiftKey && (key === 'z' || key === 'f')) {
+        e.preventDefault();
+        onNavigateToNoteRef.current?.(selectedNoteId);
+        return;
+      }
+
+      // Toggle Zen Mode Shortcut ('Z' without modifiers)
+      if (key === 'z' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
         e.preventDefault();
         onToggleZenModeRef.current?.();
         return;

@@ -167,7 +167,8 @@ export default function App() {
     handleToggleSnapToGrid,
     handleToggleConnections,
     () => setIsZenMode((prev) => !prev),
-    handleLockSelectedNotes
+    handleLockSelectedNotes,
+    (id) => handleNavigateToNote(id, setSelectedNoteIds)
   );
 
   const handleDeleteProtectedNote = useCallback(

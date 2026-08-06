@@ -19,6 +19,8 @@ export interface NoteCardProps {
   onRequestLockNote?: (noteId: string) => void;
   onRequestUnlockNote?: (noteId: string) => void;
   onExportNote?: (note: Note, format: 'md' | 'txt') => void;
+  isCardDragging?: boolean;
+  onDragStateChange?: (draggingIds: string[]) => void;
 }
 
 export type NoteMode = 'text' | 'image' | 'checklist';

@@ -66,7 +66,7 @@ export function useNotesManager(
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         fontFamily: settings.defaultFont || 'sans',
-        fontSize: 'md',
+        fontSize: 'sm',
         paperTheme: 'white',
         activeMode: 'text',
         isPinned: false,
