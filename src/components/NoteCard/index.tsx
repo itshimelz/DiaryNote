@@ -187,11 +187,11 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
     onBringToFront(note.id);
 
     const isMulti = e.shiftKey || e.metaKey || e.ctrlKey;
-    if (!isMulti && selectedNoteIds.length > 1) {
+    if (isMulti) {
+      onSelectNote(note.id, true);
+    } else if (selectedNoteIds.length > 1 || !isSelected) {
       onSelectNote(note.id, false);
       groupDragStartRef.current = [];
-    } else if (!isSelected) {
-      onSelectNote(note.id, isMulti);
     }
 
     const currentPosRef = { current: { x: noteRef.current.x, y: noteRef.current.y } };
