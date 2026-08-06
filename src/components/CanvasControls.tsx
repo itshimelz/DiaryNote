@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { CanvasTransform, GridType, CanvasTheme, Note } from '../types';
 import {
   Plus,
@@ -313,259 +314,309 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
       </div>
 
       {/* Canvas Settings Modal */}
-      {isSettingsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150">
+      {isSettingsOpen &&
+        createPortal(
           <div
-            className={`w-full max-w-md rounded-xl shadow-2xl border p-5 overflow-hidden transition-all ${
-              themeMode === 'dark'
-                ? 'bg-slate-900 border-slate-800 text-slate-100'
-                : 'bg-white border-slate-200 text-slate-900'
+            className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-200 animate-in fade-in select-none font-sans ${
+              themeMode === 'dark' ? 'bg-black/60 backdrop-blur-sm' : 'bg-slate-950/40 backdrop-blur-sm'
             }`}
+            onClick={() => setIsSettingsOpen(false)}
           >
-            {/* Header */}
-            <div className={`flex items-center justify-between pb-3.5 mb-4 border-b ${
-              themeMode === 'dark' ? 'border-slate-800' : 'border-slate-200'
-            }`}>
-              <div className="flex items-center gap-2">
-                <Settings className={`w-5 h-5 ${themeMode === 'dark' ? 'text-blue-400' : 'text-blue-600'}`} />
-                <h2 className="font-bold text-base tracking-tight">Canvas Settings</h2>
-              </div>
-              <button
-                onClick={() => setIsSettingsOpen(false)}
-                className={`p-1 rounded-md transition-colors ${
-                  themeMode === 'dark'
-                    ? 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
-                    : 'hover:bg-slate-100 text-slate-500 hover:text-slate-800'
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className={`w-full max-w-md rounded-2xl shadow-2xl border p-5 overflow-hidden transition-all duration-200 ${
+                themeMode === 'dark'
+                  ? 'bg-slate-900 border-slate-800 text-slate-100'
+                  : 'bg-white border-slate-200 text-slate-900'
+              }`}
+            >
+              {/* Header */}
+              <div
+                className={`flex items-center justify-between pb-3 mb-3.5 border-b transition-colors ${
+                  themeMode === 'dark' ? 'border-slate-800' : 'border-slate-200/80'
                 }`}
               >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Settings Options List */}
-            <div className="space-y-3.5 text-xs">
-              {/* Snap to Grid Toggle Option */}
-              <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                themeMode === 'dark'
-                  ? 'bg-slate-800/80 border-slate-700/60'
-                  : 'bg-slate-50 border-slate-200/90'
-              }`}>
-                <div>
-                  <div className={`font-semibold flex items-center gap-1.5 ${
-                    themeMode === 'dark' ? 'text-slate-100' : 'text-slate-900'
-                  }`}>
-                    <Grid2X2 className={`w-4 h-4 ${themeMode === 'dark' ? 'text-blue-400' : 'text-blue-600'}`} />
-                    <span>Snap to Grid</span>
-                  </div>
-                  <p className={`text-[11px] mt-0.5 ${
-                    themeMode === 'dark' ? 'text-slate-400' : 'text-slate-600'
-                  }`}>
-                    {snapToGrid
-                      ? 'Grid aligned: note positions & sizes snap to 24px increments'
-                      : 'Free-form: smooth pixel placement anywhere on canvas'}
-                  </p>
+                <div className="flex items-center gap-2">
+                  <Settings className={`w-4 h-4 ${themeMode === 'dark' ? 'text-slate-300' : 'text-slate-700'}`} />
+                  <h2 className="font-bold text-sm tracking-tight">Canvas Settings</h2>
                 </div>
                 <button
-                  onClick={onToggleSnapToGrid}
-                  className={`w-11 h-6 rounded-full transition-colors relative flex items-center px-0.5 shrink-0 ml-3 ${
-                    snapToGrid
-                      ? 'bg-blue-600'
-                      : themeMode === 'dark' ? 'bg-slate-700' : 'bg-slate-300'
+                  onClick={() => setIsSettingsOpen(false)}
+                  className={`p-1 rounded-sm transition-colors ${
+                    themeMode === 'dark'
+                      ? 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
+                      : 'hover:bg-slate-100 text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  <div
-                    className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
-                      snapToGrid ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              {/* Show Connection Lines Toggle */}
-              <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                themeMode === 'dark'
-                  ? 'bg-slate-800/80 border-slate-700/60'
-                  : 'bg-slate-50 border-slate-200/90'
-              }`}>
-                <div>
-                  <div className={`font-semibold flex items-center gap-1.5 ${
-                    themeMode === 'dark' ? 'text-slate-100' : 'text-slate-900'
-                  }`}>
-                    <Share2 className={`w-4 h-4 ${themeMode === 'dark' ? 'text-indigo-400' : 'text-indigo-600'}`} />
-                    <span>Connection Lines</span>
-                  </div>
-                  <p className={`text-[11px] mt-0.5 ${
-                    themeMode === 'dark' ? 'text-slate-400' : 'text-slate-600'
-                  }`}>
-                    Draw curved lines between notes referencing `@Note`
-                  </p>
-                </div>
-                <button
-                  onClick={onToggleConnections}
-                  className={`w-11 h-6 rounded-full transition-colors relative flex items-center px-0.5 shrink-0 ml-3 ${
-                    showConnections
-                      ? 'bg-indigo-600'
-                      : themeMode === 'dark' ? 'bg-slate-700' : 'bg-slate-300'
+              {/* Settings Options List */}
+              <div className="space-y-3 text-xs">
+                {/* Snap to Grid Toggle Option */}
+                <div
+                  className={`flex items-center justify-between p-3 rounded-sm border transition-colors ${
+                    themeMode === 'dark'
+                      ? 'bg-slate-800/60 border-slate-700/60'
+                      : 'bg-slate-50 border-slate-200/90'
                   }`}
                 >
-                  <div
-                    className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
-                      showConnections ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* Grid Background Selection */}
-              <div className={`p-3 rounded-lg border transition-colors ${
-                themeMode === 'dark'
-                  ? 'bg-slate-800/80 border-slate-700/60'
-                  : 'bg-slate-50 border-slate-200/90'
-              }`}>
-                <label className={`font-semibold block mb-2 ${
-                  themeMode === 'dark' ? 'text-slate-100' : 'text-slate-900'
-                }`}>
-                  Canvas Grid Pattern
-                </label>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {(['dots', 'grid', 'ruled', 'blank'] as GridType[]).map((g) => (
-                    <button
-                      key={g}
-                      onClick={() => onChangeGridType(g)}
-                      className={`py-1.5 px-2 rounded-md capitalize font-medium text-[11px] border transition-all ${
-                        gridType === g
-                          ? themeMode === 'dark'
-                            ? 'bg-slate-100 text-slate-900 border-slate-100 font-semibold shadow-sm'
-                            : 'bg-slate-900 text-white border-slate-900 font-semibold shadow-sm'
-                          : themeMode === 'dark'
-                          ? 'bg-slate-900/60 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'
-                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                  <div>
+                    <div
+                      className={`font-semibold flex items-center gap-1.5 ${
+                        themeMode === 'dark' ? 'text-slate-100' : 'text-slate-900'
                       }`}
                     >
-                      {g}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Theme Mode Toggle */}
-              <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                themeMode === 'dark'
-                  ? 'bg-slate-800/80 border-slate-700/60'
-                  : 'bg-slate-50 border-slate-200/90'
-              }`}>
-                <div>
-                  <div className={`font-semibold flex items-center gap-1.5 ${
-                    themeMode === 'dark' ? 'text-slate-100' : 'text-slate-900'
-                  }`}>
-                    {themeMode === 'dark' ? <Moon className="w-4 h-4 text-amber-400" /> : <Sun className="w-4 h-4 text-amber-500" />}
-                    <span>Canvas Dark Theme</span>
+                      <Grid2X2 className={`w-4 h-4 ${themeMode === 'dark' ? 'text-slate-300' : 'text-slate-700'}`} />
+                      <span>Snap to Grid</span>
+                    </div>
+                    <p className={`text-[11px] mt-0.5 ${themeMode === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+                      {snapToGrid
+                        ? 'Grid aligned: note positions & sizes snap to 24px increments'
+                        : 'Free-form: smooth pixel placement anywhere on canvas'}
+                    </p>
                   </div>
-                  <p className={`text-[11px] mt-0.5 ${
-                    themeMode === 'dark' ? 'text-slate-400' : 'text-slate-600'
-                  }`}>
-                    Toggle between light off-white canvas and dark graphite canvas
-                  </p>
+                  <button
+                    onClick={onToggleSnapToGrid}
+                    className={`w-10 h-5.5 rounded-full transition-colors relative flex items-center px-0.5 shrink-0 ml-3 cursor-pointer ${
+                      snapToGrid
+                        ? themeMode === 'dark' ? 'bg-slate-100' : 'bg-slate-900'
+                        : themeMode === 'dark' ? 'bg-slate-700' : 'bg-slate-300'
+                    }`}
+                  >
+                    <div
+                      className={`w-4.5 h-4.5 rounded-full shadow-xs transition-transform ${
+                        snapToGrid
+                          ? `translate-x-4.5 ${themeMode === 'dark' ? 'bg-slate-900' : 'bg-white'}`
+                          : 'translate-x-0 bg-white'
+                      }`}
+                    />
+                  </button>
                 </div>
-                <button
-                  onClick={onToggleTheme}
-                  className={`w-11 h-6 rounded-full transition-colors relative flex items-center px-0.5 shrink-0 ml-3 ${
+
+                {/* Show Connection Lines Toggle */}
+                <div
+                  className={`flex items-center justify-between p-3 rounded-sm border transition-colors ${
                     themeMode === 'dark'
-                      ? 'bg-amber-500'
-                      : 'bg-slate-300'
+                      ? 'bg-slate-800/60 border-slate-700/60'
+                      : 'bg-slate-50 border-slate-200/90'
+                  }`}
+                >
+                  <div>
+                    <div
+                      className={`font-semibold flex items-center gap-1.5 ${
+                        themeMode === 'dark' ? 'text-slate-100' : 'text-slate-900'
+                      }`}
+                    >
+                      <Share2 className={`w-4 h-4 ${themeMode === 'dark' ? 'text-slate-300' : 'text-slate-700'}`} />
+                      <span>Connection Lines</span>
+                    </div>
+                    <p className={`text-[11px] mt-0.5 ${themeMode === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+                      Draw curved lines between notes referencing `@Note`
+                    </p>
+                  </div>
+                  <button
+                    onClick={onToggleConnections}
+                    className={`w-10 h-5.5 rounded-full transition-colors relative flex items-center px-0.5 shrink-0 ml-3 cursor-pointer ${
+                      showConnections
+                        ? themeMode === 'dark' ? 'bg-slate-100' : 'bg-slate-900'
+                        : themeMode === 'dark' ? 'bg-slate-700' : 'bg-slate-300'
+                    }`}
+                  >
+                    <div
+                      className={`w-4.5 h-4.5 rounded-full shadow-xs transition-transform ${
+                        showConnections
+                          ? `translate-x-4.5 ${themeMode === 'dark' ? 'bg-slate-900' : 'bg-white'}`
+                          : 'translate-x-0 bg-white'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Grid Background Selection */}
+                <div
+                  className={`p-3 rounded-sm border transition-colors ${
+                    themeMode === 'dark'
+                      ? 'bg-slate-800/60 border-slate-700/60'
+                      : 'bg-slate-50 border-slate-200/90'
+                  }`}
+                >
+                  <label
+                    className={`font-semibold block mb-2 text-xs ${
+                      themeMode === 'dark' ? 'text-slate-100' : 'text-slate-900'
+                    }`}
+                  >
+                    Canvas Grid Pattern
+                  </label>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {(['dots', 'grid', 'ruled', 'blank'] as GridType[]).map((g) => (
+                      <button
+                        key={g}
+                        onClick={() => onChangeGridType(g)}
+                        className={`py-1 px-2 rounded-sm capitalize font-semibold text-[11px] border transition-all cursor-pointer ${
+                          gridType === g
+                            ? themeMode === 'dark'
+                              ? 'bg-slate-100 text-slate-900 border-slate-100 shadow-xs'
+                              : 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                            : themeMode === 'dark'
+                            ? 'bg-slate-900/60 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                      >
+                        {g}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Theme Mode Toggle */}
+                <div
+                  className={`flex items-center justify-between p-3 rounded-sm border transition-colors ${
+                    themeMode === 'dark'
+                      ? 'bg-slate-800/60 border-slate-700/60'
+                      : 'bg-slate-50 border-slate-200/90'
+                  }`}
+                >
+                  <div>
+                    <div
+                      className={`font-semibold flex items-center gap-1.5 ${
+                        themeMode === 'dark' ? 'text-slate-100' : 'text-slate-900'
+                      }`}
+                    >
+                      {themeMode === 'dark' ? (
+                        <Moon className="w-4 h-4 text-amber-400" />
+                      ) : (
+                        <Sun className="w-4 h-4 text-amber-500" />
+                      )}
+                      <span>Canvas Dark Theme</span>
+                    </div>
+                    <p className={`text-[11px] mt-0.5 ${themeMode === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+                      Toggle between light off-white canvas and dark graphite canvas
+                    </p>
+                  </div>
+                  <button
+                    onClick={onToggleTheme}
+                    className={`w-10 h-5.5 rounded-full transition-colors relative flex items-center px-0.5 shrink-0 ml-3 cursor-pointer ${
+                      themeMode === 'dark' ? 'bg-amber-500' : 'bg-slate-300'
+                    }`}
+                  >
+                    <div
+                      className={`w-4.5 h-4.5 rounded-full bg-white shadow-xs transition-transform ${
+                        themeMode === 'dark' ? 'translate-x-4.5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Canvas Overview & Stats Card */}
+                <div
+                  className={`p-3 rounded-sm border transition-colors ${
+                    themeMode === 'dark'
+                      ? 'bg-slate-800/60 border-slate-700/60'
+                      : 'bg-slate-50 border-slate-200/90'
                   }`}
                 >
                   <div
-                    className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
-                      themeMode === 'dark' ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* Canvas Overview & Stats Card */}
-              <div className={`p-3.5 rounded-lg border transition-colors ${
-                themeMode === 'dark'
-                  ? 'bg-slate-800/80 border-slate-700/60'
-                  : 'bg-slate-50 border-slate-200/90'
-              }`}>
-                <div className={`font-semibold flex items-center justify-between mb-2.5 ${
-                  themeMode === 'dark' ? 'text-slate-100' : 'text-slate-900'
-                }`}>
-                  <div className="flex items-center gap-1.5">
-                    <Info className={`w-4 h-4 ${themeMode === 'dark' ? 'text-emerald-400' : 'text-emerald-600'}`} />
-                    <span>Canvas Overview</span>
-                  </div>
-                  <span className="text-[10px] uppercase font-mono tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 font-bold">
-                    Active
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className={`p-2 rounded-md ${themeMode === 'dark' ? 'bg-slate-900/80 border border-slate-800' : 'bg-white border border-slate-200'}`}>
-                    <span className="block text-base font-bold text-blue-500">{notes.length}</span>
-                    <span className="text-[10px] text-slate-400 font-mono">Total Notes</span>
-                  </div>
-                  <div className={`p-2 rounded-md ${themeMode === 'dark' ? 'bg-slate-900/80 border border-slate-800' : 'bg-white border border-slate-200'}`}>
-                    <span className="block text-base font-bold text-amber-500">{pinnedCount}</span>
-                    <span className="text-[10px] text-slate-400 font-mono">Pinned</span>
-                  </div>
-                  <div className={`p-2 rounded-md ${themeMode === 'dark' ? 'bg-slate-900/80 border border-slate-800' : 'bg-white border border-slate-200'}`}>
-                    <span className="block text-base font-bold text-emerald-500">{zoomPercent}%</span>
-                    <span className="text-[10px] text-slate-400 font-mono">Zoom</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Import/Export Backup Data */}
-              <div className={`pt-2.5 border-t space-y-2 ${
-                themeMode === 'dark' ? 'border-slate-800' : 'border-slate-200'
-              }`}>
-                <div className="flex gap-2">
-                  <button
-                    onClick={onExportBackup}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border font-medium transition-colors ${
-                      themeMode === 'dark'
-                        ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200'
-                        : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-700'
+                    className={`font-semibold flex items-center justify-between mb-2 ${
+                      themeMode === 'dark' ? 'text-slate-100' : 'text-slate-900'
                     }`}
                   >
-                    <Download className={`w-3.5 h-3.5 ${themeMode === 'dark' ? 'text-blue-400' : 'text-blue-600'}`} />
-                    <span>Export Backup</span>
-                  </button>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border font-medium transition-colors ${
-                      themeMode === 'dark'
-                        ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200'
-                        : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-700'
-                    }`}
-                  >
-                    <Upload className={`w-3.5 h-3.5 ${themeMode === 'dark' ? 'text-emerald-400' : 'text-emerald-600'}`} />
-                    <span>Import Backup</span>
-                  </button>
+                    <div className="flex items-center gap-1.5">
+                      <Info className={`w-3.5 h-3.5 ${themeMode === 'dark' ? 'text-slate-300' : 'text-slate-700'}`} />
+                      <span>Canvas Overview</span>
+                    </div>
+                    <span className="text-[9px] uppercase font-mono tracking-wider px-1.5 py-0.5 rounded-sm bg-emerald-500/10 text-emerald-500 font-bold border border-emerald-500/20">
+                      Active
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5 text-center">
+                    <div
+                      className={`p-1.5 rounded-sm border ${
+                        themeMode === 'dark'
+                          ? 'bg-slate-900/80 border-slate-700/80'
+                          : 'bg-white border-slate-200'
+                      }`}
+                    >
+                      <span className={`block text-sm font-bold ${themeMode === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>{notes.length}</span>
+                      <span className={`text-[9px] font-mono ${themeMode === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Total Notes</span>
+                    </div>
+                    <div
+                      className={`p-1.5 rounded-sm border ${
+                        themeMode === 'dark'
+                          ? 'bg-slate-900/80 border-slate-700/80'
+                          : 'bg-white border-slate-200'
+                      }`}
+                    >
+                      <span className={`block text-sm font-bold ${themeMode === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>{pinnedCount}</span>
+                      <span className={`text-[9px] font-mono ${themeMode === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Pinned</span>
+                    </div>
+                    <div
+                      className={`p-1.5 rounded-sm border ${
+                        themeMode === 'dark'
+                          ? 'bg-slate-900/80 border-slate-700/80'
+                          : 'bg-white border-slate-200'
+                      }`}
+                    >
+                      <span className={`block text-sm font-bold ${themeMode === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>{zoomPercent}%</span>
+                      <span className={`text-[9px] font-mono ${themeMode === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Zoom</span>
+                    </div>
+                  </div>
                 </div>
 
-                <button
-                  onClick={() => {
-                    if (confirm('Reset sample notes? This will restore the default guide notes.')) {
-                      onResetSampleNotes();
-                      setIsSettingsOpen(false);
-                    }
-                  }}
-                  className={`w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg transition-colors text-[11px] ${
-                    themeMode === 'dark'
-                      ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-                      : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                {/* Import/Export Backup Data */}
+                <div
+                  className={`pt-2.5 border-t space-y-2 ${
+                    themeMode === 'dark' ? 'border-slate-800' : 'border-slate-200/80'
                   }`}
                 >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>Restore Default Sample Notes</span>
-                </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={onExportBackup}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-sm border font-semibold text-xs transition-colors cursor-pointer ${
+                        themeMode === 'dark'
+                          ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200'
+                          : 'bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-800'
+                      }`}
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Export Backup</span>
+                    </button>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-sm border font-semibold text-xs transition-colors cursor-pointer ${
+                        themeMode === 'dark'
+                          ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200'
+                          : 'bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-800'
+                      }`}
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Import Backup</span>
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      if (confirm('Reset sample notes? This will restore the default guide notes.')) {
+                        onResetSampleNotes();
+                        setIsSettingsOpen(false);
+                      }
+                    }}
+                    className={`w-full flex items-center justify-center gap-1.5 py-1 px-3 rounded-sm transition-colors text-[11px] font-medium cursor-pointer ${
+                      themeMode === 'dark'
+                        ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                        : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                    }`}
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Restore Default Sample Notes</span>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { CanvasTransform, Note } from './types';
 import { exportBackup, importBackup, SAMPLE_NOTES } from './lib/storage';
 
@@ -343,68 +344,105 @@ export default function App() {
         onExportNote={handleExportNote}
       />
 
-      {/* Docked Bottom Control Bar Container */}
+      {/* Docked Bottom Control Bar Container with Corner Morphing */}
       {!isZenMode && (
-        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center rounded-md border shadow-sm backdrop-blur-xl transition-all duration-300 ease-out select-none sm:min-w-[500px] ${
-          selectedNoteIds.length >= 2 ? 'overflow-visible' : 'overflow-hidden'
-        } ${
-          settings.themeMode === 'light'
-            ? 'bg-white/95 border-slate-200 text-slate-800'
-            : 'bg-slate-900/90 border-slate-800 text-slate-200'
-        }`}>
-          {/* Smooth Expanding Batch Action Bar Header */}
-          <div
-            className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out w-full ${
-              selectedNoteIds.length >= 2
-                ? 'grid-rows-[1fr] opacity-100 overflow-visible'
-                : 'grid-rows-[0fr] opacity-0 overflow-hidden pointer-events-none'
-            }`}
-          >
-            <div className={selectedNoteIds.length >= 2 ? 'overflow-visible' : 'overflow-hidden'}>
-              <BatchActionBar
-                selectedNoteIds={selectedNoteIds}
-                notes={notes}
-                themeMode={settings.themeMode}
-                onUpdateBatchNotes={handleUpdateBatchNotes}
-                onDeleteNotes={(ids) => {
-                  setNotesToDelete(ids);
-                  setIsDeleteModalOpen(true);
+        <motion.div
+          layout
+          initial={false}
+          animate={{
+            borderRadius: selectedNoteIds.length >= 2
+              ? ['6px', '10px 10px 4px 4px', '6px']
+              : ['6px', '4px 4px 10px 10px', '6px'],
+          }}
+          transition={{
+            layout: { duration: 0.16, ease: [0.16, 1, 0.3, 1] },
+            borderRadius: { duration: 0.15, ease: 'easeOut' },
+          }}
+          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center border shadow-sm select-none w-[640px] max-w-[calc(100vw-32px)] transition-colors duration-200 ${
+            selectedNoteIds.length >= 2 ? 'overflow-visible' : 'overflow-hidden'
+          } ${
+            settings.themeMode === 'light'
+              ? 'bg-white/95 border-slate-200 text-slate-800'
+              : 'bg-slate-900/90 border-slate-800 text-slate-200'
+          }`}
+        >
+          {/* Batch Action Bar Header (POSITIONED BEHIND CanvasControls z-10) */}
+          <AnimatePresence initial={false}>
+            {selectedNoteIds.length >= 2 && (
+              <motion.div
+                key="batch-menu-wrapper"
+                initial={{
+                  height: 0,
+                  opacity: 0,
+                  y: 15,
                 }}
-                onClearSelection={() => setSelectedNoteIds([])}
-              />
-            </div>
-          </div>
+                animate={{
+                  height: 'auto',
+                  opacity: 1,
+                  y: 0,
+                }}
+                exit={{
+                  height: 0,
+                  opacity: 0,
+                  y: 15,
+                }}
+                transition={{
+                  height: { duration: 0.16, ease: [0.16, 1, 0.3, 1] },
+                  y: { duration: 0.16, ease: [0.16, 1, 0.3, 1] },
+                  opacity: { duration: 0.12, ease: 'linear' },
+                }}
+                className="w-full relative z-10 overflow-visible origin-bottom"
+              >
+                <BatchActionBar
+                  selectedNoteIds={selectedNoteIds}
+                  notes={notes}
+                  themeMode={settings.themeMode}
+                  onUpdateBatchNotes={handleUpdateBatchNotes}
+                  onDeleteNotes={(ids) => {
+                    setNotesToDelete(ids);
+                    setIsDeleteModalOpen(true);
+                  }}
+                  onClearSelection={() => setSelectedNoteIds([])}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          <CanvasControls
-            notes={notes}
-            transform={transform}
-            gridType={settings.gridType}
-            themeMode={settings.themeMode}
-            snapToGrid={settings.snapToGrid}
-            showConnections={settings.showConnections}
-            hasBatchBar={selectedNoteIds.length >= 2}
-            isPanMode={isPanMode}
-            canUndo={canUndo}
-            canRedo={canRedo}
-            onAddNote={() => handleCreateNote()}
-            onTogglePanMode={handleTogglePanMode}
-            onZoomIn={handleZoomIn}
-            onZoomOut={handleZoomOut}
-            onResetZoom={handleResetZoom}
-            onFitNotes={handleFitNotes}
-            onChangeGridType={(gridType) => setSettings((prev) => ({ ...prev, gridType }))}
-            onToggleTheme={handleToggleTheme}
-            onToggleSnapToGrid={handleToggleSnapToGrid}
-            onToggleConnections={handleToggleConnections}
-            onUndo={handleUndo}
-            onRedo={handleRedo}
-            onOpenSearch={() => setIsSearchOpen(true)}
-            onOpenNotesList={() => setIsNotesListOpen(true)}
-            onExportBackup={() => exportBackup(notes, transform, settings)}
-            onImportBackup={handleImportBackupFile}
-            onResetSampleNotes={handleResetSampleNotes}
-          />
-        </div>
+          {/* Primary Canvas Controls Row (POSITIONED IN FRONT z-20) */}
+          <div className={`w-full relative z-20 rounded-b-[inherit] ${
+            settings.themeMode === 'light' ? 'bg-white/95' : 'bg-slate-900/90'
+          }`}>
+            <CanvasControls
+              notes={notes}
+              transform={transform}
+              gridType={settings.gridType}
+              themeMode={settings.themeMode}
+              snapToGrid={settings.snapToGrid}
+              showConnections={settings.showConnections}
+              hasBatchBar={selectedNoteIds.length >= 2}
+              isPanMode={isPanMode}
+              canUndo={canUndo}
+              canRedo={canRedo}
+              onAddNote={() => handleCreateNote()}
+              onTogglePanMode={handleTogglePanMode}
+              onZoomIn={handleZoomIn}
+              onZoomOut={handleZoomOut}
+              onResetZoom={handleResetZoom}
+              onFitNotes={handleFitNotes}
+              onChangeGridType={(gridType) => setSettings((prev) => ({ ...prev, gridType }))}
+              onToggleTheme={handleToggleTheme}
+              onToggleSnapToGrid={handleToggleSnapToGrid}
+              onToggleConnections={handleToggleConnections}
+              onUndo={handleUndo}
+              onRedo={handleRedo}
+              onOpenSearch={() => setIsSearchOpen(true)}
+              onOpenNotesList={() => setIsNotesListOpen(true)}
+              onExportBackup={() => exportBackup(notes, transform, settings)}
+              onImportBackup={handleImportBackupFile}
+              onResetSampleNotes={handleResetSampleNotes}
+            />
+          </div>
+        </motion.div>
       )}
 
       {/* Sidebar Drawer */}
