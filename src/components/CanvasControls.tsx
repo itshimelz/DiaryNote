@@ -21,6 +21,7 @@ import {
   Upload,
   RotateCcw,
   Info,
+  Keyboard,
 } from 'lucide-react';
 
 interface CanvasControlsProps {
@@ -51,6 +52,7 @@ interface CanvasControlsProps {
   canUndo: boolean;
   canRedo: boolean;
   onOpenSearch: () => void;
+  onOpenShortcutsModal?: () => void;
 }
 
 export const CanvasControls: React.FC<CanvasControlsProps> = ({
@@ -81,6 +83,7 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
   canUndo,
   canRedo,
   onOpenSearch,
+  onOpenShortcutsModal,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -274,6 +277,24 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
           }`}
         >
           {themeMode === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
+        </button>
+
+        {/* Keyboard Shortcuts Cheatsheet Trigger */}
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={(e) => {
+            e.currentTarget.blur();
+            onOpenShortcutsModal?.();
+          }}
+          title="Keyboard Shortcuts Cheatsheet (Ctrl + /)"
+          aria-label="Open keyboard shortcuts cheatsheet"
+          className={`p-1.5 rounded-md transition-colors ${
+            themeMode === 'light'
+              ? 'hover:bg-slate-100 text-slate-600'
+              : 'hover:bg-slate-800 text-slate-400'
+          }`}
+        >
+          <Keyboard className="w-4 h-4" />
         </button>
 
         {/* Canvas Settings Menu Modal Trigger */}

@@ -18,12 +18,14 @@ import {
   DeleteConfirmationModal,
   SecurityModal,
   BatchActionBar,
+  KeyboardShortcutsModal,
 } from './components';
 import { sendNativeAppNotification } from './lib/notifications';
 
 export default function App() {
   const [isNotesListOpen, setIsNotesListOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [isPanMode, setIsPanMode] = useState(false);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -197,7 +199,8 @@ export default function App() {
         tags: n.tags?.filter((t) => !/^#?Group\s/i.test(t)),
       }));
       handleUpdateBatchNotes(updated);
-    }
+    },
+    () => setIsShortcutsModalOpen((prev) => !prev)
   );
 
   const handleDeleteProtectedNote = useCallback(
@@ -436,6 +439,7 @@ export default function App() {
               onUndo={handleUndo}
               onRedo={handleRedo}
               onOpenSearch={() => setIsSearchOpen(true)}
+              onOpenShortcutsModal={() => setIsShortcutsModalOpen(true)}
               onOpenNotesList={() => setIsNotesListOpen(true)}
               onExportBackup={() => exportBackup(notes, transform, settings)}
               onImportBackup={handleImportBackupFile}
@@ -522,6 +526,13 @@ export default function App() {
             isLocked: false,
           });
         }}
+      />
+
+      {/* Keyboard Shortcuts Cheatsheet Modal */}
+      <KeyboardShortcutsModal
+        isOpen={isShortcutsModalOpen}
+        themeMode={settings.themeMode}
+        onClose={() => setIsShortcutsModalOpen(false)}
       />
     </div>
   );

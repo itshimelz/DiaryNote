@@ -18,7 +18,8 @@ export function useNoteSelection(
   onLockSelectedNotes?: (ids: string[]) => void,
   onNavigateToNote?: (id: string) => void,
   onGroupNotes?: () => void,
-  onUngroupNotes?: () => void
+  onUngroupNotes?: () => void,
+  onToggleShortcutsModal?: () => void
 ) {
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -37,6 +38,7 @@ export function useNoteSelection(
   const onNavigateToNoteRef = useRef(onNavigateToNote);
   const onGroupNotesRef = useRef(onGroupNotes);
   const onUngroupNotesRef = useRef(onUngroupNotes);
+  const onToggleShortcutsModalRef = useRef(onToggleShortcutsModal);
 
   useEffect(() => {
     onCreateNoteRef.current = onCreateNote;
@@ -51,6 +53,7 @@ export function useNoteSelection(
     onNavigateToNoteRef.current = onNavigateToNote;
     onGroupNotesRef.current = onGroupNotes;
     onUngroupNotesRef.current = onUngroupNotes;
+    onToggleShortcutsModalRef.current = onToggleShortcutsModal;
   });
 
   const handleSelectNote = useCallback((noteId: string | null, isMultiSelect?: boolean) => {
@@ -93,8 +96,18 @@ export function useNoteSelection(
 
       const key = e.key.toLowerCase();
 
-      // Search shortcuts (Ctrl+K, Cmd+K, Ctrl+F, or '/')
-      if (((e.ctrlKey || e.metaKey) && (key === 'k' || key === 'f')) || key === '/') {
+      // Keyboard Shortcuts Cheatsheet Modal (Ctrl+/ or Cmd+/ or Ctrl+Shift+/)
+      if ((e.ctrlKey || e.metaKey) && (key === '/' || e.code === 'Slash')) {
+        e.preventDefault();
+        onToggleShortcutsModalRef.current?.();
+        return;
+      }
+
+      // Search shortcuts (Ctrl+K, Cmd+K, Ctrl+F, or '/' without Ctrl/Cmd)
+      if (
+        ((e.ctrlKey || e.metaKey) && (key === 'k' || key === 'f')) ||
+        (key === '/' && !e.ctrlKey && !e.metaKey)
+      ) {
         e.preventDefault();
         setIsSearchOpen(true);
         return;
