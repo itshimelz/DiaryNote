@@ -186,23 +186,34 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
             </div>
           ) : (
             <table className="w-full text-xs text-left border-collapse">
-              {filteredCategories.map((category) => (
+              {filteredCategories.map((category, catIdx) => (
                 <tbody key={category.title}>
                   <tr>
-                    <th
+                    <td
                       colSpan={2}
-                      className={`pt-3 pb-1 text-[10px] uppercase font-bold tracking-wider ${
-                        isDark ? 'text-slate-400' : 'text-slate-500'
-                      }`}
+                      className={catIdx === 0 ? 'pt-2 pb-2 px-0' : 'pt-5 pb-2 px-0'}
                     >
-                      {category.title}
-                    </th>
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className={`text-[10px] font-bold uppercase tracking-wider shrink-0 ${
+                            isDark ? 'text-blue-400/90' : 'text-blue-600/90'
+                          }`}
+                        >
+                          {category.title}
+                        </span>
+                        <div
+                          className={`h-px flex-1 ${
+                            isDark ? 'bg-slate-800' : 'bg-slate-200'
+                          }`}
+                        />
+                      </div>
+                    </td>
                   </tr>
                   {category.shortcuts.map((shortcut, idx) => (
                     <tr
                       key={idx}
                       className={`border-b ${
-                        isDark ? 'border-slate-800/50' : 'border-slate-100'
+                        isDark ? 'border-slate-800/40' : 'border-slate-100'
                       }`}
                     >
                       <td className={`py-1.5 pr-4 text-xs font-normal ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
