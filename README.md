@@ -91,12 +91,18 @@ Press `Ctrl + /` (or `Cmd + /`) anytime inside the app to open the built-in hotk
 
 ## 📦 Installation Guide
 
-### ⚡ One-Line Automatic Install (Linux & macOS)
+### ⚡ One-Line Automatic Install
 
-Automatically detects your operating system, Linux distribution, and architecture, then downloads & installs the latest release of DiaryNote:
+Automatically detects your platform & architecture, then downloads and installs the latest release of DiaryNote:
 
+#### 🐧 Linux & 🍎 macOS (Terminal)
 ```bash
 curl -fsSL https://raw.githubusercontent.com/itshimelz/DiaryNote/main/install.sh | bash
+```
+
+#### 🪟 Windows (PowerShell)
+```powershell
+irm https://raw.githubusercontent.com/itshimelz/DiaryNote/main/install.ps1 | iex
 ```
 
 ---
