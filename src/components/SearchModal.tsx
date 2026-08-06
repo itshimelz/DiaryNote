@@ -365,8 +365,14 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
                       {/* Display Group Badge ONLY if note is currently in a group */}
                       {note.groupId && (
-                        <span className={`flex items-center gap-1 font-semibold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
-                          <Layers className="w-3 h-3" />
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-sans font-medium border transition-colors ${
+                            isDark
+                              ? 'bg-slate-800/90 border-slate-700 text-slate-300'
+                              : 'bg-slate-100/90 border-slate-200 text-slate-700'
+                          }`}
+                        >
+                          <Layers className="w-3 h-3 text-slate-400 shrink-0" />
                           <span>{note.groupName || 'Group'}</span>
                         </span>
                       )}
