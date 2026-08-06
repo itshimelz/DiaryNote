@@ -59,7 +59,6 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
                   onUpdateNote({
                     ...note,
                     paperTheme: themeKey,
-                    updatedAt: new Date().toISOString(),
                   })
                 }
                 className={`h-9 min-w-0 px-1 rounded-xl border transition-all flex items-center justify-center whitespace-nowrap font-medium text-[10px] ${
@@ -84,7 +83,6 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
             onUpdateNote({
               ...note,
               fontFamily: e.target.value as HandFont,
-              updatedAt: new Date().toISOString(),
             })
           }
           className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition-all cursor-pointer"
@@ -109,7 +107,6 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
                 onUpdateNote({
                   ...note,
                   fontSize: size,
-                  updatedAt: new Date().toISOString(),
                 })
               }
               className={`py-1 rounded-lg text-xs font-semibold uppercase transition-all ${

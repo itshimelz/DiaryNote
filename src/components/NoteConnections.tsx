@@ -7,6 +7,39 @@ interface NoteConnectionsProps {
   transform: CanvasTransform;
   selectedNoteId: string | null;
   onSelectNote: (noteId: string) => void;
+  themeMode?: 'dark' | 'light' | 'gradient';
+}
+
+/**
+ * Calculates the exact point where a line from center to target intersects
+ * the outer border bounding box of a rectangular note card.
+ */
+function getRectEdgePoint(
+  cx: number,
+  cy: number,
+  tx: number,
+  ty: number,
+  w: number,
+  h: number,
+  padding: number = 4
+): { x: number; y: number } {
+  const dx = tx - cx;
+  const dy = ty - cy;
+
+  if (Math.abs(dx) < 0.001 && Math.abs(dy) < 0.001) return { x: cx, y: cy };
+
+  const halfW = w / 2 + padding;
+  const halfH = h / 2 + padding;
+
+  const scaleX = Math.abs(halfW / dx);
+  const scaleY = Math.abs(halfH / dy);
+
+  const scale = Math.min(scaleX, scaleY);
+
+  return {
+    x: cx + dx * scale,
+    y: cy + dy * scale,
+  };
 }
 
 export const NoteConnections: React.FC<NoteConnectionsProps> = ({
@@ -14,6 +47,7 @@ export const NoteConnections: React.FC<NoteConnectionsProps> = ({
   transform,
   selectedNoteId,
   onSelectNote,
+  themeMode = 'dark',
 }) => {
   const connections = useMemo(() => extractNoteConnections(notes), [notes]);
 
@@ -23,11 +57,14 @@ export const NoteConnections: React.FC<NoteConnectionsProps> = ({
     return map;
   }, [notes]);
 
+  const isDarkCanvas = themeMode === 'dark';
+
   if (connections.length === 0) return null;
 
   return (
     <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible">
       <defs>
+        {/* Inactive Arrow Head */}
         <marker
           id="arrow-head"
           viewBox="0 0 10 10"
@@ -37,8 +74,9 @@ export const NoteConnections: React.FC<NoteConnectionsProps> = ({
           markerHeight="6"
           orient="auto-start-reverse"
         >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#737373" />
+          <path d="M 0 0 L 10 5 L 0 10 z" fill={isDarkCanvas ? '#94a3b8' : '#64748b'} />
         </marker>
+        {/* Active / Highlighted Arrow Head */}
         <marker
           id="arrow-head-active"
           viewBox="0 0 10 10"
@@ -48,7 +86,7 @@ export const NoteConnections: React.FC<NoteConnectionsProps> = ({
           markerHeight="7"
           orient="auto-start-reverse"
         >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" />
+          <path d="M 0 0 L 10 5 L 0 10 z" fill={isDarkCanvas ? '#60a5fa' : '#2563eb'} />
         </marker>
       </defs>
 
@@ -58,17 +96,40 @@ export const NoteConnections: React.FC<NoteConnectionsProps> = ({
 
         if (!fromNote || !toNote) return null;
 
+        const fromWidth = fromNote.width || 340;
+        const fromHeight = fromNote.height || 340;
+        const toWidth = toNote.width || 340;
+        const toHeight = toNote.height || 340;
+
         // Calculate center points in world coordinates
-        const fromX = fromNote.x + fromNote.width / 2;
-        const fromY = fromNote.y + fromNote.height / 2;
-        const toX = toNote.x + toNote.width / 2;
-        const toY = toNote.y + toNote.height / 2;
+        const fromCenterX = fromNote.x + fromWidth / 2;
+        const fromCenterY = fromNote.y + fromHeight / 2;
+        const toCenterX = toNote.x + toWidth / 2;
+        const toCenterY = toNote.y + toHeight / 2;
+
+        // Compute exact edge intersection points on note card borders
+        const fromEdge = getRectEdgePoint(
+          fromCenterX,
+          fromCenterY,
+          toCenterX,
+          toCenterY,
+          fromWidth,
+          fromHeight
+        );
+        const toEdge = getRectEdgePoint(
+          toCenterX,
+          toCenterY,
+          fromCenterX,
+          fromCenterY,
+          toWidth,
+          toHeight
+        );
 
         // Convert world coords to screen space
-        const screenFromX = fromX * transform.zoom + transform.x;
-        const screenFromY = fromY * transform.zoom + transform.y;
-        const screenToX = toX * transform.zoom + transform.x;
-        const screenToY = toY * transform.zoom + transform.y;
+        const screenFromX = fromEdge.x * transform.zoom + transform.x;
+        const screenFromY = fromEdge.y * transform.zoom + transform.y;
+        const screenToX = toEdge.x * transform.zoom + transform.x;
+        const screenToY = toEdge.y * transform.zoom + transform.y;
 
         const isHighlighted = selectedNoteId === conn.fromId || selectedNoteId === conn.toId;
 
@@ -86,16 +147,48 @@ export const NoteConnections: React.FC<NoteConnectionsProps> = ({
         const midX = (screenFromX + screenToX) / 2;
         const midY = (screenFromY + screenToY) / 2;
 
+        // Theme adaptive stroke colors
+        const strokeColor = isHighlighted
+          ? isDarkCanvas
+            ? '#60a5fa'
+            : '#2563eb'
+          : isDarkCanvas
+          ? '#64748b'
+          : '#94a3b8';
+
+        // Theme adaptive badge colors
+        const badgeFill = isDarkCanvas
+          ? isHighlighted
+            ? '#1e293b'
+            : '#0f172a'
+          : isHighlighted
+          ? '#eff6ff'
+          : '#ffffff';
+
+        const badgeStroke = isHighlighted
+          ? '#3b82f6'
+          : isDarkCanvas
+          ? '#334155'
+          : '#cbd5e1';
+
+        const badgeTextColor = isHighlighted
+          ? isDarkCanvas
+            ? '#93c5fd'
+            : '#1d4ed8'
+          : isDarkCanvas
+          ? '#cbd5e1'
+          : '#475569';
+
         return (
           <g key={`${conn.fromId}-${conn.toId}-${idx}`} className="group pointer-events-auto">
             <path
               d={pathData}
               fill="none"
-              stroke={isHighlighted ? '#60a5fa' : '#525252'}
+              stroke={strokeColor}
               strokeWidth={isHighlighted ? 2.5 : 1.5}
               strokeDasharray={isHighlighted ? undefined : '6, 6'}
               markerEnd={isHighlighted ? 'url(#arrow-head-active)' : 'url(#arrow-head)'}
-              className="transition-all duration-200 opacity-60 hover:opacity-100 hover:stroke-blue-400 cursor-pointer"
+              className="transition-colors duration-150 opacity-70 hover:opacity-100 hover:stroke-blue-500 cursor-pointer"
               onClick={() => onSelectNote(conn.toId)}
             />
             {/* Reference Badge on connection line */}
@@ -105,23 +198,24 @@ export const NoteConnections: React.FC<NoteConnectionsProps> = ({
               onClick={() => onSelectNote(conn.toId)}
             >
               <rect
-                x="-40"
+                x="-42"
                 y="-12"
-                width="80"
-                height="22"
-                rx="11"
-                fill="#171717"
-                stroke={isHighlighted ? '#3b82f6' : '#404040'}
-                strokeWidth="1"
+                width="84"
+                height="24"
+                rx="12"
+                fill={badgeFill}
+                stroke={badgeStroke}
+                strokeWidth="1.5"
+                className="shadow-sm transition-colors"
               />
               <text
                 x="0"
-                y="3"
+                y="4"
                 textAnchor="middle"
-                fill={isHighlighted ? '#93c5fd' : '#a3a3a3'}
+                fill={badgeTextColor}
                 fontSize="11"
                 fontFamily="sans-serif"
-                fontWeight="500"
+                fontWeight="600"
               >
                 @{conn.toTitle.length > 8 ? conn.toTitle.slice(0, 8) + '…' : conn.toTitle}
               </text>

@@ -45,6 +45,8 @@ export interface Note {
   activeMode?: 'text' | 'image' | 'checklist';
   embedding?: number[];
   isLocked?: boolean;
+  groupId?: string;
+  groupName?: string;
 }
 
 export interface CanvasTransform {

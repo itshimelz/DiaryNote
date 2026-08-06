@@ -29,6 +29,7 @@ interface CanvasControlsProps {
   themeMode: CanvasTheme;
   snapToGrid: boolean;
   showConnections: boolean;
+  hasBatchBar?: boolean;
   onAddNote: () => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -58,6 +59,7 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
   themeMode,
   snapToGrid,
   showConnections,
+  hasBatchBar = false,
   onAddNote,
   onZoomIn,
   onZoomOut,
@@ -103,12 +105,8 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
         className="hidden"
       />
 
-      {/* Primary Floating Action Bar at Bottom Center */}
-      <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5 p-1.5 rounded-lg shadow-xl backdrop-blur-xl text-xs transition-colors ${
-        themeMode === 'light'
-          ? 'bg-white/95 border border-slate-200 text-slate-800'
-          : 'bg-slate-900/90 border border-slate-800 text-slate-200'
-      }`}>
+      {/* Primary Control Bar Row inside Unified Dock */}
+      <div className="w-full flex items-center justify-between gap-1.5 p-1.5 text-xs transition-all">
         {/* Create Note CTA */}
         <button
           onMouseDown={(e) => e.preventDefault()}

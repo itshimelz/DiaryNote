@@ -16,7 +16,9 @@ export function useNoteSelection(
   onToggleConnections?: () => void,
   onToggleZenMode?: () => void,
   onLockSelectedNotes?: (ids: string[]) => void,
-  onNavigateToNote?: (id: string) => void
+  onNavigateToNote?: (id: string) => void,
+  onGroupNotes?: () => void,
+  onUngroupNotes?: () => void
 ) {
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -33,6 +35,8 @@ export function useNoteSelection(
   const onToggleZenModeRef = useRef(onToggleZenMode);
   const onLockSelectedNotesRef = useRef(onLockSelectedNotes);
   const onNavigateToNoteRef = useRef(onNavigateToNote);
+  const onGroupNotesRef = useRef(onGroupNotes);
+  const onUngroupNotesRef = useRef(onUngroupNotes);
 
   useEffect(() => {
     onCreateNoteRef.current = onCreateNote;
@@ -45,6 +49,8 @@ export function useNoteSelection(
     onToggleZenModeRef.current = onToggleZenMode;
     onLockSelectedNotesRef.current = onLockSelectedNotes;
     onNavigateToNoteRef.current = onNavigateToNote;
+    onGroupNotesRef.current = onGroupNotes;
+    onUngroupNotesRef.current = onUngroupNotes;
   });
 
   const handleSelectNote = useCallback((noteId: string | null, isMultiSelect?: boolean) => {
@@ -180,6 +186,20 @@ export function useNoteSelection(
           e.preventDefault();
           onLockSelectedNotesRef.current?.(selectedNoteIds);
         }
+        return;
+      }
+
+      // Group Notes Shortcut (Ctrl+G / Cmd+G)
+      if ((e.ctrlKey || e.metaKey) && key === 'g' && !e.shiftKey) {
+        e.preventDefault();
+        onGroupNotesRef.current?.();
+        return;
+      }
+
+      // Ungroup Notes Shortcut (Ctrl+Shift+G / Cmd+Shift+G)
+      if ((e.ctrlKey || e.metaKey) && key === 'g' && e.shiftKey) {
+        e.preventDefault();
+        onUngroupNotesRef.current?.();
         return;
       }
 

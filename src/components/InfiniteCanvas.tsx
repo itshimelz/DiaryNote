@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Note, CanvasTransform, GridType, CanvasTheme } from '../types';
 import { NoteCard } from './NoteCard';
 import { NoteConnections } from './NoteConnections';
+import { Layers, X } from 'lucide-react';
 
 interface InfiniteCanvasProps {
   notes: Note[];
@@ -31,6 +32,233 @@ interface InfiniteCanvasProps {
   onRequestUnlockNote?: (noteId: string) => void;
   onExportNote?: (note: Note, format: 'md' | 'txt') => void;
 }
+
+interface GroupFrameProps {
+  groupId: string;
+  groupNotes: Note[];
+  themeMode: CanvasTheme;
+  zoom: number;
+  snapToGrid?: boolean;
+  onUpdateBatchNotes?: (notes: Note[]) => void;
+  onSelectMultipleNotes?: (ids: string[]) => void;
+}
+
+const GroupFrame: React.FC<GroupFrameProps> = ({
+  groupId,
+  groupNotes,
+  themeMode,
+  zoom,
+  snapToGrid = false,
+  onUpdateBatchNotes,
+  onSelectMultipleNotes,
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const currentGroupName = groupNotes[0]?.groupName || '';
+  const [titleInput, setTitleInput] = useState(currentGroupName);
+  const [measuredBounds, setMeasuredBounds] = useState<{ minX: number; minY: number; maxX: number; maxY: number } | null>(null);
+  const [isDraggingGroup, setIsDraggingGroup] = useState(false);
+
+  const dragStartRef = useRef<{ startX: number; startY: number; notePositions: { id: string; x: number; y: number }[] } | null>(null);
+
+  useEffect(() => {
+    setTitleInput(currentGroupName);
+  }, [currentGroupName]);
+
+  // Dynamic ResizeObserver to adapt frame size smoothly to live card heights
+  useEffect(() => {
+    const updateBounds = () => {
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+
+      groupNotes.forEach((n) => {
+        const el = document.getElementById(`note-card-${n.id}`);
+        const realW = el ? el.offsetWidth : n.width || 340;
+        const realH = el ? el.offsetHeight : n.height || 340;
+
+        minX = Math.min(minX, n.x);
+        minY = Math.min(minY, n.y);
+        maxX = Math.max(maxX, n.x + realW);
+        maxY = Math.max(maxY, n.y + realH);
+      });
+
+      if (minX !== Infinity) {
+        setMeasuredBounds({
+          minX: minX - 24,
+          minY: minY - 36,
+          maxX: maxX + 24,
+          maxY: maxY + 24,
+        });
+      }
+    };
+
+    updateBounds();
+
+    const observers: ResizeObserver[] = [];
+    groupNotes.forEach((n) => {
+      const el = document.getElementById(`note-card-${n.id}`);
+      if (el) {
+        const observer = new ResizeObserver(() => updateBounds());
+        observer.observe(el);
+        observers.push(observer);
+      }
+    });
+
+    return () => {
+      observers.forEach((obs) => obs.disconnect());
+    };
+  }, [groupNotes]);
+
+  // Mouse Down Drag Handler for Group Frame Header Badge
+  const handleBadgeMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0 || isEditing) return;
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'INPUT') return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Select all notes in group
+    onSelectMultipleNotes?.(groupNotes.map((n) => n.id));
+
+    setIsDraggingGroup(true);
+    dragStartRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      notePositions: groupNotes.map((n) => ({ id: n.id, x: n.x, y: n.y })),
+    };
+
+    const GRID_SIZE = 24;
+    let pendingUpdate: Note[] | null = null;
+    let frameId: number | null = null;
+
+    const handleMouseMove = (moveEvt: MouseEvent) => {
+      if (!dragStartRef.current) return;
+      const dx = (moveEvt.clientX - dragStartRef.current.startX) / zoom;
+      const dy = (moveEvt.clientY - dragStartRef.current.startY) / zoom;
+
+      pendingUpdate = groupNotes.map((n) => {
+        const startPos = dragStartRef.current?.notePositions.find((item) => item.id === n.id);
+        if (!startPos) return n;
+        let rawX = startPos.x + dx;
+        let rawY = startPos.y + dy;
+        if (snapToGrid) {
+          rawX = Math.round(rawX / GRID_SIZE) * GRID_SIZE;
+          rawY = Math.round(rawY / GRID_SIZE) * GRID_SIZE;
+        }
+        return { ...n, x: rawX, y: rawY };
+      });
+
+      if (frameId === null) {
+        frameId = requestAnimationFrame(() => {
+          if (pendingUpdate && onUpdateBatchNotes) {
+            onUpdateBatchNotes(pendingUpdate);
+          }
+          frameId = null;
+        });
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (frameId !== null) cancelAnimationFrame(frameId);
+      if (pendingUpdate && onUpdateBatchNotes) {
+        onUpdateBatchNotes(pendingUpdate);
+      }
+      setIsDraggingGroup(false);
+      dragStartRef.current = null;
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const fallbackMinX = Math.min(...groupNotes.map((n) => n.x)) - 24;
+  const fallbackMinY = Math.min(...groupNotes.map((n) => n.y)) - 36;
+  const fallbackMaxX = Math.max(...groupNotes.map((n) => n.x + (n.width || 340))) + 24;
+  const fallbackMaxY = Math.max(...groupNotes.map((n) => n.y + (n.height || 340))) + 24;
+
+  const minX = measuredBounds ? measuredBounds.minX : fallbackMinX;
+  const minY = measuredBounds ? measuredBounds.minY : fallbackMinY;
+  const maxX = measuredBounds ? measuredBounds.maxX : fallbackMaxX;
+  const maxY = measuredBounds ? measuredBounds.maxY : fallbackMaxY;
+
+  const width = Math.max(100, maxX - minX);
+  const height = Math.max(100, maxY - minY);
+
+  const isLight = themeMode === 'light';
+
+  const containerBorder = isLight
+    ? 'border-2 border-dashed border-slate-300/80 bg-slate-200/20'
+    : 'border-2 border-dashed border-slate-700/80 bg-slate-900/30';
+
+  const badgeStyle = isLight
+    ? 'bg-white/95 border border-slate-200/90 text-slate-800 shadow-sm backdrop-blur-md'
+    : 'bg-slate-900/90 border border-slate-800/90 text-slate-200 shadow-sm backdrop-blur-md';
+
+  const handleSaveTitle = () => {
+    setIsEditing(false);
+    const trimmed = titleInput.trim();
+    const updated = groupNotes.map((n) => ({
+      ...n,
+      groupName: trimmed || undefined,
+    }));
+    onUpdateBatchNotes?.(updated);
+  };
+
+  const displayName = currentGroupName || `Group (${groupNotes.length} notes)`;
+
+  const transitionClass = isDraggingGroup
+    ? 'transition-none'
+    : 'transition-[width,height,transform] duration-200 ease-out';
+
+  return (
+    <div
+      style={{
+        transform: `translate3d(${minX}px, ${minY}px, 0)`,
+        width: `${width}px`,
+        height: `${height}px`,
+      }}
+      className={`absolute rounded-md pointer-events-none ${transitionClass} ${containerBorder}`}
+    >
+      {/* Group Header Badge matching bottom dock bar style */}
+      <div
+        onMouseDown={handleBadgeMouseDown}
+        className={`absolute -top-3.5 left-3 px-2.5 py-0.5 rounded-sm text-xs font-semibold tracking-wide flex items-center gap-2 pointer-events-auto select-none cursor-grab active:cursor-grabbing ${badgeStyle}`}
+      >
+        <Layers className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+        {isEditing ? (
+          <input
+            type="text"
+            value={titleInput}
+            onChange={(e) => setTitleInput(e.target.value)}
+            onBlur={handleSaveTitle}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSaveTitle();
+            }}
+            autoFocus
+            placeholder={`Group (${groupNotes.length} notes)`}
+            className="bg-transparent border-b border-blue-500 text-xs font-semibold focus:outline-none px-0.5 py-0 min-w-[120px] cursor-text"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsEditing(true);
+            }}
+            className="hover:underline flex items-center gap-1 font-semibold"
+            title="Click to rename group"
+          >
+            <span>{displayName}</span>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
 
 export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   notes,
@@ -216,7 +444,11 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         const boxMaxY = (maxPy - transform.y) / transform.zoom;
 
         const matchedIds = notes
-          .filter((n) => n.x + n.width >= boxMinX && n.x <= boxMaxX && n.y + n.height >= boxMinY && n.y <= boxMaxY)
+          .filter((n) => {
+            const w = n.width || 340;
+            const h = n.height || 340;
+            return n.x + w >= boxMinX && n.x <= boxMaxX && n.y + h >= boxMinY && n.y <= boxMaxY;
+          })
           .map((n) => n.id);
 
         onSelectMultipleNotes?.(matchedIds);
@@ -373,6 +605,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
           transform={transform}
           selectedNoteId={selectedNoteId}
           onSelectNote={onNavigateToNote}
+          themeMode={themeMode}
         />
       )}
 
@@ -397,6 +630,29 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         }}
       >
         <div className="pointer-events-auto">
+          {/* Visual Group Frame Containers */}
+          {Array.from(
+            notes.reduce((acc, n) => {
+              if (n.groupId) {
+                const list = acc.get(n.groupId) || [];
+                list.push(n);
+                acc.set(n.groupId, list);
+              }
+              return acc;
+            }, new Map<string, Note[]>())
+          ).map(([groupId, groupNotes]) => (
+            <GroupFrame
+              key={groupId}
+              groupId={groupId}
+              groupNotes={groupNotes}
+              themeMode={themeMode}
+              zoom={transform.zoom}
+              snapToGrid={snapToGrid}
+              onUpdateBatchNotes={onUpdateBatchNotes}
+              onSelectMultipleNotes={onSelectMultipleNotes}
+            />
+          ))}
+
           {visibleNotes.map((note) => (
             <NoteCard
               key={note.id}

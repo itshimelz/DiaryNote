@@ -16,6 +16,7 @@ import {
   SearchModal,
   DeleteConfirmationModal,
   SecurityModal,
+  BatchActionBar,
 } from './components';
 import { sendNativeAppNotification } from './lib/notifications';
 
@@ -126,7 +127,7 @@ export default function App() {
         // Master passcode configured — lock all selected notes immediately
         const notesToLock = notes
           .filter((n) => ids.includes(n.id) && !n.isLocked)
-          .map((n) => ({ ...n, isLocked: true, updatedAt: new Date().toISOString() }));
+          .map((n) => ({ ...n, isLocked: true }));
         if (notesToLock.length > 0) {
           handleUpdateBatchNotes(notesToLock);
           const count = notesToLock.length;
@@ -168,7 +169,31 @@ export default function App() {
     handleToggleConnections,
     () => setIsZenMode((prev) => !prev),
     handleLockSelectedNotes,
-    (id) => handleNavigateToNote(id, setSelectedNoteIds)
+    (id) => handleNavigateToNote(id, setSelectedNoteIds),
+    () => {
+      // Group shortcut (Ctrl+G) handler
+      if (selectedNoteIds.length < 2) return;
+      const selectedNotes = notes.filter((n) => selectedNoteIds.includes(n.id));
+      const newGroupId = `group-${Date.now()}`;
+      const groupTag = `Group ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      const updated = selectedNotes.map((n) => ({
+        ...n,
+        groupId: newGroupId,
+        tags: Array.from(new Set([...(n.tags || []), groupTag])),
+      }));
+      handleUpdateBatchNotes(updated);
+    },
+    () => {
+      // Ungroup shortcut (Ctrl+Shift+G) handler
+      if (selectedNoteIds.length === 0) return;
+      const selectedNotes = notes.filter((n) => selectedNoteIds.includes(n.id) && n.groupId);
+      if (selectedNotes.length === 0) return;
+      const updated = selectedNotes.map((n) => ({
+        ...n,
+        groupId: undefined,
+      }));
+      handleUpdateBatchNotes(updated);
+    }
   );
 
   const handleDeleteProtectedNote = useCallback(
@@ -296,7 +321,6 @@ export default function App() {
               handleUpdateNote({
                 ...note,
                 isLocked: true,
-                updatedAt: new Date().toISOString(),
               });
               sendNativeAppNotification(
                 'Note Locked',
@@ -316,36 +340,68 @@ export default function App() {
         onExportNote={handleExportNote}
       />
 
-      {/* Docked Control Bar */}
+      {/* Docked Bottom Control Bar Container */}
       {!isZenMode && (
-        <CanvasControls
-          notes={notes}
-          transform={transform}
-          gridType={settings.gridType}
-          themeMode={settings.themeMode}
-          snapToGrid={settings.snapToGrid}
-          showConnections={settings.showConnections}
-          isPanMode={isPanMode}
-          canUndo={canUndo}
-          canRedo={canRedo}
-          onAddNote={() => handleCreateNote()}
-          onTogglePanMode={handleTogglePanMode}
-          onZoomIn={handleZoomIn}
-          onZoomOut={handleZoomOut}
-          onResetZoom={handleResetZoom}
-          onFitNotes={handleFitNotes}
-          onChangeGridType={(gridType) => setSettings((prev) => ({ ...prev, gridType }))}
-          onToggleTheme={handleToggleTheme}
-          onToggleSnapToGrid={handleToggleSnapToGrid}
-          onToggleConnections={handleToggleConnections}
-          onUndo={handleUndo}
-          onRedo={handleRedo}
-          onOpenSearch={() => setIsSearchOpen(true)}
-          onOpenNotesList={() => setIsNotesListOpen(true)}
-          onExportBackup={() => exportBackup(notes, transform, settings)}
-          onImportBackup={handleImportBackupFile}
-          onResetSampleNotes={handleResetSampleNotes}
-        />
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center rounded-md border shadow-sm backdrop-blur-xl transition-all duration-300 ease-out select-none sm:min-w-[500px] ${
+          selectedNoteIds.length >= 2 ? 'overflow-visible' : 'overflow-hidden'
+        } ${
+          settings.themeMode === 'light'
+            ? 'bg-white/95 border-slate-200 text-slate-800'
+            : 'bg-slate-900/90 border-slate-800 text-slate-200'
+        }`}>
+          {/* Smooth Expanding Batch Action Bar Header */}
+          <div
+            className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out w-full ${
+              selectedNoteIds.length >= 2
+                ? 'grid-rows-[1fr] opacity-100 overflow-visible'
+                : 'grid-rows-[0fr] opacity-0 overflow-hidden pointer-events-none'
+            }`}
+          >
+            <div className={selectedNoteIds.length >= 2 ? 'overflow-visible' : 'overflow-hidden'}>
+              <BatchActionBar
+                selectedNoteIds={selectedNoteIds}
+                notes={notes}
+                themeMode={settings.themeMode}
+                onUpdateBatchNotes={handleUpdateBatchNotes}
+                onDeleteNotes={(ids) => {
+                  setNotesToDelete(ids);
+                  setIsDeleteModalOpen(true);
+                }}
+                onClearSelection={() => setSelectedNoteIds([])}
+              />
+            </div>
+          </div>
+
+          <CanvasControls
+            notes={notes}
+            transform={transform}
+            gridType={settings.gridType}
+            themeMode={settings.themeMode}
+            snapToGrid={settings.snapToGrid}
+            showConnections={settings.showConnections}
+            hasBatchBar={selectedNoteIds.length >= 2}
+            isPanMode={isPanMode}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onAddNote={() => handleCreateNote()}
+            onTogglePanMode={handleTogglePanMode}
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            onResetZoom={handleResetZoom}
+            onFitNotes={handleFitNotes}
+            onChangeGridType={(gridType) => setSettings((prev) => ({ ...prev, gridType }))}
+            onToggleTheme={handleToggleTheme}
+            onToggleSnapToGrid={handleToggleSnapToGrid}
+            onToggleConnections={handleToggleConnections}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            onOpenSearch={() => setIsSearchOpen(true)}
+            onOpenNotesList={() => setIsNotesListOpen(true)}
+            onExportBackup={() => exportBackup(notes, transform, settings)}
+            onImportBackup={handleImportBackupFile}
+            onResetSampleNotes={handleResetSampleNotes}
+          />
+        </div>
       )}
 
       {/* Sidebar Drawer */}
@@ -400,7 +456,6 @@ export default function App() {
             handleUpdateNote({
               ...securityModalNote,
               isLocked: true,
-              updatedAt: new Date().toISOString(),
             });
           }
         }}
@@ -424,7 +479,6 @@ export default function App() {
           handleUpdateNote({
             ...securityModalNote,
             isLocked: false,
-            updatedAt: new Date().toISOString(),
           });
         }}
       />

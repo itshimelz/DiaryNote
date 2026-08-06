@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Lock } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Lock, FolderPlus } from 'lucide-react';
 import { NoteCardProps, NoteMode, FONT_CLASSES, PAPER_THEMES } from './types';
 import { NoteHeader } from './NoteHeader';
 import { NoteToolbar } from './NoteToolbar';
@@ -153,7 +153,6 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
     onUpdateNote({
       ...note,
       activeMode: mode,
-      updatedAt: new Date().toISOString(),
     });
   };
 
@@ -292,7 +291,6 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
             ...n,
             x: snapToGrid ? Math.round(n.x / GRID_SIZE) * GRID_SIZE : n.x,
             y: snapToGrid ? Math.round(n.y / GRID_SIZE) * GRID_SIZE : n.y,
-            updatedAt: new Date().toISOString(),
           }));
           onUpdateBatchNotes(finalBatch);
         } else {
@@ -302,7 +300,6 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
             ...note,
             x: finalX,
             y: finalY,
-            updatedAt: new Date().toISOString(),
           });
         }
       }
@@ -337,7 +334,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
     let pendingSize: Pick<Note, 'width' | 'height'> | null = null;
     const flushResize = () => {
       if (pendingSize) {
-        onUpdateNote({ ...note, ...pendingSize, updatedAt: new Date().toISOString() });
+        onUpdateNote({ ...note, ...pendingSize });
         pendingSize = null;
       }
       frame = null;
@@ -379,6 +376,41 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       ? 'text-2xl sm:text-3xl'
       : 'text-lg sm:text-xl';
 
+  // Check if un-grouped note is spatially positioned over an existing Group Frame
+  const overlappingGroup = useMemo(() => {
+    if (note.groupId || !allNotes || allNotes.length === 0) return null;
+    const groupsMap = new Map<string, { id: string; name: string; notes: Note[] }>();
+    allNotes.forEach((n) => {
+      if (n.groupId && n.id !== note.id) {
+        const entry = groupsMap.get(n.groupId) || { id: n.groupId, name: n.groupName || '', notes: [] };
+        entry.notes.push(n);
+        groupsMap.set(n.groupId, entry);
+      }
+    });
+
+    const cardW = note.width || 340;
+    const cardH = note.height || 340;
+    const nMinX = note.x;
+    const nMinY = note.y;
+    const nMaxX = note.x + cardW;
+    const nMaxY = note.y + cardH;
+
+    for (const [groupId, g] of groupsMap.entries()) {
+      if (g.notes.length === 0) continue;
+      const gMinX = Math.min(...g.notes.map((m) => m.x)) - 24;
+      const gMinY = Math.min(...g.notes.map((m) => m.y)) - 36;
+      const gMaxX = Math.max(...g.notes.map((m) => m.x + (m.width || 340))) + 24;
+      const gMaxY = Math.max(...g.notes.map((m) => m.y + (m.height || 340))) + 24;
+
+      const isOverlapping = nMinX < gMaxX && nMaxX > gMinX && nMinY < gMaxY && nMaxY > gMinY;
+      if (isOverlapping) {
+        const gName = g.notes[0]?.groupName || `Group (${g.notes.length} notes)`;
+        return { id: groupId, name: gName };
+      }
+    }
+    return null;
+  }, [allNotes, note.x, note.y, note.width, note.height, note.groupId, note.id]);
+
   return (
     <div
       id={`note-card-${note.id}`}
@@ -414,6 +446,32 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         isSelected ? 'ring-2 ring-blue-500' : ''
       }`}
     >
+      {/* Smart Quick-Action Pill: Add to Overlapping Group */}
+      {isSelected && overlappingGroup && (
+        <div className="absolute -top-7 left-2 z-50 pointer-events-auto select-none">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onUpdateNote({
+                ...note,
+                groupId: overlappingGroup.id,
+                groupName: overlappingGroup.name,
+              });
+            }}
+            className={`flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-semibold rounded-sm border shadow-sm backdrop-blur-md transition-all active:scale-95 ${
+              themeConfig.isDark
+                ? 'bg-slate-900/95 border-slate-800 text-slate-200 hover:bg-slate-800'
+                : 'bg-white/95 border-slate-200/90 text-slate-800 hover:bg-slate-100'
+            }`}
+            title={`Add note to ${overlappingGroup.name}`}
+          >
+            <FolderPlus className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+            <span>Add to "{overlappingGroup.name}"</span>
+          </button>
+        </div>
+      )}
+
       {/* 1. Header */}
       <NoteHeader
         note={note}
@@ -432,11 +490,17 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
           onUpdateNote({
             ...note,
             isPinned: !note.isPinned,
-            updatedAt: new Date().toISOString(),
           })
         }
         onDeleteNote={() => onDeleteNote(note.id)}
         onDeselectNote={() => onSelectNote(null)}
+        onRemoveFromGroup={() =>
+          onUpdateNote({
+            ...note,
+            groupId: undefined,
+            groupName: undefined,
+          })
+        }
       />
 
       {/* 2. Main Body Content Area - Ruled lines background applied ONLY here */}
@@ -526,7 +590,10 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
                 const match = textBeforeCursor.match(/(?:^|\s)@([a-zA-Z0-9\s\_-]*)$/);
                 if (match) {
                   setMentionQuery(match[1]);
-                  setMentionPos({ top: 30, left: 10 });
+                  const lineCount = textBeforeCursor.split('\n').length;
+                  const lineH = isRuled ? 32 : 24;
+                  const topPos = Math.min(lineCount * lineH + 6, 190);
+                  setMentionPos({ top: topPos, left: 10 });
                 } else {
                   setMentionQuery(null);
                 }
@@ -576,11 +643,6 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
                 if (e.key === 'Escape') {
                   e.preventDefault();
                   setMentionQuery(null);
-                  onUpdateNote({
-                    ...note,
-                    content: note.content,
-                    updatedAt: new Date().toISOString(),
-                  });
                   setIsEditing(false);
                   onSelectNote(null);
                   (e.target as HTMLElement).blur();
@@ -633,7 +695,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
                 onSelect={(targetNote) => handleSelectMention(targetNote)}
                 onClose={() => setMentionQuery(null)}
                 position={mentionPos}
-                themeMode={themeConfig.isDark ? 'dark' : 'light'}
+                paperTheme={note.paperTheme}
               />
             )}
           </div>

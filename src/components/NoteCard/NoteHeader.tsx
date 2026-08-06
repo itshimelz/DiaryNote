@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Share2, X, Pin, Check } from 'lucide-react';
+import { Share2, X, Pin, Check, FolderMinus, Layers } from 'lucide-react';
 import { Note } from '../../types';
 import { getUniqueTitleForDay } from '../../lib/markdownMention';
 import { PaperThemeConfig } from './types';
@@ -13,6 +13,7 @@ interface NoteHeaderProps {
   onDeleteNote: () => void;
   onShareNote?: () => void;
   onDeselectNote?: () => void;
+  onRemoveFromGroup?: () => void;
   headerDragProps?: Record<string, any>;
   themeConfig?: PaperThemeConfig;
 }
@@ -26,6 +27,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
   onDeleteNote,
   onShareNote,
   onDeselectNote,
+  onRemoveFromGroup,
   headerDragProps = {},
   themeConfig,
 }) => {
@@ -166,6 +168,22 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
           >
             <Pin className={`w-4 h-4 ${note.isPinned ? 'fill-amber-500' : ''}`} />
           </button>
+
+          {/* Remove from Group Icon */}
+          {note.groupId && onRemoveFromGroup && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemoveFromGroup();
+              }}
+              className={`p-1 rounded-full transition-colors text-blue-500 hover:bg-rose-500/10 hover:text-rose-500`}
+              title="Remove note from group"
+              aria-label="Remove note from group"
+            >
+              <FolderMinus className="w-4 h-4" />
+            </button>
+          )}
 
           {/* Share Icon */}
           <button

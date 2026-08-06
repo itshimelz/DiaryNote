@@ -6,3 +6,4 @@ export { DeleteConfirmationModal } from './DeleteConfirmationModal';
 export { SecurityModal } from './SecurityModal';
 export { NoteCard } from './NoteCard';
 export { MentionAutocomplete } from './MentionAutocomplete';
+export { BatchActionBar } from './BatchActionBar';
