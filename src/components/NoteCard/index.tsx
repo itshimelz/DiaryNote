@@ -50,6 +50,9 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
   const markdownRef = useRef<HTMLDivElement>(null);
   const handledEditRequestRef = useRef<string | null>(null);
 
+  const noteRef = useRef(note);
+  noteRef.current = note;
+
   const dragStartRef = useRef<{ x: number; y: number; noteX: number; noteY: number }>({ x: 0, y: 0, noteX: 0, noteY: 0 });
   const resizeStartRef = useRef<{ x: number; y: number; w: number; h: number }>({ x: 0, y: 0, w: 0, h: 0 });
   const groupDragStartRef = useRef<{ id: string; startX: number; startY: number }[]>([]);
@@ -184,21 +187,24 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
     onBringToFront(note.id);
 
     const isMulti = e.shiftKey || e.metaKey || e.ctrlKey;
-    if (!isSelected) {
+    if (!isMulti && selectedNoteIds.length > 1) {
+      onSelectNote(note.id, false);
+      groupDragStartRef.current = [];
+    } else if (!isSelected) {
       onSelectNote(note.id, isMulti);
     }
 
-    const currentPosRef = { current: { x: note.x, y: note.y } };
+    const currentPosRef = { current: { x: noteRef.current.x, y: noteRef.current.y } };
     const currentBatchRef = { current: [] as Note[] };
 
     dragStartRef.current = {
       x: e.clientX,
       y: e.clientY,
-      noteX: note.x,
-      noteY: note.y,
+      noteX: noteRef.current.x,
+      noteY: noteRef.current.y,
     };
 
-    if (selectedNoteIds.length > 1 && selectedNoteIds.includes(note.id)) {
+    if (isMulti && selectedNoteIds.length > 1 && selectedNoteIds.includes(note.id)) {
       groupDragStartRef.current = selectedNoteIds.map((id) => {
         const targetNote = allNotes.find((n) => n.id === id);
         return {
@@ -272,7 +278,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         }
         currentPosRef.current = { x: newX, y: newY };
         pendingSingle = {
-          ...note,
+          ...noteRef.current,
           x: newX,
           y: newY,
         };
@@ -297,7 +303,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
           const finalX = snapToGrid ? Math.round(currentPosRef.current.x / GRID_SIZE) * GRID_SIZE : currentPosRef.current.x;
           const finalY = snapToGrid ? Math.round(currentPosRef.current.y / GRID_SIZE) * GRID_SIZE : currentPosRef.current.y;
           onUpdateNote({
-            ...note,
+            ...noteRef.current,
             x: finalX,
             y: finalY,
           });
@@ -494,14 +500,15 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         }
         onDeleteNote={() => onDeleteNote(note.id)}
         onDeselectNote={() => onSelectNote(null)}
-        onRemoveFromGroup={() =>
+        onRemoveFromGroup={() => {
+          onSelectNote(note.id, false);
           onUpdateNote({
-            ...note,
+            ...noteRef.current,
             groupId: undefined,
             groupName: undefined,
-            tags: note.tags?.filter((t) => !/^#?Group\s/i.test(t)),
-          })
-        }
+            tags: noteRef.current.tags?.filter((t) => !/^#?Group\s/i.test(t)),
+          });
+        }}
       />
 
       {/* 2. Main Body Content Area - Ruled lines background applied ONLY here */}

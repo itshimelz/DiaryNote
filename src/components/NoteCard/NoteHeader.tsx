@@ -154,6 +154,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
           {/* Pin Icon */}
           <button
             type="button"
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               onTogglePin();
@@ -173,6 +174,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
           {note.groupId && onRemoveFromGroup && (
             <button
               type="button"
+              onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
                 onRemoveFromGroup();
@@ -188,6 +190,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
           {/* Share Icon */}
           <button
             type="button"
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               handleShare();
@@ -202,6 +205,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
           {/* Close/Delete Icon */}
           <button
             type="button"
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               onDeleteNote();
