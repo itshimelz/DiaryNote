@@ -116,12 +116,12 @@ Automatically detects your platform & architecture, then downloads and installs 
 
 #### 🐧 Linux & 🍎 macOS (Terminal)
 ```bash
-curl -fsSL -L https://github.com/itshimelz/DiaryNote/raw/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/itshimelz/DiaryNote/main/install.sh | bash
 ```
 
 #### 🪟 Windows (PowerShell)
 ```powershell
-irm https://github.com/itshimelz/DiaryNote/raw/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/itshimelz/DiaryNote/main/install.ps1 | iex
 ```
 
 ---
