@@ -62,7 +62,7 @@ jobs:
           tagName: ${{ inputs.release_tag || github.ref_name }}
           releaseName: "${{ inputs.release_tag || github.ref_name }}"
           releaseBody: "Multi-platform release binaries for DiaryNote."
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
 
