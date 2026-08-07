@@ -169,20 +169,6 @@ export default function App() {
     [notes, settings.masterPasswordHash, handleUpdateBatchNotes]
   );
 
-  const handleTriggerPaste = useCallback(async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      setPasteModalState({
-        isOpen: true,
-        text: text ? text.trim() : '',
-      });
-    } catch {
-      setPasteModalState({
-        isOpen: true,
-        text: '',
-      });
-    }
-  }, []);
 
   // 4. Note Selection & Keyboard Shortcuts Hook
   const {
@@ -238,8 +224,7 @@ export default function App() {
       handleUpdateBatchNotes(updated);
       setSelectedNoteIds([]);
     },
-    () => setIsShortcutsModalOpen((prev) => !prev),
-    handleTriggerPaste
+    () => setIsShortcutsModalOpen((prev) => !prev)
   );
 
   const handleDeleteProtectedNote = useCallback(
@@ -368,34 +353,15 @@ export default function App() {
     });
   }, [setSelectedNoteIds]);
 
-  // Global Ctrl+V / Cmd+V paste to create note from external source
+  // Global native paste event handler to create note from external clipboard
   useEffect(() => {
-    const processPastedText = (text: string) => {
-      const activeEl = document.activeElement;
-      if (
-        activeEl &&
-        (activeEl.tagName === 'INPUT' ||
-          activeEl.tagName === 'TEXTAREA' ||
-          activeEl.getAttribute('contenteditable') === 'true')
-      ) {
-        return;
-      }
-
-      if (text && text.trim().length > 0) {
-        setPasteModalState({
-          isOpen: true,
-          text: text.trim(),
-        });
-      }
-    };
-
-    // 1. Native ClipboardEvent handler
     const handleGlobalPaste = (e: ClipboardEvent) => {
       const activeEl = document.activeElement;
+      // Skip if user is typing in an input/textarea (but allow our hidden clipboard listener)
       if (
         activeEl &&
         (activeEl.tagName === 'INPUT' ||
-          activeEl.tagName === 'TEXTAREA' ||
+          (activeEl.tagName === 'TEXTAREA' && !activeEl.getAttribute('aria-hidden')) ||
           activeEl.getAttribute('contenteditable') === 'true')
       ) {
         return;
@@ -404,40 +370,16 @@ export default function App() {
       const pastedText = e.clipboardData?.getData('text/plain');
       if (pastedText && pastedText.trim().length > 0) {
         e.preventDefault();
-        processPastedText(pastedText);
-      }
-    };
-
-    // 2. Keyboard shortcut fallback (Ctrl+V / Cmd+V) reading navigator.clipboard
-    const handleKeyDown = async (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
-        const activeEl = document.activeElement;
-        if (
-          activeEl &&
-          (activeEl.tagName === 'INPUT' ||
-            activeEl.tagName === 'TEXTAREA' ||
-            activeEl.getAttribute('contenteditable') === 'true')
-        ) {
-          return;
-        }
-
-        try {
-          const clipboardText = await navigator.clipboard.readText();
-          if (clipboardText && clipboardText.trim().length > 0) {
-            e.preventDefault();
-            processPastedText(clipboardText);
-          }
-        } catch (err) {
-          // System clipboard access permission fallback
-        }
+        setPasteModalState({
+          isOpen: true,
+          text: pastedText.trim(),
+        });
       }
     };
 
     window.addEventListener('paste', handleGlobalPaste);
-    window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('paste', handleGlobalPaste);
-      window.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
@@ -768,13 +710,8 @@ export default function App() {
           const updated = targets.map((n) => ({ ...n, paperTheme }));
           handleUpdateBatchNotes(updated);
         }}
-        onPasteFromClipboard={async () => {
-          try {
-            const text = await navigator.clipboard.readText();
-            setPasteModalState({ isOpen: true, text: text ? text.trim() : '' });
-          } catch {
-            setPasteModalState({ isOpen: true, text: '' });
-          }
+        onPasteFromClipboard={() => {
+          setPasteModalState({ isOpen: true, text: '' });
         }}
         onCreateNoteHere={() => handleCreateNote(contextMenuState.x, contextMenuState.y)}
         onSelectAllNotes={() => setSelectedNoteIds(notes.map((n) => n.id))}
@@ -802,14 +739,7 @@ export default function App() {
       />
 
       {/* Hidden Native Clipboard Paste Listener (bypasses browser/distro permissions) */}
-      <HiddenClipboardListener
-        onPasteText={(text) => {
-          setPasteModalState({
-            isOpen: true,
-            text,
-          });
-        }}
-      />
+      <HiddenClipboardListener />
     </div>
   );
 }
