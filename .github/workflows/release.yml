@@ -91,13 +91,25 @@ jobs:
         run: |
           TAG="${{ inputs.release_tag || github.ref_name }}"
           VER="${TAG#v}"
-          for f in $(find src-tauri/target -name "*.app.tar.gz"); do
+          for f in $(find src-tauri/target -name "DiaryNote_*.app.tar.gz"); do
             FNAME=$(basename "$f")
-            ARCH=$(echo "$FNAME" | sed -E 's/DiaryNote_(.*)\.app\.tar\.gz/\1/')
-            VERSIONED_NAME="DiaryNote_${VER}_${ARCH}.app.tar.gz"
-            cp "$f" "$VERSIONED_NAME"
-            gh release upload "$TAG" "$VERSIONED_NAME" --clobber || true
+            if [[ "$FNAME" =~ ^DiaryNote_(aarch64|x64|x86_64)\.app\.tar\.gz$ ]]; then
+              ARCH="${BASH_REMATCH[1]}"
+              VERSIONED_NAME="DiaryNote_${VER}_${ARCH}.app.tar.gz"
+              cp "$f" "$VERSIONED_NAME"
+              gh release upload "$TAG" "$VERSIONED_NAME" --clobber || true
+            fi
           done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Attach Release Notes Markdown if available
+        run: |
+          TAG="${{ inputs.release_tag || github.ref_name }}"
+          NOTES_FILE="RELEASE_NOTES_${TAG}.md"
+          if [ -f "$NOTES_FILE" ]; then
+            gh release edit "$TAG" -F "$NOTES_FILE" || true
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
