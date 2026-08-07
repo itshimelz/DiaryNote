@@ -99,6 +99,7 @@ if [ "$OS" = "Linux" ]; then
 
   # Arch Linux / Manjaro / Fedora / Standalone Linux package
   TAR_URL="https://github.com/${REPO}/releases/download/${TAG_NAME}/DiaryNote-linux-x86_64.tar.gz"
+  ICON_URL="https://raw.githubusercontent.com/${REPO}/main/assets/logo.png"
 
   echo -e "${BLUE}Downloading DiaryNote standalone Linux package...${NC}"
   if ! curl -fsSL "$TAR_URL" -o "$TMP_DIR/package.tar.gz"; then
@@ -108,9 +109,10 @@ if [ "$OS" = "Linux" ]; then
 
   tar -xzf "$TMP_DIR/package.tar.gz" -C "$TMP_DIR"
 
-  mkdir -p ~/.local/bin ~/.local/share/applications ~/.local/share/icons/hicolor/128x128/apps
+  mkdir -p ~/.local/bin ~/.local/share/applications ~/.local/share/icons/hicolor/128x128/apps ~/.local/share/icons ~/.local/share/pixmaps
 
   if [ -f "$TMP_DIR/DiaryNote" ]; then
+    rm -f ~/.local/bin/DiaryNote 2>/dev/null || true
     cp "$TMP_DIR/DiaryNote" ~/.local/bin/DiaryNote
     chmod +x ~/.local/bin/DiaryNote
   fi
@@ -121,6 +123,21 @@ if [ "$OS" = "Linux" ]; then
 
   if [ -f "$TMP_DIR/DiaryNote.png" ]; then
     cp "$TMP_DIR/DiaryNote.png" ~/.local/share/icons/hicolor/128x128/apps/DiaryNote.png
+    cp "$TMP_DIR/DiaryNote.png" ~/.local/share/icons/DiaryNote.png
+    cp "$TMP_DIR/DiaryNote.png" ~/.local/share/pixmaps/DiaryNote.png
+  else
+    echo -e "${BLUE}Fetching application icon...${NC}"
+    curl -fsSL "$ICON_URL" -o ~/.local/share/icons/hicolor/128x128/apps/DiaryNote.png 2>/dev/null || true
+    cp ~/.local/share/icons/hicolor/128x128/apps/DiaryNote.png ~/.local/share/icons/DiaryNote.png 2>/dev/null || true
+    cp ~/.local/share/icons/hicolor/128x128/apps/DiaryNote.png ~/.local/share/pixmaps/DiaryNote.png 2>/dev/null || true
+  fi
+
+  # Refresh desktop database & icon caches
+  if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database ~/.local/share/applications 2>/dev/null || true
+  fi
+  if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+    gtk-update-icon-cache -f -t ~/.local/share/icons/hicolor 2>/dev/null || true
   fi
 
   echo -e "${GREEN}${BOLD}Successfully installed DiaryNote ${TAG_NAME}!${NC}"
