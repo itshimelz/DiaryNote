@@ -40,6 +40,7 @@ export function useNoteSelection(
   const onUngroupNotesRef = useRef(onUngroupNotes);
   const onToggleShortcutsModalRef = useRef(onToggleShortcutsModal);
 
+
   useEffect(() => {
     onCreateNoteRef.current = onCreateNote;
     onFitNotesRef.current = onFitNotes;
@@ -54,7 +55,22 @@ export function useNoteSelection(
     onGroupNotesRef.current = onGroupNotes;
     onUngroupNotesRef.current = onUngroupNotes;
     onToggleShortcutsModalRef.current = onToggleShortcutsModal;
-  });
+
+  }, [
+    onCreateNote,
+    onFitNotes,
+    onResetZoom,
+    onTogglePanMode,
+    onToggleTheme,
+    onToggleSnapToGrid,
+    onToggleConnections,
+    onToggleZenMode,
+    onLockSelectedNotes,
+    onNavigateToNote,
+    onGroupNotes,
+    onUngroupNotes,
+    onToggleShortcutsModal,
+  ]);
 
   const handleSelectNote = useCallback((noteId: string | null, isMultiSelect?: boolean) => {
     if (noteId === null) {
@@ -129,6 +145,7 @@ export function useNoteSelection(
         handleRedo();
         return;
       }
+
 
       // New Note Shortcut ('N' or 'Ctrl+N')
       if (key === 'n' || ((e.ctrlKey || e.metaKey) && key === 'n')) {

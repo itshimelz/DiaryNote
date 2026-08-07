@@ -1,6 +1,6 @@
 import Dexie, { type Table } from 'dexie';
 import { Note, CanvasTransform, GridType, CanvasTheme } from '../types';
-import { SAMPLE_NOTES, DEFAULT_SETTINGS, INITIAL_TRANSFORM, AppSettings } from './storage';
+import { SAMPLE_NOTES, DEFAULT_SETTINGS, INITIAL_TRANSFORM, getInitialTransform, AppSettings } from './storage';
 
 export class DiaryNoteDatabase extends Dexie {
   notes!: Table<Note, string>;
@@ -51,20 +51,12 @@ export async function initDatabase(): Promise<{
     const notes = await db.notes.toArray();
 
     // Load transform
-    let transform = INITIAL_TRANSFORM;
+    let transform = getInitialTransform(notes);
     const transformRecord = await db.transform.get('main');
     if (transformRecord) {
       const { id, ...rest } = transformRecord;
       transform = rest;
     } else {
-      const legacyTransform = localStorage.getItem('infinite_notes_v1_transform');
-      if (legacyTransform) {
-        try {
-          transform = JSON.parse(legacyTransform);
-        } catch {
-          transform = INITIAL_TRANSFORM;
-        }
-      }
       await db.transform.put({ id: 'main', ...transform });
     }
 
@@ -103,9 +95,6 @@ export async function initDatabase(): Promise<{
 export async function saveNoteToDB(note: Note): Promise<void> {
   try {
     await db.notes.put(note);
-    // Sync to localStorage for immediate fallback
-    const all = await db.notes.toArray();
-    localStorage.setItem('infinite_notes_v1_notes', JSON.stringify(all));
   } catch (err) {
     console.error('Error saving note to DB:', err);
   }
@@ -120,7 +109,6 @@ export async function saveBatchNotesToDB(notes: Note[]): Promise<void> {
     if (notes.length > 0) {
       await db.notes.bulkPut(notes);
     }
-    localStorage.setItem('infinite_notes_v1_notes', JSON.stringify(notes));
   } catch (err) {
     console.error('Error batch saving notes to DB:', err);
   }
@@ -132,8 +120,6 @@ export async function saveBatchNotesToDB(notes: Note[]): Promise<void> {
 export async function deleteNoteFromDB(noteId: string): Promise<void> {
   try {
     await db.notes.delete(noteId);
-    const all = await db.notes.toArray();
-    localStorage.setItem('infinite_notes_v1_notes', JSON.stringify(all));
   } catch (err) {
     console.error('Error deleting note from DB:', err);
   }
@@ -145,7 +131,6 @@ export async function deleteNoteFromDB(noteId: string): Promise<void> {
 export async function saveTransformToDB(transform: CanvasTransform): Promise<void> {
   try {
     await db.transform.put({ id: 'main', ...transform });
-    localStorage.setItem('infinite_notes_v1_transform', JSON.stringify(transform));
   } catch (err) {
     console.error('Error saving transform to DB:', err);
   }
@@ -157,7 +142,6 @@ export async function saveTransformToDB(transform: CanvasTransform): Promise<voi
 export async function saveSettingsToDB(settings: AppSettings): Promise<void> {
   try {
     await db.settings.put({ id: 'main', ...settings });
-    localStorage.setItem('infinite_notes_v1_settings', JSON.stringify(settings));
   } catch (err) {
     console.error('Error saving settings to DB:', err);
   }

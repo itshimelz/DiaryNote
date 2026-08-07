@@ -3,6 +3,26 @@ import { CanvasTransform, Note } from '../types';
 import { loadTransform, loadSettings, AppSettings } from '../lib/storage';
 import { saveTransformToDB, saveSettingsToDB } from '../lib/sqliteStorage';
 
+export function screenToWorld(
+  screenX: number,
+  screenY: number,
+  transform: CanvasTransform,
+  cardWidth = 380,
+  cardHeight = 340
+) {
+  return {
+    worldX: Math.round((screenX - transform.x) / transform.zoom - cardWidth / 2),
+    worldY: Math.round((screenY - transform.y) / transform.zoom - cardHeight / 2),
+  };
+}
+
+export function worldToScreen(worldX: number, worldY: number, transform: CanvasTransform) {
+  return {
+    screenX: Math.round(worldX * transform.zoom + transform.x),
+    screenY: Math.round(worldY * transform.zoom + transform.y),
+  };
+}
+
 export function useCanvasTransform(notes: Note[], bringToFront: (noteId: string) => void) {
   const [transform, setTransform] = useState<CanvasTransform>(() => loadTransform());
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
@@ -166,18 +186,21 @@ export function useCanvasTransform(notes: Note[], bringToFront: (noteId: string)
     const screenCenterX = viewport.width / 2;
     const screenCenterY = viewport.height / 2;
 
-    const noteCenterX = targetNote.x + targetNote.width / 2;
-    const noteCenterY = targetNote.y + targetNote.height / 2;
+    const noteCenterX = targetNote.x + (targetNote.width || 380) / 2;
+    const noteCenterY = targetNote.y + (targetNote.height || 340) / 2;
 
-    const { min, max } = getZoomBounds();
-    const fitNoteZoom = Math.min((viewport.width - 160) / targetNote.width, (viewport.height - 160) / targetNote.height);
-    const zoom = Math.max(min, Math.min(max, Math.min(transform.zoom, fitNoteZoom)));
+    // Standard comfortable zoom distance (capped between 0.85 and 1.10, defaulting to ~1.0)
+    const fitZoomX = (viewport.width - 320) / (targetNote.width || 380);
+    const fitZoomY = (viewport.height - 240) / (targetNote.height || 340);
+    const calculatedFit = Math.min(fitZoomX, fitZoomY);
+    const targetZoom = Math.min(1.1, Math.max(0.85, calculatedFit));
+
     animateTransformTo({
-      zoom,
-      x: Math.round(screenCenterX - noteCenterX * zoom),
-      y: Math.round(screenCenterY - noteCenterY * zoom),
+      zoom: Number(targetZoom.toFixed(3)),
+      x: Math.round(screenCenterX - noteCenterX * targetZoom),
+      y: Math.round(screenCenterY - noteCenterY * targetZoom),
     });
-  }, [animateTransformTo, bringToFront, getViewport, getZoomBounds, notes, transform.zoom]);
+  }, [animateTransformTo, bringToFront, getViewport, notes]);
 
   return {
     transform,

@@ -8,3 +8,7 @@ coverage/
 !.env.example
 src-tauri/target/
 
+# Local security / internal docs (not for public repo)
+docs/
+
+

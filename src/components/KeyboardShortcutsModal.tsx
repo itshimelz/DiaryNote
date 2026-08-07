@@ -39,7 +39,8 @@ const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
       { keys: ['F'], description: 'Fit all notes on canvas view' },
       { keys: ['H'], description: 'Reset zoom (100% at center)' },
       { keys: ['Ctrl', 'Scroll'], description: 'Smooth zoom in / out' },
-      { keys: ['Shift', 'Z'], description: 'Focus & zoom to selected note' },
+      { keys: ['Shift', 'Z'], description: 'Focus & zoom to selected note (or Shift+F)' },
+      { keys: ['Alt', 'Click'], description: 'Focus & zoom to clicked note' },
     ],
   },
   {

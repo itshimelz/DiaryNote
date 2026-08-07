@@ -30,7 +30,9 @@ interface InfiniteCanvasProps {
   onAnimateTransform?: (transform: CanvasTransform) => void;
   onRequestLockNote?: (noteId: string) => void;
   onRequestUnlockNote?: (noteId: string) => void;
-  onExportNote?: (note: Note, format: 'md' | 'txt') => void;
+  onExportNote?: (note: Note, format: 'md' | 'txt' | 'json') => void;
+  onContextMenuNote?: (e: React.MouseEvent, noteId: string) => void;
+  onContextMenuCanvas?: (e: React.MouseEvent) => void;
 }
 
 interface GroupFrameProps {
@@ -287,6 +289,8 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   onRequestLockNote,
   onRequestUnlockNote,
   onExportNote,
+  onContextMenuNote,
+  onContextMenuCanvas,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPanning, setIsPanning] = useState(false);
@@ -470,7 +474,6 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
 
     e.preventDefault();
     setIsPanning(true);
-    onSelectNote(null);
     panStartRef.current = { x: e.clientX, y: e.clientY, transformX: transform.x, transformY: transform.y };
     let frame: number | null = null;
     let nextPosition = { x: transform.x, y: transform.y };
@@ -501,15 +504,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   const handleDoubleClick = (e: React.MouseEvent) => {
     const isCanvasClick = !(e.target as HTMLElement).closest('.note-card');
     if (isCanvasClick && containerRef.current && !isPanMode && !isSpacePressed) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-
-      // Convert screen coords to world coords
-      const worldX = Math.round((mouseX - transform.x) / transform.zoom);
-      const worldY = Math.round((mouseY - transform.y) / transform.zoom);
-
-      onDoubleClickCanvas(worldX, worldY);
+      onDoubleClickCanvas(e.clientX, e.clientY);
     }
   };
 
@@ -585,6 +580,10 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       ref={containerRef}
       onMouseDown={handleMouseDown}
       onDoubleClick={handleDoubleClick}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onContextMenuCanvas?.(e);
+      }}
       className={`relative w-screen h-screen overflow-hidden select-none transition-colors duration-300 ${getBackgroundClass()} ${
         isPanning || isSpacePressed || isPanMode ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
       }`}
@@ -676,6 +675,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
               onExportNote={onExportNote}
               isCardDragging={draggingNoteIds.includes(note.id)}
               onDragStateChange={setDraggingNoteIds}
+              onContextMenu={onContextMenuNote}
             />
           ))}
         </div>

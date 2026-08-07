@@ -8,6 +8,8 @@ interface ChecklistItem {
   id: string;
   text: string;
   completed: boolean;
+  isHeading?: boolean;
+  headingLevel?: number;
 }
 
 interface NoteChecklistProps {
@@ -32,20 +34,33 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
   const themeConfig = PAPER_THEMES[(paperTheme as PaperTheme) || 'white'];
   const isRuled = paperTheme === 'ruled' || paperTheme === 'ruled-dark';
 
-  // Parse markdown checklist lines: "- [x] Task" or "- [ ] Task" or plain lines
+  // Parse markdown checklist lines: "- [x] Task", "- [ ] Task", or "# Heading"
   const parseItemsFromContent = (rawText: string): ChecklistItem[] => {
     if (!rawText.trim()) {
       return [
-        { id: '1', text: 'Daily UI Day 65', completed: true },
-        { id: '2', text: 'Buying Groceries', completed: false },
-        { id: '3', text: 'Daily Chores', completed: true },
-        { id: '4', text: 'Collecting research material', completed: true },
-        { id: '5', text: 'Completing Assignments', completed: false },
+        { id: 'h1', text: 'Features', completed: false, isHeading: true, headingLevel: 2 },
+        { id: '1', text: 'Infinite canvas', completed: true },
+        { id: '2', text: 'Markdown notes', completed: true },
+        { id: '3', text: 'Backlinks', completed: true },
+        { id: 'h2', text: 'Next', completed: false, isHeading: true, headingLevel: 2 },
+        { id: '4', text: 'Mobile app', completed: false },
+        { id: '5', text: 'Sync', completed: false },
       ];
     }
 
     const lines = rawText.split('\n').filter((l) => l.trim().length > 0);
     return lines.map((line, idx) => {
+      const headingMatch = line.match(/^(#{1,6})\s+(.*)/);
+      if (headingMatch) {
+        return {
+          id: `heading-${idx}-${Date.now()}`,
+          text: headingMatch[2].trim(),
+          completed: false,
+          isHeading: true,
+          headingLevel: headingMatch[1].length,
+        };
+      }
+
       const isChecked = /- \[[xX]\]/.test(line);
       let text = line.replace(/^- \[[xX\s]?\]\s*/, '').replace(/^- \s*/, '').trim();
       if (!text) text = `Task ${idx + 1}`;
@@ -53,6 +68,7 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
         id: `item-${idx}-${Date.now()}`,
         text,
         completed: isChecked,
+        isHeading: false,
       };
     });
   };
@@ -63,7 +79,13 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
 
   const syncBackToContent = (updatedItems: ChecklistItem[]) => {
     const markdown = updatedItems
-      .map((item) => `- [${item.completed ? 'x' : ' '}] ${item.text}`)
+      .map((item) => {
+        if (item.isHeading) {
+          const hashes = '#'.repeat(item.headingLevel || 1);
+          return `${hashes} ${item.text}`;
+        }
+        return `- [${item.completed ? 'x' : ' '}] ${item.text}`;
+      })
       .join('\n');
     onChangeContent(markdown);
   };
@@ -108,6 +130,25 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
       <div className="flex-1 flex flex-col gap-2 pr-1">
         {items.map((item) => {
           const isEditing = editingItemId === item.id;
+
+          if (item.isHeading) {
+            return (
+              <div key={item.id} className="flex items-center justify-between group pt-3 pb-1">
+                <div className={`flex-1 font-bold text-base tracking-tight ${themeConfig.text}`}>
+                  {item.text}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteItem(item.id)}
+                  className={`opacity-0 group-hover:opacity-100 p-1 ${themeConfig.subtext} hover:text-rose-500 transition-opacity shrink-0`}
+                  title="Delete section header"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            );
+          }
+
           return (
             <div
               key={item.id}

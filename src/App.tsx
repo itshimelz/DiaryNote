@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CanvasTransform, Note } from './types';
-import { exportBackup, importBackup, SAMPLE_NOTES } from './lib/storage';
+import { exportBackup, exportNotesBackup, importBackup, SAMPLE_NOTES } from './lib/storage';
 
 // Custom Hooks
 import { useHistoryState } from './hooks/useHistoryState';
 import { useNotesManager } from './hooks/useNotesManager';
-import { useCanvasTransform } from './hooks/useCanvasTransform';
+import { useCanvasTransform, screenToWorld } from './hooks/useCanvasTransform';
 import { useNoteSelection } from './hooks/useNoteSelection';
 
 // Modular Components
@@ -19,6 +19,9 @@ import {
   SecurityModal,
   BatchActionBar,
   KeyboardShortcutsModal,
+  NoteContextMenu,
+  PasteConfirmModal,
+  HiddenClipboardListener,
 } from './components';
 import { sendNativeAppNotification } from './lib/notifications';
 
@@ -34,6 +37,24 @@ export default function App() {
   const [isZenMode, setIsZenMode] = useState(false);
   const [securityModalNoteId, setSecurityModalNoteId] = useState<string | null>(null);
   const [securityModalMode, setSecurityModalMode] = useState<'set' | 'unlock'>('set');
+
+  const [contextMenuState, setContextMenuState] = useState<{
+    isOpen: boolean;
+    x: number;
+    y: number;
+  }>({
+    isOpen: false,
+    x: 0,
+    y: 0,
+  });
+
+  const [pasteModalState, setPasteModalState] = useState<{
+    isOpen: boolean;
+    text: string;
+  }>({
+    isOpen: false,
+    text: '',
+  });
 
   // 1. History Stack Hook
   const {
@@ -148,6 +169,7 @@ export default function App() {
     [notes, settings.masterPasswordHash, handleUpdateBatchNotes]
   );
 
+
   // 4. Note Selection & Keyboard Shortcuts Hook
   const {
     selectedNoteIds,
@@ -225,18 +247,26 @@ export default function App() {
   );
 
   const handleCreateNote = useCallback(
-    (customX?: number, customY?: number) => {
-      const newId = handleAddNote(transform, settings, customX, customY);
+    (screenX?: number, screenY?: number) => {
+      let worldX: number | undefined = undefined;
+      let worldY: number | undefined = undefined;
+
+      if (typeof screenX === 'number' && typeof screenY === 'number' && !isNaN(screenX) && !isNaN(screenY)) {
+        const coords = screenToWorld(screenX, screenY, transform);
+        worldX = coords.worldX;
+        worldY = coords.worldY;
+        if (settings.snapToGrid) {
+          worldX = Math.round(worldX / 24) * 24;
+          worldY = Math.round(worldY / 24) * 24;
+        }
+      }
+
+      const newId = handleAddNote(transform, settings, worldX, worldY);
       setSelectedNoteIds([newId]);
       setEditingNoteId(newId);
     },
     [handleAddNote, transform, settings, setSelectedNoteIds, setEditingNoteId]
   );
-
-  const handleResetSampleNotes = useCallback(() => {
-    setNotes(SAMPLE_NOTES);
-    resetHistory(SAMPLE_NOTES);
-  }, [resetHistory, setNotes]);
 
   const handleImportBackupFile = useCallback(
     (file: File) => {
@@ -272,10 +302,15 @@ export default function App() {
 
   const securityModalNote = notes.find((n) => n.id === securityModalNoteId);
 
-  const handleExportNote = useCallback((note: Note, format: 'md' | 'txt') => {
+  const handleExportNote = useCallback((note: Note, format: 'md' | 'txt' | 'json') => {
     if (note.isLocked) {
       setSecurityModalNoteId(note.id);
       setSecurityModalMode('unlock');
+      return;
+    }
+    if (format === 'json') {
+      const fileName = `${(note.title || 'note').replace(/[^a-z0-9]/gi, '_')}-backup.json`;
+      exportNotesBackup([note], fileName);
       return;
     }
     const text = `# ${note.title || 'Untitled Note'}\n\n${note.content || ''}`;
@@ -286,6 +321,62 @@ export default function App() {
     a.download = `${(note.title || 'note').replace(/[^a-z0-9]/gi, '_')}.${format}`;
     a.click();
     URL.revokeObjectURL(url);
+  }, []);
+
+  const handleContextMenuNote = useCallback(
+    (e: React.MouseEvent, noteId: string) => {
+      e.preventDefault();
+      setSelectedNoteIds((prev) => {
+        if (prev.includes(noteId)) return prev;
+        return e.shiftKey ? [...prev, noteId] : [noteId];
+      });
+      setContextMenuState({
+        isOpen: true,
+        x: e.clientX,
+        y: e.clientY,
+      });
+    },
+    [setSelectedNoteIds]
+  );
+
+  const handleContextMenuCanvas = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setSelectedNoteIds([]);
+    setContextMenuState({
+      isOpen: true,
+      x: e.clientX,
+      y: e.clientY,
+    });
+  }, [setSelectedNoteIds]);
+
+  // Global native paste event handler to create note from external clipboard
+  useEffect(() => {
+    const handleGlobalPaste = (e: ClipboardEvent) => {
+      const activeEl = document.activeElement;
+      // Skip if user is typing in an input/textarea (but allow our hidden clipboard listener)
+      if (
+        activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+          (activeEl.tagName === 'TEXTAREA' && !activeEl.getAttribute('aria-hidden')) ||
+          activeEl.getAttribute('contenteditable') === 'true')
+      ) {
+        return;
+      }
+
+      const pastedText = e.clipboardData?.getData('text/plain');
+      if (pastedText && pastedText.trim().length > 0) {
+        e.preventDefault();
+        setPasteModalState({
+          isOpen: true,
+          text: pastedText.trim(),
+        });
+      }
+    };
+
+    window.addEventListener('paste', handleGlobalPaste);
+    return () => {
+      window.removeEventListener('paste', handleGlobalPaste);
+    };
   }, []);
 
   return (
@@ -347,6 +438,8 @@ export default function App() {
           setSecurityModalMode('unlock');
         }}
         onExportNote={handleExportNote}
+        onContextMenuNote={handleContextMenuNote}
+        onContextMenuCanvas={handleContextMenuCanvas}
       />
 
       {/* Docked Bottom Control Bar Container with Corner Morphing */}
@@ -445,7 +538,6 @@ export default function App() {
               onOpenNotesList={() => setIsNotesListOpen(true)}
               onExportBackup={() => exportBackup(notes, transform, settings)}
               onImportBackup={handleImportBackupFile}
-              onResetSampleNotes={handleResetSampleNotes}
             />
           </div>
         </motion.div>
@@ -535,6 +627,115 @@ export default function App() {
         isOpen={isShortcutsModalOpen}
         themeMode={settings.themeMode}
         onClose={() => setIsShortcutsModalOpen(false)}
+      />
+
+      {/* Right-Click Context Menu for Selected Note(s) */}
+      <NoteContextMenu
+        x={contextMenuState.x}
+        y={contextMenuState.y}
+        isOpen={contextMenuState.isOpen}
+        selectedNoteIds={selectedNoteIds}
+        notes={notes}
+        themeMode={settings.themeMode}
+        onClose={() => setContextMenuState((prev) => ({ ...prev, isOpen: false }))}
+        onNavigateToNote={(id) => handleNavigateToNote(id, setSelectedNoteIds)}
+        onEditNote={(id) => {
+          setSelectedNoteIds([id]);
+          setEditingNoteId(id);
+        }}
+        onTogglePin={(ids) => {
+          const targets = notes.filter((n) => ids.includes(n.id));
+          const allPinned = targets.every((n) => n.isPinned);
+          const updated = targets.map((n) => ({ ...n, isPinned: !allPinned }));
+          handleUpdateBatchNotes(updated);
+        }}
+        onLockNotes={(ids) => handleLockSelectedNotes(ids)}
+        onGroupNotes={() => {
+          if (selectedNoteIds.length < 2) return;
+          const targets = notes.filter((n) => selectedNoteIds.includes(n.id));
+          const newGroupId = `group-${Date.now()}`;
+          const groupName = `Group ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+          const updated = targets.map((n) => ({
+            ...n,
+            groupId: newGroupId,
+            groupName,
+          }));
+          handleUpdateBatchNotes(updated);
+        }}
+        onUngroupNotes={() => {
+          const targets = notes.filter((n) => selectedNoteIds.includes(n.id) && n.groupId);
+          const updated = targets.map((n) => ({
+            ...n,
+            groupId: undefined,
+            groupName: undefined,
+          }));
+          handleUpdateBatchNotes(updated);
+        }}
+        onDuplicateNotes={(ids) => {
+          ids.forEach((id) => {
+            const target = notes.find((n) => n.id === id);
+            if (target) {
+              const newId = `note-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+              const dupNote: Note = {
+                ...target,
+                id: newId,
+                title: `${target.title || 'Untitled'} (Copy)`,
+                x: target.x + 30,
+                y: target.y + 30,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              };
+              handleUpdateNote(dupNote);
+              setSelectedNoteIds([newId]);
+            }
+          });
+        }}
+        onExportNotes={(ids, format) => {
+          const targets = notes.filter((n) => ids.includes(n.id));
+          if (targets.length === 1) {
+            handleExportNote(targets[0], format);
+          } else if (targets.length > 1) {
+            const fileName = `selected-notes-backup-${new Date().toISOString().slice(0, 10)}.json`;
+            exportNotesBackup(targets, fileName);
+          }
+        }}
+        onDeleteNotes={(ids) => requestDeleteNotes(ids)}
+        onChangePaperTheme={(ids, paperTheme) => {
+          const targets = notes.filter((n) => ids.includes(n.id));
+          const updated = targets.map((n) => ({ ...n, paperTheme }));
+          handleUpdateBatchNotes(updated);
+        }}
+        onPasteFromClipboard={() => {
+          setPasteModalState({ isOpen: true, text: '' });
+        }}
+        onCreateNoteHere={() => handleCreateNote(contextMenuState.x, contextMenuState.y)}
+        onSelectAllNotes={() => setSelectedNoteIds(notes.map((n) => n.id))}
+      />
+
+      {/* Clipboard Ctrl+V Paste Confirm Modal */}
+      <PasteConfirmModal
+        isOpen={pasteModalState.isOpen}
+        pastedText={pasteModalState.text}
+        themeMode={settings.themeMode}
+        onClose={() => setPasteModalState({ isOpen: false, text: '' })}
+        onConfirm={(pastedTitle, pastedContent) => {
+          const newId = handleAddNote(transform, settings);
+          setNotes((prev) =>
+            prev.map((n) =>
+              n.id === newId ? { ...n, title: pastedTitle, content: pastedContent } : n
+            )
+          );
+          setSelectedNoteIds([newId]);
+          sendNativeAppNotification(
+            'Note Created',
+            `Created note "${pastedTitle}" from clipboard paste`
+          );
+        }}
+      />
+
+      {/* Hidden Native Clipboard Paste Listener (bypasses browser/distro permissions) */}
+      <HiddenClipboardListener
+        onPasteText={(text) => setPasteModalState({ isOpen: true, text })}
       />
     </div>
   );

@@ -19,16 +19,23 @@ export default defineConfig(() => {
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
     build: {
-      chunkSizeWarningLimit: 1000,
+      chunkSizeWarningLimit: 800,
+      minify: 'esbuild',
+      cssCodeSplit: true,
+      target: 'esnext',
       rollupOptions: {
         output: {
           manualChunks: {
             'vendor-react': ['react', 'react-dom'],
+            'vendor-motion': ['motion/react'],
             'vendor-icons': ['lucide-react'],
             'vendor-db': ['dexie'],
             'vendor-markdown': ['react-markdown', 'remark-gfm', 'remark-breaks'],
           },
         },
+      },
+      esbuild: {
+        drop: ['console', 'debugger'],
       },
     },
   };
