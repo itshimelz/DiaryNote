@@ -8,3 +8,6 @@ export { NoteCard } from './NoteCard';
 export { MentionAutocomplete } from './MentionAutocomplete';
 export { BatchActionBar } from './BatchActionBar';
 export { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
+export { NoteContextMenu } from './NoteContextMenu';
+export { PasteConfirmModal } from './PasteConfirmModal';
+export { HiddenClipboardListener } from './HiddenClipboardListener';

@@ -19,7 +19,8 @@ export function useNoteSelection(
   onNavigateToNote?: (id: string) => void,
   onGroupNotes?: () => void,
   onUngroupNotes?: () => void,
-  onToggleShortcutsModal?: () => void
+  onToggleShortcutsModal?: () => void,
+  onPasteNotes?: () => void
 ) {
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -39,6 +40,7 @@ export function useNoteSelection(
   const onGroupNotesRef = useRef(onGroupNotes);
   const onUngroupNotesRef = useRef(onUngroupNotes);
   const onToggleShortcutsModalRef = useRef(onToggleShortcutsModal);
+  const onPasteNotesRef = useRef(onPasteNotes);
 
   useEffect(() => {
     onCreateNoteRef.current = onCreateNote;
@@ -54,7 +56,23 @@ export function useNoteSelection(
     onGroupNotesRef.current = onGroupNotes;
     onUngroupNotesRef.current = onUngroupNotes;
     onToggleShortcutsModalRef.current = onToggleShortcutsModal;
-  });
+    onPasteNotesRef.current = onPasteNotes;
+  }, [
+    onCreateNote,
+    onFitNotes,
+    onResetZoom,
+    onTogglePanMode,
+    onToggleTheme,
+    onToggleSnapToGrid,
+    onToggleConnections,
+    onToggleZenMode,
+    onLockSelectedNotes,
+    onNavigateToNote,
+    onGroupNotes,
+    onUngroupNotes,
+    onToggleShortcutsModal,
+    onPasteNotes,
+  ]);
 
   const handleSelectNote = useCallback((noteId: string | null, isMultiSelect?: boolean) => {
     if (noteId === null) {
@@ -127,6 +145,13 @@ export function useNoteSelection(
       if ((e.ctrlKey || e.metaKey) && key === 'y') {
         e.preventDefault();
         handleRedo();
+        return;
+      }
+
+      // Paste Note Shortcut (Ctrl+V / Cmd+V)
+      if ((e.ctrlKey || e.metaKey) && (key === 'v' || e.code === 'KeyV')) {
+        e.preventDefault();
+        onPasteNotesRef.current?.();
         return;
       }
 

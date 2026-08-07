@@ -170,14 +170,14 @@ export function useCanvasTransform(notes: Note[], bringToFront: (noteId: string)
     const noteCenterY = targetNote.y + targetNote.height / 2;
 
     const { min, max } = getZoomBounds();
-    const fitNoteZoom = Math.min((viewport.width - 160) / targetNote.width, (viewport.height - 160) / targetNote.height);
-    const zoom = Math.max(min, Math.min(max, Math.min(transform.zoom, fitNoteZoom)));
+    const fitNoteZoom = Math.min((viewport.width - 160) / (targetNote.width || 340), (viewport.height - 160) / (targetNote.height || 340));
+    const targetZoom = Math.max(min, Math.min(max, Math.max(1, fitNoteZoom)));
     animateTransformTo({
-      zoom,
-      x: Math.round(screenCenterX - noteCenterX * zoom),
-      y: Math.round(screenCenterY - noteCenterY * zoom),
+      zoom: Number(targetZoom.toFixed(3)),
+      x: Math.round(screenCenterX - noteCenterX * targetZoom),
+      y: Math.round(screenCenterY - noteCenterY * targetZoom),
     });
-  }, [animateTransformTo, bringToFront, getViewport, getZoomBounds, notes, transform.zoom]);
+  }, [animateTransformTo, bringToFront, getViewport, getZoomBounds, notes]);
 
   return {
     transform,

@@ -45,8 +45,14 @@ export function useNotesManager(
     ): string => {
       const newId = `note-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
 
-      let viewportX = customX ?? Math.round((window.innerWidth / 2 - transform.x) / transform.zoom - 180);
-      let viewportY = customY ?? Math.round((window.innerHeight / 2 - transform.y) / transform.zoom - 150);
+      let viewportX =
+        typeof customX === 'number' && !isNaN(customX)
+          ? customX
+          : Math.round((window.innerWidth / 2 - transform.x) / transform.zoom - 180);
+      let viewportY =
+        typeof customY === 'number' && !isNaN(customY)
+          ? customY
+          : Math.round((window.innerHeight / 2 - transform.y) / transform.zoom - 150);
 
       if (settings.snapToGrid) {
         viewportX = Math.round(viewportX / 24) * 24;

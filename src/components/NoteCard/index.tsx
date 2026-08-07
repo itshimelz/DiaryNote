@@ -33,6 +33,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
   onExportNote,
   isCardDragging = false,
   onDragStateChange,
+  onContextMenu,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [showStylePicker, setShowStylePicker] = useState(false);
@@ -184,15 +185,29 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
     if (isPanMode || (e.target as HTMLElement).closest('button, input, textarea, a, select, .no-drag')) {
       return;
     }
+
+    // Alt + Click shortcut: zoom directly to this note
+    if (e.altKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      onNavigateToNote(note.id);
+      return;
+    }
+
     onBringToFront(note.id);
 
     const isMulti = e.shiftKey || e.metaKey || e.ctrlKey;
+    const isAlreadySelected = selectedNoteIds.includes(note.id);
+
     if (isMulti) {
       onSelectNote(note.id, true);
-    } else if (selectedNoteIds.length > 1 || !isSelected) {
+    } else if (!isAlreadySelected) {
       onSelectNote(note.id, false);
-      groupDragStartRef.current = [];
     }
+
+    const activeSelectedIds = isMulti
+      ? (isAlreadySelected ? selectedNoteIds : [...selectedNoteIds, note.id])
+      : (isAlreadySelected ? selectedNoteIds : [note.id]);
 
     const currentPosRef = { current: { x: noteRef.current.x, y: noteRef.current.y } };
     const currentBatchRef = { current: [] as Note[] };
@@ -204,8 +219,8 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       noteY: noteRef.current.y,
     };
 
-    if (isMulti && selectedNoteIds.length > 1 && selectedNoteIds.includes(note.id)) {
-      groupDragStartRef.current = selectedNoteIds.map((id) => {
+    if (activeSelectedIds.length > 1) {
+      groupDragStartRef.current = activeSelectedIds.map((id) => {
         const targetNote = allNotes.find((n) => n.id === id);
         return {
           id,
@@ -213,6 +228,8 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
           startY: targetNote ? targetNote.y : 0,
         };
       });
+    } else {
+      groupDragStartRef.current = [];
     }
 
     let hasMoved = false;
@@ -241,8 +258,9 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       if (!hasMoved) {
         hasMoved = true;
         setIsDragging(true);
+        document.body.style.cursor = 'grabbing';
         if (groupDragStartRef.current.length > 1) {
-          onDragStateChange?.(selectedNoteIds);
+          onDragStateChange?.(activeSelectedIds);
         } else {
           onDragStateChange?.([note.id]);
         }
@@ -254,7 +272,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       const GRID_SIZE = 24;
       if (groupDragStartRef.current.length > 1 && onUpdateBatchNotes) {
         const updatedBatch = allNotes
-          .filter((n) => selectedNoteIds.includes(n.id))
+          .filter((n) => activeSelectedIds.includes(n.id))
           .map((n) => {
             const startPos = groupDragStartRef.current.find((item) => item.id === n.id);
             if (!startPos) return n;
@@ -287,6 +305,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
     };
 
     const handleMouseUp = () => {
+      document.body.style.cursor = '';
       const GRID_SIZE = 24;
       if (frame !== null) {
         cancelAnimationFrame(frame);
@@ -308,13 +327,17 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
             y: finalY,
           });
         }
+      } else if (!isMulti && isAlreadySelected && selectedNoteIds.length > 1) {
+        onSelectNote(note.id, false);
       }
       pendingSingle = null;
       pendingBatch = null;
       currentBatchRef.current = [];
       frame = null;
       setIsDragging(false);
-      onDragStateChange?.([]);
+      requestAnimationFrame(() => {
+        onDragStateChange?.([]);
+      });
       groupDragStartRef.current = [];
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
@@ -440,6 +463,11 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       id={`note-card-${note.id}`}
       ref={cardRef}
       onMouseDown={handleMouseDown}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onContextMenu?.(e, note.id);
+      }}
       onDoubleClick={(e) => {
         if (isPanMode || (e.target as HTMLElement).closest('.group\\/header, button, input')) return;
         setActiveMode('text');
@@ -464,8 +492,10 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       }}
       className={`note-card absolute top-0 left-0 rounded-md border flex flex-col justify-between ${
         isDragging || isCardDragging
-          ? 'transition-none scale-[1.01] cursor-grabbing ring-2 ring-blue-500/70 shadow-sm'
-          : 'transition-[box-shadow,ring-color,border-color,opacity] duration-150 ease-out scale-100 shadow-sm'
+          ? 'transition-none scale-[1.015] cursor-grabbing ring-2 ring-blue-500/70 shadow-md z-[10000]'
+          : `transition-[transform,box-shadow,ring-color,border-color,opacity] duration-150 ease-out scale-100 shadow-sm ${
+              !isEditing ? 'cursor-grab' : ''
+            }`
       } ${themeConfig.headerBg} ${themeConfig.border} ${themeConfig.text} ${
         isSelected ? 'ring-2 ring-blue-500' : ''
       }`}

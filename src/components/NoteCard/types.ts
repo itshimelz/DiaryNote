@@ -21,6 +21,7 @@ export interface NoteCardProps {
   onExportNote?: (note: Note, format: 'md' | 'txt') => void;
   isCardDragging?: boolean;
   onDragStateChange?: (draggingIds: string[]) => void;
+  onContextMenu?: (e: React.MouseEvent, noteId: string) => void;
 }
 
 export type NoteMode = 'text' | 'image' | 'checklist';

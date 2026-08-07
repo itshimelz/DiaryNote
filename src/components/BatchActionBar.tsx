@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Note, PaperTheme, CanvasTheme } from '../types';
 import { PAPER_THEMES } from './NoteCard/types';
+import { exportNotesBackup } from '../lib/storage';
 import {
   CheckSquare,
   Palette,
@@ -19,6 +20,7 @@ import {
   Layers,
   Columns3,
   Rows3,
+  Download,
 } from 'lucide-react';
 
 interface BatchActionBarProps {
@@ -538,6 +540,22 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
         >
           {isAllPinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
           <span className="hidden sm:inline">{isAllPinned ? 'Unpin' : 'Pin'}</span>
+        </button>
+
+        {/* 5. Backup Selected Notes (.json) */}
+        <button
+          type="button"
+          onClick={() => {
+            if (selectedNotes.length > 0) {
+              const fileName = `selected-notes-backup-${new Date().toISOString().slice(0, 10)}.json`;
+              exportNotesBackup(selectedNotes, fileName);
+            }
+          }}
+          className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors ${btnClass}`}
+          title="Backup selected notes (.json)"
+        >
+          <Download className="w-3.5 h-3.5 text-blue-500" />
+          <span className="hidden sm:inline">Backup</span>
         </button>
       </div>
 

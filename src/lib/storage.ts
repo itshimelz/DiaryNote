@@ -201,6 +201,22 @@ export function exportBackup(notes: Note[], transform: CanvasTransform, settings
   URL.revokeObjectURL(url);
 }
 
+export function exportNotesBackup(notesToExport: Note[], customFilename?: string): void {
+  const data = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    notes: notesToExport,
+  };
+  const jsonString = JSON.stringify(data, null, 2);
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = customFilename || `notes-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function importBackup(file: File): Promise<{ notes: Note[]; transform?: CanvasTransform; settings?: AppSettings }> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

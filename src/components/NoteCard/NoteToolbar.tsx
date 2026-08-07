@@ -11,7 +11,7 @@ interface NoteToolbarProps {
   onDuplicateNote?: () => void;
   onDeleteNote: () => void;
   onToggleLockNote?: () => void;
-  onExportNote?: (format: 'md' | 'txt') => void;
+  onExportNote?: (format: 'md' | 'txt' | 'json') => void;
   themeConfig?: PaperThemeConfig;
 }
 
@@ -144,7 +144,24 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
               </button>
             )}
 
-            {/* Export Note */}
+            {/* Backup Note (.json) */}
+            {onExportNote && (
+              <button
+                type="button"
+                onClick={() => {
+                  onExportNote('json');
+                  setShowMoreMenu(false);
+                }}
+                className={`flex items-center gap-2 px-3 py-2 transition-colors text-left ${
+                  isDarkCard ? 'hover:bg-slate-800 text-slate-200' : 'hover:bg-slate-100 text-slate-700'
+                }`}
+              >
+                <Download className="w-3.5 h-3.5 text-blue-500" />
+                <span>Backup Note (.json)</span>
+              </button>
+            )}
+
+            {/* Export Note (.md) */}
             {onExportNote && (
               <button
                 type="button"

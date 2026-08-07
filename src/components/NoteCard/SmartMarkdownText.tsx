@@ -53,16 +53,19 @@ export const SmartMarkdownText: React.FC<SmartMarkdownTextProps> = ({
             ) : (
               <p className="mb-2 last:mb-0 leading-relaxed font-inherit">{children}</p>
             ),
+          h1: ({ children }) => <h1 className="font-bold tracking-tight text-lg my-1">{children}</h1>,
+          h2: ({ children }) => <h2 className="font-bold tracking-tight text-base my-1">{children}</h2>,
+          h3: ({ children }) => <h3 className="font-semibold text-sm my-0.5">{children}</h3>,
           ul: ({ children, className }) => {
             const isTaskList = className?.includes('contains-task-list');
             return (
-              <ul className={`my-0 first:mt-0 last:mb-0 space-y-0.5 ${isTaskList ? 'pl-0 list-none' : ''}`}>
+              <ul className={`my-0.5 first:mt-0 last:mb-0 space-y-0.5 ${isTaskList ? 'pl-0 list-none' : 'list-disc pl-5'}`}>
                 {children}
               </ul>
             );
           },
           ol: ({ children }) => (
-            <ol className="my-1 first:mt-0 last:mb-0 space-y-1 list-decimal pl-5">{children}</ol>
+            <ol className="my-0.5 first:mt-0 last:mb-0 space-y-0.5 list-decimal pl-5">{children}</ol>
           ),
           li: ({ children, className }) => {
             const isTaskList = className?.includes('task-list-item');
@@ -87,6 +90,38 @@ export const SmartMarkdownText: React.FC<SmartMarkdownTextProps> = ({
 
             return <li className="leading-relaxed">{children}</li>;
           },
+          blockquote: ({ children }) => (
+            <blockquote className="border-l-3 border-blue-500/70 pl-2.5 my-1.5 italic opacity-90">
+              {children}
+            </blockquote>
+          ),
+          code: ({ children }: any) => (
+            <code className="font-mono font-medium text-[0.92em] text-blue-600 dark:text-blue-400 tracking-tight">
+              {children}
+            </code>
+          ),
+          pre: ({ children }: any) => (
+            <pre className="font-mono text-xs my-1 font-medium leading-relaxed whitespace-pre-wrap select-text">
+              {children}
+            </pre>
+          ),
+          table: ({ children }) => (
+            <div className="overflow-x-auto my-1.5">
+              <table className="w-full border-collapse text-xs rounded border border-slate-300/60 dark:border-slate-700/60">
+                {children}
+              </table>
+            </div>
+          ),
+          th: ({ children }) => (
+            <th className="border border-slate-300/60 dark:border-slate-700/60 px-2 py-1 bg-slate-100/80 dark:bg-slate-800/80 font-bold text-left">
+              {children}
+            </th>
+          ),
+          td: ({ children }) => (
+            <td className="border border-slate-300/60 dark:border-slate-700/60 px-2 py-1">
+              {children}
+            </td>
+          ),
           input: ({ type, checked }) => {
             if (type === 'checkbox') {
               return (
