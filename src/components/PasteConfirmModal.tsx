@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Clipboard, FileText, Check, X } from 'lucide-react';
+import { Clipboard, Check, X } from 'lucide-react';
 import { CanvasTheme } from '../types';
 
 interface PasteConfirmModalProps {

@@ -13,7 +13,7 @@ try {
     $location = $response.Headers["Location"]
     $tagName = Split-Path $location -Leaf
 } catch {
-    $tagName = "v0.1.1"
+    $tagName = "v0.1.2"
 }
 
 Write-Host "Found latest version: $tagName" -ForegroundColor Green
