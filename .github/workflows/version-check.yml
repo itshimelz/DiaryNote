@@ -1,0 +1,19 @@
+name: "Version Sync Check"
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  version-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Verify version files are in sync
+        run: bun run version:check

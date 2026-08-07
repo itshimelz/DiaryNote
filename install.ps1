@@ -12,8 +12,13 @@ try {
     $response = $request.GetResponse()
     $location = $response.Headers["Location"]
     $tagName = Split-Path $location -Leaf
+    if (-not $tagName) {
+        throw "Could not parse release tag from redirect."
+    }
 } catch {
-    $tagName = "v0.1.2"
+    Write-Host "Failed to resolve latest release tag." -ForegroundColor Red
+    Write-Host $_.Exception.Message -ForegroundColor Red
+    exit 1
 }
 
 Write-Host "Found latest version: $tagName" -ForegroundColor Green

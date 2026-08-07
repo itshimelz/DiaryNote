@@ -103,6 +103,49 @@ npm run build
 
 ---
 
+## 📦 Releasing a New Version
+
+DiaryNote uses automated release workflows. **`package.json` is the single source of truth** for the version number — all other version fields are synced from it.
+
+### Version sync commands
+
+```bash
+# Sync Cargo.toml and tauri.conf.json from package.json
+bun run version:sync
+
+# Verify all version files match (also runs in CI on every PR)
+bun run version:check
+
+# Set a specific version everywhere at once
+bun run version:set 0.1.3
+```
+
+### Recommended release process
+
+1. **Write release notes** at `.github/releases/RELEASE_NOTES_vX.Y.Z.md` and push to `main`.
+2. **Run Prepare Release** workflow: Actions → Prepare Release → enter version `X.Y.Z` (no `v` prefix).
+3. The workflow will:
+   - Bump and sync the version across all files
+   - Commit, tag `vX.Y.Z`, and push
+   - Trigger the **Release Multi-Platform Binaries** workflow automatically
+4. Wait for the release workflow to finish on all platforms (Linux, macOS, Windows).
+5. Verify the [GitHub Releases](https://github.com/itshimelz/DiaryNote/releases) page has your notes and downloadable assets.
+
+### Alternative: local bump and tag
+
+```bash
+bun run version:set 0.1.3
+cd src-tauri && cargo check && cd ..
+git add package.json src-tauri/Cargo.toml src-tauri/tauri.conf.json src-tauri/Cargo.lock
+git commit -m "chore(release): v0.1.3"
+git tag v0.1.3
+git push origin main --tags
+```
+
+The release workflow validates that version files match the tag and that the release notes file exists before building. A mismatch will fail the workflow before any platform build starts.
+
+---
+
 ## 📄 License Notice
 
 By contributing to DiaryNote, you agree that your contributions will be licensed under the project's [MIT License](LICENSE).

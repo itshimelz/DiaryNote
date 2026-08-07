@@ -4,15 +4,65 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: "Release Tag (e.g. v0.1.2)"
+        description: "Release Tag (e.g. v0.1.3)"
         required: true
-        default: "v0.1.2"
   push:
     tags:
       - "v*"
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.validate.outputs.tag }}
+      release_body: ${{ steps.validate.outputs.release_body }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Validate release prerequisites
+        id: validate
+        run: |
+          TAG="${{ inputs.release_tag || github.ref_name }}"
+          VER="${TAG#v}"
+          NOTES_FILE=".github/releases/RELEASE_NOTES_${TAG}.md"
+
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+          if [ ! -f "$NOTES_FILE" ]; then
+            echo "::error::Missing release notes file: $NOTES_FILE"
+            exit 1
+          fi
+
+          PKG_VER=$(jq -r .version package.json)
+          CARGO_VER=$(grep '^version' src-tauri/Cargo.toml | head -1 | cut -d'"' -f2)
+          TAURI_VER=$(jq -r .version src-tauri/tauri.conf.json)
+
+          if [ "$PKG_VER" != "$VER" ]; then
+            echo "::error::package.json version ($PKG_VER) does not match tag ($VER)"
+            exit 1
+          fi
+          if [ "$CARGO_VER" != "$VER" ]; then
+            echo "::error::Cargo.toml version ($CARGO_VER) does not match tag ($VER)"
+            exit 1
+          fi
+          if [ "$TAURI_VER" != "$VER" ]; then
+            echo "::error::tauri.conf.json version ($TAURI_VER) does not match tag ($VER)"
+            exit 1
+          fi
+
+          bun run version:check
+
+          {
+            echo "release_body<<EOF"
+            cat "$NOTES_FILE"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
   build-tauri:
+    needs: validate
     permissions:
       contents: write
     strategy:
@@ -59,9 +109,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ inputs.release_tag || github.ref_name }}
-          releaseName: "${{ inputs.release_tag || github.ref_name }}"
-          releaseBody: "Multi-platform release binaries for DiaryNote."
+          tagName: ${{ needs.validate.outputs.tag }}
+          releaseName: "${{ needs.validate.outputs.tag }}"
+          releaseBody: ${{ needs.validate.outputs.release_body }}
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
@@ -69,27 +119,25 @@ jobs:
       - name: Create and Upload Standalone Linux Package (DiaryNote-linux-x86_64.tar.gz)
         if: matrix.platform == 'ubuntu-22.04'
         run: |
-          TAG="${{ inputs.release_tag || github.ref_name }}"
+          TAG="${{ needs.validate.outputs.tag }}"
           mkdir -p dist_standalone
           BIN_PATH=$(find src-tauri/target -type f \( -name "app" -o -name "DiaryNote" -o -name "diary-note" \) | grep "release" | head -n 1)
           if [ -n "$BIN_PATH" ]; then
             cp "$BIN_PATH" dist_standalone/DiaryNote
-          elif [ -f build-arch/DiaryNote ]; then
-            cp build-arch/DiaryNote dist_standalone/DiaryNote
           fi
           [ -f build-arch/DiaryNote.desktop ] && cp build-arch/DiaryNote.desktop dist_standalone/DiaryNote.desktop || true
           [ -f build-arch/DiaryNote.png ] && cp build-arch/DiaryNote.png dist_standalone/DiaryNote.png || true
           [ -f build-arch/install.sh ] && cp build-arch/install.sh dist_standalone/install.sh || true
           chmod +x dist_standalone/DiaryNote 2>/dev/null || true
           tar -czvf DiaryNote-linux-x86_64.tar.gz -C dist_standalone .
-          gh release upload "$TAG" DiaryNote-linux-x86_64.tar.gz --clobber || true
+          gh release upload "$TAG" DiaryNote-linux-x86_64.tar.gz --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Versioned macOS Archive (.app.tar.gz with version)
         if: matrix.platform == 'macos-latest'
         run: |
-          TAG="${{ inputs.release_tag || github.ref_name }}"
+          TAG="${{ needs.validate.outputs.tag }}"
           VER="${TAG#v}"
           for f in $(find src-tauri/target -name "DiaryNote_*.app.tar.gz"); do
             FNAME=$(basename "$f")
@@ -97,19 +145,9 @@ jobs:
               ARCH="${BASH_REMATCH[1]}"
               VERSIONED_NAME="DiaryNote_${VER}_${ARCH}.app.tar.gz"
               cp "$f" "$VERSIONED_NAME"
-              gh release upload "$TAG" "$VERSIONED_NAME" --clobber || true
+              gh release upload "$TAG" "$VERSIONED_NAME" --clobber
             fi
           done
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Attach Release Notes Markdown if available
-        run: |
-          TAG="${{ inputs.release_tag || github.ref_name }}"
-          NOTES_FILE="RELEASE_NOTES_${TAG}.md"
-          if [ -f "$NOTES_FILE" ]; then
-            gh release edit "$TAG" -F "$NOTES_FILE" || true
-          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -126,4 +164,3 @@ jobs:
             src-tauri/target/**/release/bundle/**/*.AppImage
             DiaryNote-linux-x86_64.tar.gz
             DiaryNote_*.app.tar.gz
-
