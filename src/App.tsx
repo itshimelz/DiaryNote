@@ -6,7 +6,7 @@ import { exportBackup, exportNotesBackup, importBackup, SAMPLE_NOTES } from './l
 // Custom Hooks
 import { useHistoryState } from './hooks/useHistoryState';
 import { useNotesManager } from './hooks/useNotesManager';
-import { useCanvasTransform } from './hooks/useCanvasTransform';
+import { useCanvasTransform, screenToWorld } from './hooks/useCanvasTransform';
 import { useNoteSelection } from './hooks/useNoteSelection';
 
 // Modular Components
@@ -252,8 +252,9 @@ export default function App() {
       let worldY: number | undefined = undefined;
 
       if (typeof screenX === 'number' && typeof screenY === 'number' && !isNaN(screenX) && !isNaN(screenY)) {
-        worldX = Math.round((screenX - transform.x) / transform.zoom - 180);
-        worldY = Math.round((screenY - transform.y) / transform.zoom - 150);
+        const coords = screenToWorld(screenX, screenY, transform);
+        worldX = coords.worldX;
+        worldY = coords.worldY;
         if (settings.snapToGrid) {
           worldX = Math.round(worldX / 24) * 24;
           worldY = Math.round(worldY / 24) * 24;

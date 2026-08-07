@@ -3,6 +3,26 @@ import { CanvasTransform, Note } from '../types';
 import { loadTransform, loadSettings, AppSettings } from '../lib/storage';
 import { saveTransformToDB, saveSettingsToDB } from '../lib/sqliteStorage';
 
+export function screenToWorld(
+  screenX: number,
+  screenY: number,
+  transform: CanvasTransform,
+  cardWidth = 380,
+  cardHeight = 340
+) {
+  return {
+    worldX: Math.round((screenX - transform.x) / transform.zoom - cardWidth / 2),
+    worldY: Math.round((screenY - transform.y) / transform.zoom - cardHeight / 2),
+  };
+}
+
+export function worldToScreen(worldX: number, worldY: number, transform: CanvasTransform) {
+  return {
+    screenX: Math.round(worldX * transform.zoom + transform.x),
+    screenY: Math.round(worldY * transform.zoom + transform.y),
+  };
+}
+
 export function useCanvasTransform(notes: Note[], bringToFront: (noteId: string) => void) {
   const [transform, setTransform] = useState<CanvasTransform>(() => loadTransform());
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
