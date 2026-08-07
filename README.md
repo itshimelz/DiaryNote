@@ -18,89 +18,85 @@ An Infinite Spatial Canvas Note-Taking & Journaling Application built with React
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
-- [📌 Overview](#-overview)
-- [✨ Features & Highlights](#-features--highlights)
-  - [🎨 Infinite Spatial Canvas](#-infinite-spatial-canvas)
-  - [📝 Rich Note Cards & Editing](#-rich-note-cards--editing)
-  - [🔐 Security & Local-First Persistence](#-security--local-first-persistence)
-  - [🔗 Bi-Directional Linking & Visual Graph](#-bi-directional-linking--visual-graph)
-- [⌨️ Keyboard Shortcuts Reference](#-keyboard-shortcuts-reference)
-- [💻 System Requirements](#-system-requirements)
-- [📦 Installation Guide](#-installation-guide)
-  - [⚡ One-Line Automatic Install](#-one-line-automatic-install)
-  - [1. Download Prebuilt Package](#1-download-prebuilt-package-linux--windows--macos)
-  - [2. Building from Source](#2-building-from-source)
-- [🤝 Contributing](#-contributing)
-- [📄 License](#-license)
+- [Overview](#overview)
+- [Demo](#demo)
+- [Features](#features)
+- [Keyboard Shortcuts](#keyboard-shortcuts)
+- [System Requirements](#system-requirements)
+- [Installation Guide](#installation-guide)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
-## 📌 Overview
+## Overview
 
-**DiaryNote** is a modern, privacy-focused infinite spatial canvas note-taking and journaling app. It combines the visual freedom of an infinite 2D canvas with local-first database persistence, master passcode security, bi-directional `@Note` linking, markdown editing, and batch card management.
-
----
-
-## ✨ Features & Highlights
-
-### 🎨 Infinite Spatial Canvas
-- **Infinite Zoom & Pan**: Zoom smoothly from `0.15x` to `3.0x` with wheel pinch or hotkeys, and pan across an endless workspace.
-- **Snap to Grid**: 24px grid alignment toggleable for clean note alignment.
-- **Custom Patterns**: Switch between `dots`, `grid`, `ruled`, and `blank` canvas background patterns.
-- **Interactive Minimap**: Real-time canvas navigation overview fixed at the top right.
-
-### 📝 Rich Note Cards & Editing
-- **Markdown & Checklist Modes**: Full GitHub Flavored Markdown (GFM) text editing and interactive checklist task management.
-- **Curated Paper Themes & Typography**: 9 paper themes (`white`, `cream`, `ruled`, `dark`, `kraft`, `dotted`, etc.) and customized fonts (Google Sans, Inter, Caveat, Kalam, JetBrains Mono, and Bengali fonts).
-- **Group Cards & Frames**: Group multiple notes together with group headers, custom names, and auto-expanding bounding frames.
-
-### 🔐 Security & Local-First Persistence
-- **SHA-256 Master Passcode**: Protect private notes with an app-wide master passcode and security recovery question.
-- **Protected Actions**: Locking, unlocking, deleting, or exporting protected notes requires passcode authentication.
-- **Privacy Search Masking**: Locked notes remain content-masked in search modals and sidebar listings.
-- **Local SQLite / Dexie DB**: 100% offline, local database storage with automatic background debounced autosave.
-
-### 🔗 Bi-Directional Linking & Visual Graph
-- **`@Note` Autocomplete**: Type `@NoteTitle` in any note to instantly search and link internal reference notes.
-- **SVG Connection Graph**: Dynamic curved SVG connection lines connect referenced notes visually on the canvas.
+**DiaryNote** is a privacy-focused infinite spatial canvas note-taking and journaling app. It combines the freedom of a 2D canvas with local-first persistence, master passcode security, bi-directional `@Note` linking, markdown editing, and card grouping.
 
 ---
 
-## ⌨️ Keyboard Shortcuts Reference
+## Demo
 
-Press `Ctrl + /` (or `Cmd + /`) anytime inside the app to open the built-in hotkeys cheatsheet.
+<div align="center">
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <b>Note Creation</b><br/><br/>
+      <img src="demo/note_creation.gif" alt="Note Creation" width="100%" />
+    </td>
+    <td align="center" width="50%">
+      <b>Writing & Formatting</b><br/><br/>
+      <img src="demo/writing_note.gif" alt="Writing Note" width="100%" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <b>Grouping Notes</b><br/><br/>
+      <img src="demo/note_adding_to_group.gif" alt="Note Grouping" width="100%" />
+    </td>
+    <td align="center" width="50%">
+      <b>Infinite Canvas Zoom & Pan</b><br/><br/>
+      <img src="demo/canvas_zoom_out.gif" alt="Canvas Zoom Out" width="100%" />
+    </td>
+  </tr>
+</table>
+
+</div>
+
+---
+
+## Features
+
+- **Infinite Spatial Canvas**: Pan across an endless workspace, zoom smoothly (0.15x–3.0x), and align notes with grid snappings and interactive minimap.
+- **Rich Note Editing**: GFM Markdown and task checklist modes with custom paper themes, typography options, and card grouping frames.
+- **Local-First & Secure**: 100% offline storage using local database persistence with optional SHA-256 master passcode protection for sensitive notes.
+- **Bi-Directional Linking**: Link notes using `@Note` autocomplete and visualize relationships with dynamic SVG connection lines.
+
+---
+
+## Keyboard Shortcuts
+
+Press `Ctrl + /` (or `Cmd + /`) inside the app to open the built-in hotkey cheat sheet.
 
 | Shortcut | Category | Function |
 | :--- | :--- | :--- |
-| `Ctrl + /` | General | Open Keyboard Shortcuts cheatsheet modal |
-| `Ctrl + K` / `Ctrl + F` / `/` | General | Open Command Palette / Note Search |
-| `Ctrl + Z` | General | Undo last canvas action |
-| `Ctrl + Y` / `Ctrl + Shift + Z` | General | Redo canvas action |
-| `Z` | View | Toggle Zen Mode (hide UI bars) |
-| `Esc` | General | Clear selection / close active modal |
-| `Space + Drag` | Canvas | Temporary Pan canvas view |
-| `P` | Canvas | Toggle Pan Mode vs Select Mode |
-| `F` | View | Fit all notes on canvas view |
-| `H` / `Home` | View | Reset zoom to 100% centered view |
-| `Shift + Z` | View | Focus & zoom to selected note |
-| `N` / `Ctrl + N` | Notes | Create a new note at canvas center |
-| `Double Click` | Canvas | Create new note at mouse cursor position |
+| `Ctrl + /` | General | Open keyboard shortcuts reference |
+| `Ctrl + K` / `/` | General | Search notes / Open command palette |
+| `N` / `Ctrl + N` | Notes | Create a new note |
 | `Enter` | Notes | Edit selected note |
-| `Delete` / `Backspace` | Notes | Delete selected note card(s) |
+| `Delete` / `Backspace` | Notes | Delete selected note(s) |
+| `Ctrl + G` / `Ctrl + Shift + G` | Grouping | Group / Ungroup selected notes |
 | `Ctrl + L` | Security | Lock / unlock selected note(s) |
-| `Ctrl + G` | Batch | Group selected notes |
-| `Ctrl + Shift + G` | Batch | Ungroup selected notes |
-| `Shift + Click` | Selection | Multi-select notes (or toggle selection) |
-| `Ctrl + Click` | Selection | Multi-select / deselect individual note |
-| `T` | View | Toggle Dark / Light canvas theme |
-| `S` | Canvas | Toggle Snap to Grid |
-| `C` | Canvas | Toggle Connection Lines |
+| `Ctrl + Z` / `Ctrl + Y` | Canvas | Undo / Redo action |
+| `F` | View | Fit all notes on canvas view |
+| `H` | View | Reset zoom and center view |
 
 ---
 
-## 💻 System Requirements
+## System Requirements
 
 - **Linux**: Ubuntu 20.04+, Arch Linux, Fedora, Debian (WebKitGTK)
 - **macOS**: 10.15 Catalina or newer
@@ -108,34 +104,32 @@ Press `Ctrl + /` (or `Cmd + /`) anytime inside the app to open the built-in hotk
 
 ---
 
-## 📦 Installation Guide
+## Installation Guide
 
-### ⚡ One-Line Automatic Install
+### One-Line Automatic Install
 
-Automatically detects your platform & architecture, then downloads and installs the latest release of DiaryNote:
-
-#### 🐧 Linux & 🍎 macOS (Terminal)
+#### Linux & macOS
 ```bash
 curl -fsSL https://raw.githubusercontent.com/itshimelz/DiaryNote/main/install.sh | bash
 ```
 
-#### 🪟 Windows (PowerShell)
+#### Windows (PowerShell)
 ```powershell
 irm https://raw.githubusercontent.com/itshimelz/DiaryNote/main/install.ps1 | iex
 ```
 
 ---
 
-### 1. Download Prebuilt Package (Linux / Windows / macOS)
+### Prebuilt Packages
 
-Download the latest prebuilt packages from the [GitHub Releases](https://github.com/itshimelz/DiaryNote/releases/latest) page.
+Download the latest prebuilt packages from [GitHub Releases](https://github.com/itshimelz/DiaryNote/releases/latest).
 
-#### Debian / Ubuntu / Mint / Pop!_OS (`.deb`)
+#### Debian / Ubuntu (`.deb`)
 ```bash
 sudo dpkg -i DiaryNote_0.1.0_amd64.deb
 ```
 
-#### Arch Linux / Hyprland / Standalone Linux (`.tar.gz` / AppImage / Binary)
+#### Arch / Standalone Linux (`.tar.gz`)
 ```bash
 tar -xvf DiaryNote-linux-x86_64.tar.gz
 cd DiaryNote
@@ -144,14 +138,14 @@ cd DiaryNote
 
 ---
 
-### 2. Building from Source
+### Building from Source
 
 #### Prerequisites
 - **Node.js**: `v18+` or `v20+`
-- **npm** or **bun** / **yarn**
-- **Rust Toolchain**: `rustc` & `cargo` (for Tauri desktop app builds)
+- **npm**, **bun**, or **yarn**
+- **Rust Toolchain**: `rustc` & `cargo` (for Tauri builds)
 
-#### Step-by-Step Setup
+#### Build Steps
 
 1. **Clone the Repository**:
    ```bash
@@ -159,36 +153,26 @@ cd DiaryNote
    cd DiaryNote
    ```
 
-2. **Install Dependencies**:
+2. **Install Dependencies & Start Dev Mode**:
    ```bash
    npm install
-   ```
-
-3. **Run Web Development Server**:
-   ```bash
    npm run dev
    ```
-   Open your browser at `http://localhost:5173`.
 
-4. **Run Tauri Desktop Dev Mode**:
-   ```bash
-   npm run tauri:dev
-   ```
-
-5. **Build Desktop App Binary**:
+3. **Build Production Binary**:
    ```bash
    npm run tauri:build
    ```
-   The compiled production bundles (`.deb`, `.app`, `.exe`) will be generated inside `src-tauri/target/release/bundle/`.
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-Contributions, issues, and feature requests are welcome! Check out our [**Contributing Guide**](CONTRIBUTING.md) for details on development setup, code standards, and pull request guidelines.
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ---
 
-## 📄 License
+## License
 
-Distributed under the MIT License. See [`LICENSE`](LICENSE) for details.
+Distributed under the MIT License. See [LICENSE](LICENSE) for details.
+
