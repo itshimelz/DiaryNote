@@ -66,6 +66,41 @@ jobs:
           prerelease: false
           args: ${{ matrix.args }}
 
+      - name: Create and Upload Standalone Linux Package (DiaryNote-linux-x86_64.tar.gz)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          TAG="${{ inputs.release_tag || github.ref_name }}"
+          mkdir -p dist_standalone
+          BIN_PATH=$(find src-tauri/target -type f \( -name "app" -o -name "DiaryNote" -o -name "diary-note" \) | grep "release" | head -n 1)
+          if [ -n "$BIN_PATH" ]; then
+            cp "$BIN_PATH" dist_standalone/DiaryNote
+          elif [ -f build-arch/DiaryNote ]; then
+            cp build-arch/DiaryNote dist_standalone/DiaryNote
+          fi
+          [ -f build-arch/DiaryNote.desktop ] && cp build-arch/DiaryNote.desktop dist_standalone/DiaryNote.desktop || true
+          [ -f build-arch/DiaryNote.png ] && cp build-arch/DiaryNote.png dist_standalone/DiaryNote.png || true
+          [ -f build-arch/install.sh ] && cp build-arch/install.sh dist_standalone/install.sh || true
+          chmod +x dist_standalone/DiaryNote 2>/dev/null || true
+          tar -czvf DiaryNote-linux-x86_64.tar.gz -C dist_standalone .
+          gh release upload "$TAG" DiaryNote-linux-x86_64.tar.gz --clobber || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Versioned macOS Archive (.app.tar.gz with version)
+        if: matrix.platform == 'macos-latest'
+        run: |
+          TAG="${{ inputs.release_tag || github.ref_name }}"
+          VER="${TAG#v}"
+          for f in $(find src-tauri/target -name "*.app.tar.gz"); do
+            FNAME=$(basename "$f")
+            ARCH=$(echo "$FNAME" | sed -E 's/DiaryNote_(.*)\.app\.tar\.gz/\1/')
+            VERSIONED_NAME="DiaryNote_${VER}_${ARCH}.app.tar.gz"
+            cp "$f" "$VERSIONED_NAME"
+            gh release upload "$TAG" "$VERSIONED_NAME" --clobber || true
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -77,3 +112,6 @@ jobs:
             src-tauri/target/**/release/bundle/**/*.exe
             src-tauri/target/**/release/bundle/**/*.deb
             src-tauri/target/**/release/bundle/**/*.AppImage
+            DiaryNote-linux-x86_64.tar.gz
+            DiaryNote_*.app.tar.gz
+
