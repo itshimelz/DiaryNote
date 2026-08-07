@@ -11,8 +11,9 @@ export function useNotesManager(
   pushHistorySnapshot: (notes: Note[]) => void,
   resetHistory: (notes: Note[]) => void
 ) {
-  const [notes, setNotes] = useState<Note[]>(() => loadNotes());
+  const [notes, setNotes] = useState<Note[]>([]);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const isDbLoadedRef = useRef<boolean>(false);
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize DB on mount
@@ -22,12 +23,14 @@ export function useNotesManager(
     initDatabase().then(({ notes: dbNotes, transform: dbTransform, settings: dbSettings }) => {
       setNotes(dbNotes);
       resetHistory(dbNotes);
+      isDbLoadedRef.current = true;
       onLoaded({ transform: dbTransform, settings: dbSettings });
     });
   }, [resetHistory]);
 
-  // Debounced autosave to SQLite DB
+  // Debounced autosave to SQLite DB (only after DB hydration to prevent initial jumps or state overwrites)
   useEffect(() => {
+    if (!isDbLoadedRef.current) return;
     const timeout = window.setTimeout(() => {
       saveBatchNotesToDB(notes);
       setLastSavedAt(new Date());

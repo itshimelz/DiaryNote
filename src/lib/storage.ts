@@ -25,11 +25,36 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showMinimap: true,
 };
 
-export const INITIAL_TRANSFORM: CanvasTransform = {
-  x: window.innerWidth ? Math.round(window.innerWidth / 2 - 400) : 100,
-  y: window.innerHeight ? Math.round(window.innerHeight / 2 - 300) : 100,
-  zoom: 1,
-};
+export function getInitialTransform(notes: Note[] = SAMPLE_NOTES): CanvasTransform {
+  const width = typeof window !== 'undefined' && window.innerWidth ? window.innerWidth : 1200;
+  const height = typeof window !== 'undefined' && window.innerHeight ? window.innerHeight : 800;
+
+  if (!notes || notes.length === 0) {
+    return { x: Math.round(width / 2 - 300), y: Math.round(height / 2 - 200), zoom: 1 };
+  }
+
+  const minX = Math.min(...notes.map((n) => n.x));
+  const minY = Math.min(...notes.map((n) => n.y));
+  const maxX = Math.max(...notes.map((n) => n.x + (n.width || 380)));
+  const maxY = Math.max(...notes.map((n) => n.y + (n.height || 340)));
+
+  const boundingWidth = Math.max(100, maxX - minX);
+  const boundingHeight = Math.max(100, maxY - minY);
+
+  const zoomX = (width - 160) / boundingWidth;
+  const zoomY = (height - 160) / boundingHeight;
+  const targetZoom = Math.min(1.0, Math.max(0.65, Math.min(zoomX, zoomY)));
+
+  const centerX = (minX + maxX) / 2;
+  const centerY = (minY + maxY) / 2;
+
+  return {
+    x: Math.round(width / 2 - centerX * targetZoom),
+    y: Math.round(height / 2 - centerY * targetZoom),
+    zoom: Number(targetZoom.toFixed(3)),
+  };
+}
+
 
 const nowISO = new Date().toISOString();
 const yesterdayISO = new Date(Date.now() - 86400000 * 2).toISOString();
@@ -116,6 +141,8 @@ But when the going gets tough, sometimes all it takes to relight the burning fir
     tags: ['quotes', 'journal'],
   },
 ];
+
+export const INITIAL_TRANSFORM: CanvasTransform = getInitialTransform(SAMPLE_NOTES);
 
 export function loadNotes(): Note[] {
   try {

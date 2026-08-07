@@ -268,11 +268,6 @@ export default function App() {
     [handleAddNote, transform, settings, setSelectedNoteIds, setEditingNoteId]
   );
 
-  const handleResetSampleNotes = useCallback(() => {
-    setNotes(SAMPLE_NOTES);
-    resetHistory(SAMPLE_NOTES);
-  }, [resetHistory, setNotes]);
-
   const handleImportBackupFile = useCallback(
     (file: File) => {
       importBackup(file)
@@ -543,7 +538,6 @@ export default function App() {
               onOpenNotesList={() => setIsNotesListOpen(true)}
               onExportBackup={() => exportBackup(notes, transform, settings)}
               onImportBackup={handleImportBackupFile}
-              onResetSampleNotes={handleResetSampleNotes}
             />
           </div>
         </motion.div>
@@ -740,7 +734,9 @@ export default function App() {
       />
 
       {/* Hidden Native Clipboard Paste Listener (bypasses browser/distro permissions) */}
-      <HiddenClipboardListener />
+      <HiddenClipboardListener
+        onPasteText={(text) => setPasteModalState({ isOpen: true, text })}
+      />
     </div>
   );
 }

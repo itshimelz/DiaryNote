@@ -44,7 +44,6 @@ interface CanvasControlsProps {
   onOpenNotesList: () => void;
   onExportBackup: () => void;
   onImportBackup: (file: File) => void;
-  onResetSampleNotes: () => void;
   isPanMode: boolean;
   onTogglePanMode: () => void;
   onUndo: () => void;
@@ -75,7 +74,6 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
   onOpenNotesList,
   onExportBackup,
   onImportBackup,
-  onResetSampleNotes,
   isPanMode,
   onTogglePanMode,
   onUndo,
@@ -597,23 +595,6 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
                       <span>Import Backup</span>
                     </button>
                   </div>
-
-                  <button
-                    onClick={() => {
-                      if (confirm('Reset sample notes? This will restore the default guide notes.')) {
-                        onResetSampleNotes();
-                        setIsSettingsOpen(false);
-                      }
-                    }}
-                    className={`w-full flex items-center justify-center gap-1.5 py-1 px-3 rounded-sm transition-colors text-[11px] font-medium cursor-pointer ${
-                      themeMode === 'dark'
-                        ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-                        : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
-                    }`}
-                  >
-                    <RotateCcw className="w-3 h-3" />
-                    <span>Restore Default Sample Notes</span>
-                  </button>
                 </div>
               </div>
             </div>

@@ -1,6 +1,6 @@
 import Dexie, { type Table } from 'dexie';
 import { Note, CanvasTransform, GridType, CanvasTheme } from '../types';
-import { SAMPLE_NOTES, DEFAULT_SETTINGS, INITIAL_TRANSFORM, AppSettings } from './storage';
+import { SAMPLE_NOTES, DEFAULT_SETTINGS, INITIAL_TRANSFORM, getInitialTransform, AppSettings } from './storage';
 
 export class DiaryNoteDatabase extends Dexie {
   notes!: Table<Note, string>;
@@ -51,20 +51,12 @@ export async function initDatabase(): Promise<{
     const notes = await db.notes.toArray();
 
     // Load transform
-    let transform = INITIAL_TRANSFORM;
+    let transform = getInitialTransform(notes);
     const transformRecord = await db.transform.get('main');
     if (transformRecord) {
       const { id, ...rest } = transformRecord;
       transform = rest;
     } else {
-      const legacyTransform = localStorage.getItem('infinite_notes_v1_transform');
-      if (legacyTransform) {
-        try {
-          transform = JSON.parse(legacyTransform);
-        } catch {
-          transform = INITIAL_TRANSFORM;
-        }
-      }
       await db.transform.put({ id: 'main', ...transform });
     }
 
