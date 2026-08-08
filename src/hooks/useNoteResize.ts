@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Note } from '../types';
 
 interface UseNoteResizeOptions {
@@ -22,6 +22,22 @@ export function useNoteResize({
     h: 0,
   });
 
+  const activeMouseHandlersRef = useRef<{ move: (e: MouseEvent) => void; up: () => void } | null>(null);
+  const activeFrameRef = useRef<number | null>(null);
+
+  // Clean up any lingering mouse listeners and animation frames on unmount
+  useEffect(() => {
+    return () => {
+      if (activeMouseHandlersRef.current) {
+        window.removeEventListener('mousemove', activeMouseHandlersRef.current.move);
+        window.removeEventListener('mouseup', activeMouseHandlersRef.current.up);
+      }
+      if (activeFrameRef.current !== null) {
+        cancelAnimationFrame(activeFrameRef.current);
+      }
+    };
+  }, []);
+
   const handleResizeMouseDown = (e: React.MouseEvent) => {
     if (isPanMode) return;
     e.stopPropagation();
@@ -42,6 +58,7 @@ export function useNoteResize({
         pendingSize = null;
       }
       frame = null;
+      activeFrameRef.current = null;
     };
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
@@ -51,7 +68,10 @@ export function useNoteResize({
       const newH = Math.max(220, resizeStartRef.current.h + dy);
 
       pendingSize = { width: newW, height: newH };
-      if (frame === null) frame = requestAnimationFrame(flushResize);
+      if (frame === null) {
+        frame = requestAnimationFrame(flushResize);
+        activeFrameRef.current = frame;
+      }
     };
 
     const handleMouseUp = () => {
@@ -60,10 +80,13 @@ export function useNoteResize({
         flushResize();
       }
       setIsResizing(false);
+      activeFrameRef.current = null;
+      activeMouseHandlersRef.current = null;
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
 
+    activeMouseHandlersRef.current = { move: handleMouseMove, up: handleMouseUp };
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
   };

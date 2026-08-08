@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Note } from '../types';
 import { GRID_SIZE } from '../constants/canvas';
 
@@ -42,6 +42,22 @@ export function useNoteDrag({
     noteY: 0,
   });
   const groupDragStartRef = useRef<{ id: string; startX: number; startY: number }[]>([]);
+  const activeMouseHandlersRef = useRef<{ move: (e: MouseEvent) => void; up: () => void } | null>(null);
+  const activeFrameRef = useRef<number | null>(null);
+
+  // Clean up any lingering mouse listeners and animation frames on unmount
+  useEffect(() => {
+    return () => {
+      if (activeMouseHandlersRef.current) {
+        window.removeEventListener('mousemove', activeMouseHandlersRef.current.move);
+        window.removeEventListener('mouseup', activeMouseHandlersRef.current.up);
+      }
+      if (activeFrameRef.current !== null) {
+        cancelAnimationFrame(activeFrameRef.current);
+      }
+      document.body.style.cursor = '';
+    };
+  }, []);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (
@@ -114,10 +130,14 @@ export function useNoteDrag({
       pendingSingle = null;
       pendingBatch = null;
       frame = null;
+      activeFrameRef.current = null;
     };
 
     const scheduleMove = () => {
-      if (frame === null) frame = requestAnimationFrame(flushMove);
+      if (frame === null) {
+        frame = requestAnimationFrame(flushMove);
+        activeFrameRef.current = frame;
+      }
     };
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
@@ -213,6 +233,8 @@ export function useNoteDrag({
       pendingBatch = null;
       currentBatchRef.current = [];
       frame = null;
+      activeFrameRef.current = null;
+      activeMouseHandlersRef.current = null;
 
       setIsDragging(false);
       requestAnimationFrame(() => {
@@ -223,6 +245,7 @@ export function useNoteDrag({
       window.removeEventListener('mouseup', handleMouseUp);
     };
 
+    activeMouseHandlersRef.current = { move: handleMouseMove, up: handleMouseUp };
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
   };

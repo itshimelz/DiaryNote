@@ -41,6 +41,27 @@ export function useNoteSelection(
   const onToggleShortcutsModalRef = useRef(onToggleShortcutsModal);
 
 
+  const editTimerRef = useRef<number>(0);
+  const stateRef = useRef({
+    selectedNoteId,
+    selectedNoteIds,
+    handleUndo,
+    handleRedo,
+    requestDeleteNotes,
+    setIsSearchOpen,
+  });
+
+  useEffect(() => {
+    stateRef.current = {
+      selectedNoteId,
+      selectedNoteIds,
+      handleUndo,
+      handleRedo,
+      requestDeleteNotes,
+      setIsSearchOpen,
+    };
+  });
+
   useEffect(() => {
     onCreateNoteRef.current = onCreateNote;
     onFitNotesRef.current = onFitNotes;
@@ -55,7 +76,6 @@ export function useNoteSelection(
     onGroupNotesRef.current = onGroupNotes;
     onUngroupNotesRef.current = onUngroupNotes;
     onToggleShortcutsModalRef.current = onToggleShortcutsModal;
-
   }, [
     onCreateNote,
     onFitNotes,
@@ -92,9 +112,18 @@ export function useNoteSelection(
     setSelectedNoteIds(ids || []);
   }, []);
 
-  // Global Keyboard Shortcuts
+  // Global Keyboard Shortcuts (bound once on mount for stable memory footprint)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const {
+        selectedNoteId: curSelectedNoteId,
+        selectedNoteIds: curSelectedNoteIds,
+        handleUndo: curUndo,
+        handleRedo: curRedo,
+        requestDeleteNotes: curDelete,
+        setIsSearchOpen: curSetSearchOpen,
+      } = stateRef.current;
+
       const target = e.target as HTMLElement;
       const isEditingText =
         target &&
@@ -125,7 +154,7 @@ export function useNoteSelection(
         (key === '/' && !e.ctrlKey && !e.metaKey)
       ) {
         e.preventDefault();
-        setIsSearchOpen(true);
+        curSetSearchOpen(true);
         return;
       }
 
@@ -133,19 +162,18 @@ export function useNoteSelection(
       if ((e.ctrlKey || e.metaKey) && key === 'z') {
         e.preventDefault();
         if (e.shiftKey) {
-          handleRedo();
+          curRedo();
         } else {
-          handleUndo();
+          curUndo();
         }
         return;
       }
 
       if ((e.ctrlKey || e.metaKey) && key === 'y') {
         e.preventDefault();
-        handleRedo();
+        curRedo();
         return;
       }
-
 
       // New Note Shortcut ('N' or 'Ctrl+N')
       if (key === 'n' || ((e.ctrlKey || e.metaKey) && key === 'n')) {
@@ -197,9 +225,9 @@ export function useNoteSelection(
       }
 
       // Zoom to Selected Note Shortcut (Shift+Z or Shift+F)
-      if (selectedNoteId && e.shiftKey && (key === 'z' || key === 'f')) {
+      if (curSelectedNoteId && e.shiftKey && (key === 'z' || key === 'f')) {
         e.preventDefault();
-        onNavigateToNoteRef.current?.(selectedNoteId);
+        onNavigateToNoteRef.current?.(curSelectedNoteId);
         return;
       }
 
@@ -212,9 +240,9 @@ export function useNoteSelection(
 
       // Lock Selected Notes Shortcut (Ctrl+L)
       if ((e.ctrlKey || e.metaKey) && key === 'l') {
-        if (selectedNoteIds.length > 0) {
+        if (curSelectedNoteIds.length > 0) {
           e.preventDefault();
-          onLockSelectedNotesRef.current?.(selectedNoteIds);
+          onLockSelectedNotesRef.current?.(curSelectedNoteIds);
         }
         return;
       }
@@ -234,24 +262,25 @@ export function useNoteSelection(
       }
 
       // Enter key opens edit mode on selected note
-      if (e.key === 'Enter' && selectedNoteId) {
+      if (e.key === 'Enter' && curSelectedNoteId) {
         e.preventDefault();
         setEditingNoteId(null);
-        window.setTimeout(() => setEditingNoteId(selectedNoteId), 0);
+        window.clearTimeout(editTimerRef.current);
+        editTimerRef.current = window.setTimeout(() => setEditingNoteId(curSelectedNoteId), 0);
         return;
       }
 
       // Delete key deletes selected notes
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (selectedNoteIds.length > 0) {
+        if (curSelectedNoteIds.length > 0) {
           e.preventDefault();
-          requestDeleteNotes([...selectedNoteIds]);
+          curDelete([...curSelectedNoteIds]);
         }
       }
 
       // Escape key deselects all active notes
       if (e.key === 'Escape') {
-        if (selectedNoteIds.length > 0) {
+        if (curSelectedNoteIds.length > 0) {
           e.preventDefault();
           setSelectedNoteIds([]);
           if (document.activeElement && 'blur' in document.activeElement) {
@@ -262,23 +291,11 @@ export function useNoteSelection(
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [
-    handleRedo,
-    handleUndo,
-    notes,
-    onCreateNote,
-    onFitNotes,
-    onResetZoom,
-    onToggleConnections,
-    onTogglePanMode,
-    onToggleSnapToGrid,
-    onToggleTheme,
-    requestDeleteNotes,
-    selectedNoteId,
-    selectedNoteIds,
-    setIsSearchOpen,
-  ]);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.clearTimeout(editTimerRef.current);
+    };
+  }, []);
 
   return {
     selectedNoteIds,
