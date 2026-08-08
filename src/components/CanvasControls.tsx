@@ -1,606 +1,281 @@
-import React, { useState, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import { CanvasTransform, GridType, CanvasTheme, Note } from '../types';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
-  Plus,
   ZoomIn,
   ZoomOut,
-  Maximize,
-  Sun,
-  Moon,
-  List,
-  Move,
-  MousePointer,
-  Undo2,
-  Redo2,
-  Grid2X2,
+  Maximize2,
+  Lock,
+  Search,
   Settings,
-  X,
-  Share2,
-  Download,
-  Upload,
-  RotateCcw,
-  Info,
-  Keyboard,
+  Shield,
+  Eye,
+  LayoutGrid,
 } from 'lucide-react';
 
-interface CanvasControlsProps {
-  notes?: Note[];
-  transform: CanvasTransform;
-  gridType: GridType;
+import { CanvasTheme, Note, GridType } from '../types';
+import { BatchActionBar } from './BatchActionBar';
+import { CanvasSettingsModal } from './CanvasSettingsModal';
+
+export interface CanvasControlsProps {
+  notes: Note[];
   themeMode: CanvasTheme;
+  gridType: GridType;
   snapToGrid: boolean;
   showConnections: boolean;
+  zoom?: number;
+  selectedNoteIds?: string[];
+  isLocked?: boolean;
+  isPanMode?: boolean;
+  transform?: any;
   hasBatchBar?: boolean;
-  onAddNote: () => void;
-  onZoomIn: () => void;
-  onZoomOut: () => void;
-  onResetZoom: () => void;
-  onFitNotes: () => void;
-  onChangeGridType: (grid: GridType) => void;
-  onToggleTheme: () => void;
-  onToggleSnapToGrid: () => void;
-  onToggleConnections: () => void;
-  onOpenNotesList: () => void;
-  onExportBackup: () => void;
-  onImportBackup: (file: File) => void;
-  isPanMode: boolean;
-  onTogglePanMode: () => void;
-  onUndo: () => void;
-  onRedo: () => void;
-  canUndo: boolean;
-  canRedo: boolean;
-  onOpenSearch: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  onAddNote?: () => void;
+  onResetZoom?: () => void;
+  onCenterNote?: (id: string) => void;
+  onFitNotes?: () => void;
+  onOpenNotesList?: () => void;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
+  onFitAll?: () => void;
+  onOpenSearch?: () => void;
+  onChangeGridType?: (grid: GridType) => void;
+  onToggleTheme?: () => void;
+  onToggleSnapToGrid?: () => void;
+  onToggleConnections?: () => void;
+  onExportBackup?: () => void;
+  onTriggerImportBackup?: () => void;
+  onImportBackup?: (file: File) => void;
+  onOpenSecurityModal?: () => void;
+  onToggleZenMode?: () => void;
+  onTogglePanMode?: () => void;
+  onUpdateBatchNotes?: (notes: Note[]) => void;
+  onDeleteNotes?: (ids: string[]) => void;
+  onClearSelection?: () => void;
   onOpenShortcutsModal?: () => void;
 }
 
 export const CanvasControls: React.FC<CanvasControlsProps> = ({
-  notes = [],
-  transform,
-  gridType,
+  zoom = 1,
+  notes,
+  selectedNoteIds = [],
   themeMode,
+  gridType,
   snapToGrid,
   showConnections,
-  hasBatchBar = false,
-  onAddNote,
+  isLocked = false,
+  isPanMode = false,
   onZoomIn,
   onZoomOut,
-  onResetZoom,
-  onFitNotes,
+  onFitAll,
+  onOpenSearch,
   onChangeGridType,
   onToggleTheme,
   onToggleSnapToGrid,
   onToggleConnections,
-  onOpenNotesList,
   onExportBackup,
-  onImportBackup,
-  isPanMode,
+  onTriggerImportBackup,
+  onOpenSecurityModal,
+  onToggleZenMode,
   onTogglePanMode,
-  onUndo,
-  onRedo,
-  canUndo,
-  canRedo,
-  onOpenSearch,
+  onUpdateBatchNotes,
+  onDeleteNotes,
+  onClearSelection,
   onOpenShortcutsModal,
 }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      onImportBackup(file);
-      e.target.value = '';
-    }
-  };
-
-  const zoomPercent = Math.round(transform.zoom * 100);
+  const zoomPercent = Math.round(zoom * 100);
   const pinnedCount = notes.filter((n) => n.isPinned).length;
 
+  const barBg =
+    themeMode === 'dark'
+      ? 'bg-slate-900/90 border-slate-800/90 text-slate-100 shadow-sm backdrop-blur-md'
+      : 'bg-white/90 border-slate-200/90 text-slate-800 shadow-sm backdrop-blur-md';
+
+  const btnClass =
+    themeMode === 'dark'
+      ? 'text-slate-300 hover:text-white hover:bg-slate-800'
+      : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100';
+
+  const activeBtnClass =
+    themeMode === 'dark'
+      ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+      : 'bg-blue-50 text-blue-600 border border-blue-200';
+
+  const borderClass = themeMode === 'dark' ? 'border-slate-800' : 'border-slate-200/80';
+
   return (
-    <>
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        accept=".json"
-        className="hidden"
-      />
-
-      {/* Primary Control Bar Row inside Unified Dock */}
-      <div className="w-full flex items-center justify-between gap-1.5 p-1.5 text-xs transition-all">
-        {/* Create Note CTA */}
-        <button
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={(e) => {
-            e.currentTarget.blur();
-            onAddNote();
-          }}
-          className={`flex items-center gap-1.5 px-3 py-1.5 font-bold tracking-wider uppercase text-[11px] rounded-md shadow transition-colors ${
-            themeMode === 'light'
-              ? 'bg-slate-900 text-white hover:bg-slate-800'
-              : 'bg-white text-slate-900 hover:bg-slate-100'
-          }`}
-        >
-          <Plus className="w-4 h-4" />
-          <span>New Note</span>
-        </button>
-
-        <div className={`h-5 w-px mx-1 ${themeMode === 'light' ? 'bg-slate-200' : 'bg-slate-800'}`} />
-
-        {/* Undo & Redo Controls */}
-        <div className={`flex items-center gap-0.5 rounded-md p-0.5 border ${
-          themeMode === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-slate-800/80 border-slate-700/50'
-        }`}>
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-2 max-w-[95vw] pointer-events-none select-none font-sans">
+      {/* Dynamic Main Floating Bar Container */}
+      <div
+        className={`pointer-events-auto rounded-md border flex flex-col overflow-hidden transition-all duration-200 ${barBg}`}
+      >
+        {/* Top Row Controls Bar */}
+        <div className="flex items-center gap-1.5 p-1.5">
+          {/* Quick Search & Command Palette Trigger Button */}
           <button
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={(e) => {
-              e.currentTarget.blur();
-              onUndo();
-            }}
-            disabled={!canUndo}
-            title="Undo (Ctrl+Z)"
-            className={`p-1.5 rounded-md transition-colors ${
-              canUndo
-                ? themeMode === 'light' ? 'hover:bg-slate-200/80 text-slate-700' : 'hover:bg-slate-700 text-slate-200'
-                : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
+            type="button"
+            onClick={onOpenSearch}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-sm transition-all text-xs font-semibold ${
+              themeMode === 'dark'
+                ? 'bg-slate-800/80 text-slate-200 hover:bg-slate-700 hover:text-white border border-slate-700/60'
+                : 'bg-slate-100/90 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 border border-slate-200/80'
             }`}
+            title="Search notes & Command Palette (Ctrl+K)"
           >
-            <Undo2 className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={(e) => {
-              e.currentTarget.blur();
-              onRedo();
-            }}
-            disabled={!canRedo}
-            title="Redo (Ctrl+Y or Ctrl+Shift+Z)"
-            className={`p-1.5 rounded-md transition-colors ${
-              canRedo
-                ? themeMode === 'light' ? 'hover:bg-slate-200/80 text-slate-700' : 'hover:bg-slate-700 text-slate-200'
-                : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
-            }`}
-          >
-            <Redo2 className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        <div className={`h-5 w-px mx-1 ${themeMode === 'light' ? 'bg-slate-200' : 'bg-slate-800'}`} />
-
-        {/* Pan vs Select Mode */}
-        <button
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={(e) => {
-            e.currentTarget.blur();
-            onTogglePanMode();
-          }}
-          title={isPanMode ? 'Pan Mode (Active) - Click to switch to Select' : 'Select Mode - Click to switch to Pan'}
-          aria-label={isPanMode ? 'Switch to select mode' : 'Switch to pan mode'}
-          className={`p-1.5 rounded-md transition-all ${
-            isPanMode
-              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow'
-              : themeMode === 'light'
-              ? 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'
-              : 'hover:bg-slate-800 text-slate-400 hover:text-slate-100'
-          }`}
-        >
-          {isPanMode ? <Move className="w-4 h-4" /> : <MousePointer className="w-4 h-4" />}
-        </button>
-
-        {/* Zoom Controls */}
-        <div className={`flex items-center gap-0.5 rounded-md p-0.5 border ${
-          themeMode === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-slate-800/80 border-slate-700/50'
-        }`}>
-          <button
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={(e) => {
-              e.currentTarget.blur();
-              onZoomOut();
-            }}
-            title="Zoom Out (Ctrl -)"
-            aria-label="Zoom out"
-            className={`p-1.5 rounded-md transition-colors ${
-              themeMode === 'light' ? 'hover:bg-slate-200/80 text-slate-600' : 'hover:bg-slate-700 text-slate-400'
-            }`}
-          >
-            <ZoomOut className="w-3.5 h-3.5" />
+            <Search className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+            <span className="hidden sm:inline">Search & Commands</span>
+            <kbd
+              className={`hidden md:inline-block px-1.5 py-0.2 font-mono text-[10px] rounded-xs border ${
+                themeMode === 'dark'
+                  ? 'bg-slate-900/80 border-slate-700 text-slate-400'
+                  : 'bg-white border-slate-300 text-slate-500'
+              }`}
+            >
+              Ctrl+K
+            </kbd>
           </button>
 
+          <div className={`h-4 w-px ${borderClass}`} />
+
+          {/* Pan vs Select Mode Toggle */}
           <button
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={(e) => {
-              e.currentTarget.blur();
-              onResetZoom();
-            }}
-            title="Click to reset zoom to 100%"
-            aria-label="Reset zoom to 100 percent"
-            className={`px-2 font-mono text-[11px] font-medium ${
-              themeMode === 'light' ? 'text-slate-700 hover:text-slate-900' : 'text-slate-300 hover:text-white'
+            type="button"
+            onClick={onTogglePanMode}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-xs font-medium transition-all ${
+              isPanMode ? activeBtnClass : btnClass
             }`}
+            title={isPanMode ? 'Switch to Select Mode (P)' : 'Switch to Canvas Pan Mode (P)'}
+          >
+            <span className="font-bold">{isPanMode ? 'Pan' : 'Select'}</span>
+          </button>
+
+          <div className={`h-4 w-px ${borderClass}`} />
+
+          {/* Zoom Out */}
+          <button
+            type="button"
+            onClick={onZoomOut}
+            className={`p-1.5 rounded-sm transition-all ${btnClass}`}
+            title="Zoom Out (Ctrl + Scroll)"
+          >
+            <ZoomOut className="w-4 h-4" />
+          </button>
+
+          {/* Zoom Percentage Reset Display */}
+          <button
+            type="button"
+            onClick={onFitAll}
+            className={`px-2 py-1 text-xs font-mono font-bold rounded-sm transition-all ${
+              themeMode === 'dark'
+                ? 'hover:bg-slate-800 text-slate-200'
+                : 'hover:bg-slate-100 text-slate-800'
+            }`}
+            title="Reset Zoom to 100% / Fit All Notes (H)"
           >
             {zoomPercent}%
           </button>
 
+          {/* Zoom In */}
           <button
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={(e) => {
-              e.currentTarget.blur();
-              onZoomIn();
-            }}
-            title="Zoom In (Ctrl +)"
-            aria-label="Zoom in"
-            className={`p-1.5 rounded-md transition-colors ${
-              themeMode === 'light' ? 'hover:bg-slate-200/80 text-slate-600' : 'hover:bg-slate-700 text-slate-400'
-            }`}
+            type="button"
+            onClick={onZoomIn}
+            className={`p-1.5 rounded-sm transition-all ${btnClass}`}
+            title="Zoom In (Ctrl + Scroll)"
           >
-            <ZoomIn className="w-3.5 h-3.5" />
+            <ZoomIn className="w-4 h-4" />
           </button>
 
+          {/* Fit All Viewport */}
           <button
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={(e) => {
-              e.currentTarget.blur();
-              onFitNotes();
-            }}
-            title="Fit All Notes on Canvas"
-            aria-label="Fit all notes on canvas"
-            className={`p-1.5 rounded-md transition-colors border-l ml-0.5 ${
-              themeMode === 'light'
-                ? 'border-slate-200 hover:bg-slate-200/80 text-slate-600'
-                : 'border-slate-700/50 hover:bg-slate-700 text-slate-400'
-            }`}
+            type="button"
+            onClick={onFitAll}
+            className={`p-1.5 rounded-sm transition-all ${btnClass}`}
+            title="Fit All Notes on Screen (F)"
           >
-            <Maximize className="w-3.5 h-3.5" />
+            <Maximize2 className="w-4 h-4" />
+          </button>
+
+          <div className={`h-4 w-px ${borderClass}`} />
+
+          {/* Zen Mode Toggle Button */}
+          <button
+            type="button"
+            onClick={onToggleZenMode}
+            className={`p-1.5 rounded-sm transition-all ${btnClass}`}
+            title="Zen Mode: Hide UI (Z)"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+
+          {/* Security Passcode Modal Trigger */}
+          <button
+            type="button"
+            onClick={onOpenSecurityModal}
+            className={`p-1.5 rounded-sm transition-all relative ${
+              isLocked
+                ? 'text-amber-500 hover:text-amber-400 bg-amber-500/10'
+                : btnClass
+            }`}
+            title={isLocked ? 'App is Passcode Protected' : 'Set Lock Screen Passcode'}
+          >
+            {isLocked ? (
+              <Lock className="w-4 h-4 text-amber-500" />
+            ) : (
+              <Shield className="w-4 h-4" />
+            )}
+          </button>
+
+          <div className={`h-4 w-px ${borderClass}`} />
+
+          {/* Settings Modal Open Button */}
+          <button
+            type="button"
+            onClick={() => setIsSettingsOpen(true)}
+            className={`p-1.5 rounded-sm transition-all ${btnClass}`}
+            title="Canvas Settings"
+          >
+            <Settings className="w-4 h-4" />
           </button>
         </div>
 
-
-
-        <div className={`h-5 w-px mx-1 ${themeMode === 'light' ? 'bg-slate-200' : 'bg-slate-800'}`} />
-
-        {/* Monochromatic Canvas Theme Toggle */}
-        <button
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={(e) => {
-            e.currentTarget.blur();
-            onToggleTheme();
-          }}
-          title={`Switch to ${themeMode === 'dark' ? 'Monochrome Light' : 'Monochrome Dark'} Canvas`}
-          aria-label="Change canvas theme"
-          className={`p-1.5 rounded-md transition-colors ${
-            themeMode === 'light'
-              ? 'hover:bg-slate-100 text-slate-600'
-              : 'hover:bg-slate-800 text-slate-400'
-          }`}
-        >
-          {themeMode === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
-        </button>
-
-        {/* Canvas Settings Menu Modal Trigger */}
-        <button
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={(e) => {
-            e.currentTarget.blur();
-            setIsSettingsOpen(true);
-          }}
-          title="Open Canvas Settings"
-          aria-label="Open canvas settings"
-          className={`p-1.5 rounded-md transition-colors ${
-            themeMode === 'light'
-              ? 'hover:bg-slate-100 text-slate-600'
-              : 'hover:bg-slate-800 text-slate-400'
-          }`}
-        >
-          <Settings className="w-4 h-4" />
-        </button>
-
-        {/* Search & All Notes Sidebar */}
-        <button
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={(e) => {
-            e.currentTarget.blur();
-            onOpenNotesList();
-          }}
-          title="Open Notes Finder & List"
-          aria-label="Open notes list"
-          className={`p-1.5 rounded-md transition-colors flex items-center gap-1 ${
-            themeMode === 'light'
-              ? 'hover:bg-slate-100 text-slate-600'
-              : 'hover:bg-slate-800 text-slate-400'
-          }`}
-        >
-          <List className="w-4 h-4" />
-        </button>
+        {/* Multi-Select Batch Action Bar Component */}
+        <AnimatePresence>
+          {selectedNoteIds.length > 0 && (
+            <BatchActionBar
+              selectedNoteIds={selectedNoteIds}
+              notes={notes}
+              themeMode={themeMode}
+              onUpdateBatchNotes={onUpdateBatchNotes}
+              onDeleteNotes={onDeleteNotes}
+              onClearSelection={onClearSelection}
+            />
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Canvas Settings Modal */}
-      {isSettingsOpen &&
-        createPortal(
-          <div
-            className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-200 animate-in fade-in select-none font-sans ${
-              themeMode === 'dark' ? 'bg-black/60 backdrop-blur-sm' : 'bg-slate-950/40 backdrop-blur-sm'
-            }`}
-            onClick={() => setIsSettingsOpen(false)}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className={`w-full max-w-md rounded-md shadow-sm border p-5 overflow-hidden transition-all duration-200 ${
-                themeMode === 'dark'
-                  ? 'bg-slate-900 border-slate-800 text-slate-100'
-                  : 'bg-white border-slate-200 text-slate-900'
-              }`}
-            >
-              {/* Header */}
-              <div
-                className={`flex items-center justify-between pb-3 mb-3.5 border-b transition-colors ${
-                  themeMode === 'dark' ? 'border-slate-800' : 'border-slate-200/80'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Settings className={`w-4 h-4 ${themeMode === 'dark' ? 'text-slate-300' : 'text-slate-700'}`} />
-                  <h2 className="font-bold text-sm tracking-tight">Canvas Settings</h2>
-                </div>
-                <button
-                  onClick={() => setIsSettingsOpen(false)}
-                  className={`p-1 rounded-sm transition-colors ${
-                    themeMode === 'dark'
-                      ? 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
-                      : 'hover:bg-slate-100 text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {/* Settings Options List */}
-              <div className="space-y-3 text-xs">
-                {/* Snap to Grid Toggle Option */}
-                <div
-                  className={`flex items-center justify-between p-3 rounded-sm border transition-colors ${
-                    themeMode === 'dark'
-                      ? 'bg-slate-800/60 border-slate-700/60'
-                      : 'bg-slate-50 border-slate-200/90'
-                  }`}
-                >
-                  <div>
-                    <div
-                      className={`font-semibold flex items-center gap-1.5 ${
-                        themeMode === 'dark' ? 'text-slate-100' : 'text-slate-900'
-                      }`}
-                    >
-                      <Grid2X2 className={`w-4 h-4 ${themeMode === 'dark' ? 'text-slate-300' : 'text-slate-700'}`} />
-                      <span>Snap to Grid</span>
-                    </div>
-                    <p className={`text-[11px] mt-0.5 ${themeMode === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
-                      {snapToGrid
-                        ? 'Grid aligned: note positions & sizes snap to 24px increments'
-                        : 'Free-form: smooth pixel placement anywhere on canvas'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={onToggleSnapToGrid}
-                    className={`w-10 h-5.5 rounded-full transition-colors relative flex items-center px-0.5 shrink-0 ml-3 cursor-pointer ${
-                      snapToGrid
-                        ? themeMode === 'dark' ? 'bg-slate-100' : 'bg-slate-900'
-                        : themeMode === 'dark' ? 'bg-slate-700' : 'bg-slate-300'
-                    }`}
-                  >
-                    <div
-                      className={`w-4.5 h-4.5 rounded-full shadow-xs transition-transform ${
-                        snapToGrid
-                          ? `translate-x-4.5 ${themeMode === 'dark' ? 'bg-slate-900' : 'bg-white'}`
-                          : 'translate-x-0 bg-white'
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                {/* Show Connection Lines Toggle */}
-                <div
-                  className={`flex items-center justify-between p-3 rounded-sm border transition-colors ${
-                    themeMode === 'dark'
-                      ? 'bg-slate-800/60 border-slate-700/60'
-                      : 'bg-slate-50 border-slate-200/90'
-                  }`}
-                >
-                  <div>
-                    <div
-                      className={`font-semibold flex items-center gap-1.5 ${
-                        themeMode === 'dark' ? 'text-slate-100' : 'text-slate-900'
-                      }`}
-                    >
-                      <Share2 className={`w-4 h-4 ${themeMode === 'dark' ? 'text-slate-300' : 'text-slate-700'}`} />
-                      <span>Connection Lines</span>
-                    </div>
-                    <p className={`text-[11px] mt-0.5 ${themeMode === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
-                      Draw curved lines between notes referencing `@Note`
-                    </p>
-                  </div>
-                  <button
-                    onClick={onToggleConnections}
-                    className={`w-10 h-5.5 rounded-full transition-colors relative flex items-center px-0.5 shrink-0 ml-3 cursor-pointer ${
-                      showConnections
-                        ? themeMode === 'dark' ? 'bg-slate-100' : 'bg-slate-900'
-                        : themeMode === 'dark' ? 'bg-slate-700' : 'bg-slate-300'
-                    }`}
-                  >
-                    <div
-                      className={`w-4.5 h-4.5 rounded-full shadow-xs transition-transform ${
-                        showConnections
-                          ? `translate-x-4.5 ${themeMode === 'dark' ? 'bg-slate-900' : 'bg-white'}`
-                          : 'translate-x-0 bg-white'
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                {/* Grid Background Selection */}
-                <div
-                  className={`p-3 rounded-sm border transition-colors ${
-                    themeMode === 'dark'
-                      ? 'bg-slate-800/60 border-slate-700/60'
-                      : 'bg-slate-50 border-slate-200/90'
-                  }`}
-                >
-                  <label
-                    className={`font-semibold block mb-2 text-xs ${
-                      themeMode === 'dark' ? 'text-slate-100' : 'text-slate-900'
-                    }`}
-                  >
-                    Canvas Grid Pattern
-                  </label>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {(['dots', 'grid', 'ruled', 'blank'] as GridType[]).map((g) => (
-                      <button
-                        key={g}
-                        onClick={() => onChangeGridType(g)}
-                        className={`py-1 px-2 rounded-sm capitalize font-semibold text-[11px] border transition-all cursor-pointer ${
-                          gridType === g
-                            ? themeMode === 'dark'
-                              ? 'bg-slate-100 text-slate-900 border-slate-100 shadow-xs'
-                              : 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                            : themeMode === 'dark'
-                            ? 'bg-slate-900/60 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
-                        }`}
-                      >
-                        {g}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Theme Mode Toggle */}
-                <div
-                  className={`flex items-center justify-between p-3 rounded-sm border transition-colors ${
-                    themeMode === 'dark'
-                      ? 'bg-slate-800/60 border-slate-700/60'
-                      : 'bg-slate-50 border-slate-200/90'
-                  }`}
-                >
-                  <div>
-                    <div
-                      className={`font-semibold flex items-center gap-1.5 ${
-                        themeMode === 'dark' ? 'text-slate-100' : 'text-slate-900'
-                      }`}
-                    >
-                      {themeMode === 'dark' ? (
-                        <Moon className="w-4 h-4 text-amber-400" />
-                      ) : (
-                        <Sun className="w-4 h-4 text-amber-500" />
-                      )}
-                      <span>Canvas Dark Theme</span>
-                    </div>
-                    <p className={`text-[11px] mt-0.5 ${themeMode === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
-                      Toggle between light off-white canvas and dark graphite canvas
-                    </p>
-                  </div>
-                  <button
-                    onClick={onToggleTheme}
-                    className={`w-10 h-5.5 rounded-full transition-colors relative flex items-center px-0.5 shrink-0 ml-3 cursor-pointer ${
-                      themeMode === 'dark' ? 'bg-amber-500' : 'bg-slate-300'
-                    }`}
-                  >
-                    <div
-                      className={`w-4.5 h-4.5 rounded-full bg-white shadow-xs transition-transform ${
-                        themeMode === 'dark' ? 'translate-x-4.5' : 'translate-x-0'
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                {/* Canvas Overview & Stats Card */}
-                <div
-                  className={`p-3 rounded-sm border transition-colors ${
-                    themeMode === 'dark'
-                      ? 'bg-slate-800/60 border-slate-700/60'
-                      : 'bg-slate-50 border-slate-200/90'
-                  }`}
-                >
-                  <div
-                    className={`font-semibold flex items-center justify-between mb-2 ${
-                      themeMode === 'dark' ? 'text-slate-100' : 'text-slate-900'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <Info className={`w-3.5 h-3.5 ${themeMode === 'dark' ? 'text-slate-300' : 'text-slate-700'}`} />
-                      <span>Canvas Overview</span>
-                    </div>
-                    <span className="text-[9px] uppercase font-mono tracking-wider px-1.5 py-0.5 rounded-sm bg-emerald-500/10 text-emerald-500 font-bold border border-emerald-500/20">
-                      Active
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-1.5 text-center">
-                    <div
-                      className={`p-1.5 rounded-sm border ${
-                        themeMode === 'dark'
-                          ? 'bg-slate-900/80 border-slate-700/80'
-                          : 'bg-white border-slate-200'
-                      }`}
-                    >
-                      <span className={`block text-sm font-bold ${themeMode === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>{notes.length}</span>
-                      <span className={`text-[9px] font-mono ${themeMode === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Total Notes</span>
-                    </div>
-                    <div
-                      className={`p-1.5 rounded-sm border ${
-                        themeMode === 'dark'
-                          ? 'bg-slate-900/80 border-slate-700/80'
-                          : 'bg-white border-slate-200'
-                      }`}
-                    >
-                      <span className={`block text-sm font-bold ${themeMode === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>{pinnedCount}</span>
-                      <span className={`text-[9px] font-mono ${themeMode === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Pinned</span>
-                    </div>
-                    <div
-                      className={`p-1.5 rounded-sm border ${
-                        themeMode === 'dark'
-                          ? 'bg-slate-900/80 border-slate-700/80'
-                          : 'bg-white border-slate-200'
-                      }`}
-                    >
-                      <span className={`block text-sm font-bold ${themeMode === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>{zoomPercent}%</span>
-                      <span className={`text-[9px] font-mono ${themeMode === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Zoom</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Import/Export Backup Data */}
-                <div
-                  className={`pt-2.5 border-t space-y-2 ${
-                    themeMode === 'dark' ? 'border-slate-800' : 'border-slate-200/80'
-                  }`}
-                >
-                  <div className="flex gap-2">
-                    <button
-                      onClick={onExportBackup}
-                      className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-sm border font-semibold text-xs transition-colors cursor-pointer ${
-                        themeMode === 'dark'
-                          ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200'
-                          : 'bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-800'
-                      }`}
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Export Backup</span>
-                    </button>
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-sm border font-semibold text-xs transition-colors cursor-pointer ${
-                        themeMode === 'dark'
-                          ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200'
-                          : 'bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-800'
-                      }`}
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Import Backup</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>,
-          document.body
-        )}
-    </>
+      {/* Canvas Settings Modal Component */}
+      <CanvasSettingsModal
+        isOpen={isSettingsOpen}
+        notes={notes}
+        gridType={gridType}
+        themeMode={themeMode}
+        snapToGrid={snapToGrid}
+        showConnections={showConnections}
+        zoomPercent={zoomPercent}
+        pinnedCount={pinnedCount}
+        onClose={() => setIsSettingsOpen(false)}
+        onChangeGridType={onChangeGridType}
+        onToggleTheme={onToggleTheme}
+        onToggleSnapToGrid={onToggleSnapToGrid}
+        onToggleConnections={onToggleConnections}
+        onExportBackup={onExportBackup}
+        onTriggerImportBackup={onTriggerImportBackup}
+        onOpenShortcutsModal={onOpenShortcutsModal}
+      />
+    </div>
   );
 };
