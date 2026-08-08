@@ -77,6 +77,11 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
   const [newItemText, setNewItemText] = useState('');
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
+  // Sync state if external content prop changes
+  React.useEffect(() => {
+    setItems(parseItemsFromContent(content));
+  }, [content]);
+
   const syncBackToContent = (updatedItems: ChecklistItem[]) => {
     const markdown = updatedItems
       .map((item) => {
@@ -110,6 +115,25 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
     syncBackToContent(updated);
   };
 
+  const handleInsertItemAfter = (currentId: string) => {
+    const currentIndex = items.findIndex((i) => i.id === currentId);
+    const newId = `item-${Date.now()}`;
+    const newItem: ChecklistItem = {
+      id: newId,
+      text: '',
+      completed: false,
+    };
+    const updated = [...items];
+    if (currentIndex >= 0) {
+      updated.splice(currentIndex + 1, 0, newItem);
+    } else {
+      updated.push(newItem);
+    }
+    setItems(updated);
+    setEditingItemId(newId);
+    syncBackToContent(updated);
+  };
+
   const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault();
     if (newItemText.trim()) {
@@ -127,14 +151,15 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
 
   return (
     <div className={`w-full flex-1 flex flex-col gap-2 p-1 ${fontClass} ${fontSizeClass}`}>
-      <div className="flex-1 flex flex-col gap-2 pr-1">
+      {/* Task List Items */}
+      <div className="flex-1 flex flex-col gap-1.5 pr-1 overflow-y-auto">
         {items.map((item) => {
           const isEditing = editingItemId === item.id;
 
           if (item.isHeading) {
             return (
-              <div key={item.id} className="flex items-center justify-between group pt-3 pb-1">
-                <div className={`flex-1 font-bold text-base tracking-tight ${themeConfig.text}`}>
+              <div key={item.id} className="flex items-center justify-between group pt-3 pb-1 border-b border-slate-200/40 dark:border-slate-800/40">
+                <div className={`flex-1 font-bold text-sm uppercase tracking-wider ${themeConfig.text}`}>
                   {item.text}
                 </div>
                 <button
@@ -152,7 +177,7 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
           return (
             <div
               key={item.id}
-              className={`flex items-start gap-3 p-1 rounded-xl ${themeConfig.hoverBg} group transition-colors ${
+              className={`flex items-start gap-2.5 px-2 py-1.5 rounded-xl ${themeConfig.hoverBg} group transition-colors ${
                 isRuled ? 'ruled-text-alignment' : ''
               }`}
             >
@@ -160,8 +185,8 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
               <button
                 type="button"
                 onClick={() => handleToggleItem(item.id)}
-                style={isRuled ? { marginTop: '6px' } : { marginTop: '4px' }}
-                className={`shrink-0 w-5 h-5 rounded-md border-2 transition-all flex items-center justify-center ${
+                style={isRuled ? { marginTop: '6px' } : { marginTop: '2px' }}
+                className={`shrink-0 w-4.5 h-4.5 rounded-md border-2 transition-all flex items-center justify-center ${
                   item.completed
                     ? themeConfig.checkboxChecked
                     : themeConfig.checkboxUnchecked
@@ -177,14 +202,28 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
                   rows={1}
                   value={item.text}
                   onChange={(e) => handleUpdateText(item.id, e.target.value)}
-                  onBlur={() => setEditingItemId(null)}
+                  onBlur={() => {
+                    if (!item.text.trim()) {
+                      handleDeleteItem(item.id);
+                    }
+                    setEditingItemId(null);
+                  }}
                   onInput={(e) => {
                     const target = e.currentTarget;
                     target.style.height = 'auto';
                     target.style.height = `${target.scrollHeight}px`;
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Escape' || e.key === 'Enter') {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (!item.text.trim()) {
+                        handleDeleteItem(item.id);
+                        setEditingItemId(null);
+                      } else {
+                        handleInsertItemAfter(item.id);
+                      }
+                    } else if (e.key === 'Escape') {
+                      e.preventDefault();
                       e.currentTarget.blur();
                       setEditingItemId(null);
                     }
@@ -195,6 +234,7 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
                       el.style.height = `${el.scrollHeight}px`;
                     }
                   }}
+                  placeholder="Task item..."
                   className={`flex-1 bg-transparent border-0 outline-none ${themeConfig.text} font-medium text-sm tracking-tight resize-none overflow-hidden break-words whitespace-pre-wrap py-0`}
                 />
               ) : (
@@ -205,7 +245,7 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
                   }`}
                 >
                   <SmartMarkdownText
-                    content={item.text}
+                    content={item.text || 'Task item...'}
                     allNotes={allNotes}
                     onNavigateToNote={onNavigateToNote}
                     fontClass={fontClass}
@@ -220,7 +260,7 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
               <button
                 type="button"
                 onClick={() => handleDeleteItem(item.id)}
-                className={`opacity-0 group-hover:opacity-100 p-1 mt-0.5 ${themeConfig.subtext} hover:text-rose-500 transition-opacity shrink-0`}
+                className={`opacity-0 group-hover:opacity-100 p-1 ${themeConfig.subtext} hover:text-rose-500 transition-opacity shrink-0`}
                 title="Delete task"
               >
                 <Trash2 className="w-3.5 h-3.5" />

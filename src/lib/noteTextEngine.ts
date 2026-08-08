@@ -100,3 +100,106 @@ export function applyMarkdownFormatting(
 
   return { newContent, newSelectionStart, newSelectionEnd };
 }
+
+export function handleSmartEnterList(textarea: HTMLTextAreaElement): {
+  handled: boolean;
+  newContent: string;
+  newCursorPos: number;
+} | null {
+  const value = textarea.value;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+
+  // Only handle single cursor without multi-character selection range
+  if (start !== end) return null;
+
+  const textBeforeCursor = value.slice(0, start);
+  const textAfterCursor = value.slice(start);
+
+  const linesBefore = textBeforeCursor.split('\n');
+  const currentLine = linesBefore[linesBefore.length - 1];
+
+  // 1. Check for Numbered List e.g. "1. ", "  2. ", "1) ", "  12) "
+  const numberMatch = currentLine.match(/^(\s*)(\d+)([\.\)])(\s+)(.*)$/);
+  if (numberMatch) {
+    const indent = numberMatch[1];
+    const num = parseInt(numberMatch[2], 10);
+    const delim = numberMatch[3];
+    const itemContent = numberMatch[5];
+
+    // Empty list item: clear prefix line and terminate numbered list
+    if (itemContent.trim() === '') {
+      const lineStartIndex = start - currentLine.length;
+      const newContent = value.slice(0, lineStartIndex) + textAfterCursor;
+      return {
+        handled: true,
+        newContent,
+        newCursorPos: lineStartIndex,
+      };
+    }
+
+    // Continue numbered list with incremented number
+    const nextNum = num + 1;
+    const prefix = `\n${indent}${nextNum}${delim} `;
+    const newContent = textBeforeCursor + prefix + textAfterCursor;
+    return {
+      handled: true,
+      newContent,
+      newCursorPos: start + prefix.length,
+    };
+  }
+
+  // 2. Check for Checklist e.g. "- [ ] ", "- [x] ", "* [ ] "
+  const checkMatch = currentLine.match(/^(\s*)([-*+]\s+\[[ xX]\])(\s+)(.*)$/);
+  if (checkMatch) {
+    const indent = checkMatch[1];
+    const itemContent = checkMatch[4];
+
+    if (itemContent.trim() === '') {
+      const lineStartIndex = start - currentLine.length;
+      const newContent = value.slice(0, lineStartIndex) + textAfterCursor;
+      return {
+        handled: true,
+        newContent,
+        newCursorPos: lineStartIndex,
+      };
+    }
+
+    const prefix = `\n${indent}- [ ] `;
+    const newContent = textBeforeCursor + prefix + textAfterCursor;
+    return {
+      handled: true,
+      newContent,
+      newCursorPos: start + prefix.length,
+    };
+  }
+
+  // 3. Check for Bullet List e.g. "- ", "* ", "+ "
+  const bulletMatch = currentLine.match(/^(\s*)([-*+])(\s+)(.*)$/);
+  if (bulletMatch) {
+    const indent = bulletMatch[1];
+    const bulletChar = bulletMatch[2];
+    const itemContent = bulletMatch[4];
+
+    if (itemContent.trim() === '') {
+      const lineStartIndex = start - currentLine.length;
+      const newContent = value.slice(0, lineStartIndex) + textAfterCursor;
+      return {
+        handled: true,
+        newContent,
+        newCursorPos: lineStartIndex,
+      };
+    }
+
+    const prefix = `\n${indent}${bulletChar} `;
+    const newContent = textBeforeCursor + prefix + textAfterCursor;
+    return {
+      handled: true,
+      newContent,
+      newCursorPos: start + prefix.length,
+    };
+  }
+
+  return null;
+}
+

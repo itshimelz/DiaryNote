@@ -95,7 +95,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
   return (
     <div
       {...headerDragProps}
-      className={`flex flex-col gap-0.5 px-4 pt-3.5 pb-2 border-b ${divider} select-none cursor-move group/header rounded-t-md ${headerBg}`}
+      className={`flex flex-col gap-0.5 px-4 pt-3.5 pb-2 border-b ${divider} select-none cursor-grab active:cursor-grabbing group/header rounded-t-md ${headerBg}`}
     >
       <div className="flex items-center justify-between gap-2">
         {/* Title */}

@@ -9,7 +9,7 @@ import { NoteMarkdownView } from './NoteMarkdownView';
 import { NoteStylePicker } from './NoteStylePicker';
 import { MentionAutocomplete } from '../MentionAutocomplete';
 import { getUniqueTitleForDay } from '../../lib/markdownMention';
-import { normalizeNoteText, resizeNoteEditor, applyMarkdownFormatting, FormattingType } from '../../lib/noteTextEngine';
+import { normalizeNoteText, resizeNoteEditor, applyMarkdownFormatting, handleSmartEnterList, FormattingType } from '../../lib/noteTextEngine';
 import { Note } from '../../types';
 
 const NoteCardComponent: React.FC<NoteCardProps> = ({
@@ -171,7 +171,12 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
 
   // Dragging logic
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (isPanMode || (e.target as HTMLElement).closest('button, input, textarea, a, select, .no-drag')) {
+    if (
+      isPanMode ||
+      (e.target as HTMLElement).closest(
+        'button, input, textarea, a, select, .no-drag, .note-editor-container'
+      )
+    ) {
       return;
     }
 
@@ -481,7 +486,9 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         zIndex: isDragging || isCardDragging ? 10000 : note.zIndex || 10,
       }}
       className={`note-card absolute top-0 left-0 rounded-md border flex flex-col justify-between ${
-        isDragging || isCardDragging
+        isPanMode
+          ? 'cursor-grab active:cursor-grabbing pointer-events-none'
+          : isDragging || isCardDragging
           ? 'transition-none scale-[1.015] cursor-grabbing ring-2 ring-blue-500/70 shadow-md z-[10000]'
           : `transition-[box-shadow,opacity] duration-150 ease-out scale-100 shadow-sm ${
               !isEditing ? 'cursor-grab' : ''
@@ -619,8 +626,21 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
             paperTheme={note.paperTheme}
           />
         ) : isEditing ? (
-          /* Text Editing Mode */
-          <div className="relative w-full flex-none flex flex-col">
+          <div
+            className={`relative w-full flex-none flex flex-col ${
+              isPanMode ? 'cursor-grab pointer-events-none' : 'cursor-text note-editor-container'
+            }`}
+            onMouseDown={(e) => {
+              if (!isPanMode) {
+                e.stopPropagation();
+              }
+            }}
+            onClick={(e) => {
+              if (!isPanMode && textareaRef.current && e.target !== textareaRef.current) {
+                textareaRef.current.focus();
+              }
+            }}
+          >
             <textarea
               ref={textareaRef}
               value={note.content}
@@ -685,6 +705,63 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
                       textareaRef.current.setSelectionRange(newSelectionStart, newSelectionEnd);
                     }
                   }, 10);
+                  return;
+                }
+
+                // Handle smart enter for numbered lists, checklists, and bullet points
+                if (e.key === 'Enter' && !e.shiftKey && mentionQuery === null && textareaRef.current) {
+                  const result = handleSmartEnterList(textareaRef.current);
+                  if (result && result.handled) {
+                    e.preventDefault();
+                    onUpdateNote({
+                      ...note,
+                      content: result.newContent,
+                      updatedAt: new Date().toISOString(),
+                    });
+                    setTimeout(() => {
+                      if (textareaRef.current) {
+                        textareaRef.current.focus();
+                        textareaRef.current.setSelectionRange(result.newCursorPos, result.newCursorPos);
+                        resizeNoteEditor(textareaRef.current);
+                      }
+                    }, 10);
+                    return;
+                  }
+                }
+
+                // Handle Tab / Shift+Tab list and code indentation
+                if (e.key === 'Tab' && mentionQuery === null && textareaRef.current) {
+                  e.preventDefault();
+                  const start = textareaRef.current.selectionStart;
+                  const end = textareaRef.current.selectionEnd;
+                  const val = textareaRef.current.value;
+
+                  if (e.shiftKey) {
+                    const textBefore = val.slice(0, start);
+                    const lastNewline = textBefore.lastIndexOf('\n');
+                    const lineStart = lastNewline === -1 ? 0 : lastNewline + 1;
+                    const lineText = val.slice(lineStart);
+                    if (lineText.startsWith('  ')) {
+                      const newVal = val.slice(0, lineStart) + lineText.slice(2);
+                      onUpdateNote({ ...note, content: newVal, updatedAt: new Date().toISOString() });
+                      setTimeout(() => {
+                        if (textareaRef.current) {
+                          textareaRef.current.setSelectionRange(
+                            Math.max(lineStart, start - 2),
+                            Math.max(lineStart, end - 2)
+                          );
+                        }
+                      }, 10);
+                    }
+                  } else {
+                    const newVal = val.slice(0, start) + '  ' + val.slice(end);
+                    onUpdateNote({ ...note, content: newVal, updatedAt: new Date().toISOString() });
+                    setTimeout(() => {
+                      if (textareaRef.current) {
+                        textareaRef.current.setSelectionRange(start + 2, start + 2);
+                      }
+                    }, 10);
+                  }
                   return;
                 }
 

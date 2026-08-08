@@ -430,14 +430,15 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0 && e.button !== 1) return;
     const target = e.target as HTMLElement;
-    const isCanvasClick = !target.closest('.note-card');
-    if (!isCanvasClick) return;
 
     const shouldPan = e.button === 1 || isSpacePressed || isPanMode;
     if (document.activeElement && 'blur' in document.activeElement) {
       (document.activeElement as HTMLElement).blur();
     }
+
     if (!shouldPan) {
+      const isCanvasClick = !target.closest('.note-card');
+      if (!isCanvasClick) return;
       e.preventDefault();
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
@@ -743,7 +744,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
               onDeleteNote={onDeleteNote}
               onBringToFront={onBringToFront}
               snapToGrid={snapToGrid}
-              isPanMode={isPanMode || isSpacePressed}
+              isPanMode={isPanMode || isSpacePressed || isPanning}
               shouldStartEditing={editingNoteId === note.id}
               onRequestLockNote={onRequestLockNote}
               onRequestUnlockNote={onRequestUnlockNote}
