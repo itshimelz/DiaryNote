@@ -101,16 +101,39 @@ export async function saveNoteToDB(note: Note): Promise<void> {
 }
 
 /**
- * Save multiple notes to DB (batch update)
+ * Save multiple notes to DB (incremental sync — no full table wipe)
  */
 export async function saveBatchNotesToDB(notes: Note[]): Promise<void> {
   try {
-    await db.notes.clear();
-    if (notes.length > 0) {
-      await db.notes.bulkPut(notes);
-    }
+    await db.transaction('rw', db.notes, async () => {
+      // Determine which notes were deleted since last save
+      const existingIds = new Set(await db.notes.toCollection().primaryKeys());
+      const incomingIds = new Set(notes.map(n => n.id));
+      const toDelete = [...existingIds].filter(id => !incomingIds.has(id as string));
+
+      if (toDelete.length > 0) {
+        await db.notes.bulkDelete(toDelete);
+      }
+
+      // Upsert all current notes
+      if (notes.length > 0) {
+        await db.notes.bulkPut(notes);
+      }
+    });
   } catch (err) {
     console.error('Error batch saving notes to DB:', err);
+  }
+}
+
+/**
+ * Save only specific dirty/modified notes to DB (targeted upsert)
+ */
+export async function saveDirtyNotesToDB(dirtyNotes: Note[]): Promise<void> {
+  if (dirtyNotes.length === 0) return;
+  try {
+    await db.notes.bulkPut(dirtyNotes);
+  } catch (err) {
+    console.error('Error saving dirty notes to DB:', err);
   }
 }
 

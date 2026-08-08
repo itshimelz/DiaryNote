@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, type MutableRefObject } from 'react';
 import { CanvasTransform, Note } from '../types';
 import { loadTransform, saveTransform, loadSettings, saveSettings, AppSettings } from '../lib/storage';
 import { saveTransformToDB, saveSettingsToDB } from '../lib/sqliteStorage';
@@ -29,6 +29,9 @@ export function useCanvasTransform(notes: Note[], bringToFront: (noteId: string)
   const [focusedNoteId, setFocusedNoteId] = useState<string | null>(null);
 
   const navigationFrameRef = useRef<number | null>(null);
+  const transformSaveTimerRef = useRef<number>(0);
+  const settingsSaveTimerRef = useRef<number>(0);
+  const focusedNoteTimerRef = useRef<number>(0);
   const fitRestoreRef = useRef<CanvasTransform | null>(null);
 
   // Sync dark mode root class with settings
@@ -40,17 +43,37 @@ export function useCanvasTransform(notes: Note[], bringToFront: (noteId: string)
     }
   }, [settings.themeMode]);
 
-  // Save transform to DB & localStorage
+  // Save transform to DB & localStorage (debounced to avoid thrashing during animations)
   useEffect(() => {
-    saveTransformToDB(transform);
-    saveTransform(transform);
+    window.clearTimeout(transformSaveTimerRef.current);
+    transformSaveTimerRef.current = window.setTimeout(() => {
+      saveTransformToDB(transform);
+      saveTransform(transform);
+    }, 500);
+    return () => window.clearTimeout(transformSaveTimerRef.current);
   }, [transform]);
 
-  // Save settings to DB & localStorage
+  // Save settings to DB & localStorage (debounced)
   useEffect(() => {
-    saveSettingsToDB(settings);
-    saveSettings(settings);
+    window.clearTimeout(settingsSaveTimerRef.current);
+    settingsSaveTimerRef.current = window.setTimeout(() => {
+      saveSettingsToDB(settings);
+      saveSettings(settings);
+    }, 500);
+    return () => window.clearTimeout(settingsSaveTimerRef.current);
   }, [settings]);
+
+  // Cleanup RAF and timers on unmount
+  useEffect(() => {
+    return () => {
+      if (navigationFrameRef.current !== null) {
+        cancelAnimationFrame(navigationFrameRef.current);
+      }
+      window.clearTimeout(transformSaveTimerRef.current);
+      window.clearTimeout(settingsSaveTimerRef.current);
+      window.clearTimeout(focusedNoteTimerRef.current);
+    };
+  }, []);
 
   const handleCanvasTransformChange = useCallback((nextTransform: CanvasTransform) => {
     if (navigationFrameRef.current !== null) {
@@ -182,7 +205,8 @@ export function useCanvasTransform(notes: Note[], bringToFront: (noteId: string)
     bringToFront(targetNoteId);
 
     setFocusedNoteId(targetNoteId);
-    setTimeout(() => setFocusedNoteId(null), 1800);
+    window.clearTimeout(focusedNoteTimerRef.current);
+    focusedNoteTimerRef.current = window.setTimeout(() => setFocusedNoteId(null), 1800);
 
     const viewport = getViewport();
     const screenCenterX = viewport.width / 2;

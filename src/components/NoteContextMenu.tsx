@@ -44,7 +44,7 @@ interface NoteContextMenuProps {
 
 
 
-export const NoteContextMenu: React.FC<NoteContextMenuProps> = ({
+const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
   x,
   y,
   isOpen,
@@ -396,3 +396,5 @@ export const NoteContextMenu: React.FC<NoteContextMenuProps> = ({
     document.body
   );
 };
+
+export const NoteContextMenu = React.memo(NoteContextMenuComponent);

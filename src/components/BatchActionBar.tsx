@@ -33,7 +33,7 @@ interface BatchActionBarProps {
   onClearSelection: () => void;
 }
 
-export const BatchActionBar: React.FC<BatchActionBarProps> = ({
+const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
   selectedNoteIds,
   notes,
   themeMode = 'dark',
@@ -567,3 +567,5 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
     </motion.div>
   );
 };
+
+export const BatchActionBar = React.memo(BatchActionBarComponent);

@@ -41,7 +41,7 @@ function getRectEdgePoint(
   };
 }
 
-export const NoteConnections: React.FC<NoteConnectionsProps> = ({
+const NoteConnectionsComponent: React.FC<NoteConnectionsProps> = ({
   notes,
   selectedNoteId,
   onSelectNote,
@@ -224,3 +224,5 @@ export const NoteConnections: React.FC<NoteConnectionsProps> = ({
     </svg>
   );
 };
+
+export const NoteConnections = React.memo(NoteConnectionsComponent);

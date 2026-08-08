@@ -23,7 +23,7 @@ interface NotesSidebarProps {
   themeMode?: CanvasTheme;
 }
 
-export const NotesSidebar: React.FC<NotesSidebarProps> = ({
+const NotesSidebarComponent: React.FC<NotesSidebarProps> = ({
   isOpen,
   onClose,
   notes,
@@ -286,3 +286,5 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
     </div>
   );
 };
+
+export const NotesSidebar = React.memo(NotesSidebarComponent);

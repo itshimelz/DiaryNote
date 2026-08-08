@@ -526,7 +526,7 @@ export default function App() {
           }`}>
             <CanvasControls
               notes={notes}
-              transform={transform}
+              zoom={transform.zoom}
               gridType={settings.gridType}
               themeMode={settings.themeMode}
               snapToGrid={settings.snapToGrid}

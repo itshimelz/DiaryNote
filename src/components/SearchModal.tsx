@@ -12,7 +12,7 @@ interface SearchModalProps {
   themeMode?: CanvasTheme;
 }
 
-export const SearchModal: React.FC<SearchModalProps> = ({
+const SearchModalComponent: React.FC<SearchModalProps> = ({
   isOpen,
   onClose,
   notes,
@@ -466,3 +466,5 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     </div>
   );
 };
+
+export const SearchModal = React.memo(SearchModalComponent);

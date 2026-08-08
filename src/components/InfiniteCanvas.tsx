@@ -37,7 +37,7 @@ interface InfiniteCanvasProps {
   onContextMenuCanvas?: (e: React.MouseEvent) => void;
 }
 
-export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
+const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
   notes,
   transform,
   onTransformChange,
@@ -428,6 +428,25 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
     return { minX: minXBoundary, minY: minYBoundary, worldWidth: wWidth, worldHeight: wHeight, minimapScale: scale };
   }, [notes]);
 
+  // Memoize note grouping (was computed inline in JSX on every render)
+  const noteGroups = useMemo(() => {
+    const groups = new Map<string, Note[]>();
+    for (const n of notes) {
+      if (n.groupId) {
+        const list = groups.get(n.groupId);
+        if (list) list.push(n);
+        else groups.set(n.groupId, [n]);
+      }
+    }
+    return groups;
+  }, [notes]);
+
+  // Stabilize onSelectNote to avoid breaking NoteCard's React.memo
+  const handleSelectNoteStable = useCallback(
+    (id: string | null, isMulti?: boolean) => onSelectNote(id, isMulti),
+    [onSelectNote]
+  );
+
   return (
     <div
       ref={containerRef}
@@ -482,16 +501,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
 
         <div className="pointer-events-auto">
           {/* Visual Group Frame Containers */}
-          {Array.from(
-            notes.reduce((acc, n) => {
-              if (n.groupId) {
-                const list = acc.get(n.groupId) || [];
-                list.push(n);
-                acc.set(n.groupId, list);
-              }
-              return acc;
-            }, new Map<string, Note[]>())
-          ).map(([groupId, groupNotes]) => (
+          {Array.from(noteGroups).map(([groupId, groupNotes]) => (
             <GroupFrame
               key={groupId}
               groupId={groupId}
@@ -513,7 +523,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
               isSelected={selectedNoteIds.includes(note.id) || selectedNoteId === note.id}
               selectedNoteIds={selectedNoteIds}
               isFocused={focusedNoteId === note.id}
-              onSelectNote={(id, isMulti) => onSelectNote(id, isMulti)}
+              onSelectNote={handleSelectNoteStable}
               onNavigateToNote={onNavigateToNote}
               onUpdateNote={onUpdateNote}
               onUpdateBatchNotes={onUpdateBatchNotes}
@@ -607,3 +617,5 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
     </div>
   );
 };
+
+export const InfiniteCanvas = React.memo(InfiniteCanvasComponent);

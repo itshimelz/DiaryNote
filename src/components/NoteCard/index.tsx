@@ -699,6 +699,11 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
 };
 
 export const NoteCard = React.memo(NoteCardComponent, (prevProps, nextProps) => {
+  // Check whether THIS card's selection state changed (not array reference)
+  const prevInSelection = prevProps.selectedNoteIds.includes(prevProps.note.id);
+  const nextInSelection = nextProps.selectedNoteIds.includes(nextProps.note.id);
+  if (prevInSelection !== nextInSelection) return false;
+
   return (
     prevProps.isCardDragging === nextProps.isCardDragging &&
     prevProps.isSelected === nextProps.isSelected &&
@@ -706,7 +711,6 @@ export const NoteCard = React.memo(NoteCardComponent, (prevProps, nextProps) => 
     prevProps.shouldStartEditing === nextProps.shouldStartEditing &&
     prevProps.snapToGrid === nextProps.snapToGrid &&
     prevProps.isPanMode === nextProps.isPanMode &&
-    prevProps.zoom === nextProps.zoom &&
     prevProps.note.id === nextProps.note.id &&
     prevProps.note.x === nextProps.note.x &&
     prevProps.note.y === nextProps.note.y &&
@@ -723,7 +727,6 @@ export const NoteCard = React.memo(NoteCardComponent, (prevProps, nextProps) => 
     prevProps.note.isPinned === nextProps.note.isPinned &&
     prevProps.note.groupId === nextProps.note.groupId &&
     prevProps.note.groupName === nextProps.note.groupName &&
-    prevProps.note.isLocked === nextProps.note.isLocked &&
-    prevProps.selectedNoteIds === nextProps.selectedNoteIds
+    prevProps.note.isLocked === nextProps.note.isLocked
   );
 });

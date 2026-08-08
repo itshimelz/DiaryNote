@@ -14,7 +14,7 @@ export interface GroupFrameProps {
   onSelectMultipleNotes?: (ids: string[]) => void;
 }
 
-export const GroupFrame: React.FC<GroupFrameProps> = ({
+const GroupFrameComponent: React.FC<GroupFrameProps> = ({
   groupNotes,
   themeMode,
   zoom,
@@ -206,3 +206,5 @@ export const GroupFrame: React.FC<GroupFrameProps> = ({
     </div>
   );
 };
+
+export const GroupFrame = React.memo(GroupFrameComponent);

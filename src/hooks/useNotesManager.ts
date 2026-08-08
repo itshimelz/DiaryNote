@@ -4,6 +4,7 @@ import { loadNotes, SAMPLE_NOTES, AppSettings } from '../lib/storage';
 import {
   initDatabase,
   saveBatchNotesToDB,
+  saveDirtyNotesToDB,
 } from '../lib/sqliteStorage';
 import { getUniqueTitleForDay } from '../lib/markdownMention';
 
@@ -15,6 +16,7 @@ export function useNotesManager(
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const isDbLoadedRef = useRef<boolean>(false);
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const dirtyNoteIdsRef = useRef<Set<string>>(new Set());
 
   // Initialize DB on mount
   const initAppDatabase = useCallback((
@@ -32,11 +34,24 @@ export function useNotesManager(
   useEffect(() => {
     if (!isDbLoadedRef.current) return;
     const timeout = window.setTimeout(() => {
-      saveBatchNotesToDB(notes);
+      const dirtyIds = dirtyNoteIdsRef.current;
+      if (dirtyIds.size > 0) {
+        // Only write modified notes to DB
+        const dirtyNotes = notes.filter(n => dirtyIds.has(n.id));
+        saveDirtyNotesToDB(dirtyNotes);
+        dirtyNoteIdsRef.current = new Set();
+      }
       setLastSavedAt(new Date());
-    }, 200);
+    }, 500);
     return () => window.clearTimeout(timeout);
   }, [notes]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current);
+    };
+  }, []);
 
   // Add new note handler
   const handleAddNote = useCallback(
@@ -94,6 +109,7 @@ export function useNotesManager(
   // Single note update handler
   const handleUpdateNote = useCallback(
     (updated: Note) => {
+      dirtyNoteIdsRef.current.add(updated.id);
       setNotes((prevNotes) => {
         const exists = prevNotes.some((n) => n.id === updated.id);
         const nextNotes = exists
@@ -114,6 +130,7 @@ export function useNotesManager(
   // Batch note update handler (e.g. multi-select drag)
   const handleUpdateBatchNotes = useCallback(
     (updatedNotes: Note[]) => {
+      updatedNotes.forEach(n => dirtyNoteIdsRef.current.add(n.id));
       setNotes((prevNotes) => {
         const updatedMap = new Map(updatedNotes.map((n) => [n.id, n]));
         const nextNotes = prevNotes.map((n) => updatedMap.get(n.id) || n);
@@ -134,6 +151,8 @@ export function useNotesManager(
     (noteId: string) => {
       setNotes((prev) => {
         const nextNotes = prev.filter((n) => n.id !== noteId);
+        // Full sync needed for deletes (to remove from DB)
+        saveBatchNotesToDB(nextNotes);
         pushHistorySnapshot(nextNotes);
         return nextNotes;
       });
@@ -147,6 +166,8 @@ export function useNotesManager(
       if (idsToDelete.length === 0) return;
       setNotes((prev) => {
         const nextNotes = prev.filter((n) => !idsToDelete.includes(n.id));
+        // Full sync needed for deletes (to remove from DB)
+        saveBatchNotesToDB(nextNotes);
         pushHistorySnapshot(nextNotes);
         return nextNotes;
       });

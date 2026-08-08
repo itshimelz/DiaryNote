@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { CanvasTransform, GridType, CanvasTheme, Note } from '../types';
+import { GridType, CanvasTheme, Note } from '../types';
 import {
   Plus,
   ZoomIn,
@@ -26,7 +26,7 @@ import {
 
 interface CanvasControlsProps {
   notes?: Note[];
-  transform: CanvasTransform;
+  zoom: number;
   gridType: GridType;
   themeMode: CanvasTheme;
   snapToGrid: boolean;
@@ -54,9 +54,9 @@ interface CanvasControlsProps {
   onOpenShortcutsModal?: () => void;
 }
 
-export const CanvasControls: React.FC<CanvasControlsProps> = ({
+const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
   notes = [],
-  transform,
+  zoom,
   gridType,
   themeMode,
   snapToGrid,
@@ -94,7 +94,7 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
     }
   };
 
-  const zoomPercent = Math.round(transform.zoom * 100);
+  const zoomPercent = Math.round(zoom * 100);
   const pinnedCount = notes.filter((n) => n.isPinned).length;
 
   return (
@@ -604,3 +604,5 @@ export const CanvasControls: React.FC<CanvasControlsProps> = ({
     </>
   );
 };
+
+export const CanvasControls = React.memo(CanvasControlsComponent);
