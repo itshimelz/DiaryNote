@@ -90,6 +90,47 @@ export async function initDatabase(): Promise<{
 }
 
 /**
+ * Fast spatial window query — returns notes that fall within current viewport bounding box
+ */
+export async function getNotesInBounds(
+  minX: number,
+  minY: number,
+  maxX: number,
+  maxY: number
+): Promise<Note[]> {
+  try {
+    return await db.notes
+      .filter(
+        (n) =>
+          n.x + (n.width || 340) >= minX &&
+          n.x <= maxX &&
+          n.y + (n.height || 340) >= minY &&
+          n.y <= maxY
+      )
+      .toArray();
+  } catch (err) {
+    console.error('Error fetching notes in bounds:', err);
+    return [];
+  }
+}
+
+/**
+ * Fetch lightweight spatial metadata for fast app startup and minimal RAM indexing
+ */
+export async function getNotesMetadata(): Promise<Note[]> {
+  try {
+    const notes = await db.notes.toArray();
+    return notes.map((n) => ({
+      ...n,
+      content: n.content ? '' : '',
+    }));
+  } catch (err) {
+    console.error('Error fetching note metadata:', err);
+    return [];
+  }
+}
+
+/**
  * Save a single note to DB
  */
 export async function saveNoteToDB(note: Note): Promise<void> {
