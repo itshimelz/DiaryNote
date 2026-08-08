@@ -69,7 +69,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
   const menuRef = useRef<HTMLDivElement>(null);
   const [showThemePicker, setShowThemePicker] = useState(false);
 
-  const isDark = themeMode === 'dark';
+  const isDark = themeMode !== 'light';
 
   const selectedNotes = useMemo(
     () => notes.filter((n) => selectedNoteIds.includes(n.id)),

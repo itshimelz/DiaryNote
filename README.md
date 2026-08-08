@@ -33,7 +33,7 @@ An Infinite Spatial Canvas Note-Taking & Journaling Application built with React
 
 ## Overview
 
-**DiaryNote** is a privacy-focused infinite spatial canvas note-taking and journaling app built using **AI-Assisted Development** methodologies. It combines the freedom of a 2D canvas with local-first persistence, master passcode security, bi-directional `@Note` linking, markdown editing, and card grouping.
+**DiaryNote** is a privacy-focused infinite spatial canvas note-taking and journaling app built using AI-Assisted Development methodologies. It combines the freedom of a 2D canvas with local-first persistence, master passcode security, bi-directional `@Note` linking, markdown editing, and card grouping.
 
 
 ---

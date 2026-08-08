@@ -73,6 +73,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
   const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
   const [draggingNoteIds, setDraggingNoteIds] = useState<string[]>([]);
   const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight });
+  const [minimapNotes, setMinimapNotes] = useState<Note[]>(notes);
   const wheelFrameRef = useRef<number | null>(null);
   const pendingWheelTransformRef = useRef<CanvasTransform | null>(null);
   const panStartRef = useRef<{ x: number; y: number; transformX: number; transformY: number }>({
@@ -107,6 +108,12 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
   useEffect(() => () => {
     if (wheelFrameRef.current !== null) cancelAnimationFrame(wheelFrameRef.current);
   }, []);
+
+  // Throttle minimap notes — update at most every 100ms, not every pan frame
+  useEffect(() => {
+    const timer = setTimeout(() => setMinimapNotes(notes), 100);
+    return () => clearTimeout(timer);
+  }, [notes]);
 
   useEffect(() => {
     const element = containerRef.current;
@@ -574,7 +581,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
           }}
         >
           {/* Note bounding boxes on minimap */}
-          {notes.map((n) => {
+          {minimapNotes.map((n) => {
             const mx = (n.x - minX) * minimapScale;
             const my = (n.y - minY) * minimapScale;
             const mw = Math.max(3, n.width * minimapScale);

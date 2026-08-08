@@ -46,7 +46,7 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({
 
   if (!isOpen) return null;
 
-  const isDark = themeMode === 'dark';
+  const isDark = themeMode !== 'light';
 
   const handleSetLock = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -18,7 +18,7 @@ export const PasteConfirmModal: React.FC<PasteConfirmModalProps> = ({
   onClose,
   onConfirm,
 }) => {
-  const isDark = themeMode === 'dark';
+  const isDark = themeMode !== 'light';
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');

@@ -24,7 +24,7 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
   const [filterType, setFilterType] = useState<'all' | 'tags' | 'date'>('all');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const isDark = themeMode === 'dark';
+  const isDark = themeMode !== 'light';
 
   const selectedItemRef = useRef<HTMLDivElement>(null);
 
@@ -68,6 +68,34 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
       }
     });
     return Array.from(tagsSet);
+  }, [notes]);
+
+  // Pre-process notes once for search rendering (clean snippet + hashtags)
+  const processedNotesMap = useMemo(() => {
+    const map = new Map<string, { plainSnippet: string; userHashtags: string[] }>();
+    notes.forEach((note) => {
+      const userHashtags = (
+        (note.title + ' ' + note.content).match(/#[a-zA-Z0-9_\-\u0980-\u09FF]+/g) ||
+        note.tags ||
+        []
+      ).filter((t) => !/^#?Group\s/i.test(t));
+
+      const plainSnippet = note.content
+        ? note.content
+            .replace(/^#+\s+/gm, '')
+            .replace(/^[-*+]\s+\[[ xX]\]\s+/gm, '✓ ')
+            .replace(/^[-*+]\s+/gm, '• ')
+            .replace(/[*_~`#]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim()
+        : '';
+
+      map.set(note.id, {
+        plainSnippet,
+        userHashtags: Array.from(new Set(userHashtags)),
+      });
+    });
+    return map;
   }, [notes]);
 
   // Fast search filter logic
@@ -295,21 +323,9 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
           ) : (
             filteredNotes.map((note, index) => {
               const isSelected = index === selectedIndex;
-              const userHashtags = (
-                (note.title + ' ' + note.content).match(/#[a-zA-Z0-9_\-\u0980-\u09FF]+/g) ||
-                note.tags ||
-                []
-              ).filter((t) => !/^#?Group\s/i.test(t));
-
-              const plainSnippet = note.content
-                ? note.content
-                    .replace(/^#+\s+/gm, '')
-                    .replace(/^[-*+]\s+\[[ xX]\]\s+/gm, '✓ ')
-                    .replace(/^[-*+]\s+/gm, '• ')
-                    .replace(/[*_~`#]/g, '')
-                    .replace(/\s+/g, ' ')
-                    .trim()
-                : '';
+              const processed = processedNotesMap.get(note.id) || { plainSnippet: '', userHashtags: [] };
+              const userHashtags = processed.userHashtags;
+              const plainSnippet = processed.plainSnippet;
 
               return (
                 <div
@@ -319,7 +335,9 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
                     onSelectNote(note.id);
                     onClose();
                   }}
-                  onMouseEnter={() => setSelectedIndex(index)}
+                  onMouseEnter={() => {
+                    if (selectedIndex !== index) setSelectedIndex(index);
+                  }}
                   className={`px-3 py-2 rounded-lg cursor-pointer transition-all flex items-center justify-between gap-3 border ${
                     isSelected
                       ? isDark

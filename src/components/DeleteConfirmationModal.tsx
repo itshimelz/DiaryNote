@@ -35,7 +35,7 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
 
   if (!isOpen || count === 0) return null;
 
-  const isDark = themeMode === 'dark';
+  const isDark = themeMode !== 'light';
 
   return (
     <div

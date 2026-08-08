@@ -17,7 +17,7 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
   onClose,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const isDark = themeMode === 'dark';
+  const isDark = themeMode !== 'light';
 
   // Handle ESC key to close modal
   useEffect(() => {

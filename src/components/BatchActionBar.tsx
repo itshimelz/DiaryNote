@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Note, PaperTheme, CanvasTheme } from '../types';
@@ -47,7 +48,7 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
   const themeRef = useRef<HTMLDivElement>(null);
   const alignRef = useRef<HTMLDivElement>(null);
 
-  const isDark = themeMode === 'dark';
+  const isDark = themeMode !== 'light';
 
   const selectedNotes = useMemo(
     () => notes.filter((n) => selectedNoteIds.includes(n.id)),
