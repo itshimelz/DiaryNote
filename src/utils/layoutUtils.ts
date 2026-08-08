@@ -18,6 +18,26 @@ export function getNoteHeight(n: Note): number {
 }
 
 /**
+ * Batch-reads all note dimensions in a single layout pass to prevent forced reflow thrashing.
+ */
+export function getNoteDimensionsMap(notes: Note[]): Map<string, { width: number; height: number }> {
+  const dims = new Map<string, { width: number; height: number }>();
+  if (typeof document === 'undefined') {
+    notes.forEach((n) => dims.set(n.id, { width: n.width || DEFAULT_NOTE_WIDTH, height: n.height || DEFAULT_NOTE_HEIGHT }));
+    return dims;
+  }
+  for (let i = 0; i < notes.length; i++) {
+    const n = notes[i];
+    const el = document.getElementById(`note-card-${n.id}`);
+    dims.set(n.id, {
+      width: el ? el.offsetWidth : n.width || DEFAULT_NOTE_WIDTH,
+      height: el ? el.offsetHeight : n.height || DEFAULT_NOTE_HEIGHT,
+    });
+  }
+  return dims;
+}
+
+/**
  * Aligns selected notes to the leftmost X position.
  */
 export function alignLeft(notes: Note[]): Note[] {
@@ -31,13 +51,14 @@ export function alignLeft(notes: Note[]): Note[] {
  */
 export function alignCenterHorizontal(notes: Note[]): Note[] {
   if (notes.length < 2) return notes;
+  const dims = getNoteDimensionsMap(notes);
   const avgCenterX = Math.round(
-    notes.reduce((acc, n) => acc + (n.x + getNoteWidth(n) / 2), 0) / notes.length
+    notes.reduce((acc, n) => acc + (n.x + (dims.get(n.id)?.width || DEFAULT_NOTE_WIDTH) / 2), 0) / notes.length
   );
-  return notes.map((n) => ({
-    ...n,
-    x: Math.round(avgCenterX - getNoteWidth(n) / 2),
-  }));
+  return notes.map((n) => {
+    const w = dims.get(n.id)?.width || DEFAULT_NOTE_WIDTH;
+    return { ...n, x: Math.round(avgCenterX - w / 2) };
+  });
 }
 
 /**
@@ -45,11 +66,12 @@ export function alignCenterHorizontal(notes: Note[]): Note[] {
  */
 export function alignRight(notes: Note[]): Note[] {
   if (notes.length < 2) return notes;
-  const maxRight = Math.max(...notes.map((n) => n.x + getNoteWidth(n)));
-  return notes.map((n) => ({
-    ...n,
-    x: Math.round(maxRight - getNoteWidth(n)),
-  }));
+  const dims = getNoteDimensionsMap(notes);
+  const maxRight = Math.max(...notes.map((n) => n.x + (dims.get(n.id)?.width || DEFAULT_NOTE_WIDTH)));
+  return notes.map((n) => {
+    const w = dims.get(n.id)?.width || DEFAULT_NOTE_WIDTH;
+    return { ...n, x: Math.round(maxRight - w) };
+  });
 }
 
 /**
@@ -57,7 +79,7 @@ export function alignRight(notes: Note[]): Note[] {
  */
 export function alignTop(notes: Note[]): Note[] {
   if (notes.length < 2) return notes;
-  const minY = Math.min(...notes.map((n) => n.y));
+  const minY = Math.min(...notes.map((n) => n.x));
   return notes.map((n) => ({ ...n, y: minY }));
 }
 
@@ -66,13 +88,14 @@ export function alignTop(notes: Note[]): Note[] {
  */
 export function alignCenterVertical(notes: Note[]): Note[] {
   if (notes.length < 2) return notes;
+  const dims = getNoteDimensionsMap(notes);
   const avgCenterY = Math.round(
-    notes.reduce((acc, n) => acc + (n.y + getNoteHeight(n) / 2), 0) / notes.length
+    notes.reduce((acc, n) => acc + (n.y + (dims.get(n.id)?.height || DEFAULT_NOTE_HEIGHT) / 2), 0) / notes.length
   );
-  return notes.map((n) => ({
-    ...n,
-    y: Math.round(avgCenterY - getNoteHeight(n) / 2),
-  }));
+  return notes.map((n) => {
+    const h = dims.get(n.id)?.height || DEFAULT_NOTE_HEIGHT;
+    return { ...n, y: Math.round(avgCenterY - h / 2) };
+  });
 }
 
 /**
@@ -80,11 +103,12 @@ export function alignCenterVertical(notes: Note[]): Note[] {
  */
 export function alignBottom(notes: Note[]): Note[] {
   if (notes.length < 2) return notes;
-  const maxBottom = Math.max(...notes.map((n) => n.y + getNoteHeight(n)));
-  return notes.map((n) => ({
-    ...n,
-    y: Math.round(maxBottom - getNoteHeight(n)),
-  }));
+  const dims = getNoteDimensionsMap(notes);
+  const maxBottom = Math.max(...notes.map((n) => n.y + (dims.get(n.id)?.height || DEFAULT_NOTE_HEIGHT)));
+  return notes.map((n) => {
+    const h = dims.get(n.id)?.height || DEFAULT_NOTE_HEIGHT;
+    return { ...n, y: Math.round(maxBottom - h) };
+  });
 }
 
 /**
@@ -92,8 +116,9 @@ export function alignBottom(notes: Note[]): Note[] {
  */
 export function distributeHorizontally(notes: Note[]): Note[] {
   if (notes.length < 3) return notes;
+  const dims = getNoteDimensionsMap(notes);
   const sorted = [...notes].sort((a, b) => a.x - b.x);
-  const widths = sorted.map(getNoteWidth);
+  const widths = sorted.map((n) => dims.get(n.id)?.width || DEFAULT_NOTE_WIDTH);
 
   const firstX = sorted[0].x;
   const lastNote = sorted[sorted.length - 1];
@@ -119,8 +144,9 @@ export function distributeHorizontally(notes: Note[]): Note[] {
  */
 export function distributeVertically(notes: Note[]): Note[] {
   if (notes.length < 3) return notes;
+  const dims = getNoteDimensionsMap(notes);
   const sorted = [...notes].sort((a, b) => a.y - b.y);
-  const heights = sorted.map(getNoteHeight);
+  const heights = sorted.map((n) => dims.get(n.id)?.height || DEFAULT_NOTE_HEIGHT);
 
   const firstY = sorted[0].y;
   const lastNote = sorted[sorted.length - 1];
@@ -146,12 +172,13 @@ export function distributeVertically(notes: Note[]): Note[] {
  */
 export function arrangeInGrid(notes: Note[]): Note[] {
   if (notes.length < 2) return notes;
+  const dims = getNoteDimensionsMap(notes);
   const cols = Math.ceil(Math.sqrt(notes.length));
   const minX = Math.min(...notes.map((n) => n.x));
   const minY = Math.min(...notes.map((n) => n.y));
 
-  const maxW = Math.max(...notes.map(getNoteWidth));
-  const maxH = Math.max(...notes.map(getNoteHeight));
+  const maxW = Math.max(...notes.map((n) => dims.get(n.id)?.width || DEFAULT_NOTE_WIDTH));
+  const maxH = Math.max(...notes.map((n) => dims.get(n.id)?.height || DEFAULT_NOTE_HEIGHT));
 
   const gapX = 32;
   const gapY = 32;
@@ -185,11 +212,14 @@ export function calculateGroupBounds(
   groupNotes: Note[],
   paddingX = 28,
   paddingYTop = 42,
-  paddingYBottom = 28
+  paddingYBottom = 28,
+  existingDimsMap?: Map<string, { width: number; height: number }>
 ): GroupBounds {
   if (!groupNotes || groupNotes.length === 0) {
     return { minX: 0, minY: 0, maxX: 100, maxY: 100, width: 100, height: 100 };
   }
+
+  const dims = existingDimsMap || getNoteDimensionsMap(groupNotes);
 
   let minX = Infinity;
   let minY = Infinity;
@@ -197,8 +227,9 @@ export function calculateGroupBounds(
   let maxY = -Infinity;
 
   groupNotes.forEach((n) => {
-    const realW = getNoteWidth(n);
-    const realH = getNoteHeight(n);
+    const d = dims.get(n.id);
+    const realW = d ? d.width : n.width || DEFAULT_NOTE_WIDTH;
+    const realH = d ? d.height : n.height || DEFAULT_NOTE_HEIGHT;
 
     minX = Math.min(minX, n.x);
     minY = Math.min(minY, n.y);

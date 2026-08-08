@@ -12,11 +12,8 @@ export const isNoteTextEmpty = (value: string | undefined): boolean =>
   normalizeNoteText(value).trim().length === 0;
 
 export const getEditorHeight = (textarea: HTMLTextAreaElement, minimum = 180): number => {
-  const previousHeight = textarea.style.height;
-  textarea.style.height = '0px';
-  const height = Math.max(minimum, textarea.scrollHeight);
-  textarea.style.height = previousHeight;
-  return height;
+  textarea.style.height = 'auto';
+  return Math.max(minimum, textarea.scrollHeight);
 };
 
 export const resizeNoteEditor = (textarea: HTMLTextAreaElement, minimum = 180): void => {

@@ -36,13 +36,18 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
 
   // Dynamic ResizeObserver to adapt frame size smoothly to live card heights
   useEffect(() => {
+    let frameId: number | null = null;
     const updateBounds = () => {
-      const bounds = calculateGroupBounds(groupNotes, 28, 42, 28);
-      setMeasuredBounds({
-        minX: bounds.minX,
-        minY: bounds.minY,
-        maxX: bounds.maxX,
-        maxY: bounds.maxY,
+      if (frameId !== null) return;
+      frameId = requestAnimationFrame(() => {
+        const bounds = calculateGroupBounds(groupNotes, 28, 42, 28);
+        setMeasuredBounds({
+          minX: bounds.minX,
+          minY: bounds.minY,
+          maxX: bounds.maxX,
+          maxY: bounds.maxY,
+        });
+        frameId = null;
       });
     };
 
@@ -59,6 +64,7 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
     });
 
     return () => {
+      if (frameId !== null) cancelAnimationFrame(frameId);
       observers.forEach((obs) => obs.disconnect());
     };
   }, [groupNotes]);
@@ -127,11 +133,11 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
     window.addEventListener('mouseup', handleMouseUp);
   };
 
-  const fallbackBounds = calculateGroupBounds(groupNotes, 28, 42, 28);
-  const minX = measuredBounds ? measuredBounds.minX : fallbackBounds.minX;
-  const minY = measuredBounds ? measuredBounds.minY : fallbackBounds.minY;
-  const maxX = measuredBounds ? measuredBounds.maxX : fallbackBounds.maxX;
-  const maxY = measuredBounds ? measuredBounds.maxY : fallbackBounds.maxY;
+  const bounds = measuredBounds || calculateGroupBounds(groupNotes, 28, 42, 28);
+  const minX = bounds.minX;
+  const minY = bounds.minY;
+  const maxX = bounds.maxX;
+  const maxY = bounds.maxY;
 
   const width = Math.max(100, maxX - minX);
   const height = Math.max(100, maxY - minY);
