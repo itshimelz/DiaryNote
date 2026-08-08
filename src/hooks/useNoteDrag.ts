@@ -17,7 +17,11 @@ interface UseNoteDragOptions {
   onDragStateChange?: (draggingIds: string[]) => void;
 }
 
-function updateGroupFramesDOM(allNotes: Note[], updatedPosMap: Map<string, { x: number; y: number }>) {
+function updateGroupFramesDOM(
+  allNotes: Note[],
+  updatedPosMap: Map<string, { x: number; y: number }>,
+  cardDimsMap: Map<string, { width: number; height: number }>
+) {
   const affectedGroupIds = new Set<string>();
   allNotes.forEach((n) => {
     if (n.groupId && updatedPosMap.has(n.id)) {
@@ -37,14 +41,12 @@ function updateGroupFramesDOM(allNotes: Note[], updatedPosMap: Map<string, { x: 
 
     groupNotes.forEach((n) => {
       const pos = updatedPosMap.get(n.id) || { x: n.x, y: n.y };
-      const cardEl = document.getElementById(`note-card-${n.id}`);
-      const cardW = cardEl ? cardEl.offsetWidth : n.width || 340;
-      const cardH = cardEl ? cardEl.offsetHeight : n.height || 340;
+      const dims = cardDimsMap.get(n.id) || { width: n.width || 340, height: n.height || 340 };
 
       minX = Math.min(minX, pos.x);
       minY = Math.min(minY, pos.y);
-      maxX = Math.max(maxX, pos.x + cardW);
-      maxY = Math.max(maxY, pos.y + cardH);
+      maxX = Math.max(maxX, pos.x + dims.width);
+      maxY = Math.max(maxY, pos.y + dims.height);
     });
 
     if (minX === Infinity) return;
@@ -162,25 +164,61 @@ export function useNoteDrag({
       groupDragStartRef.current = [];
     }
 
+    const cardDimsMap = new Map<string, { width: number; height: number }>();
+    allNotes.forEach((n) => {
+      const cardEl = document.getElementById(`note-card-${n.id}`);
+      cardDimsMap.set(n.id, {
+        width: cardEl ? cardEl.offsetWidth : n.width || 340,
+        height: cardEl ? cardEl.offsetHeight : n.height || 340,
+      });
+    });
+
     let hasMoved = false;
-    let frame: number | null = null;
-    let pendingSingle: Note | null = null;
-    let pendingBatch: Note[] | null = null;
+    let moveFrame: number | null = null;
+    let latestMoveEvt: MouseEvent | null = null;
 
-    const flushMove = () => {
-      if (pendingBatch && onUpdateBatchNotes) onUpdateBatchNotes(pendingBatch);
-      else if (pendingSingle) onUpdateNote(pendingSingle);
-      pendingSingle = null;
-      pendingBatch = null;
-      frame = null;
-      activeFrameRef.current = null;
-    };
+    const processMoveDOM = (moveEvent: MouseEvent) => {
+      const dx = (moveEvent.clientX - dragStartRef.current.x) / zoom;
+      const dy = (moveEvent.clientY - dragStartRef.current.y) / zoom;
 
-    const scheduleMove = () => {
-      if (frame === null) {
-        frame = requestAnimationFrame(flushMove);
-        activeFrameRef.current = frame;
+      const updatedMap = new Map<string, { x: number; y: number }>();
+
+      if (groupDragStartRef.current.length > 1) {
+        const updatedBatch = allNotes
+          .filter((n) => activeSelectedIds.includes(n.id))
+          .map((n) => {
+            const startPos = groupDragStartRef.current.find((item) => item.id === n.id);
+            if (!startPos) return n;
+            let rawX = startPos.startX + dx;
+            let rawY = startPos.startY + dy;
+            if (snapToGrid) {
+              rawX = Math.round(rawX / GRID_SIZE) * GRID_SIZE;
+              rawY = Math.round(rawY / GRID_SIZE) * GRID_SIZE;
+            }
+            const el = document.getElementById(`note-card-${n.id}`);
+            if (el) {
+              el.style.transform = `translate3d(${Math.round(rawX)}px, ${Math.round(rawY)}px, 0)`;
+            }
+            updatedMap.set(n.id, { x: rawX, y: rawY });
+            return { ...n, x: rawX, y: rawY };
+          });
+        currentBatchRef.current = updatedBatch;
+      } else {
+        let newX = dragStartRef.current.noteX + dx;
+        let newY = dragStartRef.current.noteY + dy;
+        if (snapToGrid) {
+          newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
+          newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
+        }
+        currentPosRef.current = { x: newX, y: newY };
+        const el = document.getElementById(`note-card-${noteRef.current.id}`);
+        if (el) {
+          el.style.transform = `translate3d(${Math.round(newX)}px, ${Math.round(newY)}px, 0)`;
+        }
+        updatedMap.set(noteRef.current.id, { x: newX, y: newY });
       }
+
+      updateGroupFramesDOM(allNotes, updatedMap, cardDimsMap);
     };
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
@@ -202,56 +240,20 @@ export function useNoteDrag({
         }
       }
 
-      const dx = (moveEvent.clientX - dragStartRef.current.x) / zoom;
-      const dy = (moveEvent.clientY - dragStartRef.current.y) / zoom;
-
-      const updatedMap = new Map<string, { x: number; y: number }>();
-
-      if (groupDragStartRef.current.length > 1) {
-        const updatedBatch = allNotes
-          .filter((n) => activeSelectedIds.includes(n.id))
-          .map((n) => {
-            const startPos = groupDragStartRef.current.find((item) => item.id === n.id);
-            if (!startPos) return n;
-            let rawX = startPos.startX + dx;
-            let rawY = startPos.startY + dy;
-            if (snapToGrid) {
-              rawX = Math.round(rawX / GRID_SIZE) * GRID_SIZE;
-              rawY = Math.round(rawY / GRID_SIZE) * GRID_SIZE;
-            }
-            // Update DOM transform directly for each card in the multi-select group
-            const el = document.getElementById(`note-card-${n.id}`);
-            if (el) {
-              el.style.transform = `translate3d(${Math.round(rawX)}px, ${Math.round(rawY)}px, 0)`;
-            }
-            updatedMap.set(n.id, { x: rawX, y: rawY });
-            return { ...n, x: rawX, y: rawY };
-          });
-        currentBatchRef.current = updatedBatch;
-      } else {
-        let newX = dragStartRef.current.noteX + dx;
-        let newY = dragStartRef.current.noteY + dy;
-        if (snapToGrid) {
-          newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
-          newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
-        }
-        currentPosRef.current = { x: newX, y: newY };
-        // Update DOM transform directly for the single dragged card
-        const el = document.getElementById(`note-card-${noteRef.current.id}`);
-        if (el) {
-          el.style.transform = `translate3d(${Math.round(newX)}px, ${Math.round(newY)}px, 0)`;
-        }
-        updatedMap.set(noteRef.current.id, { x: newX, y: newY });
+      latestMoveEvt = moveEvent;
+      if (moveFrame === null) {
+        moveFrame = requestAnimationFrame(() => {
+          if (latestMoveEvt) processMoveDOM(latestMoveEvt);
+          moveFrame = null;
+        });
       }
-
-      // Keep group frame boundaries moving synchronously with dragged notes
-      updateGroupFramesDOM(allNotes, updatedMap);
     };
 
     const handleMouseUp = () => {
       document.body.style.cursor = '';
-      if (frame !== null) {
-        cancelAnimationFrame(frame);
+      if (moveFrame !== null) {
+        cancelAnimationFrame(moveFrame);
+        moveFrame = null;
       }
       if (hasMoved) {
         if (
@@ -281,10 +283,7 @@ export function useNoteDrag({
       } else if (!isMulti && isAlreadySelected && selectedNoteIds.length > 1) {
         onSelectNote(note.id, false);
       }
-      pendingSingle = null;
-      pendingBatch = null;
       currentBatchRef.current = [];
-      frame = null;
       activeFrameRef.current = null;
       activeMouseHandlersRef.current = null;
 

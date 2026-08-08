@@ -288,7 +288,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         isPanMode
           ? 'cursor-grab active:cursor-grabbing pointer-events-none'
           : isDragging || isCardDragging
-          ? 'transition-none scale-[1.015] cursor-grabbing ring-2 ring-blue-500/70 shadow-md z-[10000]'
+          ? 'transition-none scale-100 cursor-grabbing ring-2 ring-blue-500/80 shadow-md z-[10000]'
           : `transition-[box-shadow,opacity] duration-150 ease-out scale-100 shadow-sm ${
               !isEditing ? 'cursor-grab' : ''
             }`

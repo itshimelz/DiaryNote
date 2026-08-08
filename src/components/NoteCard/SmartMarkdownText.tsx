@@ -14,7 +14,7 @@ interface SmartMarkdownTextProps {
   onDoubleClick?: (e: React.MouseEvent) => void;
 }
 
-export const SmartMarkdownText: React.FC<SmartMarkdownTextProps> = ({
+const SmartMarkdownTextComponent: React.FC<SmartMarkdownTextProps> = ({
   content,
   allNotes = [],
   fontClass = 'font-sans',
@@ -39,3 +39,5 @@ export const SmartMarkdownText: React.FC<SmartMarkdownTextProps> = ({
     />
   );
 };
+
+export const SmartMarkdownText = React.memo(SmartMarkdownTextComponent);

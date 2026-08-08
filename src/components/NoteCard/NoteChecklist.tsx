@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Check, Plus, Trash2, ListTodo } from 'lucide-react';
 import { Note, PaperTheme } from '../../types';
 import { SmartMarkdownText } from './SmartMarkdownText';
@@ -21,6 +21,158 @@ interface NoteChecklistProps {
   fontSizeClass?: string;
   paperTheme?: string;
 }
+
+interface ChecklistItemRowProps {
+  item: ChecklistItem;
+  isEditing: boolean;
+  themeConfig: any;
+  isRuled: boolean;
+  fontClass: string;
+  fontSizeClass: string;
+  paperTheme: string;
+  allNotes: Note[];
+  onToggleItem: (id: string) => void;
+  onUpdateText: (id: string, text: string) => void;
+  onDeleteItem: (id: string) => void;
+  onInsertItemAfter: (id: string) => void;
+  onStartEditing: (id: string) => void;
+  onStopEditing: () => void;
+  onNavigateToNote?: (targetNoteId: string) => void;
+}
+
+const ChecklistItemRowComponent: React.FC<ChecklistItemRowProps> = ({
+  item,
+  isEditing,
+  themeConfig,
+  isRuled,
+  fontClass,
+  fontSizeClass,
+  paperTheme,
+  allNotes,
+  onToggleItem,
+  onUpdateText,
+  onDeleteItem,
+  onInsertItemAfter,
+  onStartEditing,
+  onStopEditing,
+  onNavigateToNote,
+}) => {
+  if (item.isHeading) {
+    return (
+      <div className="flex items-center justify-between group pt-3 pb-1 border-b border-slate-200/40 dark:border-slate-800/40">
+        <div className={`flex-1 font-bold text-sm uppercase tracking-wider ${themeConfig.text}`}>
+          {item.text}
+        </div>
+        <button
+          type="button"
+          onClick={() => onDeleteItem(item.id)}
+          className={`opacity-0 group-hover:opacity-100 p-1 ${themeConfig.subtext} hover:text-rose-500 shrink-0`}
+          title="Delete section header"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`flex items-start gap-2.5 px-2 py-1.5 rounded-xl ${themeConfig.hoverBg} group ${
+        isRuled ? 'ruled-text-alignment' : ''
+      }`}
+    >
+      {/* Custom rounded square checkbox */}
+      <button
+        type="button"
+        onClick={() => onToggleItem(item.id)}
+        style={isRuled ? { marginTop: '6px' } : { marginTop: '2px' }}
+        className={`shrink-0 w-4.5 h-4.5 rounded-md border-2 flex items-center justify-center ${
+          item.completed ? themeConfig.checkboxChecked : themeConfig.checkboxUnchecked
+        }`}
+      >
+        {item.completed && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+      </button>
+
+      {/* Task text item: Markdown preview when inactive, Textarea when editing */}
+      {isEditing ? (
+        <textarea
+          autoFocus
+          rows={1}
+          value={item.text}
+          onChange={(e) => onUpdateText(item.id, e.target.value)}
+          onBlur={() => {
+            if (!item.text.trim()) {
+              onDeleteItem(item.id);
+            }
+            onStopEditing();
+          }}
+          onInput={(e) => {
+            const target = e.currentTarget;
+            target.style.height = 'auto';
+            target.style.height = `${target.scrollHeight}px`;
+          }}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              if (!item.text.trim()) {
+                onDeleteItem(item.id);
+                onStopEditing();
+              } else {
+                onInsertItemAfter(item.id);
+              }
+            } else if (e.key === 'Backspace' && item.text === '') {
+              e.preventDefault();
+              onDeleteItem(item.id);
+              onStopEditing();
+            } else if (e.key === 'Escape') {
+              e.preventDefault();
+              onStopEditing();
+            }
+          }}
+          ref={(el) => {
+            if (el) {
+              el.style.height = 'auto';
+              el.style.height = `${el.scrollHeight}px`;
+            }
+          }}
+          placeholder="Task item..."
+          className={`flex-1 bg-transparent border-0 outline-none ${themeConfig.text} font-medium text-sm tracking-tight resize-none overflow-hidden break-words whitespace-pre-wrap py-0`}
+        />
+      ) : (
+        <div
+          onClick={() => onStartEditing(item.id)}
+          className={`flex-1 cursor-text min-h-[22px] font-medium tracking-tight ${
+            item.completed ? 'line-through opacity-50' : themeConfig.text
+          }`}
+        >
+          <SmartMarkdownText
+            content={item.text || 'Task item...'}
+            allNotes={allNotes}
+            onNavigateToNote={onNavigateToNote}
+            fontClass={fontClass}
+            fontSizeClass={fontSizeClass}
+            paperTheme={paperTheme}
+            inline
+          />
+        </div>
+      )}
+
+      {/* Delete button */}
+      <button
+        type="button"
+        onClick={() => onDeleteItem(item.id)}
+        className={`opacity-0 group-hover:opacity-100 p-1 ${themeConfig.subtext} hover:text-rose-500 shrink-0`}
+        title="Delete task"
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+};
+
+const ChecklistItemRow = React.memo(ChecklistItemRowComponent);
 
 export const NoteChecklist: React.FC<NoteChecklistProps> = ({
   content,
@@ -93,47 +245,74 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
     onChangeContent(markdown);
   };
 
-  const handleToggleItem = (id: string) => {
-    const updated = items.map((item) =>
-      item.id === id ? { ...item, completed: !item.completed } : item
-    );
-    setItems(updated);
-    syncBackToContent(updated);
-  };
+  const handleToggleItem = useCallback(
+    (id: string) => {
+      setItems((prevItems) => {
+        const updated = prevItems.map((item) =>
+          item.id === id ? { ...item, completed: !item.completed } : item
+        );
+        syncBackToContent(updated);
+        return updated;
+      });
+    },
+    [syncBackToContent]
+  );
 
-  const handleUpdateText = (id: string, text: string) => {
-    const updated = items.map((item) => (item.id === id ? { ...item, text } : item));
-    setItems(updated);
-    syncBackToContent(updated);
-  };
+  const handleUpdateText = useCallback(
+    (id: string, text: string) => {
+      setItems((prevItems) => {
+        const updated = prevItems.map((item) => (item.id === id ? { ...item, text } : item));
+        syncBackToContent(updated);
+        return updated;
+      });
+    },
+    [syncBackToContent]
+  );
 
-  const handleDeleteItem = (id: string) => {
-    const updated = items.filter((item) => item.id !== id);
-    setItems(updated);
-    if (editingItemId === id) {
-      setEditingItemId(null);
-    }
-    syncBackToContent(updated);
-  };
+  const handleDeleteItem = useCallback(
+    (id: string) => {
+      setItems((prevItems) => {
+        const updated = prevItems.filter((item) => item.id !== id);
+        syncBackToContent(updated);
+        return updated;
+      });
+      setEditingItemId((prev) => (prev === id ? null : prev));
+    },
+    [syncBackToContent]
+  );
 
-  const handleInsertItemAfter = (currentId: string) => {
-    const currentIndex = items.findIndex((i) => i.id === currentId);
-    const newId = `item-task-${Date.now()}`;
-    const newItem: ChecklistItem = {
-      id: newId,
-      text: '',
-      completed: false,
-    };
-    const updated = [...items];
-    if (currentIndex >= 0) {
-      updated.splice(currentIndex + 1, 0, newItem);
-    } else {
-      updated.push(newItem);
-    }
-    setItems(updated);
-    setEditingItemId(newId);
-    syncBackToContent(updated);
-  };
+  const handleInsertItemAfter = useCallback(
+    (currentId: string) => {
+      let newId = '';
+      setItems((prevItems) => {
+        const currentIndex = prevItems.findIndex((i) => i.id === currentId);
+        newId = `item-task-${Date.now()}`;
+        const newItem: ChecklistItem = {
+          id: newId,
+          text: '',
+          completed: false,
+        };
+        const updated = [...prevItems];
+        if (currentIndex >= 0) {
+          updated.splice(currentIndex + 1, 0, newItem);
+        } else {
+          updated.push(newItem);
+        }
+        syncBackToContent(updated);
+        return updated;
+      });
+      if (newId) setEditingItemId(newId);
+    },
+    [syncBackToContent]
+  );
+
+  const handleStartEditing = useCallback((id: string) => {
+    setEditingItemId(id);
+  }, []);
+
+  const handleStopEditing = useCallback(() => {
+    setEditingItemId(null);
+  }, []);
 
   const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,131 +344,26 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
             <p className="text-[11px] opacity-75 mt-0.5">Type below and press Enter to add a task.</p>
           </div>
         ) : (
-          items.map((item) => {
-            const isEditing = editingItemId === item.id;
-
-            if (item.isHeading) {
-              return (
-                <div key={item.id} className="flex items-center justify-between group pt-3 pb-1 border-b border-slate-200/40 dark:border-slate-800/40">
-                  <div className={`flex-1 font-bold text-sm uppercase tracking-wider ${themeConfig.text}`}>
-                    {item.text}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteItem(item.id)}
-                    className={`opacity-0 group-hover:opacity-100 p-1 ${themeConfig.subtext} hover:text-rose-500 transition-opacity shrink-0`}
-                    title="Delete section header"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              );
-            }
-
-            return (
-              <div
-                key={item.id}
-                className={`flex items-start gap-2.5 px-2 py-1.5 rounded-xl ${themeConfig.hoverBg} group transition-colors ${
-                  isRuled ? 'ruled-text-alignment' : ''
-                }`}
-              >
-                {/* Custom rounded square checkbox */}
-                <button
-                  type="button"
-                  onClick={() => handleToggleItem(item.id)}
-                  style={isRuled ? { marginTop: '6px' } : { marginTop: '2px' }}
-                  className={`shrink-0 w-4.5 h-4.5 rounded-md border-2 transition-all flex items-center justify-center ${
-                    item.completed
-                      ? themeConfig.checkboxChecked
-                      : themeConfig.checkboxUnchecked
-                  }`}
-                >
-                  {item.completed && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                </button>
-
-                {/* Task text item: Markdown preview when inactive, Textarea when editing */}
-                {isEditing ? (
-                  <textarea
-                    autoFocus
-                    rows={1}
-                    value={item.text}
-                    onChange={(e) => handleUpdateText(item.id, e.target.value)}
-                    onBlur={() => {
-                      if (!item.text.trim()) {
-                        handleDeleteItem(item.id);
-                      }
-                      setEditingItemId(null);
-                    }}
-                    onInput={(e) => {
-                      const target = e.currentTarget;
-                      target.style.height = 'auto';
-                      target.style.height = `${target.scrollHeight}px`;
-                    }}
-                    onKeyDown={(e) => {
-                      e.stopPropagation();
-
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        if (!item.text.trim()) {
-                          handleDeleteItem(item.id);
-                          setEditingItemId(null);
-                        } else {
-                          handleInsertItemAfter(item.id);
-                        }
-                      } else if (e.key === 'Backspace' && item.text === '') {
-                        e.preventDefault();
-                        const currentIndex = items.findIndex((i) => i.id === item.id);
-                        handleDeleteItem(item.id);
-                        if (currentIndex > 0 && items[currentIndex - 1]) {
-                          setEditingItemId(items[currentIndex - 1].id);
-                        } else {
-                          setEditingItemId(null);
-                        }
-                      } else if (e.key === 'Escape') {
-                        e.preventDefault();
-                        setEditingItemId(null);
-                      }
-                    }}
-                    ref={(el) => {
-                      if (el) {
-                        el.style.height = 'auto';
-                        el.style.height = `${el.scrollHeight}px`;
-                      }
-                    }}
-                    placeholder="Task item..."
-                    className={`flex-1 bg-transparent border-0 outline-none ${themeConfig.text} font-medium text-sm tracking-tight resize-none overflow-hidden break-words whitespace-pre-wrap py-0`}
-                  />
-                ) : (
-                  <div
-                    onClick={() => setEditingItemId(item.id)}
-                    className={`flex-1 cursor-text min-h-[22px] font-medium tracking-tight ${
-                      item.completed ? 'line-through opacity-50' : themeConfig.text
-                    }`}
-                  >
-                    <SmartMarkdownText
-                      content={item.text || 'Task item...'}
-                      allNotes={allNotes}
-                      onNavigateToNote={onNavigateToNote}
-                      fontClass={fontClass}
-                      fontSizeClass={fontSizeClass}
-                      paperTheme={paperTheme}
-                      inline
-                    />
-                  </div>
-                )}
-
-                {/* Delete button */}
-                <button
-                  type="button"
-                  onClick={() => handleDeleteItem(item.id)}
-                  className={`opacity-0 group-hover:opacity-100 p-1 ${themeConfig.subtext} hover:text-rose-500 transition-opacity shrink-0`}
-                  title="Delete task"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            );
-          })
+          items.map((item) => (
+            <ChecklistItemRow
+              key={item.id}
+              item={item}
+              isEditing={editingItemId === item.id}
+              themeConfig={themeConfig}
+              isRuled={isRuled}
+              fontClass={fontClass}
+              fontSizeClass={fontSizeClass}
+              paperTheme={paperTheme}
+              allNotes={allNotes}
+              onToggleItem={handleToggleItem}
+              onUpdateText={handleUpdateText}
+              onDeleteItem={handleDeleteItem}
+              onInsertItemAfter={handleInsertItemAfter}
+              onStartEditing={handleStartEditing}
+              onStopEditing={handleStopEditing}
+              onNavigateToNote={onNavigateToNote}
+            />
+          ))
         )}
       </div>
 
