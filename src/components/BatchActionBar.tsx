@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Note, PaperTheme, CanvasTheme } from '../types';
-import { PAPER_THEMES } from './NoteCard/types';
+import { PAPER_THEMES, PAPER_THEME_OPTIONS, PAPER_THEME_LABELS } from '../constants/paperThemes';
+
 import { exportNotesBackup } from '../lib/storage';
 import {
   CheckSquare,
@@ -31,30 +32,6 @@ interface BatchActionBarProps {
   onDeleteNotes: (ids: string[]) => void;
   onClearSelection: () => void;
 }
-
-const PAPER_THEME_OPTIONS: PaperTheme[] = [
-  'white',
-  'cream',
-  'ruled',
-  'dotted',
-  'kraft',
-  'dark',
-  'ruled-dark',
-  'graphite',
-  'transparent',
-];
-
-const PAPER_THEME_LABELS: Record<PaperTheme, string> = {
-  white: 'White',
-  cream: 'Cream',
-  ruled: 'Ruled',
-  dotted: 'Dotted',
-  kraft: 'Kraft',
-  dark: 'Dark',
-  'ruled-dark': 'Ruled dark',
-  graphite: 'Graphite',
-  transparent: 'Transparent',
-};
 
 export const BatchActionBar: React.FC<BatchActionBarProps> = ({
   selectedNoteIds,

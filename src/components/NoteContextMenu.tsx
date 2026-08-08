@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Note, PaperTheme, CanvasTheme } from '../types';
-import { PAPER_THEMES } from './NoteCard/types';
+import { PAPER_THEME_ITEMS } from '../constants/paperThemes';
 import {
   Maximize2,
   Edit3,
@@ -42,16 +42,7 @@ interface NoteContextMenuProps {
   onSelectAllNotes?: () => void;
 }
 
-const PAPER_THEME_ITEMS: { key: PaperTheme; label: string; colorClass: string }[] = [
-  { key: 'white', label: 'White', colorClass: 'bg-white border-slate-300' },
-  { key: 'cream', label: 'Cream', colorClass: 'bg-[#fefcbf] border-amber-300' },
-  { key: 'ruled', label: 'Ruled', colorClass: 'bg-[#fef3c7] border-amber-400' },
-  { key: 'dotted', label: 'Dotted', colorClass: 'bg-[#f8fafc] border-slate-300' },
-  { key: 'kraft', label: 'Kraft', colorClass: 'bg-[#e9d5ff] border-purple-300' },
-  { key: 'dark', label: 'Dark', colorClass: 'bg-slate-900 border-slate-700' },
-  { key: 'graphite', label: 'Graphite', colorClass: 'bg-slate-800 border-slate-600' },
-  { key: 'transparent', label: 'Glass', colorClass: 'bg-white/20 border-white/40' },
-];
+
 
 export const NoteContextMenu: React.FC<NoteContextMenuProps> = ({
   x,
