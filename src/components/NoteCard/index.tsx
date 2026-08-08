@@ -12,6 +12,9 @@ import { getUniqueTitleForDay } from '../../lib/markdownMention';
 import { normalizeNoteText, resizeNoteEditor, applyMarkdownFormatting, handleSmartEnterList, FormattingType } from '../../lib/noteTextEngine';
 import { Note } from '../../types';
 
+import { useNoteDrag } from '../../hooks/useNoteDrag';
+import { useNoteResize } from '../../hooks/useNoteResize';
+
 const NoteCardComponent: React.FC<NoteCardProps> = ({
   note,
   allNotes,
@@ -37,8 +40,6 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [showStylePicker, setShowStylePicker] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
   const [activeMode, setActiveMode] = useState<NoteMode>(note.activeMode || 'text');
 
   // Mention autocomplete state
@@ -51,12 +52,27 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
   const markdownRef = useRef<HTMLDivElement>(null);
   const handledEditRequestRef = useRef<string | null>(null);
 
-  const noteRef = useRef(note);
-  noteRef.current = note;
+  const { isDragging, handleMouseDown } = useNoteDrag({
+    note,
+    allNotes,
+    zoom,
+    selectedNoteIds,
+    isPanMode,
+    snapToGrid,
+    onSelectNote,
+    onNavigateToNote,
+    onUpdateNote,
+    onUpdateBatchNotes,
+    onBringToFront,
+    onDragStateChange,
+  });
 
-  const dragStartRef = useRef<{ x: number; y: number; noteX: number; noteY: number }>({ x: 0, y: 0, noteX: 0, noteY: 0 });
-  const resizeStartRef = useRef<{ x: number; y: number; w: number; h: number }>({ x: 0, y: 0, w: 0, h: 0 });
-  const groupDragStartRef = useRef<{ id: string; startX: number; startY: number }[]>([]);
+  const { isResizing, handleResizeMouseDown } = useNoteResize({
+    note,
+    zoom,
+    isPanMode,
+    onUpdateNote,
+  });
 
   const filteredMentionNotes =
     mentionQuery !== null
@@ -169,222 +185,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
     setActiveMode('image');
   };
 
-  // Dragging logic
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (
-      isPanMode ||
-      (e.target as HTMLElement).closest(
-        'button, input, textarea, a, select, .no-drag, .note-editor-container'
-      )
-    ) {
-      return;
-    }
 
-    // Alt + Click shortcut: zoom directly to this note
-    if (e.altKey) {
-      e.preventDefault();
-      e.stopPropagation();
-      onNavigateToNote(note.id);
-      return;
-    }
-
-    onBringToFront(note.id);
-
-    const isMulti = e.shiftKey || e.metaKey || e.ctrlKey;
-    const isAlreadySelected = selectedNoteIds.includes(note.id);
-
-    if (isMulti) {
-      onSelectNote(note.id, true);
-    } else if (!isAlreadySelected) {
-      onSelectNote(note.id, false);
-    }
-
-    const activeSelectedIds = isMulti
-      ? (isAlreadySelected ? selectedNoteIds : [...selectedNoteIds, note.id])
-      : (isAlreadySelected ? selectedNoteIds : [note.id]);
-
-    const currentPosRef = { current: { x: noteRef.current.x, y: noteRef.current.y } };
-    const currentBatchRef = { current: [] as Note[] };
-
-    dragStartRef.current = {
-      x: e.clientX,
-      y: e.clientY,
-      noteX: noteRef.current.x,
-      noteY: noteRef.current.y,
-    };
-
-    if (activeSelectedIds.length > 1) {
-      groupDragStartRef.current = activeSelectedIds.map((id) => {
-        const targetNote = allNotes.find((n) => n.id === id);
-        return {
-          id,
-          startX: targetNote ? targetNote.x : 0,
-          startY: targetNote ? targetNote.y : 0,
-        };
-      });
-    } else {
-      groupDragStartRef.current = [];
-    }
-
-    let hasMoved = false;
-
-    let frame: number | null = null;
-    let pendingSingle: Note | null = null;
-    let pendingBatch: Note[] | null = null;
-    const flushMove = () => {
-      if (pendingBatch && onUpdateBatchNotes) onUpdateBatchNotes(pendingBatch);
-      else if (pendingSingle) onUpdateNote(pendingSingle);
-      pendingSingle = null;
-      pendingBatch = null;
-      frame = null;
-    };
-    const scheduleMove = () => {
-      if (frame === null) frame = requestAnimationFrame(flushMove);
-    };
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const distanceX = Math.abs(moveEvent.clientX - dragStartRef.current.x);
-      const distanceY = Math.abs(moveEvent.clientY - dragStartRef.current.y);
-
-      if (!hasMoved && distanceX < 4 && distanceY < 4) {
-        return;
-      }
-
-      if (!hasMoved) {
-        hasMoved = true;
-        setIsDragging(true);
-        document.body.style.cursor = 'grabbing';
-        if (groupDragStartRef.current.length > 1) {
-          onDragStateChange?.(activeSelectedIds);
-        } else {
-          onDragStateChange?.([note.id]);
-        }
-      }
-
-      const dx = (moveEvent.clientX - dragStartRef.current.x) / zoom;
-      const dy = (moveEvent.clientY - dragStartRef.current.y) / zoom;
-
-      const GRID_SIZE = 24;
-      if (groupDragStartRef.current.length > 1 && onUpdateBatchNotes) {
-        const updatedBatch = allNotes
-          .filter((n) => activeSelectedIds.includes(n.id))
-          .map((n) => {
-            const startPos = groupDragStartRef.current.find((item) => item.id === n.id);
-            if (!startPos) return n;
-            let rawX = startPos.startX + dx;
-            let rawY = startPos.startY + dy;
-            if (snapToGrid) {
-              rawX = Math.round(rawX / GRID_SIZE) * GRID_SIZE;
-              rawY = Math.round(rawY / GRID_SIZE) * GRID_SIZE;
-            }
-            return { ...n, x: rawX, y: rawY };
-          });
-        currentBatchRef.current = updatedBatch;
-        pendingBatch = updatedBatch;
-        scheduleMove();
-      } else {
-        let newX = dragStartRef.current.noteX + dx;
-        let newY = dragStartRef.current.noteY + dy;
-        if (snapToGrid) {
-          newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
-          newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
-        }
-        currentPosRef.current = { x: newX, y: newY };
-        pendingSingle = {
-          ...noteRef.current,
-          x: newX,
-          y: newY,
-        };
-        scheduleMove();
-      }
-    };
-
-    const handleMouseUp = () => {
-      document.body.style.cursor = '';
-      const GRID_SIZE = 24;
-      if (frame !== null) {
-        cancelAnimationFrame(frame);
-      }
-      if (hasMoved) {
-        if (groupDragStartRef.current.length > 1 && onUpdateBatchNotes && currentBatchRef.current.length > 0) {
-          const finalBatch = currentBatchRef.current.map((n) => ({
-            ...n,
-            x: snapToGrid ? Math.round(n.x / GRID_SIZE) * GRID_SIZE : n.x,
-            y: snapToGrid ? Math.round(n.y / GRID_SIZE) * GRID_SIZE : n.y,
-          }));
-          onUpdateBatchNotes(finalBatch);
-        } else {
-          const finalX = snapToGrid ? Math.round(currentPosRef.current.x / GRID_SIZE) * GRID_SIZE : currentPosRef.current.x;
-          const finalY = snapToGrid ? Math.round(currentPosRef.current.y / GRID_SIZE) * GRID_SIZE : currentPosRef.current.y;
-          onUpdateNote({
-            ...noteRef.current,
-            x: finalX,
-            y: finalY,
-          });
-        }
-      } else if (!isMulti && isAlreadySelected && selectedNoteIds.length > 1) {
-        onSelectNote(note.id, false);
-      }
-      pendingSingle = null;
-      pendingBatch = null;
-      currentBatchRef.current = [];
-      frame = null;
-      setIsDragging(false);
-      requestAnimationFrame(() => {
-        onDragStateChange?.([]);
-      });
-      groupDragStartRef.current = [];
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-  };
-
-  // Resize logic
-  const handleResizeMouseDown = (e: React.MouseEvent) => {
-    if (isPanMode) return;
-    e.stopPropagation();
-    setIsResizing(true);
-    resizeStartRef.current = {
-      x: e.clientX,
-      y: e.clientY,
-      w: note.width || 340,
-      h: note.height || 360,
-    };
-
-    let frame: number | null = null;
-    let pendingSize: Pick<Note, 'width' | 'height'> | null = null;
-    const flushResize = () => {
-      if (pendingSize) {
-        onUpdateNote({ ...note, ...pendingSize });
-        pendingSize = null;
-      }
-      frame = null;
-    };
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const dx = (moveEvent.clientX - resizeStartRef.current.x) / zoom;
-      const dy = (moveEvent.clientY - resizeStartRef.current.y) / zoom;
-      const newW = Math.max(260, resizeStartRef.current.w + dx);
-      const newH = Math.max(220, resizeStartRef.current.h + dy);
-
-      pendingSize = { width: newW, height: newH };
-      if (frame === null) frame = requestAnimationFrame(flushResize);
-    };
-
-    const handleMouseUp = () => {
-      if (frame !== null) {
-        cancelAnimationFrame(frame);
-        flushResize();
-      }
-      setIsResizing(false);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-  };
 
   const themeConfig = PAPER_THEMES[note.paperTheme || 'white'];
   const fontClass = FONT_CLASSES[note.fontFamily || 'sans'];
@@ -507,7 +308,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
               e.stopPropagation();
               onSelectNote(null);
               onUpdateNote({
-                ...noteRef.current,
+                ...note,
                 groupId: overlappingGroup.id,
                 groupName: overlappingGroup.name,
               });
@@ -550,10 +351,10 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         onRemoveFromGroup={() => {
           onSelectNote(null);
           onUpdateNote({
-            ...noteRef.current,
+            ...note,
             groupId: undefined,
             groupName: undefined,
-            tags: noteRef.current.tags?.filter((t) => !/^#?Group\s/i.test(t)),
+            tags: note.tags?.filter((t) => !/^#?Group\s/i.test(t)),
           });
         }}
       />
