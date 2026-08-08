@@ -1,4 +1,6 @@
 import { Note, CanvasTransform, GridType, CanvasTheme } from '../types';
+import { invoke } from '@tauri-apps/api/core';
+import { sendNativeAppNotification } from './notifications';
 
 const NOTES_STORAGE_KEY = 'infinite_notes_v1_notes';
 const CANVAS_TRANSFORM_KEY = 'infinite_notes_v1_transform';
@@ -210,7 +212,47 @@ export function saveSettings(settings: AppSettings): void {
   }
 }
 
-export function exportBackup(notes: Note[], transform: CanvasTransform, settings: AppSettings): void {
+/**
+ * Saves file content either via native Tauri Rust command to ~/DiaryNote/<subfolder>/
+ * or via browser download fallback. Triggers OS notification with saved path.
+ */
+export async function saveFileWithNotification(
+  filename: string,
+  content: string,
+  subfolder: string = 'Notes',
+  contentType: string = 'application/json'
+): Promise<string> {
+  const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+  let savedPath = `~/DiaryNote/${subfolder}/${filename}`;
+
+  if (isTauri) {
+    try {
+      savedPath = await invoke<string>('save_export_file', { filename, content, subfolder });
+    } catch (err) {
+      console.warn('Tauri save_export_file failed, falling back to browser download', err);
+      triggerBrowserDownload(filename, content, contentType);
+    }
+  } else {
+    triggerBrowserDownload(filename, content, contentType);
+  }
+
+  sendNativeAppNotification('Export Successful', `Saved file to: ${savedPath}`);
+  return savedPath;
+}
+
+function triggerBrowserDownload(filename: string, content: string, contentType: string) {
+  const blob = new Blob([content], { type: contentType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function exportBackup(notes: Note[], transform: CanvasTransform, settings: AppSettings): Promise<string> {
+  const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const filename = `DiaryNote-Backup-${dateStr}.json`;
   const data = {
     version: 1,
     exportedAt: new Date().toISOString(),
@@ -219,29 +261,23 @@ export function exportBackup(notes: Note[], transform: CanvasTransform, settings
     settings,
   };
   const jsonString = JSON.stringify(data, null, 2);
-  const blob = new Blob([jsonString], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `infinite-notes-backup-${new Date().toISOString().slice(0, 10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+  return saveFileWithNotification(filename, jsonString, 'Backups', 'application/json');
 }
 
-export function exportNotesBackup(notesToExport: Note[], customFilename?: string): void {
+export async function exportNotesBackup(notesToExport: Note[], customFilename?: string): Promise<string> {
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const count = notesToExport.length;
+  const filename = customFilename || (count === 1
+    ? `${(notesToExport[0]?.title || 'Note').replace(/[^a-z0-9]/gi, '_')}_${dateStr}.json`
+    : `DiaryNote-Selection-${count}-notes_${dateStr}.json`);
+
   const data = {
     version: 1,
     exportedAt: new Date().toISOString(),
     notes: notesToExport,
   };
   const jsonString = JSON.stringify(data, null, 2);
-  const blob = new Blob([jsonString], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = customFilename || `notes-backup-${new Date().toISOString().slice(0, 10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+  return saveFileWithNotification(filename, jsonString, 'Notes', 'application/json');
 }
 
 export function importBackup(file: File): Promise<{ notes: Note[]; transform?: CanvasTransform; settings?: AppSettings }> {

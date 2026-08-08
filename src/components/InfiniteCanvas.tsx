@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Note, CanvasTransform, GridType, CanvasTheme } from '../types';
 import { NoteCard } from './NoteCard';
 import { NoteConnections } from './NoteConnections';
-import { Layers, X } from 'lucide-react';
+import { Layers, X, FolderOutput } from 'lucide-react';
 
 interface InfiniteCanvasProps {
   notes: Note[];
@@ -87,10 +87,10 @@ const GroupFrame: React.FC<GroupFrameProps> = ({
 
       if (minX !== Infinity) {
         setMeasuredBounds({
-          minX: minX - 24,
-          minY: minY - 36,
-          maxX: maxX + 24,
-          maxY: maxY + 24,
+          minX: minX - 28,
+          minY: minY - 42,
+          maxX: maxX + 28,
+          maxY: maxY + 28,
         });
       }
     };
@@ -177,10 +177,10 @@ const GroupFrame: React.FC<GroupFrameProps> = ({
     window.addEventListener('mouseup', handleMouseUp);
   };
 
-  const fallbackMinX = Math.min(...groupNotes.map((n) => n.x)) - 24;
-  const fallbackMinY = Math.min(...groupNotes.map((n) => n.y)) - 36;
-  const fallbackMaxX = Math.max(...groupNotes.map((n) => n.x + (n.width || 340))) + 24;
-  const fallbackMaxY = Math.max(...groupNotes.map((n) => n.y + (n.height || 340))) + 24;
+  const fallbackMinX = Math.min(...groupNotes.map((n) => n.x)) - 28;
+  const fallbackMinY = Math.min(...groupNotes.map((n) => n.y)) - 42;
+  const fallbackMaxX = Math.max(...groupNotes.map((n) => n.x + (n.width || 340))) + 28;
+  const fallbackMaxY = Math.max(...groupNotes.map((n) => n.y + (n.height || 340))) + 28;
 
   const minX = measuredBounds ? measuredBounds.minX : fallbackMinX;
   const minY = measuredBounds ? measuredBounds.minY : fallbackMinY;
@@ -193,12 +193,12 @@ const GroupFrame: React.FC<GroupFrameProps> = ({
   const isLight = themeMode === 'light';
 
   const containerBorder = isLight
-    ? 'border-2 border-dashed border-slate-300/80 bg-slate-200/20'
-    : 'border-2 border-dashed border-slate-700/80 bg-slate-900/30';
+    ? 'border-2 border-dashed border-blue-500/35 bg-blue-500/[0.03] backdrop-blur-[0.5px]'
+    : 'border-2 border-dashed border-blue-500/40 bg-blue-500/[0.04] backdrop-blur-[0.5px]';
 
   const badgeStyle = isLight
-    ? 'bg-white/95 border border-slate-200/90 text-slate-800 shadow-sm backdrop-blur-md'
-    : 'bg-slate-900/90 border border-slate-800/90 text-slate-200 shadow-sm backdrop-blur-md';
+    ? 'bg-white/95 border border-slate-200/90 text-slate-800 shadow-sm backdrop-blur-md hover:border-blue-400'
+    : 'bg-slate-900/95 border border-slate-800/90 text-slate-200 shadow-sm backdrop-blur-md hover:border-blue-500';
 
   const handleSaveTitle = () => {
     setIsEditing(false);
@@ -212,10 +212,6 @@ const GroupFrame: React.FC<GroupFrameProps> = ({
 
   const displayName = currentGroupName || `Group (${groupNotes.length} notes)`;
 
-  const transitionClass = isDraggingGroup
-    ? 'transition-none'
-    : 'transition-[width,height,transform] duration-200 ease-out';
-
   return (
     <div
       style={{
@@ -223,12 +219,12 @@ const GroupFrame: React.FC<GroupFrameProps> = ({
         width: `${width}px`,
         height: `${height}px`,
       }}
-      className={`absolute rounded-md pointer-events-none ${transitionClass} ${containerBorder}`}
+      className={`absolute rounded-xl pointer-events-none transition-none ${containerBorder}`}
     >
       {/* Group Header Badge matching bottom dock bar style */}
       <div
         onMouseDown={handleBadgeMouseDown}
-        className={`absolute -top-3.5 left-3 px-2.5 py-0.5 rounded-sm text-xs font-semibold tracking-wide flex items-center gap-2 pointer-events-auto select-none cursor-grab active:cursor-grabbing ${badgeStyle}`}
+        className={`absolute -top-3.5 left-3 px-2.5 py-1 rounded-md text-xs font-semibold tracking-wide flex items-center gap-2 pointer-events-auto select-none cursor-grab active:cursor-grabbing ${badgeStyle}`}
       >
         <Layers className="w-3.5 h-3.5 text-blue-500 shrink-0" />
         {isEditing ? (
@@ -251,12 +247,15 @@ const GroupFrame: React.FC<GroupFrameProps> = ({
               e.stopPropagation();
               setIsEditing(true);
             }}
-            className="hover:underline flex items-center gap-1 font-semibold"
+            className="hover:underline flex items-center gap-1.5 font-semibold"
             title="Click to rename group"
           >
             <span>{displayName}</span>
           </button>
         )}
+        <span className="text-[10px] opacity-60 font-mono px-1 rounded bg-blue-500/10 text-blue-500">
+          {groupNotes.length}
+        </span>
       </div>
     </div>
   );
@@ -347,9 +346,27 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   const handleWheel = useCallback(
     (e: WheelEvent) => {
       const target = e.target as HTMLElement;
-      if (target && target.closest && (target.closest('.note-card') || target.closest('[id^="note-card-"]'))) {
-        // Do NOT zoom/pan canvas when mouse is scrolling inside a note
-        return;
+      const noteCardEl = target ? (target.closest('.note-card') as HTMLElement) : null;
+
+      if (!e.ctrlKey && !e.metaKey && noteCardEl) {
+        let curr: HTMLElement | null = target;
+        let canScroll = false;
+        while (curr && curr !== noteCardEl) {
+          const isScrollY = curr.scrollHeight > curr.clientHeight + 1;
+          const isScrollX = curr.scrollWidth > curr.clientWidth + 1;
+
+          if (isScrollY && e.deltaY !== 0) {
+            if (e.deltaY < 0 && curr.scrollTop > 0) canScroll = true;
+            if (e.deltaY > 0 && curr.scrollTop + curr.clientHeight < curr.scrollHeight - 1) canScroll = true;
+          }
+          if (isScrollX && e.deltaX !== 0) {
+            if (e.deltaX < 0 && curr.scrollLeft > 0) canScroll = true;
+            if (e.deltaX > 0 && curr.scrollLeft + curr.clientWidth < curr.scrollWidth - 1) canScroll = true;
+          }
+          if (canScroll) break;
+          curr = curr.parentElement;
+        }
+        if (canScroll) return;
       }
 
       e.preventDefault();
@@ -367,12 +384,13 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       };
 
       if (e.ctrlKey || e.metaKey) {
-        // Pinch / Ctrl + Wheel -> zoom around the pointer.
+        // Smooth exponential zoom around mouse pointer
         const rect = containerRef.current.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
 
-        const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
+        const sensitivity = e.deltaMode === 1 ? 0.03 : 0.0015;
+        const zoomFactor = Math.exp(-e.deltaY * sensitivity);
         const newZoom = Math.max(minZoom, Math.min(maxZoom, baseTransform.zoom * zoomFactor));
 
         // Keep point under mouse fixed in world coordinates
@@ -385,7 +403,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         scheduleWheelTransform({
           x: Math.round(newX),
           y: Math.round(newY),
-          zoom: newZoom,
+          zoom: Number(newZoom.toFixed(4)),
         });
       } else {
         // Wheel pans naturally; Shift makes a vertical wheel movement horizontal.
@@ -426,39 +444,97 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       const startX = e.clientX - rect.left;
       const startY = e.clientY - rect.top;
 
-      setSelectionBox({ startX, startY, currentX: startX, currentY: startY });
-
+      const initialSelectedIds = e.shiftKey ? selectedNoteIds : [];
       let hasDragged = false;
-      const handleMouseMove = (moveEvt: MouseEvent) => {
+      let prevSelectedIds: string[] = initialSelectedIds;
+      let selectionFrame: number | null = null;
+      let latestMouseEvt: MouseEvent | null = null;
+
+      const areArraysEqual = (a: string[], b: string[]) => {
+        if (a.length !== b.length) return false;
+        for (let i = 0; i < a.length; i++) {
+          if (a[i] !== b[i]) return false;
+        }
+        return true;
+      };
+
+      // Query note card DOM elements for pixel-perfect bounding box matching (supports long/expanded notes)
+      const cardElements = containerRef.current
+        ? Array.from(containerRef.current.querySelectorAll<HTMLElement>('.note-card[data-note-id]'))
+        : [];
+
+      const processSelectionUpdate = (moveEvt: MouseEvent) => {
         const curX = moveEvt.clientX - rect.left;
         const curY = moveEvt.clientY - rect.top;
-        if (Math.abs(curX - startX) > 3 || Math.abs(curY - startY) > 3) {
+        const deltaX = Math.abs(curX - startX);
+        const deltaY = Math.abs(curY - startY);
+
+        if (deltaX > 3 || deltaY > 3) {
           hasDragged = true;
         }
+
+        if (!hasDragged) return;
+
         setSelectionBox({ startX, startY, currentX: curX, currentY: curY });
 
-        const minPx = Math.min(startX, curX);
-        const maxPx = Math.max(startX, curX);
-        const minPy = Math.min(startY, curY);
-        const maxPy = Math.max(startY, curY);
+        const selLeft = Math.min(startX, curX);
+        const selRight = Math.max(startX, curX);
+        const selTop = Math.min(startY, curY);
+        const selBottom = Math.max(startY, curY);
 
-        const boxMinX = (minPx - transform.x) / transform.zoom;
-        const boxMaxX = (maxPx - transform.x) / transform.zoom;
-        const boxMinY = (minPy - transform.y) / transform.zoom;
-        const boxMaxY = (maxPy - transform.y) / transform.zoom;
+        const newlyMatchedIds: string[] = [];
 
-        const matchedIds = notes
-          .filter((n) => {
+        if (cardElements.length > 0) {
+          for (let i = 0; i < cardElements.length; i++) {
+            const el = cardElements[i];
+            const noteId = el.getAttribute('data-note-id');
+            if (!noteId) continue;
+            const r = el.getBoundingClientRect();
+            const cardLeft = r.left - rect.left;
+            const cardRight = r.right - rect.left;
+            const cardTop = r.top - rect.top;
+            const cardBottom = r.bottom - rect.top;
+
+            if (selLeft <= cardRight && selRight >= cardLeft && selTop <= cardBottom && selBottom >= cardTop) {
+              newlyMatchedIds.push(noteId);
+            }
+          }
+        } else {
+          // Fallback to world coordinate calculations
+          const boxMinX = (selLeft - transform.x) / transform.zoom;
+          const boxMaxX = (selRight - transform.x) / transform.zoom;
+          const boxMinY = (selTop - transform.y) / transform.zoom;
+          const boxMaxY = (selBottom - transform.y) / transform.zoom;
+
+          notes.forEach((n) => {
             const w = n.width || 340;
             const h = n.height || 340;
-            return n.x + w >= boxMinX && n.x <= boxMaxX && n.y + h >= boxMinY && n.y <= boxMaxY;
-          })
-          .map((n) => n.id);
+            if (n.x + w >= boxMinX && n.x <= boxMaxX && n.y + h >= boxMinY && n.y <= boxMaxY) {
+              newlyMatchedIds.push(n.id);
+            }
+          });
+        }
 
-        onSelectMultipleNotes?.(matchedIds);
+        const combinedIds = Array.from(new Set([...initialSelectedIds, ...newlyMatchedIds]));
+
+        if (!areArraysEqual(combinedIds, prevSelectedIds)) {
+          prevSelectedIds = combinedIds;
+          onSelectMultipleNotes?.(combinedIds);
+        }
+      };
+
+      const handleMouseMove = (moveEvt: MouseEvent) => {
+        latestMouseEvt = moveEvt;
+        if (selectionFrame === null) {
+          selectionFrame = requestAnimationFrame(() => {
+            if (latestMouseEvt) processSelectionUpdate(latestMouseEvt);
+            selectionFrame = null;
+          });
+        }
       };
 
       const handleMouseUp = () => {
+        if (selectionFrame !== null) cancelAnimationFrame(selectionFrame);
         setSelectionBox(null);
         if (!hasDragged && !e.shiftKey) {
           onSelectNote(null);
@@ -598,18 +674,8 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         }}
       />
 
-      {showConnections && (
-        <NoteConnections
-          notes={notes}
-          transform={transform}
-          selectedNoteId={selectedNoteId}
-          onSelectNote={onNavigateToNote}
-          themeMode={themeMode}
-        />
-      )}
-
       {/* Rubber-band Drag Selection Box Overlay */}
-      {selectionBox && (
+      {selectionBox && Math.max(Math.abs(selectionBox.currentX - selectionBox.startX), Math.abs(selectionBox.currentY - selectionBox.startY)) > 2 && (
         <div
           style={{
             left: `${Math.min(selectionBox.startX, selectionBox.currentX)}px`,
@@ -617,7 +683,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
             width: `${Math.abs(selectionBox.currentX - selectionBox.startX)}px`,
             height: `${Math.abs(selectionBox.currentY - selectionBox.startY)}px`,
           }}
-          className="fixed border-2 border-blue-500 bg-blue-500/20 rounded-md pointer-events-none z-50 shadow-sm"
+          className="fixed border border-blue-500/80 bg-blue-500/15 rounded-xs pointer-events-none z-50 shadow-2xs backdrop-blur-[0.5px] transition-none"
         />
       )}
 
@@ -628,6 +694,15 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
           transform: `translate3d(${Math.round(transform.x)}px, ${Math.round(transform.y)}px, 0) scale(${transform.zoom})`,
         }}
       >
+        {showConnections && (
+          <NoteConnections
+            notes={notes}
+            selectedNoteId={selectedNoteId}
+            onSelectNote={onNavigateToNote}
+            themeMode={themeMode}
+          />
+        )}
+
         <div className="pointer-events-auto">
           {/* Visual Group Frame Containers */}
           {Array.from(

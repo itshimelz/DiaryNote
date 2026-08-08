@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CanvasTransform, Note } from './types';
-import { exportBackup, exportNotesBackup, importBackup, SAMPLE_NOTES } from './lib/storage';
+import { exportBackup, exportNotesBackup, importBackup, saveFileWithNotification, SAMPLE_NOTES } from './lib/storage';
 
 // Custom Hooks
 import { useHistoryState } from './hooks/useHistoryState';
@@ -92,12 +92,17 @@ export default function App() {
     handleNavigateToNote,
   } = useCanvasTransform(notes, bringToFront);
 
-  // Initialize SQLite Database on mount
+  // Initialize SQLite Database on mount and restore persisted canvas transform & settings
   useEffect(() => {
-    initAppDatabase(() => {
-      // Database initialized
+    initAppDatabase(({ transform: dbTransform, settings: dbSettings }) => {
+      if (dbTransform) {
+        handleCanvasTransformChange(dbTransform);
+      }
+      if (dbSettings) {
+        setSettings((prev) => ({ ...prev, ...dbSettings }));
+      }
     });
-  }, [initAppDatabase]);
+  }, [initAppDatabase, handleCanvasTransformChange, setSettings]);
 
   const handleUndo = useCallback(() => triggerUndo(setNotes), [triggerUndo, setNotes]);
   const handleRedo = useCallback(() => triggerRedo(setNotes), [triggerRedo, setNotes]);
@@ -272,15 +277,26 @@ export default function App() {
     (file: File) => {
       importBackup(file)
         .then(({ notes: importedNotes, transform: importedTransform, settings: importedSettings }) => {
+          let importedCount = 0;
           if (importedNotes) {
             setNotes(importedNotes);
             resetHistory(importedNotes);
+            importedCount = importedNotes.length;
           }
           if (importedTransform) handleCanvasTransformChange(importedTransform);
           if (importedSettings) setSettings((prev) => ({ ...prev, ...importedSettings }));
+
+          sendNativeAppNotification(
+            'Import Successful',
+            `Successfully imported ${importedCount} note${importedCount === 1 ? '' : 's'} from ${file.name}`
+          );
         })
         .catch((err) => {
           console.error('Failed to import backup:', err);
+          sendNativeAppNotification(
+            'Import Failed',
+            `Failed to import backup from ${file.name}: ${err.message || 'Invalid backup structure'}`
+          );
         });
     },
     [handleCanvasTransformChange, resetHistory, setNotes, setSettings]
@@ -302,25 +318,23 @@ export default function App() {
 
   const securityModalNote = notes.find((n) => n.id === securityModalNoteId);
 
-  const handleExportNote = useCallback((note: Note, format: 'md' | 'txt' | 'json') => {
+  const handleExportNote = useCallback(async (note: Note, format: 'md' | 'txt' | 'json') => {
     if (note.isLocked) {
       setSecurityModalNoteId(note.id);
       setSecurityModalMode('unlock');
       return;
     }
+    const cleanTitle = (note.title || 'Untitled_Note').trim().replace(/[^a-z0-9_\-]/gi, '_');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const fileName = `${cleanTitle}_${dateStr}.${format}`;
+
     if (format === 'json') {
-      const fileName = `${(note.title || 'note').replace(/[^a-z0-9]/gi, '_')}-backup.json`;
-      exportNotesBackup([note], fileName);
-      return;
+      await exportNotesBackup([note], fileName);
+    } else {
+      const text = `# ${note.title || 'Untitled Note'}\n\n${note.content || ''}`;
+      const contentType = format === 'md' ? 'text/markdown;charset=utf-8;' : 'text/plain;charset=utf-8;';
+      await saveFileWithNotification(fileName, text, 'Notes', contentType);
     }
-    const text = `# ${note.title || 'Untitled Note'}\n\n${note.content || ''}`;
-    const blob = new Blob([text], { type: 'text/markdown;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${(note.title || 'note').replace(/[^a-z0-9]/gi, '_')}.${format}`;
-    a.click();
-    URL.revokeObjectURL(url);
   }, []);
 
   const handleContextMenuNote = useCallback(

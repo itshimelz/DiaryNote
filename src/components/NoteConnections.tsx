@@ -1,10 +1,9 @@
 import React, { useMemo } from 'react';
-import { Note, CanvasTransform } from '../types';
+import { Note } from '../types';
 import { extractNoteConnections } from '../lib/markdownMention';
 
 interface NoteConnectionsProps {
   notes: Note[];
-  transform: CanvasTransform;
   selectedNoteId: string | null;
   onSelectNote: (noteId: string) => void;
   themeMode?: 'dark' | 'light' | 'gradient';
@@ -44,7 +43,6 @@ function getRectEdgePoint(
 
 export const NoteConnections: React.FC<NoteConnectionsProps> = ({
   notes,
-  transform,
   selectedNoteId,
   onSelectNote,
   themeMode = 'dark',
@@ -125,27 +123,27 @@ export const NoteConnections: React.FC<NoteConnectionsProps> = ({
           toHeight
         );
 
-        // Convert world coords to screen space
-        const screenFromX = fromEdge.x * transform.zoom + transform.x;
-        const screenFromY = fromEdge.y * transform.zoom + transform.y;
-        const screenToX = toEdge.x * transform.zoom + transform.x;
-        const screenToY = toEdge.y * transform.zoom + transform.y;
+        // Use world coordinates directly (parent div applies viewport zoom & pan transform)
+        const worldFromX = fromEdge.x;
+        const worldFromY = fromEdge.y;
+        const worldToX = toEdge.x;
+        const worldToY = toEdge.y;
 
         const isHighlighted = selectedNoteId === conn.fromId || selectedNoteId === conn.toId;
 
         // Calculate cubic bezier control points
-        const dx = screenToX - screenFromX;
-        const dy = screenToY - screenFromY;
+        const dx = worldToX - worldFromX;
+        const dy = worldToY - worldFromY;
         const controlOffset = Math.min(Math.hypot(dx, dy) * 0.3, 150);
 
-        const cx1 = screenFromX + (dx > 0 ? controlOffset : -controlOffset);
-        const cy1 = screenFromY;
-        const cx2 = screenToX - (dx > 0 ? controlOffset : -controlOffset);
-        const cy2 = screenToY;
+        const cx1 = worldFromX + (dx > 0 ? controlOffset : -controlOffset);
+        const cy1 = worldFromY;
+        const cx2 = worldToX - (dx > 0 ? controlOffset : -controlOffset);
+        const cy2 = worldToY;
 
-        const pathData = `M ${screenFromX} ${screenFromY} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${screenToX} ${screenToY}`;
-        const midX = (screenFromX + screenToX) / 2;
-        const midY = (screenFromY + screenToY) / 2;
+        const pathData = `M ${worldFromX} ${worldFromY} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${worldToX} ${worldToY}`;
+        const midX = (worldFromX + worldToX) / 2;
+        const midY = (worldFromY + worldToY) / 2;
 
         // Theme adaptive stroke colors
         const strokeColor = isHighlighted

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { CanvasTransform, Note } from '../types';
-import { loadTransform, loadSettings, AppSettings } from '../lib/storage';
+import { loadTransform, saveTransform, loadSettings, saveSettings, AppSettings } from '../lib/storage';
 import { saveTransformToDB, saveSettingsToDB } from '../lib/sqliteStorage';
 
 export function screenToWorld(
@@ -40,14 +40,16 @@ export function useCanvasTransform(notes: Note[], bringToFront: (noteId: string)
     }
   }, [settings.themeMode]);
 
-  // Save transform to DB
+  // Save transform to DB & localStorage
   useEffect(() => {
     saveTransformToDB(transform);
+    saveTransform(transform);
   }, [transform]);
 
-  // Save settings to DB
+  // Save settings to DB & localStorage
   useEffect(() => {
     saveSettingsToDB(settings);
+    saveSettings(settings);
   }, [settings]);
 
   const handleCanvasTransformChange = useCallback((nextTransform: CanvasTransform) => {

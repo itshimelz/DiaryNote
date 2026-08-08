@@ -140,17 +140,6 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
     }, 50);
   };
 
-  // Native wheel event listener to prevent canvas zoom/pan when scrolling note content
-  useEffect(() => {
-    const el = cardRef.current;
-    if (!el) return;
-    const handleNativeWheel = (e: WheelEvent) => {
-      e.stopPropagation();
-    };
-    el.addEventListener('wheel', handleNativeWheel, { passive: false });
-    return () => el.removeEventListener('wheel', handleNativeWheel);
-  }, []);
-
   // Sync mode changes to note object
   const handleSelectMode = (mode: NoteMode) => {
     setActiveMode(mode);
@@ -481,6 +470,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
           setIsEditing(true);
         }
       }}
+      data-note-id={note.id}
       role="article"
       tabIndex={0}
       aria-label={`Note: ${note.title || 'Untitled Note'}`}
@@ -493,7 +483,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       className={`note-card absolute top-0 left-0 rounded-md border flex flex-col justify-between ${
         isDragging || isCardDragging
           ? 'transition-none scale-[1.015] cursor-grabbing ring-2 ring-blue-500/70 shadow-md z-[10000]'
-          : `transition-[transform,box-shadow,ring-color,border-color,opacity] duration-150 ease-out scale-100 shadow-sm ${
+          : `transition-[box-shadow,opacity] duration-150 ease-out scale-100 shadow-sm ${
               !isEditing ? 'cursor-grab' : ''
             }`
       } ${themeConfig.headerBg} ${themeConfig.border} ${themeConfig.text} ${
@@ -856,6 +846,6 @@ export const NoteCard = React.memo(NoteCardComponent, (prevProps, nextProps) => 
     prevProps.note.groupId === nextProps.note.groupId &&
     prevProps.note.groupName === nextProps.note.groupName &&
     prevProps.note.isLocked === nextProps.note.isLocked &&
-    prevProps.selectedNoteIds?.length === nextProps.selectedNoteIds?.length
+    prevProps.selectedNoteIds === nextProps.selectedNoteIds
   );
 });

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Note, CanvasTheme } from '../types';
 import { formatDate } from '../lib/markdownMention';
-import { Search, Calendar, Tag, FileText, CornerDownLeft, X, Layers } from 'lucide-react';
+import { Search, Calendar, Tag, FileText, CornerDownLeft, X, Layers, Lock, CheckSquare } from 'lucide-react';
 import { SmartMarkdownText } from './NoteCard/SmartMarkdownText';
 
 interface SearchModalProps {
@@ -301,6 +301,16 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 []
               ).filter((t) => !/^#?Group\s/i.test(t));
 
+              const plainSnippet = note.content
+                ? note.content
+                    .replace(/^#+\s+/gm, '')
+                    .replace(/^[-*+]\s+\[[ xX]\]\s+/gm, '✓ ')
+                    .replace(/^[-*+]\s+/gm, '• ')
+                    .replace(/[*_~`#]/g, '')
+                    .replace(/\s+/g, ' ')
+                    .trim()
+                : '';
+
               return (
                 <div
                   key={note.id}
@@ -310,95 +320,89 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                     onClose();
                   }}
                   onMouseEnter={() => setSelectedIndex(index)}
-                  className={`p-3 rounded-md cursor-pointer transition-all flex items-start justify-between gap-3 border ${
+                  className={`px-3 py-2 rounded-lg cursor-pointer transition-all flex items-center justify-between gap-3 border ${
                     isSelected
                       ? isDark
-                        ? 'bg-slate-800/90 border-slate-700 text-slate-100 shadow-sm'
-                        : 'bg-slate-100 border-slate-300 text-slate-900 shadow-sm'
+                        ? 'bg-blue-600/15 border-blue-500/40 text-slate-100 shadow-sm'
+                        : 'bg-blue-50 border-blue-200 text-slate-900 shadow-sm'
                       : isDark
-                      ? 'border-transparent hover:bg-slate-800/50 text-slate-200'
-                      : 'border-transparent hover:bg-slate-100/70 text-slate-800'
+                      ? 'border-transparent hover:bg-slate-800/60 text-slate-200'
+                      : 'border-transparent hover:bg-slate-100 text-slate-800'
                   }`}
                 >
-                  <div className="space-y-1 flex-1 overflow-hidden">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-[9px] font-mono uppercase font-semibold shrink-0 ${
-                          isDark ? 'text-slate-500' : 'text-slate-400'
-                        }`}
-                      >
-                        ID: {note.id.includes('-') ? note.id.split('-').pop()?.toUpperCase() : note.id.toUpperCase()}
-                      </span>
-                      <h4 className="font-semibold text-xs truncate">
-                        {note.isLocked ? 'Locked Note' : note.title || 'Untitled Note'}
-                      </h4>
-                    </div>
-
+                  {/* Left: Icon + Title & 1-Line Clean Preview */}
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div
-                      className={`text-[11px] line-clamp-2 leading-relaxed ${
-                        isDark ? 'text-slate-400' : 'text-slate-600'
+                      className={`p-1.5 rounded-md shrink-0 ${
+                        isSelected
+                          ? 'bg-blue-500/20 text-blue-400'
+                          : isDark
+                          ? 'bg-slate-800 text-slate-400'
+                          : 'bg-slate-100 text-slate-500'
                       }`}
                     >
                       {note.isLocked ? (
-                        <span>Passcode required to view contents...</span>
-                      ) : note.content ? (
-                        <SmartMarkdownText
-                          content={note.content}
-                          allNotes={notes}
-                          inline={true}
-                          className="line-clamp-2 text-[11px]"
-                          onNavigateToNote={(targetId) => {
-                            onSelectNote(targetId);
-                            onClose();
-                          }}
-                        />
+                        <Lock className="w-4 h-4 text-amber-400" />
+                      ) : note.content?.includes('- [') ? (
+                        <CheckSquare className="w-4 h-4 text-blue-500" />
                       ) : (
-                        <span>Empty note...</span>
+                        <FileText className="w-4 h-4 text-slate-400" />
                       )}
                     </div>
 
-                    <div className="flex items-center gap-3 text-[10px] font-mono pt-1">
-                      <span className={`flex items-center gap-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                        <Calendar className="w-3 h-3" />
-                        {formatDate(note.createdAt)}
-                      </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-semibold text-xs truncate">
+                          {note.isLocked ? 'Locked Note' : note.title || 'Untitled Note'}
+                        </h4>
+                        {note.groupId && (
+                          <span
+                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-sans font-medium border shrink-0 ${
+                              isDark
+                                ? 'bg-slate-800 border-slate-700 text-slate-300'
+                                : 'bg-slate-100 border-slate-200 text-slate-700'
+                            }`}
+                          >
+                            <Layers className="w-2.5 h-2.5 text-blue-400" />
+                            <span>{note.groupName || 'Group'}</span>
+                          </span>
+                        )}
+                      </div>
 
-                      {/* Display Group Badge ONLY if note is currently in a group */}
-                      {note.groupId && (
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-sans font-medium border transition-colors ${
-                            isDark
-                              ? 'bg-slate-800/90 border-slate-700 text-slate-300'
-                              : 'bg-slate-100/90 border-slate-200 text-slate-700'
-                          }`}
-                        >
-                          <Layers className="w-3 h-3 text-slate-400 shrink-0" />
-                          <span>{note.groupName || 'Group'}</span>
-                        </span>
-                      )}
-
-                      {/* User Hashtags */}
-                      {userHashtags.length > 0 && (
-                        <div className="flex gap-1 overflow-hidden">
-                          {Array.from(new Set(userHashtags)).slice(0, 3).map((t) => (
-                            <span
-                              key={t}
-                              className={`font-semibold ${
-                                isDark ? 'text-slate-400' : 'text-slate-600'
-                              }`}
-                            >
-                              {t}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                      <p className={`text-[11px] truncate mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {note.isLocked ? (
+                          <span className="italic">Passcode required</span>
+                        ) : (
+                          plainSnippet || <span className="italic opacity-60">Empty note</span>
+                        )}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 shrink-0 self-center">
+                  {/* Right: Tags, Date & Jump Shortcut */}
+                  <div className="flex items-center gap-3 shrink-0 text-[10px]">
+                    {userHashtags.length > 0 && (
+                      <div className="hidden sm:flex gap-1">
+                        {Array.from(new Set(userHashtags)).slice(0, 2).map((t) => (
+                          <span
+                            key={t}
+                            className={`px-1.5 py-0.5 rounded font-mono text-[9px] ${
+                              isDark ? 'bg-slate-800/80 text-slate-400' : 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <span className={`font-mono text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                      {formatDate(note.createdAt)}
+                    </span>
+
                     {isSelected && (
                       <span
-                        className={`flex items-center gap-1 text-[10px] font-mono font-medium ${
+                        className={`flex items-center gap-1 font-mono font-medium ${
                           isDark ? 'text-blue-400' : 'text-blue-600'
                         }`}
                       >
