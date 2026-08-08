@@ -22,13 +22,18 @@ import {
   NoteContextMenu,
   PasteConfirmModal,
   HiddenClipboardListener,
+  AboutModal,
+  UpdateAlertBanner,
 } from './components';
 import { sendNativeAppNotification } from './lib/notifications';
+import { checkForAppUpdates, ReleaseInfo } from './utils/updateChecker';
 
 export default function App() {
   const [isNotesListOpen, setIsNotesListOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const [updateReleaseAlert, setUpdateReleaseAlert] = useState<ReleaseInfo | null>(null);
   const [isPanMode, setIsPanMode] = useState(false);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -103,6 +108,15 @@ export default function App() {
       }
     });
   }, [initAppDatabase, handleCanvasTransformChange, setSettings]);
+
+  // Check GitHub for first-time release updates on mount
+  useEffect(() => {
+    checkForAppUpdates().then((res) => {
+      if (res.updateAvailable && res.isFirstTimeAlert && res.latestRelease) {
+        setUpdateReleaseAlert(res.latestRelease);
+      }
+    });
+  }, []);
 
   const handleUndo = useCallback(() => triggerUndo(setNotes), [triggerUndo, setNotes]);
   const handleRedo = useCallback(() => triggerRedo(setNotes), [triggerRedo, setNotes]);
@@ -549,6 +563,7 @@ export default function App() {
               onRedo={handleRedo}
               onOpenSearch={() => setIsSearchOpen(true)}
               onOpenShortcutsModal={() => setIsShortcutsModalOpen(true)}
+              onOpenAbout={() => setIsAboutModalOpen(true)}
               onOpenNotesList={() => setIsNotesListOpen(true)}
               onExportBackup={() => exportBackup(notes, transform, settings)}
               onImportBackup={handleImportBackupFile}
@@ -751,6 +766,26 @@ export default function App() {
       <HiddenClipboardListener
         onPasteText={(text) => setPasteModalState({ isOpen: true, text })}
       />
+
+      {/* About Application Modal */}
+      <AboutModal
+        isOpen={isAboutModalOpen}
+        themeMode={settings.themeMode}
+        onClose={() => setIsAboutModalOpen(false)}
+      />
+
+      {/* First-Time Release Update Alert Banner */}
+      {updateReleaseAlert && (
+        <UpdateAlertBanner
+          release={updateReleaseAlert}
+          themeMode={settings.themeMode}
+          onDismiss={() => setUpdateReleaseAlert(null)}
+          onOpenAbout={() => {
+            setUpdateReleaseAlert(null);
+            setIsAboutModalOpen(true);
+          }}
+        />
+      )}
     </div>
   );
 }

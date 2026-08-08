@@ -125,9 +125,9 @@ jobs:
           if [ -n "$BIN_PATH" ]; then
             cp "$BIN_PATH" dist_standalone/DiaryNote
           fi
-          [ -f build-arch/DiaryNote.desktop ] && cp build-arch/DiaryNote.desktop dist_standalone/DiaryNote.desktop || true
-          [ -f build-arch/DiaryNote.png ] && cp build-arch/DiaryNote.png dist_standalone/DiaryNote.png || true
-          [ -f build-arch/install.sh ] && cp build-arch/install.sh dist_standalone/install.sh || true
+          [ -f assets/DiaryNote.desktop ] && cp assets/DiaryNote.desktop dist_standalone/DiaryNote.desktop || true
+          [ -f assets/logo.png ] && cp assets/logo.png dist_standalone/DiaryNote.png || true
+          [ -f assets/install.sh ] && cp assets/install.sh dist_standalone/install.sh || true
           chmod +x dist_standalone/DiaryNote 2>/dev/null || true
           tar -czvf DiaryNote-linux-x86_64.tar.gz -C dist_standalone .
           gh release upload "$TAG" DiaryNote-linux-x86_64.tar.gz --clobber

@@ -52,6 +52,7 @@ interface CanvasControlsProps {
   canRedo: boolean;
   onOpenSearch: () => void;
   onOpenShortcutsModal?: () => void;
+  onOpenAbout?: () => void;
 }
 
 const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
@@ -82,6 +83,7 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
   canRedo,
   onOpenSearch,
   onOpenShortcutsModal,
+  onOpenAbout,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -595,6 +597,23 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
                       <span>Import Backup</span>
                     </button>
                   </div>
+
+                  {onOpenAbout && (
+                    <button
+                      onClick={() => {
+                        setIsSettingsOpen(false);
+                        onOpenAbout();
+                      }}
+                      className={`w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-sm border font-semibold text-xs transition-colors cursor-pointer ${
+                        themeMode === 'dark'
+                          ? 'bg-blue-600/20 border-blue-500/40 hover:bg-blue-600/30 text-blue-300'
+                          : 'bg-blue-50 border-blue-200 hover:bg-blue-100 text-blue-700'
+                      }`}
+                    >
+                      <Info className="w-3.5 h-3.5" />
+                      <span>About DiaryNote (v0.1.0)</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

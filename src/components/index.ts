@@ -11,3 +11,5 @@ export { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
 export { NoteContextMenu } from './NoteContextMenu';
 export { PasteConfirmModal } from './PasteConfirmModal';
 export { HiddenClipboardListener } from './HiddenClipboardListener';
+export { AboutModal } from './AboutModal';
+export { UpdateAlertBanner } from './UpdateAlertBanner';
