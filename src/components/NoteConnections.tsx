@@ -47,7 +47,14 @@ const NoteConnectionsComponent: React.FC<NoteConnectionsProps> = ({
   onSelectNote,
   themeMode = 'dark',
 }) => {
-  const connections = useMemo(() => extractNoteConnections(notes), [notes]);
+  const connectionsContentKey = useMemo(
+    () => (notes || []).map((n) => `${n.id}:${n.title || ''}:${n.content || ''}`).join('||'),
+    [notes]
+  );
+
+  // Re-run regex connection extraction ONLY when text content or titles change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const connections = useMemo(() => extractNoteConnections(notes), [connectionsContentKey]);
 
   const noteMap = useMemo(() => {
     const map = new Map<string, Note>();

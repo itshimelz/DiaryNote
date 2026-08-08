@@ -68,6 +68,8 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
   onContextMenuCanvas,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const worldLayerRef = useRef<HTMLDivElement>(null);
+  const gridBgRef = useRef<HTMLDivElement>(null);
   const [isPanning, setIsPanning] = useState(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
@@ -335,22 +337,20 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
     e.preventDefault();
     setIsPanning(true);
     panStartRef.current = { x: e.clientX, y: e.clientY, transformX: transform.x, transformY: transform.y };
-    let frame: number | null = null;
     let nextPosition = { x: transform.x, y: transform.y };
     const handleMouseMove = (moveEvt: MouseEvent) => {
       nextPosition = {
         x: Math.round(panStartRef.current.transformX + moveEvt.clientX - panStartRef.current.x),
         y: Math.round(panStartRef.current.transformY + moveEvt.clientY - panStartRef.current.y),
       };
-      if (frame === null) {
-        frame = requestAnimationFrame(() => {
-          onTransformChange({ ...transform, ...nextPosition });
-          frame = null;
-        });
+      if (worldLayerRef.current) {
+        worldLayerRef.current.style.transform = `translate3d(${nextPosition.x}px, ${nextPosition.y}px, 0) scale(${transform.zoom})`;
+      }
+      if (gridBgRef.current) {
+        gridBgRef.current.style.backgroundPosition = `${nextPosition.x}px ${nextPosition.y}px`;
       }
     };
     const handleMouseUp = () => {
-      if (frame !== null) cancelAnimationFrame(frame);
       onTransformChange({ ...transform, ...nextPosition });
       setIsPanning(false);
       window.removeEventListener('mousemove', handleMouseMove);
@@ -379,7 +379,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
     return isDark ? 'bg-slate-950' : 'bg-[#f8fafc]';
   };
 
-  // Viewport Culling (Canvas Virtualization) for high performance with tens of thousands of notes
+  // Viewport Culling (Canvas Virtualization) for high performance
   const viewportWidth = viewport.width;
   const viewportHeight = viewport.height;
   const renderBuffer = 600 / transform.zoom; // buffer margin in world coordinates
@@ -391,15 +391,14 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
 
   // Only render NoteCards that are within or touching the active viewport
   const visibleNotes = useMemo(() => {
-    if (notes.length <= 60) return notes;
     return notes.filter(
       (n) =>
         n.id === selectedNoteId ||
         n.id === focusedNoteId ||
         n.isPinned ||
-        (n.x + n.width >= visibleMinX &&
+        (n.x + (n.width || 340) >= visibleMinX &&
           n.x <= visibleMaxX &&
-          n.y + n.height >= visibleMinY &&
+          n.y + (n.height || 340) >= visibleMinY &&
           n.y <= visibleMaxY)
     );
   }, [notes, selectedNoteId, focusedNoteId, visibleMinX, visibleMaxX, visibleMinY, visibleMaxY]);
@@ -470,6 +469,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
       {/* Background Grid Pattern element */}
       <div
         id="canvas-grid-bg"
+        ref={gridBgRef}
         className="absolute inset-0 pointer-events-none"
         style={{
           backgroundPosition: `${transform.x}px ${transform.y}px`,
@@ -492,6 +492,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
 
       {/* Scaled World Coordinates Canvas Layer */}
       <div
+        ref={worldLayerRef}
         className="absolute inset-0 origin-top-left pointer-events-none"
         style={{
           transform: `translate3d(${Math.round(transform.x)}px, ${Math.round(transform.y)}px, 0) scale(${transform.zoom})`,

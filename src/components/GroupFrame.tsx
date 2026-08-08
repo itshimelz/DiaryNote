@@ -15,6 +15,7 @@ export interface GroupFrameProps {
 }
 
 const GroupFrameComponent: React.FC<GroupFrameProps> = ({
+  groupId,
   groupNotes,
   themeMode,
   zoom,
@@ -82,6 +83,7 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
     onSelectMultipleNotes?.(groupNotes.map((n) => n.id));
 
     setIsDraggingGroup(true);
+    const initialFrameBounds = measuredBounds || calculateGroupBounds(groupNotes, 28, 42, 28);
     dragStartRef.current = {
       startX: e.clientX,
       startY: e.clientY,
@@ -89,7 +91,6 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
     };
 
     let pendingUpdate: Note[] | null = null;
-    let frameId: number | null = null;
 
     const handleMouseMove = (moveEvt: MouseEvent) => {
       if (!dragStartRef.current) return;
@@ -105,21 +106,24 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
           rawX = Math.round(rawX / GRID_SIZE) * GRID_SIZE;
           rawY = Math.round(rawY / GRID_SIZE) * GRID_SIZE;
         }
+        // Direct DOM update for note card elements
+        const cardEl = document.getElementById(`note-card-${n.id}`);
+        if (cardEl) {
+          cardEl.style.transform = `translate3d(${Math.round(rawX)}px, ${Math.round(rawY)}px, 0)`;
+        }
         return { ...n, x: rawX, y: rawY };
       });
 
-      if (frameId === null) {
-        frameId = requestAnimationFrame(() => {
-          if (pendingUpdate && onUpdateBatchNotes) {
-            onUpdateBatchNotes(pendingUpdate);
-          }
-          frameId = null;
-        });
+      // Direct DOM update for group frame boundary element
+      const frameEl = document.getElementById(`group-frame-${groupId}`);
+      if (frameEl) {
+        const frameX = Math.round(initialFrameBounds.minX + dx);
+        const frameY = Math.round(initialFrameBounds.minY + dy);
+        frameEl.style.transform = `translate3d(${frameX}px, ${frameY}px, 0)`;
       }
     };
 
     const handleMouseUp = () => {
-      if (frameId !== null) cancelAnimationFrame(frameId);
       if (pendingUpdate && onUpdateBatchNotes) {
         onUpdateBatchNotes(pendingUpdate);
       }
@@ -166,6 +170,7 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
 
   return (
     <div
+      id={`group-frame-${groupId}`}
       style={{
         transform: `translate3d(${minX}px, ${minY}px, 0)`,
         width: `${width}px`,

@@ -17,6 +17,49 @@ interface UseNoteDragOptions {
   onDragStateChange?: (draggingIds: string[]) => void;
 }
 
+function updateGroupFramesDOM(allNotes: Note[], updatedPosMap: Map<string, { x: number; y: number }>) {
+  const affectedGroupIds = new Set<string>();
+  allNotes.forEach((n) => {
+    if (n.groupId && updatedPosMap.has(n.id)) {
+      affectedGroupIds.add(n.groupId);
+    }
+  });
+
+  affectedGroupIds.forEach((gId) => {
+    const frameEl = document.getElementById(`group-frame-${gId}`);
+    if (!frameEl) return;
+
+    const groupNotes = allNotes.filter((n) => n.groupId === gId);
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    groupNotes.forEach((n) => {
+      const pos = updatedPosMap.get(n.id) || { x: n.x, y: n.y };
+      const cardEl = document.getElementById(`note-card-${n.id}`);
+      const cardW = cardEl ? cardEl.offsetWidth : n.width || 340;
+      const cardH = cardEl ? cardEl.offsetHeight : n.height || 340;
+
+      minX = Math.min(minX, pos.x);
+      minY = Math.min(minY, pos.y);
+      maxX = Math.max(maxX, pos.x + cardW);
+      maxY = Math.max(maxY, pos.y + cardH);
+    });
+
+    if (minX === Infinity) return;
+
+    const frameMinX = Math.round(minX - 28);
+    const frameMinY = Math.round(minY - 42);
+    const frameWidth = Math.max(100, Math.round(maxX + 28 - frameMinX));
+    const frameHeight = Math.max(100, Math.round(maxY + 28 - frameMinY));
+
+    frameEl.style.transform = `translate3d(${frameMinX}px, ${frameMinY}px, 0)`;
+    frameEl.style.width = `${frameWidth}px`;
+    frameEl.style.height = `${frameHeight}px`;
+  });
+}
+
 export function useNoteDrag({
   note,
   allNotes,
@@ -162,7 +205,9 @@ export function useNoteDrag({
       const dx = (moveEvent.clientX - dragStartRef.current.x) / zoom;
       const dy = (moveEvent.clientY - dragStartRef.current.y) / zoom;
 
-      if (groupDragStartRef.current.length > 1 && onUpdateBatchNotes) {
+      const updatedMap = new Map<string, { x: number; y: number }>();
+
+      if (groupDragStartRef.current.length > 1) {
         const updatedBatch = allNotes
           .filter((n) => activeSelectedIds.includes(n.id))
           .map((n) => {
@@ -174,11 +219,15 @@ export function useNoteDrag({
               rawX = Math.round(rawX / GRID_SIZE) * GRID_SIZE;
               rawY = Math.round(rawY / GRID_SIZE) * GRID_SIZE;
             }
+            // Update DOM transform directly for each card in the multi-select group
+            const el = document.getElementById(`note-card-${n.id}`);
+            if (el) {
+              el.style.transform = `translate3d(${Math.round(rawX)}px, ${Math.round(rawY)}px, 0)`;
+            }
+            updatedMap.set(n.id, { x: rawX, y: rawY });
             return { ...n, x: rawX, y: rawY };
           });
         currentBatchRef.current = updatedBatch;
-        pendingBatch = updatedBatch;
-        scheduleMove();
       } else {
         let newX = dragStartRef.current.noteX + dx;
         let newY = dragStartRef.current.noteY + dy;
@@ -187,13 +236,16 @@ export function useNoteDrag({
           newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
         }
         currentPosRef.current = { x: newX, y: newY };
-        pendingSingle = {
-          ...noteRef.current,
-          x: newX,
-          y: newY,
-        };
-        scheduleMove();
+        // Update DOM transform directly for the single dragged card
+        const el = document.getElementById(`note-card-${noteRef.current.id}`);
+        if (el) {
+          el.style.transform = `translate3d(${Math.round(newX)}px, ${Math.round(newY)}px, 0)`;
+        }
+        updatedMap.set(noteRef.current.id, { x: newX, y: newY });
       }
+
+      // Keep group frame boundaries moving synchronously with dragged notes
+      updateGroupFramesDOM(allNotes, updatedMap);
     };
 
     const handleMouseUp = () => {

@@ -14,5 +14,6 @@ DiaryNote_*.app.tar.gz
 
 # Local security / internal docs (not for public repo)
 docs/
+tasks/
 
 
