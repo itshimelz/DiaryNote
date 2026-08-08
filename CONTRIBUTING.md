@@ -6,7 +6,7 @@ Below is a set of guidelines and best practices to help you contribute effective
 
 ---
 
-## 📜 Code of Conduct
+## Code of Conduct
 
 By participating in this project, you agree to maintain a respectful and welcoming environment for everyone:
 - Be welcoming, empathetic, and thoughtful in communications.
@@ -15,7 +15,7 @@ By participating in this project, you agree to maintain a respectful and welcomi
 
 ---
 
-## 🚀 How to Contribute
+## How to Contribute
 
 ### 1. Reporting Bugs
 Before opening a new bug report, please search existing GitHub Issues to avoid duplicates. When filing a bug report:
@@ -40,7 +40,7 @@ Have an idea to make DiaryNote even better? Feature requests are always welcome!
 
 ---
 
-## 🛠️ Local Development Setup
+## Local Development Setup
 
 ### Prerequisites
 - **Node.js**: `v18+` or `v20+` / `bun`
@@ -73,7 +73,7 @@ Have an idea to make DiaryNote even better? Feature requests are always welcome!
 
 ---
 
-## 🧪 Quality Gates & Verification
+## Quality Gates & Verification
 
 Before submitting a Pull Request, verify that all type checking and production builds pass cleanly without warnings:
 
@@ -87,7 +87,7 @@ npm run build
 
 ---
 
-## 🎨 Code Conventions & Design System Rules
+## Code Conventions & Design System Rules
 
 - **TypeScript Type Safety**: Avoid `any` types. Place shared interfaces in `src/types/index.ts` or component `types.ts`.
 - **UI Design System Tokens**:
@@ -103,7 +103,7 @@ npm run build
 
 ---
 
-## 📦 Releasing a New Version
+## Releasing a New Version
 
 DiaryNote uses automated release workflows. **`package.json` is the single source of truth** for the version number — all other version fields are synced from it.
 
@@ -146,6 +146,6 @@ The release workflow validates that version files match the tag and that the rel
 
 ---
 
-## 📄 License Notice
+## License Notice
 
 By contributing to DiaryNote, you agree that your contributions will be licensed under the project's [MIT License](LICENSE).
