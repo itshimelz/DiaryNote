@@ -1,15 +1,9 @@
 export { InfiniteCanvas } from './InfiniteCanvas';
 export { CanvasControls } from './CanvasControls';
 export { NotesSidebar } from './NotesSidebar';
-export { SearchModal } from './SearchModal';
-export { DeleteConfirmationModal } from './DeleteConfirmationModal';
-export { SecurityModal } from './SecurityModal';
 export { NoteCard } from './NoteCard';
 export { MentionAutocomplete } from './MentionAutocomplete';
 export { BatchActionBar } from './BatchActionBar';
-export { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
 export { NoteContextMenu } from './NoteContextMenu';
-export { PasteConfirmModal } from './PasteConfirmModal';
 export { HiddenClipboardListener } from './HiddenClipboardListener';
-export { AboutModal } from './AboutModal';
 export { UpdateAlertBanner } from './UpdateAlertBanner';

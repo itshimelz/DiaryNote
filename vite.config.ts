@@ -22,12 +22,38 @@ export default defineConfig(() => {
       target: 'esnext',
       rollupOptions: {
         output: {
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom'],
-            'vendor-motion': ['motion/react'],
-            'vendor-icons': ['lucide-react'],
-            'vendor-db': ['dexie'],
-            'vendor-markdown': ['react-markdown', 'remark-gfm', 'remark-breaks'],
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (
+                id.includes('node_modules/react/') ||
+                id.includes('node_modules/react-dom/') ||
+                id.includes('node_modules/scheduler/')
+              ) {
+                return 'vendor-react';
+              }
+              if (
+                id.includes('node_modules/motion/') ||
+                id.includes('node_modules/framer-motion/')
+              ) {
+                return 'vendor-motion';
+              }
+              if (id.includes('node_modules/lucide-react/')) {
+                return 'vendor-icons';
+              }
+              if (id.includes('node_modules/dexie/')) {
+                return 'vendor-db';
+              }
+              if (
+                id.includes('node_modules/react-markdown/') ||
+                id.includes('node_modules/remark-') ||
+                id.includes('node_modules/hast') ||
+                id.includes('node_modules/mdast') ||
+                id.includes('node_modules/micromark') ||
+                id.includes('node_modules/unist')
+              ) {
+                return 'vendor-markdown';
+              }
+            }
           },
         },
       },

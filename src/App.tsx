@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CanvasTransform, Note } from './types';
 import { exportBackup, exportNotesBackup, importBackup, saveFileWithNotification, SAMPLE_NOTES } from './lib/storage';
@@ -14,17 +14,20 @@ import {
   InfiniteCanvas,
   CanvasControls,
   NotesSidebar,
-  SearchModal,
-  DeleteConfirmationModal,
-  SecurityModal,
   BatchActionBar,
-  KeyboardShortcutsModal,
   NoteContextMenu,
-  PasteConfirmModal,
   HiddenClipboardListener,
-  AboutModal,
   UpdateAlertBanner,
 } from './components';
+
+// Lazy Loaded Modals for Bundle Size Optimization
+const SearchModal = lazy(() => import('./components/SearchModal').then(m => ({ default: m.SearchModal })));
+const DeleteConfirmationModal = lazy(() => import('./components/DeleteConfirmationModal').then(m => ({ default: m.DeleteConfirmationModal })));
+const SecurityModal = lazy(() => import('./components/SecurityModal').then(m => ({ default: m.SecurityModal })));
+const KeyboardShortcutsModal = lazy(() => import('./components/KeyboardShortcutsModal').then(m => ({ default: m.KeyboardShortcutsModal })));
+const PasteConfirmModal = lazy(() => import('./components/PasteConfirmModal').then(m => ({ default: m.PasteConfirmModal })));
+const AboutModal = lazy(() => import('./components/AboutModal').then(m => ({ default: m.AboutModal })));
+
 import { sendNativeAppNotification } from './lib/notifications';
 import { checkForAppUpdates, ReleaseInfo } from './utils/updateChecker';
 
@@ -583,80 +586,82 @@ export default function App() {
         onDeleteNote={handleDeleteProtectedNote}
       />
 
-      {/* Command Palette Search Modal */}
-      <SearchModal
-        isOpen={isSearchOpen}
-        notes={notes}
-        themeMode={settings.themeMode}
-        onClose={() => setIsSearchOpen(false)}
-        onSelectNote={(id) => handleNavigateToNote(id, setSelectedNoteIds)}
-      />
+      <Suspense fallback={null}>
+        {/* Command Palette Search Modal */}
+        <SearchModal
+          isOpen={isSearchOpen}
+          notes={notes}
+          themeMode={settings.themeMode}
+          onClose={() => setIsSearchOpen(false)}
+          onSelectNote={(id) => handleNavigateToNote(id, setSelectedNoteIds)}
+        />
 
-      {/* Delete Confirmation Modal */}
-      <DeleteConfirmationModal
-        isOpen={isDeleteModalOpen}
-        count={notesToDelete.length}
-        themeMode={settings.themeMode}
-        onConfirm={handleConfirmDelete}
-        onClose={() => setIsDeleteModalOpen(false)}
-      />
+        {/* Delete Confirmation Modal */}
+        <DeleteConfirmationModal
+          isOpen={isDeleteModalOpen}
+          count={notesToDelete.length}
+          themeMode={settings.themeMode}
+          onConfirm={handleConfirmDelete}
+          onClose={() => setIsDeleteModalOpen(false)}
+        />
 
-      {/* App Global Master Security Lock & Unlock Modal */}
-      <SecurityModal
-        isOpen={securityModalNoteId !== null}
-        mode={securityModalMode}
-        themeMode={settings.themeMode}
-        existingQuestion={settings.masterSecurityQuestion}
-        existingPasswordHash={settings.masterPasswordHash}
-        existingAnswerHash={settings.masterSecurityAnswerHash}
-        onClose={() => setSecurityModalNoteId(null)}
-        onSuccessSet={(masterPasswordHash, masterSecurityQuestion, masterSecurityAnswerHash) => {
-          // Store global master passcode & recovery question in App Settings
-          setSettings((prev) => ({
-            ...prev,
-            masterPasswordHash,
-            masterSecurityQuestion,
-            masterSecurityAnswerHash,
-          }));
+        {/* App Global Master Security Lock & Unlock Modal */}
+        <SecurityModal
+          isOpen={securityModalNoteId !== null}
+          mode={securityModalMode}
+          themeMode={settings.themeMode}
+          existingQuestion={settings.masterSecurityQuestion}
+          existingPasswordHash={settings.masterPasswordHash}
+          existingAnswerHash={settings.masterSecurityAnswerHash}
+          onClose={() => setSecurityModalNoteId(null)}
+          onSuccessSet={(masterPasswordHash, masterSecurityQuestion, masterSecurityAnswerHash) => {
+            // Store global master passcode & recovery question in App Settings
+            setSettings((prev) => ({
+              ...prev,
+              masterPasswordHash,
+              masterSecurityQuestion,
+              masterSecurityAnswerHash,
+            }));
 
-          // Lock target note immediately
-          if (securityModalNote) {
+            // Lock target note immediately
+            if (securityModalNote) {
+              handleUpdateNote({
+                ...securityModalNote,
+                isLocked: true,
+              });
+            }
+          }}
+          onSuccessUnlock={() => {
+            if (!securityModalNote) return;
+            
+            // If pending deletion was requested, proceed with deletion after successful unlock
+            if (notesToDelete.length > 0) {
+              handleDeleteMultipleNotes(notesToDelete);
+              setSelectedNoteIds((prev) => prev.filter((id) => !notesToDelete.includes(id)));
+              const count = notesToDelete.length;
+              sendNativeAppNotification(
+                'Note Deleted',
+                count === 1 ? `Deleted protected note "${securityModalNote.title || 'Untitled Note'}"` : `Deleted ${count} protected notes`
+              );
+              setNotesToDelete([]);
+              return;
+            }
+
+            // Otherwise unlock note view
             handleUpdateNote({
               ...securityModalNote,
-              isLocked: true,
+              isLocked: false,
             });
-          }
-        }}
-        onSuccessUnlock={() => {
-          if (!securityModalNote) return;
-          
-          // If pending deletion was requested, proceed with deletion after successful unlock
-          if (notesToDelete.length > 0) {
-            handleDeleteMultipleNotes(notesToDelete);
-            setSelectedNoteIds((prev) => prev.filter((id) => !notesToDelete.includes(id)));
-            const count = notesToDelete.length;
-            sendNativeAppNotification(
-              'Note Deleted',
-              count === 1 ? `Deleted protected note "${securityModalNote.title || 'Untitled Note'}"` : `Deleted ${count} protected notes`
-            );
-            setNotesToDelete([]);
-            return;
-          }
+          }}
+        />
 
-          // Otherwise unlock note view
-          handleUpdateNote({
-            ...securityModalNote,
-            isLocked: false,
-          });
-        }}
-      />
-
-      {/* Keyboard Shortcuts Cheatsheet Modal */}
-      <KeyboardShortcutsModal
-        isOpen={isShortcutsModalOpen}
-        themeMode={settings.themeMode}
-        onClose={() => setIsShortcutsModalOpen(false)}
-      />
+        {/* Keyboard Shortcuts Cheatsheet Modal */}
+        <KeyboardShortcutsModal
+          isOpen={isShortcutsModalOpen}
+          themeMode={settings.themeMode}
+          onClose={() => setIsShortcutsModalOpen(false)}
+        />
+      </Suspense>
 
       {/* Right-Click Context Menu for Selected Note(s) */}
       <NoteContextMenu
@@ -741,38 +746,40 @@ export default function App() {
         onSelectAllNotes={() => setSelectedNoteIds(notes.map((n) => n.id))}
       />
 
-      {/* Clipboard Ctrl+V Paste Confirm Modal */}
-      <PasteConfirmModal
-        isOpen={pasteModalState.isOpen}
-        pastedText={pasteModalState.text}
-        themeMode={settings.themeMode}
-        onClose={() => setPasteModalState({ isOpen: false, text: '' })}
-        onConfirm={(pastedTitle, pastedContent) => {
-          const newId = handleAddNote(transform, settings);
-          setNotes((prev) =>
-            prev.map((n) =>
-              n.id === newId ? { ...n, title: pastedTitle, content: pastedContent } : n
-            )
-          );
-          setSelectedNoteIds([newId]);
-          sendNativeAppNotification(
-            'Note Created',
-            `Created note "${pastedTitle}" from clipboard paste`
-          );
-        }}
-      />
+      <Suspense fallback={null}>
+        {/* Clipboard Ctrl+V Paste Confirm Modal */}
+        <PasteConfirmModal
+          isOpen={pasteModalState.isOpen}
+          pastedText={pasteModalState.text}
+          themeMode={settings.themeMode}
+          onClose={() => setPasteModalState({ isOpen: false, text: '' })}
+          onConfirm={(pastedTitle, pastedContent) => {
+            const newId = handleAddNote(transform, settings);
+            setNotes((prev) =>
+              prev.map((n) =>
+                n.id === newId ? { ...n, title: pastedTitle, content: pastedContent } : n
+              )
+            );
+            setSelectedNoteIds([newId]);
+            sendNativeAppNotification(
+              'Note Created',
+              `Created note "${pastedTitle}" from clipboard paste`
+            );
+          }}
+        />
 
-      {/* Hidden Native Clipboard Paste Listener (bypasses browser/distro permissions) */}
-      <HiddenClipboardListener
-        onPasteText={(text) => setPasteModalState({ isOpen: true, text })}
-      />
+        {/* Hidden Native Clipboard Paste Listener (bypasses browser/distro permissions) */}
+        <HiddenClipboardListener
+          onPasteText={(text) => setPasteModalState({ isOpen: true, text })}
+        />
 
-      {/* About Application Modal */}
-      <AboutModal
-        isOpen={isAboutModalOpen}
-        themeMode={settings.themeMode}
-        onClose={() => setIsAboutModalOpen(false)}
-      />
+        {/* About Application Modal */}
+        <AboutModal
+          isOpen={isAboutModalOpen}
+          themeMode={settings.themeMode}
+          onClose={() => setIsAboutModalOpen(false)}
+        />
+      </Suspense>
 
       {/* First-Time Release Update Alert Banner */}
       {updateReleaseAlert && (
