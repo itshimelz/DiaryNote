@@ -284,15 +284,15 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         minHeight: `${note.height || 340}px`,
         zIndex: isDragging || isCardDragging ? 10000 : note.zIndex || 10,
       }}
-      className={`note-card absolute top-0 left-0 rounded-md border flex flex-col justify-between ${
+      className={`note-card absolute top-0 left-0 rounded-md flex flex-col justify-between shadow-sm ${
         isPanMode
           ? 'cursor-grab active:cursor-grabbing pointer-events-none'
           : isDragging || isCardDragging
-          ? 'transition-none scale-100 cursor-grabbing ring-2 ring-blue-500/80 shadow-md z-[10000]'
-          : `transition-[box-shadow,opacity] duration-150 ease-out scale-100 shadow-sm ${
+          ? 'transition-none scale-100 cursor-grabbing z-[10000]'
+          : `transition-[box-shadow,opacity] duration-150 ease-out scale-100 ${
               !isEditing ? 'cursor-grab' : ''
             }`
-      } ${themeConfig.headerBg} ${themeConfig.border} ${themeConfig.text} ${
+      } ${themeConfig.headerBg} ${themeConfig.text} ${
         isSelected ? 'ring-2 ring-blue-500' : ''
       }`}
     >
@@ -369,10 +369,10 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         {note.isLocked ? (
           /* Locked Note Protection Screen */
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center select-none">
-            <div className={`w-12 h-12 rounded-md flex items-center justify-center mb-3 border ${
+            <div className={`w-12 h-12 rounded-md flex items-center justify-center mb-3 ${
               themeConfig.isDark
-                ? 'bg-slate-800/80 border-slate-700 text-slate-200'
-                : 'bg-slate-100 border-slate-300 text-slate-700'
+                ? 'bg-slate-800/80 text-slate-200'
+                : 'bg-slate-100 text-slate-700'
             }`}>
               <Lock className="w-6 h-6" />
             </div>
@@ -384,7 +384,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
             </p>
             <button
               onClick={() => onRequestUnlockNote?.(note.id)}
-              className={`px-4 py-2 rounded-md font-bold uppercase tracking-wider text-[10px] transition-all shadow-sm ${
+              className={`px-4 py-2 rounded-md font-bold uppercase tracking-wider text-[10px] transition-all ${
                 themeConfig.isDark
                   ? 'bg-white text-slate-900 hover:bg-slate-100'
                   : 'bg-slate-900 text-white hover:bg-slate-800'

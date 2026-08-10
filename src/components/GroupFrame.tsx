@@ -12,6 +12,7 @@ export interface GroupFrameProps {
   snapToGrid?: boolean;
   onUpdateBatchNotes?: (notes: Note[]) => void;
   onSelectMultipleNotes?: (ids: string[]) => void;
+  onDragStateChange?: (ids: string[]) => void;
 }
 
 const GroupFrameComponent: React.FC<GroupFrameProps> = ({
@@ -22,12 +23,13 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
   snapToGrid = false,
   onUpdateBatchNotes,
   onSelectMultipleNotes,
+  onDragStateChange,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const currentGroupName = groupNotes[0]?.groupName || '';
   const [titleInput, setTitleInput] = useState(currentGroupName);
   const [measuredBounds, setMeasuredBounds] = useState<{ minX: number; minY: number; maxX: number; maxY: number } | null>(null);
-  const [, setIsDraggingGroup] = useState(false);
+  const [isDraggingGroup, setIsDraggingGroup] = useState(false);
 
   const dragStartRef = useRef<{ startX: number; startY: number; notePositions: { id: string; x: number; y: number }[] } | null>(null);
 
@@ -81,6 +83,7 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
 
     // Select all notes in group
     onSelectMultipleNotes?.(groupNotes.map((n) => n.id));
+    onDragStateChange?.(groupNotes.map((n) => n.id));
 
     setIsDraggingGroup(true);
     const initialFrameBounds = measuredBounds || calculateGroupBounds(groupNotes, 28, 42, 28);
@@ -124,10 +127,19 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
     };
 
     const handleMouseUp = () => {
+      setIsDraggingGroup(false);
+      onDragStateChange?.([]);
+
+      const frameEl = document.getElementById(`group-frame-${groupId}`);
+      if (frameEl) frameEl.style.transform = '';
+      groupNotes.forEach((n) => {
+        const cardEl = document.getElementById(`note-card-${n.id}`);
+        if (cardEl) cardEl.style.transform = '';
+      });
+
       if (pendingUpdate && onUpdateBatchNotes) {
         onUpdateBatchNotes(pendingUpdate);
       }
-      setIsDraggingGroup(false);
       dragStartRef.current = null;
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);

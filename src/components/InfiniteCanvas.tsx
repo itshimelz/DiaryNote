@@ -519,6 +519,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
               snapToGrid={snapToGrid}
               onUpdateBatchNotes={onUpdateBatchNotes}
               onSelectMultipleNotes={onSelectMultipleNotes}
+              onDragStateChange={setDraggingNoteIds}
             />
           ))}
 

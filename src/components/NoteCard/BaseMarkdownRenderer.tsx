@@ -253,6 +253,11 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
     [inline, isRuled, themeConfig, onNavigateToNote]
   );
 
+  const isPlainInlineText = useMemo(
+    () => inline && !/[*`_~#\[@\\]/.test(processedContent),
+    [inline, processedContent]
+  );
+
   return (
     <div
       ref={markdownRef}
@@ -264,9 +269,15 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
         isRuled ? 'ruled-text-alignment' : ''
       } ${fontClass} ${fontSizeClass} ${themeConfig.text} ${className}`}
     >
-      <ReactMarkdown remarkPlugins={REMARK_PLUGINS} components={components}>
-        {isEmpty && emptyPlaceholder ? emptyPlaceholder : processedContent}
-      </ReactMarkdown>
+      {isPlainInlineText ? (
+        <span className="inline leading-snug">
+          {isEmpty && emptyPlaceholder ? emptyPlaceholder : processedContent}
+        </span>
+      ) : (
+        <ReactMarkdown remarkPlugins={REMARK_PLUGINS} components={components}>
+          {isEmpty && emptyPlaceholder ? emptyPlaceholder : processedContent}
+        </ReactMarkdown>
+      )}
     </div>
   );
 };
