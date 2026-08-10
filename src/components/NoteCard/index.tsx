@@ -697,6 +697,8 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
 };
 
 export const NoteCard = React.memo(NoteCardComponent, (prevProps, nextProps) => {
+  if (prevProps.allNotes !== nextProps.allNotes) return false;
+
   // Check whether THIS card's selection state changed (not array reference)
   const prevInSelection = prevProps.selectedNoteIds.includes(prevProps.note.id);
   const nextInSelection = nextProps.selectedNoteIds.includes(nextProps.note.id);

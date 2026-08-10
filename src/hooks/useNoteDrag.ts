@@ -79,6 +79,8 @@ export function useNoteDrag({
   const [isDragging, setIsDragging] = useState(false);
   const noteRef = useRef(note);
   noteRef.current = note;
+  const allNotesRef = useRef(allNotes);
+  allNotesRef.current = allNotes;
 
   const dragStartRef = useRef<{ x: number; y: number; noteX: number; noteY: number }>({
     x: 0,
@@ -153,11 +155,13 @@ export function useNoteDrag({
 
     if (activeSelectedIds.length > 1) {
       groupDragStartRef.current = activeSelectedIds.map((id) => {
-        const targetNote = allNotes.find((n) => n.id === id);
+        const targetNote = allNotesRef.current.find((n) => n.id === id);
+        const fallbackX = id === noteRef.current.id ? noteRef.current.x : 0;
+        const fallbackY = id === noteRef.current.id ? noteRef.current.y : 0;
         return {
           id,
-          startX: targetNote ? targetNote.x : 0,
-          startY: targetNote ? targetNote.y : 0,
+          startX: targetNote ? targetNote.x : fallbackX,
+          startY: targetNote ? targetNote.y : fallbackY,
         };
       });
     } else {
@@ -165,7 +169,7 @@ export function useNoteDrag({
     }
 
     const cardDimsMap = new Map<string, { width: number; height: number }>();
-    allNotes.forEach((n) => {
+    allNotesRef.current.forEach((n) => {
       const cardEl = document.getElementById(`note-card-${n.id}`);
       cardDimsMap.set(n.id, {
         width: cardEl ? cardEl.offsetWidth : n.width || 340,
@@ -184,7 +188,7 @@ export function useNoteDrag({
       const updatedMap = new Map<string, { x: number; y: number }>();
 
       if (groupDragStartRef.current.length > 1) {
-        const updatedBatch = allNotes
+        const updatedBatch = allNotesRef.current
           .filter((n) => activeSelectedIds.includes(n.id))
           .map((n) => {
             const startPos = groupDragStartRef.current.find((item) => item.id === n.id);
@@ -218,7 +222,7 @@ export function useNoteDrag({
         updatedMap.set(noteRef.current.id, { x: newX, y: newY });
       }
 
-      updateGroupFramesDOM(allNotes, updatedMap, cardDimsMap);
+      updateGroupFramesDOM(allNotesRef.current, updatedMap, cardDimsMap);
     };
 
     const handleMouseMove = (moveEvent: MouseEvent) => {

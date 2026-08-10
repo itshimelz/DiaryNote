@@ -72,11 +72,16 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
     };
   }, [groupNotes]);
 
+  const isSavingRef = useRef(false);
+
   // Mouse Down Drag Handler for Group Frame Header Badge
   const handleBadgeMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0 || isEditing) return;
+    if (e.button !== 0) return;
     const target = e.target as HTMLElement;
-    if (target.tagName === 'INPUT') return;
+    if (target.tagName === 'INPUT' || isEditing) {
+      e.stopPropagation();
+      return;
+    }
 
     e.preventDefault();
     e.stopPropagation();
@@ -130,13 +135,6 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
       setIsDraggingGroup(false);
       onDragStateChange?.([]);
 
-      const frameEl = document.getElementById(`group-frame-${groupId}`);
-      if (frameEl) frameEl.style.transform = '';
-      groupNotes.forEach((n) => {
-        const cardEl = document.getElementById(`note-card-${n.id}`);
-        if (cardEl) cardEl.style.transform = '';
-      });
-
       if (pendingUpdate && onUpdateBatchNotes) {
         onUpdateBatchNotes(pendingUpdate);
       }
@@ -169,6 +167,8 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
     : 'bg-slate-900/95 border border-slate-800/90 text-slate-200 shadow-sm backdrop-blur-md hover:border-blue-500';
 
   const handleSaveTitle = () => {
+    if (isSavingRef.current) return;
+    isSavingRef.current = true;
     setIsEditing(false);
     const trimmed = titleInput.trim();
     const updated = groupNotes.map((n) => ({
@@ -176,6 +176,9 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
       groupName: trimmed || undefined,
     }));
     onUpdateBatchNotes?.(updated);
+    setTimeout(() => {
+      isSavingRef.current = false;
+    }, 100);
   };
 
   const displayName = currentGroupName || `Group (${groupNotes.length} notes)`;
@@ -201,6 +204,8 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
             type="text"
             value={titleInput}
             onChange={(e) => setTitleInput(e.target.value)}
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
             onBlur={handleSaveTitle}
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleSaveTitle();
