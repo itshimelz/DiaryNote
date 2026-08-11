@@ -8,4 +8,3 @@ export { NoteContextMenu } from './NoteContextMenu';
 export { HiddenClipboardListener } from './HiddenClipboardListener';
 export { UpdateAlertBanner } from './UpdateAlertBanner';
 export { StatusBar } from './StatusBar';
-export * from './Modals';

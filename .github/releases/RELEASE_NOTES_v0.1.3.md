@@ -1,17 +1,20 @@
 # DiaryNote v0.1.3
 
-Release notes for DiaryNote v0.1.3 featuring inline Slash commands, a contextual Smart Status Bar, and smart relative timestamps.
+Release notes for DiaryNote v0.1.3 featuring Daily Journaling, inline Slash commands, a contextual Smart Status Bar, unified modal styling, and single-press clipboard paste.
+
+### Daily Journaling & Calendar
+
+- **Today's Journal Shortcut (`Ctrl + Shift + D`)**: Create or jump to today's daily journal note.
+- **Journal Calendar Modal**: Monthly calendar with streak tracking and entry metrics.
+- **Header Mood Picker**: Adaptive entry mood popover with Lucide icons (`Smile`, `Sun`, `Zap`, `Coffee`, `CloudRain`).
 
 ### Slash (`/`) Commands
 
-- Added an interactive inline Markdown slash command menu triggered by `/` at line start or after whitespace.
-- Instant insert shortcuts for headers (`#`, `##`, `###`), task checkboxes (`- [ ]`), bullet lists (`-`), numbered lists (`1.`), blockquotes (`>`), code blocks (```), timestamps, and horizontal dividers (`---`).
-- Supports search filtering and keyboard navigation (`ArrowUp`, `ArrowDown`, `Enter`, `Tab`, `Escape`).
+- Interactive inline Markdown slash command menu (`/` trigger).
+- Instant insert shortcuts for headers, task checkboxes, lists, blockquotes, code blocks, timestamps, and dividers.
 
-### Contextual Smart Status Bar
+### Smart Status Bar & Component Organization
 
-- Added a bottom status bar with live word count insights, SQLite storage status, grid snap indicators, and smart relative save timestamps.
-
-### Smart Relative Duration Formatter
-
-- Replaced static duration formatting with an intelligent unit scaler (`Just now`, `Xm ago`, `Xh ago`, `Xd ago`, `Xw ago`, `Xmo ago`, `Xy ago`).
+- **Status Bar Alignment**: Fixed icon and text vertical alignment with optical translate-y offsets and standard line-height metrics across all status bar indicators.
+- **Modular Component Architecture**: Reorganized modal dialog components into a dedicated `Modals/` directory while preserving lazy-loading code splitting.
+- **Streamlined Note Modes**: Focused note modes on rich markdown text and checklists.

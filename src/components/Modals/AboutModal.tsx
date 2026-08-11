@@ -214,7 +214,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({
           {/* Feature Highlights Overview */}
           <div className="grid grid-cols-2 gap-2">
             <div
-              className={`p-2.5 rounded-sm border transition-colors ${
+              className={`p-2.5 rounded-md border transition-colors ${
                 isDark ? 'bg-slate-800/40 border-slate-800' : 'bg-slate-50 border-slate-200/80'
               }`}
             >
@@ -228,12 +228,12 @@ export const AboutModal: React.FC<AboutModalProps> = ({
             </div>
 
             <div
-              className={`p-2.5 rounded-sm border transition-colors ${
+              className={`p-2.5 rounded-md border transition-colors ${
                 isDark ? 'bg-slate-800/40 border-slate-800' : 'bg-slate-50 border-slate-200/80'
               }`}
             >
               <div className="flex items-center gap-1.5 font-semibold mb-0.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
                 <span>Local Privacy</span>
               </div>
               <p className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>

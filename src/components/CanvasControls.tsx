@@ -23,6 +23,8 @@ import {
   Info,
   Keyboard,
   PanelBottom,
+  Calendar,
+  Flame,
 } from 'lucide-react';
 import { CURRENT_VERSION } from '../utils/updateChecker';
 
@@ -35,6 +37,8 @@ interface CanvasControlsProps {
   showConnections: boolean;
   hasBatchBar?: boolean;
   onAddNote: () => void;
+  onOpenTodayJournal?: () => void;
+  onOpenJournalCalendar?: () => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onResetZoom: () => void;
@@ -68,6 +72,8 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
   showConnections,
   hasBatchBar = false,
   onAddNote,
+  onOpenTodayJournal,
+  onOpenJournalCalendar,
   onZoomIn,
   onZoomOut,
   onResetZoom,
@@ -117,22 +123,63 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
 
       {/* Primary Control Bar Row inside Unified Dock */}
       <div className="w-full flex items-center justify-between gap-1.5 p-1.5 text-xs transition-all">
-        {/* Create Note CTA */}
-        <button
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={(e) => {
-            e.currentTarget.blur();
-            onAddNote();
-          }}
-          className={`flex items-center gap-1.5 px-3 py-1.5 font-bold tracking-wider uppercase text-[11px] rounded-md shadow transition-colors ${
-            themeMode === 'light'
-              ? 'bg-slate-900 text-white hover:bg-slate-800'
-              : 'bg-white text-slate-900 hover:bg-slate-100'
-          }`}
-        >
-          <Plus className="w-4 h-4" />
-          <span>New Note</span>
-        </button>
+        <div className="flex items-center gap-1.5">
+          {/* Create Note CTA */}
+          <button
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
+              e.currentTarget.blur();
+              onAddNote();
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 font-bold tracking-wider uppercase text-[11px] rounded-md shadow transition-colors ${
+              themeMode === 'light'
+                ? 'bg-slate-900 text-white hover:bg-slate-800'
+                : 'bg-white text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <Plus className="w-4 h-4" />
+            <span>New Note</span>
+          </button>
+
+          {/* Today's Journal CTA */}
+          {onOpenTodayJournal && (
+            <button
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => {
+                e.currentTarget.blur();
+                onOpenTodayJournal();
+              }}
+              title="Today's Journal Entry (Ctrl+Shift+D)"
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all ${
+                themeMode === 'light'
+                  ? 'hover:bg-slate-100 text-slate-600 hover:text-slate-900'
+                  : 'hover:bg-slate-800 text-slate-400 hover:text-slate-100'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Today</span>
+            </button>
+          )}
+
+          {/* Journal Calendar CTA */}
+          {onOpenJournalCalendar && (
+            <button
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => {
+                e.currentTarget.blur();
+                onOpenJournalCalendar();
+              }}
+              title="Open Journal Calendar"
+              className={`p-1.5 rounded-md transition-all ${
+                themeMode === 'light'
+                  ? 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'
+                  : 'hover:bg-slate-800 text-slate-400 hover:text-slate-100'
+              }`}
+            >
+              <Calendar className="w-4 h-4" />
+            </button>
+          )}
+        </div>
 
         <div className={`h-5 w-px mx-1 ${themeMode === 'light' ? 'bg-slate-200' : 'bg-slate-800'}`} />
 

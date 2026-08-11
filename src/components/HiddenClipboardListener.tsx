@@ -16,36 +16,38 @@ interface HiddenClipboardListenerProps {
 }
 
 export const HiddenClipboardListener: React.FC<HiddenClipboardListenerProps> = ({ onPasteText }) => {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const onPasteTextRef = useRef(onPasteText);
   useEffect(() => {
     onPasteTextRef.current = onPasteText;
   }, [onPasteText]);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
       // Don't intercept if user is typing in a real input/textarea/contenteditable
       const activeEl = document.activeElement;
       if (
         activeEl &&
         (activeEl.tagName === 'INPUT' ||
           activeEl.tagName === 'TEXTAREA' ||
-          (activeEl as HTMLElement).isContentEditable)
+          (activeEl as HTMLElement).isContentEditable ||
+          activeEl.getAttribute('contenteditable') === 'true')
       ) {
         return;
       }
 
       if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'v' || e.code === 'KeyV')) {
-        const t = textareaRef.current;
-        if (!t) return;
-        e.preventDefault();
-        t.value = '';
-        t.focus();
-        // ponytail: synchronous programmatic paste; reads real text where the native
-        //   paste event / navigator.clipboard are unreliable (Wayland/WebKitGTK).
-        document.execCommand('paste');
-        const text = t.value.trim();
-        if (text) onPasteTextRef.current(text);
+        // Attempt async clipboard read on first keydown if available
+        if (navigator.clipboard && typeof navigator.clipboard.readText === 'function') {
+          try {
+            const text = await navigator.clipboard.readText();
+            if (text && text.trim().length > 0) {
+              e.preventDefault();
+              onPasteTextRef.current(text.trim());
+            }
+          } catch {
+            // Permission restricted or unsupported: fallback to native window 'paste' event without e.preventDefault()
+          }
+        }
       }
     };
 
@@ -53,20 +55,5 @@ export const HiddenClipboardListener: React.FC<HiddenClipboardListenerProps> = (
     return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, []);
 
-  return (
-    <textarea
-      ref={textareaRef}
-      aria-hidden="true"
-      tabIndex={-1}
-      style={{
-        position: 'fixed',
-        top: '-9999px',
-        left: '-9999px',
-        width: '1px',
-        height: '1px',
-        opacity: 0,
-        pointerEvents: 'none',
-      }}
-    />
-  );
+  return null;
 };

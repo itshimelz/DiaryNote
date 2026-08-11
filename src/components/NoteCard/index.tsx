@@ -9,6 +9,7 @@ import { NoteStylePicker } from './NoteStylePicker';
 import { MentionAutocomplete } from '../MentionAutocomplete';
 import { SlashCommandMenu, SlashCommand, SLASH_COMMANDS } from './SlashCommandMenu';
 import { getUniqueTitleForDay, normalizeNoteText, resizeNoteEditor, applyMarkdownFormatting, handleSmartEnterList, FormattingType } from '../../utils';
+import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../../constants/canvas';
 import { Note } from '../../types';
 
 import { useNoteDrag } from '../../hooks/useNoteDrag';
@@ -320,8 +321,8 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       aria-label={`Note: ${note.title || 'Untitled Note'}`}
       style={{
         transform: `translate3d(${Math.round(note.x)}px, ${Math.round(note.y)}px, 0)`,
-        width: `${note.width || 340}px`,
-        minHeight: `${note.height || 340}px`,
+        width: `${note.width || DEFAULT_NOTE_WIDTH}px`,
+        minHeight: `${note.height || DEFAULT_NOTE_HEIGHT}px`,
         zIndex: isDragging || isCardDragging ? 10000 : note.zIndex || 10,
       }}
       className={`note-card absolute top-0 left-0 rounded-md flex flex-col justify-between shadow-sm ${
@@ -378,6 +379,13 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
             updatedAt: new Date().toISOString(),
           });
         }}
+        onUpdateMood={(mood) =>
+          onUpdateNote({
+            ...note,
+            mood,
+            updatedAt: new Date().toISOString(),
+          })
+        }
         onTogglePin={() =>
           onUpdateNote({
             ...note,

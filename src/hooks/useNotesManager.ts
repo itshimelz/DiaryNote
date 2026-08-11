@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Note, CanvasTransform } from '../types';
-import { loadNotes, SAMPLE_NOTES, AppSettings } from '../lib/storage';
+import { AppSettings } from '../lib/storage';
 import {
   initDatabase,
   saveBatchNotesToDB,
   saveDirtyNotesToDB,
 } from '../lib/sqliteStorage';
-import { getUniqueTitleForDay } from '../utils';
+import { getUniqueTitleForDay, getLocalDateString } from '../utils';
+import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../constants/canvas';
 
 export function useNotesManager(
   pushHistorySnapshot: (notes: Note[]) => void,
@@ -85,8 +86,8 @@ export function useNotesManager(
         content: '',
         x: viewportX,
         y: viewportY,
-        width: 380,
-        height: 340,
+        width: DEFAULT_NOTE_WIDTH,
+        height: DEFAULT_NOTE_HEIGHT,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         fontFamily: settings.defaultFont || 'sans',
@@ -102,6 +103,71 @@ export function useNotesManager(
       setNotes(updated);
       pushHistorySnapshot(updated);
       return newId;
+    },
+    [notes, pushHistorySnapshot]
+  );
+
+  // Create or focus daily journal entry
+  const handleCreateOrFocusDailyEntry = useCallback(
+    (
+      transform: CanvasTransform,
+      settings: AppSettings,
+      targetDateStr?: string
+    ): { noteId: string; isNew: boolean } => {
+      const dateStr = targetDateStr || getLocalDateString();
+      const todayStr = getLocalDateString();
+      const formattedTitle = `${dateStr}`;
+
+      // Search if a note for this date already exists
+      const existingNote = notes.find(
+        (n) => n.entryDate === dateStr || n.title === formattedTitle || n.title === dateStr
+      );
+
+      if (existingNote) {
+        return { noteId: existingNote.id, isNew: false };
+      }
+
+      // Prevent creating daily entries for future dates
+      if (dateStr > todayStr) {
+        return { noteId: '', isNew: false };
+      }
+
+      // Create new daily note at current viewport center
+      const newId = `journal-${dateStr}-${Math.random().toString(36).substring(2, 7)}`;
+      let viewportX = Math.round((window.innerWidth / 2 - transform.x) / transform.zoom - 190);
+      let viewportY = Math.round((window.innerHeight / 2 - transform.y) / transform.zoom - 170);
+
+      if (settings.snapToGrid) {
+        viewportX = Math.round(viewportX / 24) * 24;
+        viewportY = Math.round(viewportY / 24) * 24;
+      }
+
+      const newNote: Note = {
+        id: newId,
+        title: formattedTitle,
+        content: '',
+        x: viewportX,
+        y: viewportY,
+        width: DEFAULT_NOTE_WIDTH,
+        height: DEFAULT_NOTE_HEIGHT,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        fontFamily: settings.defaultFont || 'sans',
+        fontSize: 'sm',
+        paperTheme: 'cream',
+        activeMode: 'text',
+        isPinned: true,
+        zIndex: (notes.length > 0 ? Math.max(...notes.map((n) => n.zIndex || 1)) : 1) + 1,
+        tags: ['journal', 'daily'],
+        isDailyEntry: true,
+        entryDate: dateStr,
+      };
+
+      const updated = [...notes, newNote];
+      setNotes(updated);
+      pushHistorySnapshot(updated);
+      dirtyNoteIdsRef.current.add(newId);
+      return { noteId: newId, isNew: true };
     },
     [notes, pushHistorySnapshot]
   );
@@ -194,6 +260,7 @@ export function useNotesManager(
     lastSavedAt,
     initAppDatabase,
     handleAddNote,
+    handleCreateOrFocusDailyEntry,
     handleUpdateNote,
     handleUpdateBatchNotes,
     handleDeleteNote,

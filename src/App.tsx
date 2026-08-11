@@ -28,6 +28,7 @@ const SecurityModal = lazy(() => import('./components/Modals/SecurityModal').the
 const KeyboardShortcutsModal = lazy(() => import('./components/Modals/KeyboardShortcutsModal').then(m => ({ default: m.KeyboardShortcutsModal })));
 const PasteConfirmModal = lazy(() => import('./components/Modals/PasteConfirmModal').then(m => ({ default: m.PasteConfirmModal })));
 const AboutModal = lazy(() => import('./components/Modals/AboutModal').then(m => ({ default: m.AboutModal })));
+const JournalCalendarModal = lazy(() => import('./components/Modals/JournalCalendarModal').then(m => ({ default: m.JournalCalendarModal })));
 
 import { sendNativeAppNotification } from './utils';
 import { checkForAppUpdates, ReleaseInfo } from './utils/updateChecker';
@@ -35,6 +36,7 @@ import { checkForAppUpdates, ReleaseInfo } from './utils/updateChecker';
 export default function App() {
   const [isNotesListOpen, setIsNotesListOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isJournalCalendarOpen, setIsJournalCalendarOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [updateReleaseAlert, setUpdateReleaseAlert] = useState<ReleaseInfo | null>(null);
@@ -85,6 +87,7 @@ export default function App() {
     setNotes,
     initAppDatabase,
     handleAddNote,
+    handleCreateOrFocusDailyEntry,
     handleUpdateNote,
     handleUpdateBatchNotes,
     handleDeleteNote,
@@ -262,6 +265,14 @@ export default function App() {
     () => setIsShortcutsModalOpen((prev) => !prev)
   );
 
+  const handleOpenOrCreateTodayJournal = useCallback(
+    (targetDateStr?: string) => {
+      const { noteId } = handleCreateOrFocusDailyEntry(transform, settings, targetDateStr);
+      handleNavigateToNote(noteId, setSelectedNoteIds);
+    },
+    [handleCreateOrFocusDailyEntry, transform, settings, handleNavigateToNote, setSelectedNoteIds]
+  );
+
   const handleDeleteProtectedNote = useCallback(
     (noteId: string) => {
       const target = notes.find((n) => n.id === noteId);
@@ -417,11 +428,30 @@ export default function App() {
       }
     };
 
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.getAttribute('contenteditable') === 'true')
+      ) {
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'd' || e.key === 'D')) {
+        e.preventDefault();
+        handleOpenOrCreateTodayJournal();
+      }
+    };
+
     window.addEventListener('paste', handleGlobalPaste);
+    window.addEventListener('keydown', handleGlobalKeyDown);
     return () => {
       window.removeEventListener('paste', handleGlobalPaste);
+      window.removeEventListener('keydown', handleGlobalKeyDown);
     };
-  }, []);
+  }, [handleOpenOrCreateTodayJournal]);
 
   return (
     <div className={`relative w-screen h-screen overflow-hidden ${settings.themeMode === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
@@ -566,6 +596,8 @@ export default function App() {
               canUndo={canUndo}
               canRedo={canRedo}
               onAddNote={() => handleCreateNote()}
+              onOpenTodayJournal={() => handleOpenOrCreateTodayJournal()}
+              onOpenJournalCalendar={() => setIsJournalCalendarOpen(true)}
               onTogglePanMode={handleTogglePanMode}
               onZoomIn={handleZoomIn}
               onZoomOut={handleZoomOut}
@@ -675,6 +707,15 @@ export default function App() {
           isOpen={isShortcutsModalOpen}
           themeMode={settings.themeMode}
           onClose={() => setIsShortcutsModalOpen(false)}
+        />
+
+        {/* Journal Calendar Modal */}
+        <JournalCalendarModal
+          isOpen={isJournalCalendarOpen}
+          onClose={() => setIsJournalCalendarOpen(false)}
+          notes={notes}
+          onSelectOrCreateDate={(dateStr) => handleOpenOrCreateTodayJournal(dateStr)}
+          themeMode={settings.themeMode}
         />
       </Suspense>
 

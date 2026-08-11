@@ -24,6 +24,8 @@ export type GridType = 'dots' | 'grid' | 'ruled' | 'blank';
 
 export type CanvasTheme = 'dark' | 'light' | 'gradient';
 
+export type JournalMood = 'happy' | 'calm' | 'focused' | 'reflective' | 'low';
+
 export interface Note {
   id: string;
   title: string;
@@ -45,6 +47,9 @@ export interface Note {
   isLocked?: boolean;
   groupId?: string;
   groupName?: string;
+  entryDate?: string;
+  isDailyEntry?: boolean;
+  mood?: JournalMood;
 }
 
 export interface CanvasTransform {

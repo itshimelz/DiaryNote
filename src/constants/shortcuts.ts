@@ -33,8 +33,9 @@ export const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
     ],
   },
   {
-    title: 'Note Creation & Editing',
+    title: 'Note Creation & Journaling',
     shortcuts: [
+      { keys: ['Ctrl', 'Shift', 'D'], description: "Open or create Today's Daily Journal entry" },
       { keys: ['N'], description: 'Create new note at canvas center' },
       { keys: ['Ctrl', 'N'], description: 'Create new note' },
       { keys: ['Double Click'], description: 'Create new note at click position' },
