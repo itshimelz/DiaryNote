@@ -551,12 +551,10 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
             type="button"
             onClick={onMergeNotesAI}
             disabled={isMergingAI || selectedNotes.length < 2 || selectedNotes.length > 5}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md font-medium transition-all ${
-              selectedNotes.length >= 2 && selectedNotes.length <= 5
-                ? isDark
-                  ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/30'
-                  : 'bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300'
-                : 'opacity-50 cursor-not-allowed text-slate-400'
+            className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors ${btnClass} ${
+              selectedNotes.length < 2 || selectedNotes.length > 5
+                ? 'opacity-50 cursor-not-allowed'
+                : ''
             }`}
             title={
               selectedNotes.length > 5
@@ -567,16 +565,17 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
             }
           >
             {isMergingAI ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
             ) : (
-              <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
             )}
-            <span className="text-xs font-semibold">
+            <span className="hidden sm:inline">
               {isMergingAI ? 'Merging...' : 'Merge (AI)'}
             </span>
           </button>
         )}
       </div>
+
 
 
       <div className="flex items-center gap-1">
