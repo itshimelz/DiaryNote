@@ -22,7 +22,9 @@ import {
   RotateCcw,
   Info,
   Keyboard,
+  PanelBottom,
 } from 'lucide-react';
+import { CURRENT_VERSION } from '../utils/updateChecker';
 
 interface CanvasControlsProps {
   notes?: Note[];
@@ -53,6 +55,8 @@ interface CanvasControlsProps {
   onOpenSearch: () => void;
   onOpenShortcutsModal?: () => void;
   onOpenAbout?: () => void;
+  showStatusBar?: boolean;
+  onToggleStatusBar?: () => void;
 }
 
 const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
@@ -84,6 +88,8 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
   onOpenSearch,
   onOpenShortcutsModal,
   onOpenAbout,
+  showStatusBar = true,
+  onToggleStatusBar,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -437,6 +443,45 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
                   </button>
                 </div>
 
+                {/* Show Bottom Status Bar Toggle */}
+                <div
+                  className={`flex items-center justify-between p-3 rounded-sm border transition-colors ${
+                    themeMode === 'dark'
+                      ? 'bg-slate-800/60 border-slate-700/60'
+                      : 'bg-slate-50 border-slate-200/90'
+                  }`}
+                >
+                  <div>
+                    <div
+                      className={`font-semibold flex items-center gap-1.5 ${
+                        themeMode === 'dark' ? 'text-slate-100' : 'text-slate-900'
+                      }`}
+                    >
+                      <PanelBottom className={`w-4 h-4 ${themeMode === 'dark' ? 'text-slate-300' : 'text-slate-700'}`} />
+                      <span>Bottom Status Bar</span>
+                    </div>
+                    <p className={`text-[11px] mt-0.5 ${themeMode === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+                      Display live canvas stats, selection count, and word counter at bottom
+                    </p>
+                  </div>
+                  <button
+                    onClick={onToggleStatusBar}
+                    className={`w-10 h-5.5 rounded-full transition-colors relative flex items-center px-0.5 shrink-0 ml-3 cursor-pointer ${
+                      showStatusBar
+                        ? themeMode === 'dark' ? 'bg-slate-100' : 'bg-slate-900'
+                        : themeMode === 'dark' ? 'bg-slate-700' : 'bg-slate-300'
+                    }`}
+                  >
+                    <div
+                      className={`w-4.5 h-4.5 rounded-full shadow-xs transition-transform ${
+                        showStatusBar
+                          ? `translate-x-4.5 ${themeMode === 'dark' ? 'bg-slate-900' : 'bg-white'}`
+                          : 'translate-x-0 bg-white'
+                      }`}
+                    />
+                  </button>
+                </div>
+
                 {/* Grid Background Selection */}
                 <div
                   className={`p-3 rounded-sm border transition-colors ${
@@ -611,7 +656,7 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
                       }`}
                     >
                       <Info className="w-3.5 h-3.5" />
-                      <span>About DiaryNote (v0.1.0)</span>
+                      <span>About DiaryNote (v{CURRENT_VERSION})</span>
                     </button>
                   )}
                 </div>

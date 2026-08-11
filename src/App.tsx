@@ -18,6 +18,7 @@ import {
   NoteContextMenu,
   HiddenClipboardListener,
   UpdateAlertBanner,
+  StatusBar,
 } from './components';
 
 // Lazy Loaded Modals for Bundle Size Optimization
@@ -28,7 +29,7 @@ const KeyboardShortcutsModal = lazy(() => import('./components/KeyboardShortcuts
 const PasteConfirmModal = lazy(() => import('./components/PasteConfirmModal').then(m => ({ default: m.PasteConfirmModal })));
 const AboutModal = lazy(() => import('./components/AboutModal').then(m => ({ default: m.AboutModal })));
 
-import { sendNativeAppNotification } from './lib/notifications';
+import { sendNativeAppNotification } from './utils';
 import { checkForAppUpdates, ReleaseInfo } from './utils/updateChecker';
 
 export default function App() {
@@ -43,6 +44,10 @@ export default function App() {
   const [notesToDelete, setNotesToDelete] = useState<string[]>([]);
 
   const [isZenMode, setIsZenMode] = useState(false);
+  const [showStatusBar, setShowStatusBar] = useState<boolean>(() => {
+    const saved = localStorage.getItem('diarynote_show_statusbar');
+    return saved !== null ? saved === 'true' : true;
+  });
   const [securityModalNoteId, setSecurityModalNoteId] = useState<string | null>(null);
   const [securityModalMode, setSecurityModalMode] = useState<'set' | 'unlock'>('set');
 
@@ -123,6 +128,14 @@ export default function App() {
 
   const handleUndo = useCallback(() => triggerUndo(setNotes), [triggerUndo, setNotes]);
   const handleRedo = useCallback(() => triggerRedo(setNotes), [triggerRedo, setNotes]);
+
+  const handleToggleStatusBar = useCallback(() => {
+    setShowStatusBar((prev) => {
+      const next = !prev;
+      localStorage.setItem('diarynote_show_statusbar', String(next));
+      return next;
+    });
+  }, []);
 
   // Request deletion of notes - if any targeted note is locked, require passcode verification first
   const requestDeleteNotes = useCallback(
@@ -487,7 +500,7 @@ export default function App() {
             layout: { duration: 0.16, ease: [0.16, 1, 0.3, 1] },
             borderRadius: { duration: 0.15, ease: 'easeOut' },
           }}
-          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center border shadow-sm select-none w-[640px] max-w-[calc(100vw-32px)] transition-colors duration-200 ${
+          className={`fixed ${showStatusBar ? 'bottom-10' : 'bottom-6'} left-1/2 -translate-x-1/2 z-40 flex flex-col items-center border shadow-sm select-none w-[640px] max-w-[calc(100vw-32px)] transition-all duration-200 ${
             selectedNoteIds.length >= 2 ? 'overflow-visible' : 'overflow-hidden'
           } ${
             settings.themeMode === 'light'
@@ -570,6 +583,8 @@ export default function App() {
               onOpenNotesList={() => setIsNotesListOpen(true)}
               onExportBackup={() => exportBackup(notes, transform, settings)}
               onImportBackup={handleImportBackupFile}
+              showStatusBar={showStatusBar}
+              onToggleStatusBar={handleToggleStatusBar}
             />
           </div>
         </motion.div>
@@ -791,6 +806,17 @@ export default function App() {
             setUpdateReleaseAlert(null);
             setIsAboutModalOpen(true);
           }}
+        />
+      )}
+
+      {/* Bottom Status Bar */}
+      {showStatusBar && !isZenMode && (
+        <StatusBar
+          notes={notes}
+          themeMode={settings.themeMode}
+          selectedNoteIds={selectedNoteIds}
+          snapToGrid={settings.snapToGrid}
+          gridType={settings.gridType}
         />
       )}
     </div>

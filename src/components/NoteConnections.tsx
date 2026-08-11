@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Note } from '../types';
-import { extractNoteConnections } from '../lib/markdownMention';
+import { extractNoteConnections } from '../utils';
 
 interface NoteConnectionsProps {
   notes: Note[];

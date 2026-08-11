@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Note, CanvasTheme } from '../types';
-import { formatDate } from '../lib/markdownMention';
+import { formatDate } from '../utils';
 import { Search, Calendar, Tag, FileText, CornerDownLeft, X, Layers, Lock, CheckSquare } from 'lucide-react';
 import { SmartMarkdownText } from './NoteCard/SmartMarkdownText';
 

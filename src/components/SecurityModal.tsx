@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Lock, Unlock, ShieldAlert, KeyRound, HelpCircle, X } from 'lucide-react';
-import { hashSecurityInput, verifySecurityInput } from '../lib/security';
+import { hashSecurityInput, verifySecurityInput } from '../utils';
 import { CanvasTheme } from '../types';
 
 export type SecurityModalMode = 'set' | 'unlock';

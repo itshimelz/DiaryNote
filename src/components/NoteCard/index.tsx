@@ -8,8 +8,8 @@ import { NoteImageView } from './NoteImageView';
 import { NoteMarkdownView } from './NoteMarkdownView';
 import { NoteStylePicker } from './NoteStylePicker';
 import { MentionAutocomplete } from '../MentionAutocomplete';
-import { getUniqueTitleForDay } from '../../lib/markdownMention';
-import { normalizeNoteText, resizeNoteEditor, applyMarkdownFormatting, handleSmartEnterList, FormattingType } from '../../lib/noteTextEngine';
+import { SlashCommandMenu, SlashCommand, SLASH_COMMANDS } from './SlashCommandMenu';
+import { getUniqueTitleForDay, normalizeNoteText, resizeNoteEditor, applyMarkdownFormatting, handleSmartEnterList, FormattingType } from '../../utils';
 import { Note } from '../../types';
 
 import { useNoteDrag } from '../../hooks/useNoteDrag';
@@ -47,6 +47,11 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
   const [mentionPos, setMentionPos] = useState({ top: 0, left: 0 });
   const [mentionSelectedIndex, setMentionSelectedIndex] = useState(0);
 
+  // Slash command autocomplete state
+  const [slashQuery, setSlashQuery] = useState<string | null>(null);
+  const [slashPos, setSlashPos] = useState({ top: 0, left: 0 });
+  const [slashSelectedIndex, setSlashSelectedIndex] = useState(0);
+
   const cardRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const markdownRef = useRef<HTMLDivElement>(null);
@@ -81,9 +86,25 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         )
       : [];
 
+  const filteredSlashCommands = useMemo(() => {
+    if (slashQuery === null) return [];
+    const q = slashQuery.toLowerCase().trim();
+    if (!q) return SLASH_COMMANDS;
+    return SLASH_COMMANDS.filter(
+      (cmd) =>
+        cmd.label.toLowerCase().includes(q) ||
+        cmd.description.toLowerCase().includes(q) ||
+        cmd.keywords.some((k) => k.toLowerCase().includes(q))
+    );
+  }, [slashQuery]);
+
   useEffect(() => {
     setMentionSelectedIndex(0);
   }, [mentionQuery]);
+
+  useEffect(() => {
+    setSlashSelectedIndex(0);
+  }, [slashQuery]);
 
   // Exit edit mode if the card is deselected
   useEffect(() => {
@@ -152,6 +173,37 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         textareaRef.current.focus();
         const newPos = newBefore.length;
         textareaRef.current.setSelectionRange(newPos, newPos);
+      }
+    }, 50);
+  };
+
+  const handleSelectSlashCommand = (command: SlashCommand) => {
+    if (!textareaRef.current) return;
+    const val = note.content || '';
+    const cursorIndex = textareaRef.current.selectionStart || val.length;
+    const textBeforeCursor = val.slice(0, cursorIndex);
+    const textAfterCursor = val.slice(cursorIndex);
+
+    let insertedText = typeof command.action === 'function' ? command.action(val) : command.action;
+
+    const newBefore = textBeforeCursor.replace(/(?:^|\n|\s)\/([a-zA-Z0-9]*)$/, (m) => {
+      const leadingPrefix = m.startsWith('\n') ? '\n' : m.startsWith(' ') ? ' ' : '';
+      return leadingPrefix;
+    });
+
+    const newContent = newBefore + insertedText + textAfterCursor;
+    onUpdateNote({
+      ...note,
+      content: newContent,
+      updatedAt: new Date().toISOString(),
+    });
+    setSlashQuery(null);
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        const newPos = (newBefore + insertedText).length;
+        textareaRef.current.setSelectionRange(newPos, newPos);
+        resizeNoteEditor(textareaRef.current);
       }
     }, 50);
   };
@@ -461,8 +513,21 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
                   const lineH = isRuled ? 32 : 24;
                   const topPos = Math.min(lineCount * lineH + 6, 190);
                   setMentionPos({ top: topPos, left: 10 });
+                  setSlashQuery(null);
                 } else {
                   setMentionQuery(null);
+
+                  // Detect / slash command
+                  const slashMatch = textBeforeCursor.match(/(?:^|\n|\s)\/([a-zA-Z0-9]*)$/);
+                  if (slashMatch) {
+                    setSlashQuery(slashMatch[1]);
+                    const lineCount = textBeforeCursor.split('\n').length;
+                    const lineH = isRuled ? 32 : 24;
+                    const topPos = Math.min(lineCount * lineH + 6, 190);
+                    setSlashPos({ top: topPos, left: 10 });
+                  } else {
+                    setSlashQuery(null);
+                  }
                 }
               }}
               onInput={(e) => resizeNoteEditor(e.currentTarget)}
@@ -567,10 +632,34 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
                 if (e.key === 'Escape') {
                   e.preventDefault();
                   setMentionQuery(null);
+                  setSlashQuery(null);
                   setIsEditing(false);
                   onSelectNote(null);
                   (e.target as HTMLElement).blur();
                   return;
+                }
+
+                if (slashQuery !== null && filteredSlashCommands.length > 0) {
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setSlashSelectedIndex((prev) => (prev + 1) % filteredSlashCommands.length);
+                    return;
+                  }
+                  if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setSlashSelectedIndex(
+                      (prev) => (prev - 1 + filteredSlashCommands.length) % filteredSlashCommands.length
+                    );
+                    return;
+                  }
+                  if (e.key === 'Enter' || e.key === 'Tab') {
+                    e.preventDefault();
+                    const target = filteredSlashCommands[slashSelectedIndex] || filteredSlashCommands[0];
+                    if (target) {
+                      handleSelectSlashCommand(target);
+                    }
+                    return;
+                  }
                 }
 
                 if (mentionQuery !== null && filteredMentionNotes.length > 0) {
@@ -599,7 +688,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
               onBlur={() => {
                 setTimeout(() => setIsEditing(false), 200);
               }}
-              placeholder="Write your note here... Use @ to reference another note."
+              placeholder="Write your note here... Use @ for notes, / for formatting blocks."
               aria-label={`Edit ${note.title || 'Untitled Note'}`}
               wrap="soft"
               className={`w-full min-h-[180px] whitespace-pre-wrap bg-transparent resize-none overflow-y-hidden outline-none border-0 shadow-none ${
@@ -619,6 +708,18 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
                 onSelect={(targetNote) => handleSelectMention(targetNote)}
                 onClose={() => setMentionQuery(null)}
                 position={mentionPos}
+                paperTheme={note.paperTheme}
+              />
+            )}
+
+            {/* Slash Command Autocomplete Popup */}
+            {slashQuery !== null && (
+              <SlashCommandMenu
+                query={slashQuery}
+                selectedIndex={slashSelectedIndex}
+                onSelect={(command) => handleSelectSlashCommand(command)}
+                onClose={() => setSlashQuery(null)}
+                position={slashPos}
                 paperTheme={note.paperTheme}
               />
             )}

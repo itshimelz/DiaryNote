@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Share2, X, Pin, Check, FolderMinus, Layers } from 'lucide-react';
 import { Note } from '../../types';
-import { getUniqueTitleForDay } from '../../lib/markdownMention';
+import { getUniqueTitleForDay } from '../../utils';
 import { PaperThemeConfig } from './types';
 
 interface NoteHeaderProps {

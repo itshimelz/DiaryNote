@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { Check } from 'lucide-react';
 import { Note, PaperTheme } from '../../types';
-import { processMarkdownMentions } from '../../lib/markdownMention';
+import { processMarkdownMentions } from '../../utils';
 import { PAPER_THEMES } from './types';
 
 const REMARK_PLUGINS = [remarkGfm, remarkBreaks];

@@ -6,7 +6,7 @@ import {
   saveBatchNotesToDB,
   saveDirtyNotesToDB,
 } from '../lib/sqliteStorage';
-import { getUniqueTitleForDay } from '../lib/markdownMention';
+import { getUniqueTitleForDay } from '../utils';
 
 export function useNotesManager(
   pushHistorySnapshot: (notes: Note[]) => void,

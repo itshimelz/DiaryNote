@@ -1,6 +1,6 @@
 import React from 'react';
 import { Note } from '../../types';
-import { normalizeNoteText } from '../../lib/noteTextEngine';
+import { normalizeNoteText } from '../../utils';
 import { BaseMarkdownRenderer } from './BaseMarkdownRenderer';
 
 interface NoteMarkdownViewProps {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Note, CanvasTheme } from '../types';
-import { formatDate } from '../lib/markdownMention';
+import { formatDate } from '../utils';
 import {
   Search,
   X,

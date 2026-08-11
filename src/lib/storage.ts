@@ -1,6 +1,6 @@
 import { Note, CanvasTransform, GridType, CanvasTheme } from '../types';
 import { invoke } from '@tauri-apps/api/core';
-import { sendNativeAppNotification } from './notifications';
+import { sendNativeAppNotification } from '../utils';
 
 const NOTES_STORAGE_KEY = 'infinite_notes_v1_notes';
 const CANVAS_TRANSFORM_KEY = 'infinite_notes_v1_transform';
