@@ -45,21 +45,48 @@ export async function checkForAppUpdates(): Promise<{
   isFirstTimeAlert?: boolean;
 }> {
   try {
+    const timestamp = Date.now();
+    let data: any = null;
+
     const response = await fetch(
-      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest`,
+      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest?t=${timestamp}`,
       {
+        cache: 'no-cache',
         headers: {
           Accept: 'application/vnd.github.v3+json',
+          'User-Agent': 'DiaryNote-App',
+          'Cache-Control': 'no-cache',
         },
       }
     );
 
-    if (!response.ok) {
-      // If no release exists on GitHub yet or 404, return false gracefully
+    if (response.ok) {
+      data = await response.json();
+    } else {
+      // Fallback: fetch release list if /latest is rate-limited or cached
+      const listResponse = await fetch(
+        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases?t=${timestamp}`,
+        {
+          cache: 'no-cache',
+          headers: {
+            Accept: 'application/vnd.github.v3+json',
+            'User-Agent': 'DiaryNote-App',
+            'Cache-Control': 'no-cache',
+          },
+        }
+      );
+      if (listResponse.ok) {
+        const releases = await listResponse.json();
+        if (Array.isArray(releases) && releases.length > 0) {
+          data = releases.find((r: any) => !r.draft && !r.prerelease) || releases[0];
+        }
+      }
+    }
+
+    if (!data) {
       return { updateAvailable: false };
     }
 
-    const data = await response.json();
     const tagName = data.tag_name || '';
     const latestVersion = tagName.replace(/^v/, '');
 
