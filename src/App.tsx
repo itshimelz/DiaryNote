@@ -22,12 +22,12 @@ import {
 } from './components';
 
 // Lazy Loaded Modals for Bundle Size Optimization
-const SearchModal = lazy(() => import('./components/SearchModal').then(m => ({ default: m.SearchModal })));
-const DeleteConfirmationModal = lazy(() => import('./components/DeleteConfirmationModal').then(m => ({ default: m.DeleteConfirmationModal })));
-const SecurityModal = lazy(() => import('./components/SecurityModal').then(m => ({ default: m.SecurityModal })));
-const KeyboardShortcutsModal = lazy(() => import('./components/KeyboardShortcutsModal').then(m => ({ default: m.KeyboardShortcutsModal })));
-const PasteConfirmModal = lazy(() => import('./components/PasteConfirmModal').then(m => ({ default: m.PasteConfirmModal })));
-const AboutModal = lazy(() => import('./components/AboutModal').then(m => ({ default: m.AboutModal })));
+const SearchModal = lazy(() => import('./components/Modals/SearchModal').then(m => ({ default: m.SearchModal })));
+const DeleteConfirmationModal = lazy(() => import('./components/Modals/DeleteConfirmationModal').then(m => ({ default: m.DeleteConfirmationModal })));
+const SecurityModal = lazy(() => import('./components/Modals/SecurityModal').then(m => ({ default: m.SecurityModal })));
+const KeyboardShortcutsModal = lazy(() => import('./components/Modals/KeyboardShortcutsModal').then(m => ({ default: m.KeyboardShortcutsModal })));
+const PasteConfirmModal = lazy(() => import('./components/Modals/PasteConfirmModal').then(m => ({ default: m.PasteConfirmModal })));
+const AboutModal = lazy(() => import('./components/Modals/AboutModal').then(m => ({ default: m.AboutModal })));
 
 import { sendNativeAppNotification } from './utils';
 import { checkForAppUpdates, ReleaseInfo } from './utils/updateChecker';

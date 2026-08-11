@@ -4,7 +4,6 @@ import { NoteCardProps, NoteMode, FONT_CLASSES, PAPER_THEMES } from './types';
 import { NoteHeader } from './NoteHeader';
 import { NoteToolbar } from './NoteToolbar';
 import { NoteChecklist } from './NoteChecklist';
-import { NoteImageView } from './NoteImageView';
 import { NoteMarkdownView } from './NoteMarkdownView';
 import { NoteStylePicker } from './NoteStylePicker';
 import { MentionAutocomplete } from '../MentionAutocomplete';
@@ -224,17 +223,6 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       content: `${note.content || ''}${emoji}`,
       updatedAt: new Date().toISOString(),
     });
-  };
-
-  // Add image URL to note
-  const handleAddImage = (url: string) => {
-    onUpdateNote({
-      ...note,
-      imageUrl: url,
-      activeMode: 'image',
-      updatedAt: new Date().toISOString(),
-    });
-    setActiveMode('image');
   };
 
 
@@ -459,21 +447,6 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
             }
             fontClass={fontClass}
             fontSizeClass={fontSizeClass}
-            paperTheme={note.paperTheme}
-          />
-        ) : activeMode === 'image' ? (
-          <NoteImageView
-            imageUrl={note.imageUrl}
-            textSnippet={note.content}
-            onRemoveImage={() =>
-              onUpdateNote({
-                ...note,
-                imageUrl: undefined,
-                activeMode: 'text',
-                updatedAt: new Date().toISOString(),
-              })
-            }
-            fontClass={fontClass}
             paperTheme={note.paperTheme}
           />
         ) : isEditing ? (

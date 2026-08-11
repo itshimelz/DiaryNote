@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Note, CanvasTheme } from '../types';
-import { formatDate } from '../utils';
+import { Note, CanvasTheme } from '../../types';
+import { formatDate } from '../../utils';
 import { Search, Calendar, Tag, FileText, CornerDownLeft, X, Layers, Lock, CheckSquare } from 'lucide-react';
-import { SmartMarkdownText } from './NoteCard/SmartMarkdownText';
+import { SmartMarkdownText } from '../NoteCard/SmartMarkdownText';
 
 interface SearchModalProps {
   isOpen: boolean;

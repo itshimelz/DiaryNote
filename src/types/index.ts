@@ -40,9 +40,7 @@ export interface Note {
   isPinned?: boolean;
   zIndex: number;
   tags?: string[];
-  imageUrl?: string;
-  drawingData?: string;
-  activeMode?: 'text' | 'image' | 'checklist';
+  activeMode?: 'text' | 'checklist';
   embedding?: number[];
   isLocked?: boolean;
   groupId?: string;

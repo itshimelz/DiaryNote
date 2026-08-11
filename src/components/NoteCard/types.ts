@@ -24,7 +24,7 @@ export interface NoteCardProps {
   onContextMenu?: (e: React.MouseEvent, noteId: string) => void;
 }
 
-export type NoteMode = 'text' | 'image' | 'checklist';
+export type NoteMode = 'text' | 'checklist';
 
 export { FONT_CLASSES, FONT_NAMES } from '../../constants/fonts';
 export { PAPER_THEMES, type PaperThemeConfig } from '../../constants/paperThemes';

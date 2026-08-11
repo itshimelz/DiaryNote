@@ -18,8 +18,8 @@ import {
   REPO_URL,
   checkForAppUpdates,
   ReleaseInfo,
-} from '../utils/updateChecker';
-import { CanvasTheme } from '../types';
+} from '../../utils/updateChecker';
+import { CanvasTheme } from '../../types';
 
 interface AboutModalProps {
   isOpen: boolean;

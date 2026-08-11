@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Keyboard, X, Search } from 'lucide-react';
-import { CanvasTheme } from '../types';
-import { SHORTCUT_CATEGORIES } from '../constants/shortcuts';
+import { CanvasTheme } from '../../types';
+import { SHORTCUT_CATEGORIES } from '../../constants/shortcuts';
 
 interface KeyboardShortcutsModalProps {
   isOpen: boolean;

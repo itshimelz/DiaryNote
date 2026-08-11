@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Trash2, X } from 'lucide-react';
-import { CanvasTheme } from '../types';
+import { CanvasTheme } from '../../types';
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
