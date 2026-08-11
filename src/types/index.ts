@@ -26,6 +26,9 @@ export type CanvasTheme = 'dark' | 'light' | 'gradient';
 
 export type JournalMood = 'happy' | 'calm' | 'focused' | 'reflective' | 'low';
 
+export type AIProvider = 'gemini' | 'openai' | 'openrouter' | 'custom';
+
+
 export interface Note {
   id: string;
   title: string;

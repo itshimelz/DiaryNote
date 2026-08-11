@@ -19,7 +19,8 @@ export function useNoteSelection(
   onNavigateToNote?: (id: string) => void,
   onGroupNotes?: () => void,
   onUngroupNotes?: () => void,
-  onToggleShortcutsModal?: () => void
+  onToggleShortcutsModal?: () => void,
+  onMergeNotesAI?: () => void
 ) {
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -39,6 +40,8 @@ export function useNoteSelection(
   const onGroupNotesRef = useRef(onGroupNotes);
   const onUngroupNotesRef = useRef(onUngroupNotes);
   const onToggleShortcutsModalRef = useRef(onToggleShortcutsModal);
+  const onMergeNotesAIRef = useRef(onMergeNotesAI);
+
 
 
   const editTimerRef = useRef<number>(0);
@@ -76,6 +79,7 @@ export function useNoteSelection(
     onGroupNotesRef.current = onGroupNotes;
     onUngroupNotesRef.current = onUngroupNotes;
     onToggleShortcutsModalRef.current = onToggleShortcutsModal;
+    onMergeNotesAIRef.current = onMergeNotesAI;
   }, [
     onCreateNote,
     onFitNotes,
@@ -90,7 +94,9 @@ export function useNoteSelection(
     onGroupNotes,
     onUngroupNotes,
     onToggleShortcutsModal,
+    onMergeNotesAI,
   ]);
+
 
   const handleSelectNote = useCallback((noteId: string | null, isMultiSelect?: boolean) => {
     if (noteId === null) {
@@ -260,6 +266,16 @@ export function useNoteSelection(
         onUngroupNotesRef.current?.();
         return;
       }
+
+      // AI Note Merging Shortcut (Shift+M)
+      if (e.shiftKey && key === 'm' && !e.ctrlKey && !e.metaKey) {
+        if (curSelectedNoteIds.length >= 2 && curSelectedNoteIds.length <= 5) {
+          e.preventDefault();
+          onMergeNotesAIRef.current?.();
+        }
+        return;
+      }
+
 
       // Enter key opens edit mode on selected note
       if (e.key === 'Enter' && curSelectedNoteId) {

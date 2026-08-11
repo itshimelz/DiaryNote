@@ -23,12 +23,17 @@ import {
   Columns3,
   Rows3,
   Download,
+  Sparkles,
+  Loader2,
 } from 'lucide-react';
 
 interface BatchActionBarProps {
   selectedNoteIds: string[];
   notes: Note[];
   themeMode?: CanvasTheme;
+  enableAIServices?: boolean;
+  isMergingAI?: boolean;
+  onMergeNotesAI?: () => void;
   onUpdateBatchNotes: (updatedNotes: Note[]) => void;
   onDeleteNotes: (ids: string[]) => void;
   onClearSelection: () => void;
@@ -38,10 +43,14 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
   selectedNoteIds,
   notes,
   themeMode = 'dark',
+  enableAIServices = false,
+  isMergingAI = false,
+  onMergeNotesAI,
   onUpdateBatchNotes,
   onDeleteNotes,
   onClearSelection,
 }) => {
+
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [showAlignMenu, setShowAlignMenu] = useState(false);
 
@@ -535,7 +544,40 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
           <Download className="w-3.5 h-3.5 text-blue-500" />
           <span className="hidden sm:inline">Backup</span>
         </button>
+
+        {/* AI Merge Button */}
+        {enableAIServices && (
+          <button
+            type="button"
+            onClick={onMergeNotesAI}
+            disabled={isMergingAI || selectedNotes.length < 2 || selectedNotes.length > 5}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md font-medium transition-all ${
+              selectedNotes.length >= 2 && selectedNotes.length <= 5
+                ? isDark
+                  ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/30'
+                  : 'bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300'
+                : 'opacity-50 cursor-not-allowed text-slate-400'
+            }`}
+            title={
+              selectedNotes.length > 5
+                ? 'Select up to 5 notes for AI Merge'
+                : selectedNotes.length < 2
+                ? 'Select at least 2 notes to merge'
+                : 'Merge selected notes with AI (Shift + M)'
+            }
+          >
+            {isMergingAI ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+            ) : (
+              <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            )}
+            <span className="text-xs font-semibold">
+              {isMergingAI ? 'Merging...' : 'Merge (AI)'}
+            </span>
+          </button>
+        )}
       </div>
+
 
       <div className="flex items-center gap-1">
         <div className={`h-4 w-px mx-0.5 ${dividerClass}`} />

@@ -29,9 +29,13 @@ const KeyboardShortcutsModal = lazy(() => import('./components/Modals/KeyboardSh
 const PasteConfirmModal = lazy(() => import('./components/Modals/PasteConfirmModal').then(m => ({ default: m.PasteConfirmModal })));
 const AboutModal = lazy(() => import('./components/Modals/AboutModal').then(m => ({ default: m.AboutModal })));
 const JournalCalendarModal = lazy(() => import('./components/Modals/JournalCalendarModal').then(m => ({ default: m.JournalCalendarModal })));
+const AISettingsModal = lazy(() => import('./components/Modals/AISettingsModal').then(m => ({ default: m.AISettingsModal })));
 
 import { sendNativeAppNotification } from './utils';
 import { checkForAppUpdates, ReleaseInfo } from './utils/updateChecker';
+import { saveSettingsToDB } from './lib/sqliteStorage';
+import { mergeNotesWithAI } from './services/ai/aiMergeService';
+import { AppSettings } from './lib/storage';
 
 export default function App() {
   const [isNotesListOpen, setIsNotesListOpen] = useState(false);
@@ -39,8 +43,11 @@ export default function App() {
   const [isJournalCalendarOpen, setIsJournalCalendarOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const [isAISettingsOpen, setIsAISettingsOpen] = useState(false);
+  const [isMergingAI, setIsMergingAI] = useState(false);
   const [updateReleaseAlert, setUpdateReleaseAlert] = useState<ReleaseInfo | null>(null);
   const [isPanMode, setIsPanMode] = useState(false);
+
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [notesToDelete, setNotesToDelete] = useState<string[]>([]);
@@ -208,6 +215,21 @@ export default function App() {
   );
 
 
+  const handleSaveAISettings = useCallback(
+    (aiSettings: Partial<AppSettings>) => {
+      setSettings((prev) => {
+        const updated = { ...prev, ...aiSettings };
+        saveSettingsToDB(updated);
+        return updated;
+      });
+      sendNativeAppNotification(
+        'AI Settings Saved',
+        'AI service settings and key encryption updated successfully.'
+      );
+    },
+    [setSettings]
+  );
+
   // 4. Note Selection & Keyboard Shortcuts Hook
   const {
     selectedNoteIds,
@@ -262,8 +284,68 @@ export default function App() {
       handleUpdateBatchNotes(updated);
       setSelectedNoteIds([]);
     },
-    () => setIsShortcutsModalOpen((prev) => !prev)
+    () => setIsShortcutsModalOpen((prev) => !prev),
+    () => handleMergeNotesAI()
   );
+
+  const handleMergeNotesAI = useCallback(async () => {
+    if (!settings.enableAIServices || !settings.encryptedApiKey) {
+      setIsAISettingsOpen(true);
+      return;
+    }
+
+    const notesToMerge = notes.filter((n) => selectedNoteIds.includes(n.id));
+    if (notesToMerge.length < 2 || notesToMerge.length > 5) {
+      alert('Please select between 2 and 5 notes to merge.');
+      return;
+    }
+
+    setIsMergingAI(true);
+    try {
+      const result = await mergeNotesWithAI(notesToMerge, {
+        aiProvider: settings.aiProvider || 'gemini',
+        encryptedApiKey: settings.encryptedApiKey,
+        apiKeyIv: settings.apiKeyIv || '',
+        customBaseUrl: settings.customBaseUrl,
+        customModelName: settings.customModelName,
+      });
+
+      const avgX = Math.round(notesToMerge.reduce((sum, n) => sum + n.x, 0) / notesToMerge.length);
+      const avgY = Math.round(notesToMerge.reduce((sum, n) => sum + (n.y + (n.height || 340)), 0) / notesToMerge.length) + 40;
+
+      const maxZ = Math.max(0, ...notes.map((n) => n.zIndex || 0));
+
+      const newNote: Note = {
+        id: `note-${Date.now()}`,
+        title: result.title,
+        content: result.content,
+        x: avgX,
+        y: avgY,
+        width: 420,
+        height: 380,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        fontFamily: settings.defaultFont || 'sans',
+        fontSize: 'md',
+        paperTheme: 'white',
+        activeMode: 'text',
+        isPinned: true,
+        zIndex: maxZ + 1,
+        tags: ['ai-merged'],
+      };
+
+      handleUpdateNote(newNote);
+      setSelectedNoteIds([newNote.id]);
+      sendNativeAppNotification('AI Note Merged', `Successfully synthesized ${notesToMerge.length} notes into "${result.title}"`);
+    } catch (err: any) {
+      console.error('Failed to merge notes with AI:', err);
+      alert(err?.message || 'Failed to merge notes with AI. Please verify your API Key settings.');
+    } finally {
+      setIsMergingAI(false);
+    }
+  }, [settings, notes, selectedNoteIds, handleUpdateNote, setSelectedNoteIds]);
+
+
 
   const handleOpenOrCreateTodayJournal = useCallback(
     (targetDateStr?: string) => {
@@ -569,6 +651,9 @@ export default function App() {
                   selectedNoteIds={selectedNoteIds}
                   notes={notes}
                   themeMode={settings.themeMode}
+                  enableAIServices={settings.enableAIServices}
+                  isMergingAI={isMergingAI}
+                  onMergeNotesAI={handleMergeNotesAI}
                   onUpdateBatchNotes={handleUpdateBatchNotes}
                   onDeleteNotes={(ids) => {
                     setNotesToDelete(ids);
@@ -592,6 +677,8 @@ export default function App() {
               snapToGrid={settings.snapToGrid}
               showConnections={settings.showConnections}
               hasBatchBar={selectedNoteIds.length >= 2}
+              enableAIServices={settings.enableAIServices}
+              onOpenAISettings={() => setIsAISettingsOpen(true)}
               isPanMode={isPanMode}
               canUndo={canUndo}
               canRedo={canRedo}
@@ -634,6 +721,20 @@ export default function App() {
       />
 
       <Suspense fallback={null}>
+        {/* AI Features & Key Settings Modal */}
+        <AISettingsModal
+          isOpen={isAISettingsOpen}
+          themeMode={settings.themeMode}
+          enableAIServices={settings.enableAIServices}
+          aiProvider={settings.aiProvider}
+          encryptedApiKey={settings.encryptedApiKey}
+          apiKeyIv={settings.apiKeyIv}
+          customBaseUrl={settings.customBaseUrl}
+          customModelName={settings.customModelName}
+          onClose={() => setIsAISettingsOpen(false)}
+          onSaveAISettings={handleSaveAISettings}
+        />
+
         {/* Command Palette Search Modal */}
         <SearchModal
           isOpen={isSearchOpen}
@@ -642,6 +743,7 @@ export default function App() {
           onClose={() => setIsSearchOpen(false)}
           onSelectNote={(id) => handleNavigateToNote(id, setSelectedNoteIds)}
         />
+
 
         {/* Delete Confirmation Modal */}
         <DeleteConfirmationModal

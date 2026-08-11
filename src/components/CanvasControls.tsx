@@ -25,7 +25,9 @@ import {
   PanelBottom,
   Calendar,
   Flame,
+  Sparkles,
 } from 'lucide-react';
+
 import { CURRENT_VERSION } from '../utils/updateChecker';
 
 interface CanvasControlsProps {
@@ -36,6 +38,8 @@ interface CanvasControlsProps {
   snapToGrid: boolean;
   showConnections: boolean;
   hasBatchBar?: boolean;
+  enableAIServices?: boolean;
+  onOpenAISettings?: () => void;
   onAddNote: () => void;
   onOpenTodayJournal?: () => void;
   onOpenJournalCalendar?: () => void;
@@ -62,6 +66,7 @@ interface CanvasControlsProps {
   showStatusBar?: boolean;
   onToggleStatusBar?: () => void;
 }
+
 
 const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
   notes = [],
@@ -96,9 +101,12 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
   onOpenAbout,
   showStatusBar = true,
   onToggleStatusBar,
+  enableAIServices = false,
+  onOpenAISettings,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -487,6 +495,45 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
                           : 'translate-x-0 bg-white'
                       }`}
                     />
+                  </button>
+                </div>
+
+                {/* AI Features Settings */}
+                <div
+                  className={`flex items-center justify-between p-3 rounded-sm border transition-colors ${
+                    themeMode === 'dark'
+                      ? 'bg-slate-800/60 border-slate-700/60'
+                      : 'bg-slate-50 border-slate-200/90'
+                  }`}
+                >
+                  <div>
+                    <div
+                      className={`font-semibold flex items-center gap-1.5 ${
+                        themeMode === 'dark' ? 'text-slate-100' : 'text-slate-900'
+                      }`}
+                    >
+                      <Sparkles className="w-4 h-4 text-amber-400" />
+                      <span>AI Feature Settings</span>
+                    </div>
+                    <p className={`text-[11px] mt-0.5 ${themeMode === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+                      Configure API keys and enable AI note merging
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (onOpenAISettings) onOpenAISettings();
+                      setIsSettingsOpen(false);
+                    }}
+
+                    className={`px-2.5 py-1 text-xs rounded font-medium border transition-colors cursor-pointer ${
+                      enableAIServices
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+                        : themeMode === 'dark'
+                        ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                    }`}
+                  >
+                    {enableAIServices ? 'Active' : 'Configure'}
                   </button>
                 </div>
 
