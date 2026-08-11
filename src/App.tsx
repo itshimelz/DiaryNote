@@ -31,10 +31,11 @@ const AboutModal = lazy(() => import('./components/Modals/AboutModal').then(m =>
 const JournalCalendarModal = lazy(() => import('./components/Modals/JournalCalendarModal').then(m => ({ default: m.JournalCalendarModal })));
 const AISettingsModal = lazy(() => import('./components/Modals/AISettingsModal').then(m => ({ default: m.AISettingsModal })));
 
-import { sendNativeAppNotification } from './utils';
+import { sendNativeAppNotification, recordAIRequest } from './utils';
 import { checkForAppUpdates, ReleaseInfo } from './utils/updateChecker';
 import { saveSettingsToDB } from './lib/sqliteStorage';
 import { mergeNotesWithAI } from './services/ai/aiMergeService';
+
 import { AppSettings } from './lib/storage';
 
 export default function App() {
@@ -45,8 +46,10 @@ export default function App() {
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [isAISettingsOpen, setIsAISettingsOpen] = useState(false);
   const [isMergingAI, setIsMergingAI] = useState(false);
+  const [mergedSelectionKeys, setMergedSelectionKeys] = useState<Set<string>>(new Set());
   const [updateReleaseAlert, setUpdateReleaseAlert] = useState<ReleaseInfo | null>(null);
   const [isPanMode, setIsPanMode] = useState(false);
+
 
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -288,6 +291,9 @@ export default function App() {
     () => handleMergeNotesAI()
   );
 
+  const currentSelectionKey = selectedNoteIds.slice().sort().join(',');
+  const isCurrentSelectionMerged = mergedSelectionKeys.has(currentSelectionKey);
+
   const handleMergeNotesAI = useCallback(() => {
     if (!settings.enableAIServices || !settings.encryptedApiKey) {
       setIsAISettingsOpen(true);
@@ -300,10 +306,20 @@ export default function App() {
       return;
     }
 
-    // Immediately start background synthesis, notify user, and clear selection
+    const selKey = selectedNoteIds.slice().sort().join(',');
+    if (mergedSelectionKeys.has(selKey)) {
+      sendNativeAppNotification(
+        'Already Merged',
+        'This selection of notes has already been merged into a note.'
+      );
+      return;
+    }
+
+    // Mark current selection key as merged, BUT KEEP NOTES SELECTED
     setIsMergingAI(true);
+    setMergedSelectionKeys((prev) => new Set(prev).add(selKey));
+
     const targetCount = notesToMerge.length;
-    setSelectedNoteIds([]);
     sendNativeAppNotification(
       '🤖 AI Merge Started',
       `Synthesizing ${targetCount} notes in the background...`
@@ -320,6 +336,9 @@ export default function App() {
           customModelName: settings.customModelName,
         });
 
+        recordAIRequest();
+
+
         const avgX = Math.round(notesToMerge.reduce((sum, n) => sum + n.x, 0) / notesToMerge.length);
         const avgY = Math.round(notesToMerge.reduce((sum, n) => sum + (n.y + (n.height || 340)), 0) / notesToMerge.length) + 40;
 
@@ -331,22 +350,21 @@ export default function App() {
           content: result.content,
           x: avgX,
           y: avgY,
-          width: 420,
-          height: 380,
+          width: 500,
+          height: 420,
+
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           fontFamily: settings.defaultFont || 'sans',
           fontSize: 'md',
           paperTheme: 'white',
           activeMode: 'text',
-          isPinned: true,
+          isPinned: false,
           zIndex: maxZ + 1,
           tags: ['ai-merged'],
         };
 
         handleUpdateNote(newNote);
-        setSelectedNoteIds([newNote.id]);
-        handleNavigateToNote(newNote.id, setSelectedNoteIds);
 
         sendNativeAppNotification(
           '✨ AI Note Merged Successfully',
@@ -354,6 +372,11 @@ export default function App() {
         );
       } catch (err: any) {
         console.error('Failed to merge notes with AI:', err);
+        setMergedSelectionKeys((prev) => {
+          const next = new Set(prev);
+          next.delete(selKey);
+          return next;
+        });
         sendNativeAppNotification(
           '❌ AI Merge Failed',
           err?.message || 'Failed to merge notes with AI. Please check your API Key settings.'
@@ -362,7 +385,8 @@ export default function App() {
         setIsMergingAI(false);
       }
     })();
-  }, [settings, notes, selectedNoteIds, handleUpdateNote, setSelectedNoteIds, handleNavigateToNote]);
+  }, [settings, notes, selectedNoteIds, mergedSelectionKeys, handleUpdateNote]);
+
 
 
 
@@ -674,8 +698,10 @@ export default function App() {
                   themeMode={settings.themeMode}
                   enableAIServices={settings.enableAIServices}
                   isMergingAI={isMergingAI}
+                  isAlreadyMerged={isCurrentSelectionMerged}
                   onMergeNotesAI={handleMergeNotesAI}
                   onUpdateBatchNotes={handleUpdateBatchNotes}
+
                   onDeleteNotes={(ids) => {
                     setNotesToDelete(ids);
                     setIsDeleteModalOpen(true);

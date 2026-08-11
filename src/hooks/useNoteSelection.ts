@@ -267,14 +267,15 @@ export function useNoteSelection(
         return;
       }
 
-      // AI Note Merging Shortcut (Shift+M)
-      if (e.shiftKey && key === 'm' && !e.ctrlKey && !e.metaKey) {
+      // AI Note Merging Shortcut (Shift+M or Ctrl+Shift+M)
+      if (e.shiftKey && key === 'm') {
         if (curSelectedNoteIds.length >= 2 && curSelectedNoteIds.length <= 5) {
           e.preventDefault();
           onMergeNotesAIRef.current?.();
         }
         return;
       }
+
 
 
       // Enter key opens edit mode on selected note

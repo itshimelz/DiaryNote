@@ -519,23 +519,29 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
                       Configure API keys and enable AI note merging
                     </p>
                   </div>
-                  <button
-                    onClick={() => {
-                      if (onOpenAISettings) onOpenAISettings();
-                      setIsSettingsOpen(false);
-                    }}
-
-                    className={`px-2.5 py-1 text-xs rounded font-medium border transition-colors cursor-pointer ${
-                      enableAIServices
-                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
-                        : themeMode === 'dark'
-                        ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
-                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
-                    }`}
-                  >
-                    {enableAIServices ? 'Active' : 'Configure'}
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0 ml-3">
+                    {enableAIServices && (
+                      <span className="text-[10px] uppercase font-mono tracking-wider px-2 py-0.5 rounded-sm bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20">
+                        Active
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onOpenAISettings) onOpenAISettings();
+                        setIsSettingsOpen(false);
+                      }}
+                      className={`px-2.5 py-1 text-xs rounded font-medium border transition-colors cursor-pointer ${
+                        themeMode === 'dark'
+                          ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      Configure
+                    </button>
+                  </div>
                 </div>
+
 
                 {/* Show Bottom Status Bar Toggle */}
                 <div

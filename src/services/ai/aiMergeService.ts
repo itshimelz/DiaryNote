@@ -1,5 +1,6 @@
 import { Note, AIProvider } from '../../types';
 import { decryptApiKey } from '../../utils/aiSecurity';
+import { CURRENT_VERSION, REPO_URL, REPO_NAME } from '../../utils/updateChecker';
 
 export interface AIServiceConfig {
   aiProvider: AIProvider;
@@ -12,6 +13,28 @@ export interface AIServiceConfig {
 export interface MergeNotesResult {
   title: string;
   content: string;
+}
+
+/**
+ * Returns provider-compliant application identification headers.
+ * OpenRouter officially supports HTTP-Referer and X-Title for app tracking & leaderboards.
+ */
+function getAIHeaders(provider: AIProvider, apiKey?: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  // OpenRouter officially supports and encourages these two headers in CORS
+  if (provider === 'openrouter') {
+    headers['HTTP-Referer'] = REPO_URL;
+    headers['X-Title'] = REPO_NAME;
+  }
+
+  if (apiKey) {
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  }
+
+  return headers;
 }
 
 /**
@@ -28,7 +51,7 @@ export async function testAIConnection(config: AIServiceConfig, rawApiKey?: stri
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAIHeaders('gemini'),
         body: JSON.stringify({
           contents: [{ parts: [{ text: 'Respond with OK' }] }]
         })
@@ -56,10 +79,7 @@ export async function testAIConnection(config: AIServiceConfig, rawApiKey?: stri
     const endpoint = `${baseUrl}/chat/completions`;
     const res = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
+      headers: getAIHeaders(config.aiProvider, apiKey),
       body: JSON.stringify({
         model: modelName,
         messages: [{ role: 'user', content: 'Say OK' }],
@@ -77,6 +97,8 @@ export async function testAIConnection(config: AIServiceConfig, rawApiKey?: stri
     return { success: false, message: err?.message || 'Network connection failed.' };
   }
 }
+
+
 
 /**
  * Merge up to 5 notes into 1 synthesized note using selected AI provider
@@ -111,10 +133,11 @@ CRITICAL INSTRUCTIONS:
 2. STRUCTURE & FORMATTING:
    - Provide a sharp, concise Markdown title on the very first line starting with '# Title'.
    - Structure the body with clear headings (##), bullet points, and synthesized insights without losing key details.
-   - Highlight actionable items into a '- [ ]' checklist at the end if tasks exist.
+   - Do NOT create or append separate "Action Items", "অ্যাকশন আইটেম", "করণীয় কাজ", or summary checklist sections at the bottom of the note. Integrate all content naturally into the main body sections.
 3. OUTPUT CLEANLINESS:
    - Do NOT output system safety metadata (such as "User Safety: safe"), disclaimers, or meta-commentary like "Here is your merged note:". Start directly with '# Title'.
    - Do NOT append source note mentions or lists yourself at the bottom; the application appends them automatically.`;
+
 
 
   const userPrompt = `Synthesize and merge these ${notesToMerge.length} notes into one document:\n\n${notesText}`;
@@ -125,7 +148,7 @@ CRITICAL INSTRUCTIONS:
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAIHeaders('gemini'),
       body: JSON.stringify({
         system_instruction: { parts: [{ text: systemPrompt }] },
         contents: [{ parts: [{ text: userPrompt }] }]
@@ -155,10 +178,7 @@ CRITICAL INSTRUCTIONS:
     const endpoint = `${baseUrl}/chat/completions`;
     const res = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
+      headers: getAIHeaders(config.aiProvider, apiKey),
       body: JSON.stringify({
         model: modelName,
         messages: [
@@ -168,6 +188,8 @@ CRITICAL INSTRUCTIONS:
         temperature: 0.3
       })
     });
+
+
 
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}));

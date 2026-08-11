@@ -29,24 +29,24 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
   onClose,
 }) => {
   return (
-    <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-50 w-72 bg-white rounded-md shadow-sm border border-slate-200 p-3.5 flex flex-col gap-3 text-xs animate-in fade-in zoom-in-95 duration-150">
+    <div className="absolute bottom-13 left-1/2 -translate-x-1/2 z-50 w-80 sm:w-84 bg-white rounded-sm shadow-sm border border-slate-200 p-4 flex flex-col gap-3.5 text-xs sm:text-sm animate-in fade-in zoom-in-95 duration-150">
       <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-        <div className="flex items-center gap-1.5 font-semibold text-slate-800">
-          <Palette className="w-4 h-4 text-blue-500" />
+        <div className="flex items-center gap-2 font-bold text-sm sm:text-base text-slate-800">
+          <Palette className="w-5 h-5 text-blue-500" />
           <span>Card Style & Typography</span>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="p-1 text-slate-400 hover:text-slate-600 rounded-md transition-colors"
+          className="p-1 text-slate-400 hover:text-slate-600 rounded-sm transition-colors"
         >
-          <X className="w-3.5 h-3.5" />
+          <X className="w-4 h-4" />
         </button>
       </div>
 
       {/* Paper Theme Picker */}
       <div className="flex flex-col gap-1.5">
-        <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Paper Theme</span>
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Paper Theme</span>
         <div className="grid grid-cols-3 gap-1.5">
           {PAPER_THEME_OPTIONS.map((themeKey) => {
             const theme = PAPER_THEMES[themeKey];
@@ -61,7 +61,7 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
                     paperTheme: themeKey,
                   })
                 }
-                className={`h-9 min-w-0 px-1 rounded-md border transition-all flex items-center justify-center whitespace-nowrap font-medium text-[10px] ${
+                className={`h-10 min-w-0 px-2 rounded-sm border transition-all flex items-center justify-center whitespace-nowrap font-semibold text-xs ${
                   theme.bg
                 } ${theme.text} ${
                   isSelected ? 'ring-2 ring-blue-500 ring-offset-1 border-blue-500 font-bold' : 'border-slate-200 hover:border-slate-400'
@@ -76,7 +76,7 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
 
       {/* Font Family Picker */}
       <div className="flex flex-col gap-1.5">
-        <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Handwriting & Font</span>
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Handwriting & Font</span>
         <select
           value={note.fontFamily || 'sans'}
           onChange={(e) =>
@@ -85,7 +85,7 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
               fontFamily: e.target.value as HandFont,
             })
           }
-          className="w-full bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5 text-xs text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition-all cursor-pointer"
+          className="w-full bg-slate-50 border border-slate-200 rounded-sm px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition-all cursor-pointer font-medium"
         >
           {Object.entries(FONT_NAMES).map(([key, name]) => (
             <option key={key} value={key}>
@@ -97,8 +97,8 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
 
       {/* Font Size Picker */}
       <div className="flex flex-col gap-1.5">
-        <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Text Size</span>
-        <div className="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-md">
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Text Size</span>
+        <div className="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-sm">
           {(['sm', 'md', 'lg', 'xl'] as const).map((size) => (
             <button
               key={size}
@@ -109,9 +109,9 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
                   fontSize: size,
                 })
               }
-              className={`py-1 rounded-lg text-xs font-semibold uppercase transition-all ${
+              className={`py-1.5 rounded-sm text-xs sm:text-sm font-bold uppercase transition-all ${
                 note.fontSize === size
-                  ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                  ? 'bg-white text-slate-900 shadow-2xs'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -123,3 +123,5 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
     </div>
   );
 };
+
+

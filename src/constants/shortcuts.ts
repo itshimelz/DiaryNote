@@ -51,10 +51,12 @@ export const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
     shortcuts: [
       { keys: ['Shift', 'Click'], description: 'Multi-select multiple notes' },
       { keys: ['Drag Canvas'], description: 'Box marquee select multiple notes' },
+      { keys: ['Shift', 'M'], description: 'Synthesize & merge selected notes (2-5 notes)' },
       { keys: ['Ctrl', 'G'], description: 'Group selected notes' },
       { keys: ['Ctrl', 'Shift', 'G'], description: 'Ungroup selected notes' },
       { keys: ['Esc'], description: 'Clear batch selection' },
     ],
+
   },
   {
     title: 'View & Settings Toggles',

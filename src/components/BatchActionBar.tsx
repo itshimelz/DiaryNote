@@ -33,6 +33,7 @@ interface BatchActionBarProps {
   themeMode?: CanvasTheme;
   enableAIServices?: boolean;
   isMergingAI?: boolean;
+  isAlreadyMerged?: boolean;
   onMergeNotesAI?: () => void;
   onUpdateBatchNotes: (updatedNotes: Note[]) => void;
   onDeleteNotes: (ids: string[]) => void;
@@ -45,11 +46,13 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
   themeMode = 'dark',
   enableAIServices = false,
   isMergingAI = false,
+  isAlreadyMerged = false,
   onMergeNotesAI,
   onUpdateBatchNotes,
   onDeleteNotes,
   onClearSelection,
 }) => {
+
 
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [showAlignMenu, setShowAlignMenu] = useState(false);
@@ -310,10 +313,11 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
       <div className="flex items-center gap-1">
         {/* Count Badge */}
         <div
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md font-bold text-[11px] ${
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-sm font-bold text-[11px] ${
             isDark ? 'bg-slate-800 text-slate-100' : 'bg-slate-100 text-slate-900'
           }`}
         >
+
           <CheckSquare className="w-3.5 h-3.5" />
           <span>{selectedNoteIds.length} selected</span>
         </div>
@@ -550,14 +554,17 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
           <button
             type="button"
             onClick={onMergeNotesAI}
-            disabled={isMergingAI || selectedNotes.length < 2 || selectedNotes.length > 5}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors ${btnClass} ${
-              selectedNotes.length < 2 || selectedNotes.length > 5
+            disabled={isMergingAI || isAlreadyMerged || selectedNotes.length < 2 || selectedNotes.length > 5}
+            className={`flex items-center gap-1.5 px-2 py-1 rounded-sm transition-colors ${btnClass} ${
+              isMergingAI || isAlreadyMerged || selectedNotes.length < 2 || selectedNotes.length > 5
                 ? 'opacity-50 cursor-not-allowed'
                 : ''
             }`}
+
             title={
-              selectedNotes.length > 5
+              isAlreadyMerged
+                ? 'This selection of notes has already been merged'
+                : selectedNotes.length > 5
                 ? 'Select up to 5 notes for AI Merge'
                 : selectedNotes.length < 2
                 ? 'Select at least 2 notes to merge'
@@ -573,6 +580,7 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
           </button>
         )}
       </div>
+
 
 
 

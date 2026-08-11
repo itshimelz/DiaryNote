@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, KeyRound, ShieldCheck, ShieldAlert, X, Eye, EyeOff, Loader2, CheckCircle2, Globe, Cpu } from 'lucide-react';
+import { Sparkles, KeyRound, ShieldCheck, ShieldAlert, X, Eye, EyeOff, Loader2, CheckCircle2, Globe, Cpu, Activity } from 'lucide-react';
 import { CanvasTheme, AIProvider } from '../../types';
 import { encryptApiKey, decryptApiKey } from '../../utils/aiSecurity';
 import { testAIConnection } from '../../services/ai/aiMergeService';
+import { getTodayAICount, getLastNDaysAIUsage, DayUsage } from '../../utils/aiUsageTracker';
 
 interface AISettingsModalProps {
   isOpen: boolean;
@@ -47,6 +48,9 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const [todayCount, setTodayCount] = useState(0);
+  const [usageHistory, setUsageHistory] = useState<DayUsage[]>([]);
+
   const isDark = themeMode !== 'light';
 
   // Load and decrypt initial key when modal opens
@@ -58,6 +62,8 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
       setModelName(customModelName);
       setTestResult(null);
       setErrorMessage(null);
+      setTodayCount(getTodayAICount());
+      setUsageHistory(getLastNDaysAIUsage(28));
 
       if (encryptedApiKey && apiKeyIv) {
         decryptApiKey(encryptedApiKey, apiKeyIv).then((key) => {
@@ -68,6 +74,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
       }
     }
   }, [isOpen, enableAIServices, aiProvider, encryptedApiKey, apiKeyIv, customBaseUrl, customModelName]);
+
 
   if (!isOpen) return null;
 
@@ -125,7 +132,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150 select-none">
       <div
-        className={`w-full max-w-md rounded-md shadow-sm border p-6 transition-all ${
+        className={`w-full max-w-md rounded-sm shadow-sm border p-6 transition-all ${
           isDark ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
         }`}
       >
@@ -139,7 +146,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className={`p-1 rounded-lg transition-colors ${
+            className={`p-1 rounded-sm transition-colors ${
               isDark ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-500'
             }`}
           >
@@ -149,7 +156,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
 
         {/* Error Alert */}
         {errorMessage && (
-          <div className={`mb-4 p-3 rounded-lg flex items-start gap-2.5 text-xs border ${
+          <div className={`mb-4 p-3 rounded-sm flex items-start gap-2.5 text-xs border ${
             isDark ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-100 border-slate-300 text-slate-800'
           }`}>
             <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
@@ -159,7 +166,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
 
         <form onSubmit={handleSave} className="space-y-4 text-xs">
           {/* Security Notice */}
-          <div className={`p-3 rounded-xl border flex items-start gap-2.5 ${
+          <div className={`p-3 rounded-sm border flex items-start gap-2.5 ${
             isDark ? 'bg-slate-800/60 border-slate-700/80 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
           }`}>
             <ShieldCheck className={`w-4 h-4 shrink-0 mt-0.5 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`} />
@@ -178,7 +185,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
           </div>
 
           {/* Toggle Enable AI */}
-          <div className={`p-3 rounded-lg border flex items-center justify-between ${
+          <div className={`p-3 rounded-sm border flex items-center justify-between ${
             isDark ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50 border-slate-200'
           }`}>
             <div>
@@ -204,7 +211,78 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
             </button>
           </div>
 
+          {/* AI Usage & Activity Dashboard (GitHub Commit History Style) */}
+          {enabled && (
+            <div className={`p-3.5 rounded-sm border flex flex-col gap-2.5 ${
+              isDark ? 'bg-slate-800/60 border-slate-700/80' : 'bg-slate-50 border-slate-200'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 font-bold text-xs">
+                  <Activity className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span className={isDark ? 'text-slate-200' : 'text-slate-800'}>AI Usage & Request Tracker</span>
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  {provider === 'openrouter' ? 'Free Tier: 50 req/day' : 'Active Quota'}
+                </span>
+              </div>
+
+              {/* Progress Bar & Stat Counter */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[11px] font-medium">
+                  <span className={isDark ? 'text-slate-400' : 'text-slate-600'}>Requests Today</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                    {todayCount} {provider === 'openrouter' ? '/ 50 requests' : 'requests sent'}
+                  </span>
+                </div>
+                <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>
+                  <div
+                    className="h-full bg-emerald-500 transition-all duration-300 rounded-full"
+                    style={{ width: `${Math.min(100, Math.max(5, (todayCount / 50) * 100))}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* GitHub-style Activity Heatmap Grid (28 Days) */}
+              <div className="mt-1">
+                <div className="flex items-center justify-between mb-1.5 text-[10px] font-semibold text-slate-500">
+                  <span>28-Day Activity History</span>
+                  <span className="flex items-center gap-1">
+                    <span>Less</span>
+                    <span className="w-2.5 h-2.5 rounded-xs bg-slate-200 dark:bg-slate-700 inline-block border border-slate-300 dark:border-slate-600" />
+                    <span className="w-2.5 h-2.5 rounded-xs bg-emerald-300 dark:bg-emerald-500/40 inline-block" />
+                    <span className="w-2.5 h-2.5 rounded-xs bg-emerald-500 dark:bg-emerald-500/70 inline-block" />
+                    <span className="w-2.5 h-2.5 rounded-xs bg-emerald-600 dark:bg-emerald-400 inline-block" />
+                    <span>More</span>
+                  </span>
+                </div>
+
+                {/* 28-Day Activity Squares Grid */}
+                <div className="grid grid-cols-14 gap-1">
+                  {usageHistory.map((day) => {
+                    let bgClass = isDark ? 'bg-slate-800 border-slate-700/60' : 'bg-slate-200 border-slate-300/60';
+                    if (day.count > 0 && day.count <= 3) {
+                      bgClass = isDark ? 'bg-emerald-500/30 border-emerald-500/40' : 'bg-emerald-200 border-emerald-300';
+                    } else if (day.count > 3 && day.count <= 8) {
+                      bgClass = isDark ? 'bg-emerald-500/60 border-emerald-500/70' : 'bg-emerald-400 border-emerald-500';
+                    } else if (day.count > 8) {
+                      bgClass = 'bg-emerald-500 border-emerald-600';
+                    }
+
+                    return (
+                      <div
+                        key={day.date}
+                        className={`w-full h-4 rounded-xs border transition-colors hover:opacity-80 cursor-pointer ${bgClass}`}
+                        title={`${day.formattedDate}: ${day.count} request${day.count === 1 ? '' : 's'}`}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Provider Selection */}
+
           <div>
             <label className={`block font-semibold mb-1 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
               AI Provider
@@ -215,7 +293,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
                 setProvider(e.target.value as AIProvider);
                 setTestResult(null);
               }}
-              className={`w-full px-3 py-2 rounded-lg border outline-none font-sans transition-colors ${
+              className={`w-full px-3 py-2 rounded-sm border outline-none font-sans transition-colors ${
                 isDark
                   ? 'bg-slate-800 border-slate-700 text-white focus:border-slate-500'
                   : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-slate-500'
@@ -254,7 +332,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
                   setTestResult(null);
                 }}
                 placeholder={provider === 'gemini' ? 'AIzaSy...' : 'sk-...'}
-                className={`w-full px-3 py-2 rounded-lg border outline-none font-mono transition-colors ${
+                className={`w-full px-3 py-2 rounded-sm border outline-none font-mono transition-colors ${
                   isDark
                     ? 'bg-slate-800 border-slate-700 text-white focus:border-slate-500'
                     : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-slate-500'
@@ -278,7 +356,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
                   value={baseUrl}
                   onChange={(e) => setBaseUrl(e.target.value)}
                   placeholder={provider === 'openrouter' ? 'https://openrouter.ai/api/v1' : 'https://api.deepseek.com'}
-                  className={`w-full px-3 py-2 rounded-lg border outline-none font-mono transition-colors ${
+                  className={`w-full px-3 py-2 rounded-sm border outline-none font-mono transition-colors ${
                     isDark
                       ? 'bg-slate-800 border-slate-700 text-white focus:border-slate-500'
                       : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-slate-500'
@@ -298,7 +376,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
                   value={modelName}
                   onChange={(e) => setModelName(e.target.value)}
                   placeholder={provider === 'openrouter' ? 'google/gemini-2.0-flash-001' : 'deepseek-chat'}
-                  className={`w-full px-3 py-2 rounded-lg border outline-none font-mono transition-colors ${
+                  className={`w-full px-3 py-2 rounded-sm border outline-none font-mono transition-colors ${
                     isDark
                       ? 'bg-slate-800 border-slate-700 text-white focus:border-slate-500'
                       : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-slate-500'
@@ -310,7 +388,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
 
           {/* Connection Test Result Feedback */}
           {testResult && (
-            <div className={`p-3 rounded-lg border flex items-center gap-2 text-xs ${
+            <div className={`p-3 rounded-sm border flex items-center gap-2 text-xs ${
               testResult.success
                 ? (isDark ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800')
                 : (isDark ? 'bg-rose-950/40 border-rose-800/60 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-800')
@@ -330,7 +408,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
               type="button"
               onClick={handleTestConnection}
               disabled={isTesting || !rawApiKey.trim()}
-              className={`px-3 py-2 rounded-lg border font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50 ${
+              className={`px-3 py-2 rounded-sm border font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50 ${
                 isDark
                   ? 'border-slate-700 hover:bg-slate-800 text-slate-300'
                   : 'border-slate-300 hover:bg-slate-100 text-slate-700'
@@ -344,7 +422,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`px-4 py-2 rounded-sm font-medium transition-colors ${
                   isDark ? 'hover:bg-slate-800 text-slate-300' : 'hover:bg-slate-100 text-slate-700'
                 }`}
               >
@@ -352,7 +430,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
               </button>
               <button
                 type="submit"
-                className={`px-4 py-2 rounded-lg font-medium transition-colors shadow-sm ${
+                className={`px-4 py-2 rounded-sm font-medium transition-colors shadow-sm ${
                   isDark
                     ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold'
                     : 'bg-slate-900 hover:bg-slate-800 text-white'
@@ -367,3 +445,4 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
     </div>
   );
 };
+
