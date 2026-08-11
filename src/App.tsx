@@ -288,7 +288,7 @@ export default function App() {
     () => handleMergeNotesAI()
   );
 
-  const handleMergeNotesAI = useCallback(async () => {
+  const handleMergeNotesAI = useCallback(() => {
     if (!settings.enableAIServices || !settings.encryptedApiKey) {
       setIsAISettingsOpen(true);
       return;
@@ -300,50 +300,70 @@ export default function App() {
       return;
     }
 
+    // Immediately start background synthesis, notify user, and clear selection
     setIsMergingAI(true);
-    try {
-      const result = await mergeNotesWithAI(notesToMerge, {
-        aiProvider: settings.aiProvider || 'gemini',
-        encryptedApiKey: settings.encryptedApiKey,
-        apiKeyIv: settings.apiKeyIv || '',
-        customBaseUrl: settings.customBaseUrl,
-        customModelName: settings.customModelName,
-      });
+    const targetCount = notesToMerge.length;
+    setSelectedNoteIds([]);
+    sendNativeAppNotification(
+      '🤖 AI Merge Started',
+      `Synthesizing ${targetCount} notes in the background...`
+    );
 
-      const avgX = Math.round(notesToMerge.reduce((sum, n) => sum + n.x, 0) / notesToMerge.length);
-      const avgY = Math.round(notesToMerge.reduce((sum, n) => sum + (n.y + (n.height || 340)), 0) / notesToMerge.length) + 40;
+    // Asynchronous background execution
+    (async () => {
+      try {
+        const result = await mergeNotesWithAI(notesToMerge, {
+          aiProvider: settings.aiProvider || 'gemini',
+          encryptedApiKey: settings.encryptedApiKey,
+          apiKeyIv: settings.apiKeyIv || '',
+          customBaseUrl: settings.customBaseUrl,
+          customModelName: settings.customModelName,
+        });
 
-      const maxZ = Math.max(0, ...notes.map((n) => n.zIndex || 0));
+        const avgX = Math.round(notesToMerge.reduce((sum, n) => sum + n.x, 0) / notesToMerge.length);
+        const avgY = Math.round(notesToMerge.reduce((sum, n) => sum + (n.y + (n.height || 340)), 0) / notesToMerge.length) + 40;
 
-      const newNote: Note = {
-        id: `note-${Date.now()}`,
-        title: result.title,
-        content: result.content,
-        x: avgX,
-        y: avgY,
-        width: 420,
-        height: 380,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        fontFamily: settings.defaultFont || 'sans',
-        fontSize: 'md',
-        paperTheme: 'white',
-        activeMode: 'text',
-        isPinned: true,
-        zIndex: maxZ + 1,
-        tags: ['ai-merged'],
-      };
+        const maxZ = Math.max(0, ...notes.map((n) => n.zIndex || 0));
 
-      handleUpdateNote(newNote);
-      setSelectedNoteIds([newNote.id]);
-      sendNativeAppNotification('AI Note Merged', `Successfully synthesized ${notesToMerge.length} notes into "${result.title}"`);
-    } catch (err: any) {
-      console.error('Failed to merge notes with AI:', err);
-      alert(err?.message || 'Failed to merge notes with AI. Please verify your API Key settings.');
-    } finally {
-      setIsMergingAI(false);
-    }
-  }, [settings, notes, selectedNoteIds, handleUpdateNote, setSelectedNoteIds]);
+        const newNote: Note = {
+          id: `note-${Date.now()}`,
+          title: result.title,
+          content: result.content,
+          x: avgX,
+          y: avgY,
+          width: 420,
+          height: 380,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          fontFamily: settings.defaultFont || 'sans',
+          fontSize: 'md',
+          paperTheme: 'white',
+          activeMode: 'text',
+          isPinned: true,
+          zIndex: maxZ + 1,
+          tags: ['ai-merged'],
+        };
+
+        handleUpdateNote(newNote);
+        setSelectedNoteIds([newNote.id]);
+        handleNavigateToNote(newNote.id, setSelectedNoteIds);
+
+        sendNativeAppNotification(
+          '✨ AI Note Merged Successfully',
+          `Created "${result.title}" from ${targetCount} notes.`
+        );
+      } catch (err: any) {
+        console.error('Failed to merge notes with AI:', err);
+        sendNativeAppNotification(
+          '❌ AI Merge Failed',
+          err?.message || 'Failed to merge notes with AI. Please check your API Key settings.'
+        );
+      } finally {
+        setIsMergingAI(false);
+      }
+    })();
+  }, [settings, notes, selectedNoteIds, handleUpdateNote, setSelectedNoteIds, handleNavigateToNote]);
+
 
 
 
