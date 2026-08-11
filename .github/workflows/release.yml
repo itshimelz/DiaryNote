@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.validate.outputs.tag }}
-      release_body: ${{ steps.validate.outputs.release_body }}
+      notes_file: ${{ steps.validate.outputs.notes_file }}
     steps:
       - uses: actions/checkout@v4
 
@@ -30,6 +30,7 @@ jobs:
           NOTES_FILE=".github/releases/RELEASE_NOTES_${TAG}.md"
 
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "notes_file=${NOTES_FILE}" >> "$GITHUB_OUTPUT"
 
           if [ ! -f "$NOTES_FILE" ]; then
             echo "::error::Missing release notes file: $NOTES_FILE"
@@ -54,13 +55,6 @@ jobs:
           fi
 
           bun run version:check
-
-          DELIM="release_body_$(date +%s)_$$"
-          {
-            echo "release_body<<$DELIM"
-            cat "$NOTES_FILE"
-            echo "$DELIM"
-          } >> "$GITHUB_OUTPUT"
 
   build-tauri:
     needs: validate
@@ -112,7 +106,7 @@ jobs:
         with:
           tagName: ${{ needs.validate.outputs.tag }}
           releaseName: "${{ needs.validate.outputs.tag }}"
-          releaseBody: ${{ needs.validate.outputs.release_body }}
+          releaseBodyFile: ${{ needs.validate.outputs.notes_file }}
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
