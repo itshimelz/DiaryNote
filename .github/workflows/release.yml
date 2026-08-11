@@ -55,10 +55,11 @@ jobs:
 
           bun run version:check
 
+          DELIM="release_body_$(date +%s)_$$"
           {
-            echo "release_body<<EOF"
+            echo "release_body<<$DELIM"
             cat "$NOTES_FILE"
-            echo "EOF"
+            echo "$DELIM"
           } >> "$GITHUB_OUTPUT"
 
   build-tauri:
