@@ -612,9 +612,10 @@ export default function App() {
             layout: { duration: 0.16, ease: [0.16, 1, 0.3, 1] },
             borderRadius: { duration: 0.15, ease: 'easeOut' },
           }}
-          className={`fixed ${showStatusBar ? 'bottom-10' : 'bottom-6'} left-1/2 -translate-x-1/2 z-40 flex flex-col items-center border shadow-sm select-none w-[640px] max-w-[calc(100vw-32px)] transition-all duration-200 ${
+          className={`fixed ${showStatusBar ? 'bottom-10' : 'bottom-6'} left-1/2 -translate-x-1/2 z-40 flex flex-col items-center border shadow-sm select-none min-w-[640px] w-auto max-w-[calc(100vw-32px)] transition-all duration-200 ${
             selectedNoteIds.length >= 2 ? 'overflow-visible' : 'overflow-hidden'
           } ${
+
             settings.themeMode === 'light'
               ? 'bg-white/95 border-slate-200 text-slate-800'
               : 'bg-slate-900/90 border-slate-800 text-slate-200'

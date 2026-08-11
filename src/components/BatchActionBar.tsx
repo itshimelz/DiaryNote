@@ -565,17 +565,15 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
             }
           >
             {isMergingAI ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500 shrink-0" />
             ) : (
               <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
             )}
-            <span className="hidden sm:inline">
-              {isMergingAI ? 'Merging...' : 'Merge'}
-            </span>
-
+            <span className="hidden sm:inline">Merge</span>
           </button>
         )}
       </div>
+
 
 
 

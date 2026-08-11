@@ -102,11 +102,20 @@ export async function mergeNotesWithAI(
   const systemPrompt = `You are an expert note synthesizer. Your goal is to combine ${notesToMerge.length} user notes into a single cohesive Markdown document.
 
 CRITICAL INSTRUCTIONS:
-1. Provide a sharp, concise Markdown title on the very first line starting with '# Title'.
-2. Structure the body with clear headings (##), bullet points, and synthesized insights without losing important details.
-3. Highlight actionable items into a '- [ ]' checklist at the end if tasks exist.
-4. Do NOT output system safety metadata (such as "User Safety: safe"), disclaimers, or meta-commentary like "Here is your merged note:". Start directly with '# Title'.
-5. Do NOT append source note mentions or lists yourself at the bottom; the application appends them automatically.`;
+1. LANGUAGE MATCHING (MANDATORY):
+   - Automatically detect the primary language used in the source notes.
+   - If source notes are in Bengali (বাংলা), write the entire merged note (title, headings, body) in Bengali (বাংলা).
+   - If source notes are in Banglish (Bengali text written in Latin alphabet, e.g. "amar ajke task complete korte hobe"), respond in natural Banglish/Bengali matching the user's style.
+   - If source notes are in English, Spanish, French, German, or any other language, respond in that exact language.
+   - For multilingual notes, synthesize using the dominant language while preserving original technical terms.
+2. STRUCTURE & FORMATTING:
+   - Provide a sharp, concise Markdown title on the very first line starting with '# Title'.
+   - Structure the body with clear headings (##), bullet points, and synthesized insights without losing key details.
+   - Highlight actionable items into a '- [ ]' checklist at the end if tasks exist.
+3. OUTPUT CLEANLINESS:
+   - Do NOT output system safety metadata (such as "User Safety: safe"), disclaimers, or meta-commentary like "Here is your merged note:". Start directly with '# Title'.
+   - Do NOT append source note mentions or lists yourself at the bottom; the application appends them automatically.`;
+
 
   const userPrompt = `Synthesize and merge these ${notesToMerge.length} notes into one document:\n\n${notesText}`;
 
