@@ -105,7 +105,8 @@ CRITICAL INSTRUCTIONS:
 1. Provide a sharp, concise Markdown title on the very first line starting with '# Title'.
 2. Structure the body with clear headings (##), bullet points, and synthesized insights without losing important details.
 3. Highlight actionable items into a '- [ ]' checklist at the end if tasks exist.
-4. Do NOT output meta-commentary like "Here is your merged note:". Start directly with the title.`;
+4. Do NOT output system safety metadata (such as "User Safety: safe"), disclaimers, or meta-commentary like "Here is your merged note:". Start directly with '# Title'.
+5. Do NOT append source note mentions or lists yourself at the bottom; the application appends them automatically.`;
 
   const userPrompt = `Synthesize and merge these ${notesToMerge.length} notes into one document:\n\n${notesText}`;
 
@@ -168,9 +169,12 @@ CRITICAL INSTRUCTIONS:
     rawOutput = data.choices?.[0]?.message?.content || '';
   }
 
-  // Parse title and content
+  // Parse title and clean metadata
   let title = `Merged Note (${new Date().toLocaleDateString()})`;
-  let content = rawOutput.trim();
+  let content = rawOutput
+    .replace(/^User Safety:.*$/gmi, '')
+    .replace(/^Safety status:.*$/gmi, '')
+    .trim();
 
   const titleMatch = content.match(/^#\s+(.+)$/m);
   if (titleMatch) {
@@ -178,11 +182,15 @@ CRITICAL INSTRUCTIONS:
     content = content.replace(/^#\s+.+$/m, '').trim();
   }
 
-  // Append source references at the bottom
-  const referencesSection = `\n\n---\n**Merged from (${notesToMerge.length} notes):**\n` +
-    notesToMerge.map((n) => `- @${n.title || 'Untitled Note'}`).join('\n');
+  // Format mentions in strict DiaryNote syntax: @[Title](id) inline separated by space and comma
+  const mentionsList = notesToMerge
+    .map((n) => `@[${(n.title || 'Untitled Note').replace(/[\[\]]/g, '')}](${n.id})`)
+    .join(', ');
+
+  const referencesSection = `\n\n---\n**Merged from:** ${mentionsList}`;
 
   content = content + referencesSection;
 
   return { title, content };
 }
+
