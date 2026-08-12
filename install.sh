@@ -71,14 +71,27 @@ if [ -n "$TARGET_VERSION" ]; then
   [[ "$TAG_NAME" != v* ]] && TAG_NAME="v${TAG_NAME}"
   echo -e "${BLUE}Using specified version: ${BOLD}${TAG_NAME}${NC}"
 else
-  # Fetch recent releases via GitHub API
-  RELEASES_JSON="$(curl -fsSL -H "User-Agent: DiaryNote-Installer" "https://api.github.com/repos/${REPO}/releases?per_page=10" 2>/dev/null || true)"
+  # Fetch recent releases via rate-limit-proof RSS/Atom feed
+  ATOM_CONTENT="$(curl -fsSL "https://github.com/${REPO}/releases.atom" 2>/dev/null || true)"
 
   parsed_releases=()
-  if command -v python3 >/dev/null 2>&1; then
-    while IFS= read -r line; do
-      [ -n "$line" ] && parsed_releases+=("$line")
-    done < <(echo "$RELEASES_JSON" | python3 -c '
+  if [ -n "$ATOM_CONTENT" ]; then
+    while IFS= read -r tag; do
+      [ -z "$tag" ] && continue
+      is_pre=false
+      [[ "$tag" == *-* ]] && is_pre=true
+      parsed_releases+=("${tag}|${is_pre}")
+    done < <(echo "$ATOM_CONTENT" | grep -o '/releases/tag/v[^\"]*' | cut -d'/' -f4 | cut -d'"' -f1 | awk '!seen[$0]++' | head -n 5)
+  fi
+
+  # Fallback to GitHub API if atom feed is unavailable
+  if [ ${#parsed_releases[@]} -eq 0 ]; then
+    RELEASES_JSON="$(curl -fsSL -H "User-Agent: DiaryNote-Installer" "https://api.github.com/repos/${REPO}/releases?per_page=10" 2>/dev/null || true)"
+
+    if command -v python3 >/dev/null 2>&1; then
+      while IFS= read -r line; do
+        [ -n "$line" ] && parsed_releases+=("$line")
+      done < <(echo "$RELEASES_JSON" | python3 -c '
 import sys, json
 try:
     data = json.load(sys.stdin)
@@ -89,6 +102,7 @@ try:
 except Exception:
     pass
 ' 2>/dev/null)
+    fi
   fi
 
   if [ ${#parsed_releases[@]} -eq 0 ]; then

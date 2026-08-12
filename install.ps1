@@ -13,8 +13,23 @@ if ($Version) {
     Write-Host "Using specified version: $tagName" -ForegroundColor Cyan
 } else {
     try {
-        $apiUrl = "https://api.github.com/repos/$repo/releases?per_page=10"
-        $releases = Invoke-RestMethod -Uri $apiUrl -Headers @{ "User-Agent" = "DiaryNote-Installer" }
+        $releases = @()
+        try {
+            $atomUrl = "https://github.com/$repo/releases.atom"
+            [xml]$xml = (New-Object System.Net.WebClient).DownloadString($atomUrl)
+            foreach ($e in $xml.feed.entry) {
+                $tag = $e.title
+                if ($tag -and $tag.StartsWith("v")) {
+                    $isPre = $tag.Contains("-")
+                    $releases += [PSCustomObject]@{ tag_name = $tag; prerelease = $isPre }
+                }
+            }
+        } catch {}
+
+        if ($releases.Count -eq 0) {
+            $apiUrl = "https://api.github.com/repos/$repo/releases?per_page=10"
+            $releases = Invoke-RestMethod -Uri $apiUrl -Headers @{ "User-Agent" = "DiaryNote-Installer" }
+        }
         
         if ($Prerelease) {
             $tagName = $releases[0].tag_name
