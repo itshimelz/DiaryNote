@@ -44,6 +44,11 @@ When cutting a pre-release from a non-main feature branch:
    - Command-line flags `--version <tag>` and `--prerelease` allow targeted pre-release installations.
    - Non-interactive / headless runs default to the latest stable release.
 
+3. **Windows Installer Bundling (NSIS vs. MSI)**:
+   - WiX (MSI) enforces strict Windows Installer requirements: version strings for `.msi` targets must be numeric-only (`MAJOR.MINOR.PATCH[.BUILD]`).
+   - For pre-releases containing string identifiers (e.g. `v0.1.4-beta.1`), the GitHub workflow automatically passes `--bundles nsis` on Windows to generate the standard `.exe` setup installer, bypassing WiX `.msi` validation errors.
+   - Stable releases (`vX.Y.Z`) build both `.exe` (NSIS) and `.msi` (WiX) installers.
+
 ---
 
 ## 4. Release Checklist
