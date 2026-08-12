@@ -278,7 +278,7 @@ export const JournalCalendarModal: React.FC<JournalCalendarModalProps> = ({
                     onClose();
                   }}
                   title={isFuture ? 'Cannot create journal entries for future dates' : undefined}
-                  className={`h-8 w-full rounded-md text-xs flex flex-col items-center justify-center relative transition-colors group ${
+                  className={`h-9 w-full rounded-md text-xs flex flex-col items-center justify-center py-1 transition-colors group ${
                     isFuture
                       ? isDark
                         ? 'text-slate-600 opacity-40 cursor-not-allowed'
@@ -294,10 +294,14 @@ export const JournalCalendarModal: React.FC<JournalCalendarModalProps> = ({
                       : 'text-slate-700 hover:bg-slate-100'
                   }`}
                 >
-                  <span className={cell.isToday ? 'font-bold' : 'font-medium'}>{cell.dayNumber}</span>
-                  {cell.hasEntry && (
-                    <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-blue-500" />
-                  )}
+                  <span className={`leading-none ${cell.isToday ? 'font-bold' : 'font-medium'}`}>
+                    {cell.dayNumber}
+                  </span>
+                  <span className="h-1.5 mt-1 flex items-center justify-center">
+                    {cell.hasEntry && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
+                    )}
+                  </span>
                 </button>
               );
             })}

@@ -12,6 +12,7 @@ import {
   List,
   ListOrdered,
   Slash,
+  Sparkles,
 } from 'lucide-react';
 import { PAPER_THEMES } from './types';
 
@@ -117,6 +118,14 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     keywords: ['divider', 'hr', 'line', 'separator'],
     icon: Minus,
     action: '---\n',
+  },
+  {
+    id: 'autotag',
+    label: 'Auto Tag (AI)',
+    description: 'Generate max 3 AI tags appended at end of note',
+    keywords: ['auto-tag', 'autotag', 'tag', 'ai', 'tags'],
+    icon: Sparkles,
+    action: 'autotag',
   },
 ];
 

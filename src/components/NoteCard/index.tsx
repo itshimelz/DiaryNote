@@ -8,7 +8,9 @@ import { NoteMarkdownView } from './NoteMarkdownView';
 import { NoteStylePicker } from './NoteStylePicker';
 import { MentionAutocomplete } from '../MentionAutocomplete';
 import { SlashCommandMenu, SlashCommand, SLASH_COMMANDS } from './SlashCommandMenu';
-import { getUniqueTitleForDay, normalizeNoteText, resizeNoteEditor, applyMarkdownFormatting, handleSmartEnterList, FormattingType } from '../../utils';
+import { getUniqueTitleForDay, normalizeNoteText, resizeNoteEditor, applyMarkdownFormatting, handleSmartEnterList, sendNativeAppNotification, FormattingType, getTextareaCursorCoordinates } from '../../utils';
+import { loadSettings } from '../../lib/storage';
+import { generateAutoTagsWithAI } from '../../services/ai/aiMergeService';
 import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT, DRAG_Z_INDEX } from '../../constants/canvas';
 import { Note } from '../../types';
 
@@ -177,19 +179,82 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
     }, 50);
   };
 
-  const handleSelectSlashCommand = (command: SlashCommand) => {
+  const handleSelectSlashCommand = async (command: SlashCommand) => {
     if (!textareaRef.current) return;
     const val = note.content || '';
     const cursorIndex = textareaRef.current.selectionStart || val.length;
     const textBeforeCursor = val.slice(0, cursorIndex);
     const textAfterCursor = val.slice(cursorIndex);
 
-    let insertedText = typeof command.action === 'function' ? command.action(val) : command.action;
-
-    const newBefore = textBeforeCursor.replace(/(?:^|\n|\s)\/([a-zA-Z0-9]*)$/, (m) => {
+    const newBefore = textBeforeCursor.replace(/(?:^|\n|\s)\/([a-zA-Z0-9_-]*)$/, (m) => {
       const leadingPrefix = m.startsWith('\n') ? '\n' : m.startsWith(' ') ? ' ' : '';
       return leadingPrefix;
     });
+
+    setSlashQuery(null);
+
+    // ponytail: AI Auto Tag action (max 3 tags, zero content alteration, appended at end as markdown)
+    if (command.id === 'autotag') {
+      const cleanedBaseContent = (newBefore + textAfterCursor).trimEnd();
+      const settings = loadSettings();
+
+      if (!settings.enableAIServices || !settings.encryptedApiKey || !settings.apiKeyIv) {
+        sendNativeAppNotification(
+          'AI Key Required',
+          'Please enable AI Services and configure your API key in AI Settings to use /auto-tag.'
+        );
+        return;
+      }
+
+      sendNativeAppNotification('Generating Tags', 'Analyzing note content with AI...');
+
+      try {
+        const generatedTags = await generateAutoTagsWithAI(
+          note.title,
+          cleanedBaseContent,
+          {
+            aiProvider: settings.aiProvider || 'gemini',
+            encryptedApiKey: settings.encryptedApiKey,
+            apiKeyIv: settings.apiKeyIv,
+            customBaseUrl: settings.customBaseUrl,
+            customModelName: settings.customModelName,
+          }
+        );
+
+        const validTags = (generatedTags || [])
+          .map((t) => (t.startsWith('#') ? t : `#${t}`))
+          .slice(0, 3);
+
+        if (validTags.length === 0) {
+          sendNativeAppNotification('Auto Tag', 'No relevant tags generated.');
+          return;
+        }
+
+        const tagsMarkdown = validTags.join(' ');
+        const finalContent = `${cleanedBaseContent}\n\n**Tags:** ${tagsMarkdown}`;
+
+        const cleanTagNames = validTags.map((t) => t.replace(/^#/, ''));
+        const updatedTags = Array.from(new Set([...(note.tags || []), ...cleanTagNames]));
+
+        onUpdateNote({
+          ...note,
+          content: finalContent,
+          tags: updatedTags,
+          updatedAt: new Date().toISOString(),
+        });
+
+        sendNativeAppNotification('Auto Tag Complete', `Appended tags: ${tagsMarkdown}`);
+      } catch (err: any) {
+        console.error('Failed to generate auto-tags:', err);
+        sendNativeAppNotification(
+          'Auto Tag Failed',
+          err?.message || 'Failed to generate AI tags. Check API key settings.'
+        );
+      }
+      return;
+    }
+
+    let insertedText = typeof command.action === 'function' ? command.action(val) : command.action;
 
     const newContent = newBefore + insertedText + textAfterCursor;
     onUpdateNote({
@@ -197,7 +262,6 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       content: newContent,
       updatedAt: new Date().toISOString(),
     });
-    setSlashQuery(null);
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.focus();
@@ -490,10 +554,8 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
                 const match = textBeforeCursor.match(/(?:^|\s)@([a-zA-Z0-9\s\_-]*)$/);
                 if (match) {
                   setMentionQuery(match[1]);
-                  const lineCount = textBeforeCursor.split('\n').length;
-                  const lineH = isRuled ? 32 : 24;
-                  const topPos = Math.min(lineCount * lineH + 6, 190);
-                  setMentionPos({ top: topPos, left: 10 });
+                  const pos = getTextareaCursorCoordinates(e.target, cursorIndex);
+                  setMentionPos(pos);
                   setSlashQuery(null);
                 } else {
                   setMentionQuery(null);
@@ -502,10 +564,8 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
                   const slashMatch = textBeforeCursor.match(/(?:^|\n|\s)\/([a-zA-Z0-9]*)$/);
                   if (slashMatch) {
                     setSlashQuery(slashMatch[1]);
-                    const lineCount = textBeforeCursor.split('\n').length;
-                    const lineH = isRuled ? 32 : 24;
-                    const topPos = Math.min(lineCount * lineH + 6, 190);
-                    setSlashPos({ top: topPos, left: 10 });
+                    const pos = getTextareaCursorCoordinates(e.target, cursorIndex);
+                    setSlashPos(pos);
                   } else {
                     setSlashQuery(null);
                   }

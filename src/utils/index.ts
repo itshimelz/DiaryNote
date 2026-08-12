@@ -6,4 +6,5 @@ export * from './security';
 export * from './updateChecker';
 export * from './journalUtils';
 export * from './aiUsageTracker';
+export * from './textareaCursor';
 
