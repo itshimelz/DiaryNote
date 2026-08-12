@@ -45,6 +45,27 @@ function getAIHeaders(provider: AIProvider, apiKey?: string): Record<string, str
 }
 
 /**
+ * Resolves the target AI model name based on provider and user settings.
+ */
+export function getModelName(config: AIServiceConfig): string {
+  if (config.customModelName && config.customModelName.trim()) {
+    return config.customModelName.trim();
+  }
+  switch (config.aiProvider) {
+    case 'gemini':
+      return 'gemini-2.5-flash';
+    case 'openai':
+      return 'gpt-4o-mini';
+    case 'openrouter':
+      return 'google/gemini-2.5-flash';
+    case 'custom':
+      return 'deepseek-chat';
+    default:
+      return 'gemini-2.5-flash';
+  }
+}
+
+/**
  * Test AI API connection with a lightweight ping query
  */
 export async function testAIConnection(config: AIServiceConfig, rawApiKey?: string): Promise<{ success: boolean; message: string }> {
@@ -53,9 +74,11 @@ export async function testAIConnection(config: AIServiceConfig, rawApiKey?: stri
     return { success: false, message: 'API key is empty or invalid.' };
   }
 
+  const modelName = getModelName(config);
+
   try {
     if (config.aiProvider === 'gemini') {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
       const res = await fetch(url, {
         method: 'POST',
         headers: getAIHeaders('gemini'),
@@ -68,19 +91,16 @@ export async function testAIConnection(config: AIServiceConfig, rawApiKey?: stri
         const errJson = await res.json().catch(() => ({}));
         return { success: false, message: errJson?.error?.message || `HTTP ${res.status} Error` };
       }
-      return { success: true, message: 'Google Gemini API key verified successfully!' };
+      return { success: true, message: `Google Gemini (${modelName}) key verified successfully!` };
     }
 
     // OpenAI, OpenRouter, or Custom/OpenAI-compatible
     let baseUrl = 'https://api.openai.com/v1';
-    let modelName = 'gpt-4o-mini';
 
     if (config.aiProvider === 'openrouter') {
       baseUrl = (config.customBaseUrl || 'https://openrouter.ai/api/v1').replace(/\/+$/, '');
-      modelName = config.customModelName || 'google/gemini-2.0-flash-001';
     } else if (config.aiProvider === 'custom') {
       baseUrl = (config.customBaseUrl || 'https://api.deepseek.com').replace(/\/+$/, '');
-      modelName = config.customModelName || 'deepseek-chat';
     }
 
     const endpoint = `${baseUrl}/chat/completions`;
@@ -98,7 +118,7 @@ export async function testAIConnection(config: AIServiceConfig, rawApiKey?: stri
       const errJson = await res.json().catch(() => ({}));
       return { success: false, message: errJson?.error?.message || `HTTP ${res.status} Error` };
     }
-    return { success: true, message: `${config.aiProvider.toUpperCase()} connection successful!` };
+    return { success: true, message: `${config.aiProvider.toUpperCase()} (${modelName}) connection successful!` };
 
   } catch (err: any) {
     return { success: false, message: err?.message || 'Network connection failed.' };
@@ -133,8 +153,10 @@ export async function mergeNotesWithAI(
 
   let rawOutput = '';
 
+  const modelName = getModelName(config);
+
   if (config.aiProvider === 'gemini') {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
     const res = await fetch(url, {
       method: 'POST',
       headers: getAIHeaders('gemini'),
@@ -154,14 +176,11 @@ export async function mergeNotesWithAI(
   } else {
     // OpenAI, OpenRouter, Custom
     let baseUrl = 'https://api.openai.com/v1';
-    let modelName = 'gpt-4o-mini';
 
     if (config.aiProvider === 'openrouter') {
       baseUrl = (config.customBaseUrl || 'https://openrouter.ai/api/v1').replace(/\/+$/, '');
-      modelName = config.customModelName || 'google/gemini-2.0-flash-001';
     } else if (config.aiProvider === 'custom') {
       baseUrl = (config.customBaseUrl || 'https://api.deepseek.com').replace(/\/+$/, '');
-      modelName = config.customModelName || 'deepseek-chat';
     }
 
     const endpoint = `${baseUrl}/chat/completions`;
@@ -177,8 +196,6 @@ export async function mergeNotesWithAI(
         temperature: 0.3
       })
     });
-
-
 
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}));
@@ -231,10 +248,11 @@ export async function generateAutoTagsWithAI(
 
   const systemPrompt = AUTO_TAGGING_SYSTEM_PROMPT;
   const userPrompt = getAutoTaggingUserPrompt(title, content);
+  const modelName = getModelName(config);
   let rawOutput = '';
 
   if (config.aiProvider === 'gemini') {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
     const res = await fetch(url, {
       method: 'POST',
       headers: getAIHeaders('gemini'),
@@ -251,14 +269,11 @@ export async function generateAutoTagsWithAI(
     rawOutput = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   } else {
     let baseUrl = 'https://api.openai.com/v1';
-    let modelName = 'gpt-4o-mini';
 
     if (config.aiProvider === 'openrouter') {
       baseUrl = (config.customBaseUrl || 'https://openrouter.ai/api/v1').replace(/\/+$/, '');
-      modelName = config.customModelName || 'google/gemini-2.0-flash-001';
     } else if (config.aiProvider === 'custom') {
       baseUrl = (config.customBaseUrl || 'https://api.deepseek.com').replace(/\/+$/, '');
-      modelName = config.customModelName || 'deepseek-chat';
     }
 
     const res = await fetch(`${baseUrl}/chat/completions`, {

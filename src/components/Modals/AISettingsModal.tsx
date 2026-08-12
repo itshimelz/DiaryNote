@@ -352,50 +352,129 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
             </div>
           </div>
 
-          {/* Custom Base URL & Model Name for OpenRouter / Custom */}
+          {/* Base URL for Custom / OpenRouter Provider */}
           {(provider === 'openrouter' || provider === 'custom') && (
-            <div className="space-y-3 pt-1">
-              <div>
-                <label className={`block font-semibold mb-1 flex items-center gap-1.5 ${
-                  isDark ? 'text-slate-200' : 'text-slate-700'
-                }`}>
-                  <Globe className="w-3.5 h-3.5 text-slate-400" />
-                  Custom Base Endpoint URL
-                </label>
-                <input
-                  type="text"
-                  value={baseUrl}
-                  onChange={(e) => setBaseUrl(e.target.value)}
-                  placeholder={provider === 'openrouter' ? 'https://openrouter.ai/api/v1' : 'https://api.deepseek.com'}
-                  className={`w-full px-3 py-2 rounded-sm border outline-none font-mono transition-colors ${
-                    isDark
-                      ? 'bg-slate-800 border-slate-700 text-white focus:border-slate-500'
-                      : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-slate-500'
-                  }`}
-                />
-              </div>
-
-              <div>
-                <label className={`block font-semibold mb-1 flex items-center gap-1.5 ${
-                  isDark ? 'text-slate-200' : 'text-slate-700'
-                }`}>
-                  <Cpu className="w-3.5 h-3.5 text-slate-400" />
-                  Model Identifier
-                </label>
-                <input
-                  type="text"
-                  value={modelName}
-                  onChange={(e) => setModelName(e.target.value)}
-                  placeholder={provider === 'openrouter' ? 'google/gemini-2.0-flash-001' : 'deepseek-chat'}
-                  className={`w-full px-3 py-2 rounded-sm border outline-none font-mono transition-colors ${
-                    isDark
-                      ? 'bg-slate-800 border-slate-700 text-white focus:border-slate-500'
-                      : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-slate-500'
-                  }`}
-                />
-              </div>
+            <div>
+              <label className={`block font-semibold mb-1 flex items-center gap-1.5 ${
+                isDark ? 'text-slate-200' : 'text-slate-700'
+              }`}>
+                <Globe className="w-3.5 h-3.5 text-slate-400" />
+                Custom Base Endpoint URL
+              </label>
+              <input
+                type="text"
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+                placeholder={provider === 'openrouter' ? 'https://openrouter.ai/api/v1' : 'https://api.deepseek.com'}
+                className={`w-full px-3 py-2 rounded-sm border outline-none font-mono transition-colors ${
+                  isDark
+                    ? 'bg-slate-800 border-slate-700 text-white focus:border-slate-500'
+                    : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-slate-500'
+                }`}
+              />
             </div>
           )}
+
+          {/* Model Selection for ALL AI Providers */}
+          <div>
+            <label className={`block font-semibold mb-1 flex items-center gap-1.5 ${
+              isDark ? 'text-slate-200' : 'text-slate-700'
+            }`}>
+              <Cpu className="w-3.5 h-3.5 text-slate-400" />
+              AI Model Selection
+            </label>
+
+            {provider === 'gemini' && (
+              <select
+                value={['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash-lite', 'gemini-1.5-flash'].includes(modelName) ? modelName : 'custom'}
+                onChange={(e) => {
+                  if (e.target.value !== 'custom') {
+                    setModelName(e.target.value);
+                  }
+                  setTestResult(null);
+                }}
+                className={`w-full px-3 py-2 rounded-sm border outline-none font-sans transition-colors mb-1.5 ${
+                  isDark
+                    ? 'bg-slate-800 border-slate-700 text-white focus:border-slate-500'
+                    : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-slate-500'
+                }`}
+              >
+                <option value="gemini-2.5-flash">gemini-2.5-flash (Recommended - Free Tier)</option>
+                <option value="gemini-2.5-pro">gemini-2.5-pro (High Reasoning)</option>
+                <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite (Fast & Lightweight)</option>
+                <option value="gemini-1.5-flash">gemini-1.5-flash (Legacy Stable)</option>
+                <option value="custom">Enter Custom Gemini Model Name...</option>
+              </select>
+            )}
+
+            {provider === 'openai' && (
+              <select
+                value={['gpt-4o-mini', 'gpt-4o', 'o3-mini'].includes(modelName) ? modelName : 'custom'}
+                onChange={(e) => {
+                  if (e.target.value !== 'custom') {
+                    setModelName(e.target.value);
+                  }
+                  setTestResult(null);
+                }}
+                className={`w-full px-3 py-2 rounded-sm border outline-none font-sans transition-colors mb-1.5 ${
+                  isDark
+                    ? 'bg-slate-800 border-slate-700 text-white focus:border-slate-500'
+                    : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-slate-500'
+                }`}
+              >
+                <option value="gpt-4o-mini">gpt-4o-mini (Recommended - Fast & Affordable)</option>
+                <option value="gpt-4o">gpt-4o (High Intelligence)</option>
+                <option value="o3-mini">o3-mini (Reasoning)</option>
+                <option value="custom">Enter Custom OpenAI Model Name...</option>
+              </select>
+            )}
+
+            {provider === 'openrouter' && (
+              <select
+                value={['google/gemini-2.5-flash', 'anthropic/claude-3.5-sonnet', 'deepseek/deepseek-chat', 'meta-llama/llama-3.3-70b-instruct'].includes(modelName) ? modelName : 'custom'}
+                onChange={(e) => {
+                  if (e.target.value !== 'custom') {
+                    setModelName(e.target.value);
+                  }
+                  setTestResult(null);
+                }}
+                className={`w-full px-3 py-2 rounded-sm border outline-none font-sans transition-colors mb-1.5 ${
+                  isDark
+                    ? 'bg-slate-800 border-slate-700 text-white focus:border-slate-500'
+                    : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-slate-500'
+                }`}
+              >
+                <option value="google/gemini-2.5-flash">google/gemini-2.5-flash (Recommended)</option>
+                <option value="anthropic/claude-3.5-sonnet">anthropic/claude-3.5-sonnet</option>
+                <option value="deepseek/deepseek-chat">deepseek/deepseek-chat</option>
+                <option value="meta-llama/llama-3.3-70b-instruct">meta-llama/llama-3.3-70b-instruct</option>
+                <option value="custom">Enter Custom OpenRouter Model Name...</option>
+              </select>
+            )}
+
+            {/* Input field for custom model name or custom provider */}
+            {(provider === 'custom' || !['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gpt-4o-mini', 'gpt-4o', 'o3-mini', 'google/gemini-2.5-flash', 'anthropic/claude-3.5-sonnet', 'deepseek/deepseek-chat', 'meta-llama/llama-3.3-70b-instruct'].includes(modelName)) && (
+              <input
+                type="text"
+                value={modelName}
+                onChange={(e) => setModelName(e.target.value)}
+                placeholder={
+                  provider === 'gemini'
+                    ? 'gemini-2.5-flash'
+                    : provider === 'openai'
+                    ? 'gpt-4o-mini'
+                    : provider === 'openrouter'
+                    ? 'google/gemini-2.5-flash'
+                    : 'deepseek-chat'
+                }
+                className={`w-full px-3 py-2 rounded-sm border outline-none font-mono transition-colors ${
+                  isDark
+                    ? 'bg-slate-800 border-slate-700 text-white focus:border-slate-500'
+                    : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-slate-500'
+                }`}
+              />
+            )}
+          </div>
 
           {/* Connection Test Result Feedback */}
           {testResult && (
