@@ -75,6 +75,17 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
     }
   }, [isOpen, enableAIServices, aiProvider, encryptedApiKey, apiKeyIv, customBaseUrl, customModelName]);
 
+  // Listen for real-time usage updates when AI requests complete
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleUsageUpdate = () => {
+      setTodayCount(getTodayAICount());
+      setUsageHistory(getLastNDaysAIUsage(28));
+    };
+    window.addEventListener('diarynote_ai_usage_updated', handleUsageUpdate);
+    return () => window.removeEventListener('diarynote_ai_usage_updated', handleUsageUpdate);
+  }, [isOpen]);
+
 
   if (!isOpen) return null;
 

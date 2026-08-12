@@ -108,7 +108,7 @@ jobs:
           releaseName: "${{ needs.validate.outputs.tag }}"
           releaseBodyFile: ${{ needs.validate.outputs.notes_file }}
           releaseDraft: false
-          prerelease: false
+          prerelease: ${{ contains(needs.validate.outputs.tag, '-') }}
           args: ${{ matrix.args }}
 
       - name: Create and Upload Standalone Linux Package (DiaryNote-linux-x86_64.tar.gz)

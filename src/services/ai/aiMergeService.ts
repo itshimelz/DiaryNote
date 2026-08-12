@@ -1,5 +1,6 @@
 import { Note, AIProvider } from '../../types';
 import { decryptApiKey } from '../../utils/aiSecurity';
+import { recordAIRequest } from '../../utils/aiUsageTracker';
 import { CURRENT_VERSION, REPO_URL, REPO_NAME } from '../../utils/updateChecker';
 import {
   getNoteSynthesisSystemPrompt,
@@ -210,6 +211,8 @@ export async function mergeNotesWithAI(
 
   content = content + referencesSection;
 
+  recordAIRequest();
+
   return { title, content };
 }
 
@@ -289,6 +292,8 @@ export async function generateAutoTagsWithAI(
       .filter(Boolean)
       .map(w => `#${w}`);
   }
+
+  recordAIRequest();
 
   return tags.slice(0, 3);
 }

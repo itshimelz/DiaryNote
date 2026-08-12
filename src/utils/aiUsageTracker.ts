@@ -15,6 +15,7 @@ export function recordAIRequest(): void {
     const history = getAIUsageHistory();
     history[today] = (history[today] || 0) + 1;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+    window.dispatchEvent(new Event('diarynote_ai_usage_updated'));
   } catch (err) {
     console.error('Failed to record AI request count:', err);
   }

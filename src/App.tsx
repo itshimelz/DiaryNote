@@ -336,9 +336,6 @@ export default function App() {
           customModelName: settings.customModelName,
         });
 
-        recordAIRequest();
-
-
         const avgX = Math.round(notesToMerge.reduce((sum, n) => sum + n.x, 0) / notesToMerge.length);
         const avgY = Math.round(notesToMerge.reduce((sum, n) => sum + (n.y + (n.height || 340)), 0) / notesToMerge.length) + 40;
 
