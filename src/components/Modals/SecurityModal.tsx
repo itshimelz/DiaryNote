@@ -106,7 +106,7 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150 select-none">
       <div
-        className={`w-full max-w-md rounded-md shadow-sm border p-6 transition-all ${
+        className={`w-full max-w-md rounded-md shadow-sm border p-6 transition-colors ${
           isDark
             ? 'bg-slate-900 border-slate-800 text-slate-100'
             : 'bg-white border-slate-200 text-slate-900'
@@ -259,7 +259,7 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({
 
             <button
               type="submit"
-              className={`w-full py-2.5 rounded-xl font-bold uppercase tracking-wider text-[11px] shadow transition-all ${
+              className={`w-full py-2.5 rounded-xl font-bold uppercase tracking-wider text-[11px] shadow transition-colors ${
                 isDark
                   ? 'bg-white text-slate-900 hover:bg-slate-100'
                   : 'bg-slate-900 text-white hover:bg-slate-800'
@@ -305,7 +305,7 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({
 
               <button
                 type="submit"
-                className={`px-5 py-2.5 rounded-xl font-bold uppercase tracking-wider text-[11px] shadow transition-all flex items-center gap-1.5 ${
+                className={`px-5 py-2.5 rounded-xl font-bold uppercase tracking-wider text-[11px] shadow transition-colors flex items-center gap-1.5 ${
                   isDark
                     ? 'bg-white text-slate-900 hover:bg-slate-100'
                     : 'bg-slate-900 text-white hover:bg-slate-800'
@@ -368,7 +368,7 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({
 
               <button
                 type="submit"
-                className={`px-5 py-2.5 rounded-xl font-bold uppercase tracking-wider text-[11px] shadow transition-all flex items-center gap-1.5 ${
+                className={`px-5 py-2.5 rounded-xl font-bold uppercase tracking-wider text-[11px] shadow transition-colors flex items-center gap-1.5 ${
                   isDark
                     ? 'bg-white text-slate-900 hover:bg-slate-100'
                     : 'bg-slate-900 text-white hover:bg-slate-800'

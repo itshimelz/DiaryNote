@@ -39,13 +39,13 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-200 animate-in fade-in select-none ${
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-200 animate-in fade-in select-none ${
         isDark ? 'bg-black/60 backdrop-blur-md' : 'bg-slate-900/30 backdrop-blur-md'
       }`}
       onClick={onClose}
     >
       <div
-        className={`relative w-full max-w-sm rounded-md border p-5 overflow-hidden transition-all duration-200 animate-in zoom-in-95 font-sans backdrop-blur-xl ${
+        className={`relative w-full max-w-sm rounded-md border p-5 overflow-hidden transition-opacity duration-200 animate-in zoom-in-95 font-sans backdrop-blur-xl ${
           isDark
             ? 'bg-slate-900/95 border-slate-800 text-slate-100 shadow-sm'
             : 'bg-white/95 border-slate-200/90 text-slate-900 shadow-sm'
@@ -124,7 +124,7 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
           <button
             type="button"
             onClick={onClose}
-            className={`px-3 py-1.5 rounded-sm text-xs font-semibold border transition-all ${
+            className={`px-3 py-1.5 rounded-sm text-xs font-semibold border transition-colors ${
               isDark
                 ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-slate-100'
                 : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
@@ -135,7 +135,7 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
           <button
             type="button"
             onClick={onConfirm}
-            className="px-3.5 py-1.5 rounded-sm text-xs font-semibold text-white bg-red-600 hover:bg-red-700 active:scale-98 transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+            className="px-3.5 py-1.5 rounded-sm text-xs font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer"
           >
             <Trash2 className="w-3.5 h-3.5" />
             <span>Delete {count > 1 ? `(${count})` : ''}</span>

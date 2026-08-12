@@ -321,7 +321,7 @@ export default function App() {
 
     const targetCount = notesToMerge.length;
     sendNativeAppNotification(
-      '🤖 AI Merge Started',
+      'AI Merge Started',
       `Synthesizing ${targetCount} notes in the background...`
     );
 
@@ -367,7 +367,7 @@ export default function App() {
         handleUpdateNote(newNote);
 
         sendNativeAppNotification(
-          '✨ AI Note Merged Successfully',
+          'AI Note Merged Successfully',
           `Created "${result.title}" from ${targetCount} notes.`
         );
       } catch (err: any) {
@@ -378,7 +378,7 @@ export default function App() {
           return next;
         });
         sendNativeAppNotification(
-          '❌ AI Merge Failed',
+          'AI Merge Failed',
           err?.message || 'Failed to merge notes with AI. Please check your API Key settings.'
         );
       } finally {
@@ -585,7 +585,7 @@ export default function App() {
       {isZenMode && (
         <button
           onClick={() => setIsZenMode(false)}
-          className="fixed top-4 right-4 z-50 px-3.5 py-1.5 rounded-xl bg-slate-900/90 text-white text-xs font-mono border border-slate-700 shadow-xl backdrop-blur-md hover:bg-slate-800 transition-all select-none"
+          className="fixed top-4 right-4 z-50 px-3.5 py-1.5 rounded-xl bg-slate-900/90 text-white text-xs font-mono border border-slate-700 shadow-xl backdrop-blur-md hover:bg-slate-800 transition-colors select-none"
         >
           Zen Mode (Click or press Z to exit)
         </button>
@@ -649,14 +649,16 @@ export default function App() {
           initial={false}
           animate={{
             borderRadius: selectedNoteIds.length >= 2
-              ? ['6px', '10px 10px 4px 4px', '6px']
-              : ['6px', '4px 4px 10px 10px', '6px'],
+              ? '10px 10px 4px 4px'
+              : '4px 4px 10px 10px',
           }}
           transition={{
             layout: { duration: 0.16, ease: [0.16, 1, 0.3, 1] },
-            borderRadius: { duration: 0.15, ease: 'easeOut' },
+            borderRadius: selectedNoteIds.length >= 2
+              ? { duration: 0.15, ease: 'easeOut' }
+              : { duration: 0.18, ease: 'easeOut', delay: 0.16 },
           }}
-          className={`fixed ${showStatusBar ? 'bottom-10' : 'bottom-6'} left-1/2 -translate-x-1/2 z-40 flex flex-col items-center border shadow-sm select-none min-w-[640px] w-auto max-w-[calc(100vw-32px)] transition-all duration-200 ${
+          className={`fixed ${showStatusBar ? 'bottom-10' : 'bottom-6'} left-1/2 -translate-x-1/2 z-40 flex flex-col items-center border shadow-sm select-none min-w-[640px] w-auto max-w-[calc(100vw-32px)] transition-[bottom] duration-200 ${
             selectedNoteIds.length >= 2 ? 'overflow-visible' : 'overflow-hidden'
           } ${
 

@@ -384,7 +384,7 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
               e.currentTarget.blur();
             }
           }}
-          className={`flex-1 ${themeConfig.inputBg} border ${themeConfig.inputBorder} rounded-xl px-3 py-1.5 text-xs outline-none transition-all`}
+          className={`flex-1 ${themeConfig.inputBg} border ${themeConfig.inputBorder} rounded-xl px-3 py-1.5 text-xs outline-none transition-colors`}
         />
         <button
           type="submit"

@@ -56,13 +56,13 @@ export const PasteConfirmModal: React.FC<PasteConfirmModalProps> = ({
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-[10000] flex items-center justify-center p-4 transition-all duration-200 animate-in fade-in select-none font-sans ${
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-200 animate-in fade-in select-none font-sans ${
         isDark ? 'bg-black/60 backdrop-blur-sm' : 'bg-slate-950/40 backdrop-blur-sm'
       }`}
       onClick={onClose}
     >
       <div
-        className={`w-full max-w-lg rounded-md border p-5 shadow-sm transition-all duration-200 ${
+        className={`w-full max-w-lg rounded-md border p-5 shadow-sm transition-opacity duration-200 ${
           isDark
             ? 'bg-slate-900 border-slate-800 text-slate-100'
             : 'bg-white border-slate-200 text-slate-900'

@@ -61,7 +61,7 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
                     paperTheme: themeKey,
                   })
                 }
-                className={`h-10 min-w-0 px-2 rounded-sm border transition-all flex items-center justify-center whitespace-nowrap font-semibold text-xs ${
+                className={`h-10 min-w-0 px-2 rounded-sm border transition-colors flex items-center justify-center whitespace-nowrap font-semibold text-xs ${
                   theme.bg
                 } ${theme.text} ${
                   isSelected ? 'ring-2 ring-blue-500 ring-offset-1 border-blue-500 font-bold' : 'border-slate-200 hover:border-slate-400'
@@ -85,7 +85,7 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
               fontFamily: e.target.value as HandFont,
             })
           }
-          className="w-full bg-slate-50 border border-slate-200 rounded-sm px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition-all cursor-pointer font-medium"
+          className="w-full bg-slate-50 border border-slate-200 rounded-sm px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition-colors cursor-pointer font-medium"
         >
           {Object.entries(FONT_NAMES).map(([key, name]) => (
             <option key={key} value={key}>
@@ -109,7 +109,7 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
                   fontSize: size,
                 })
               }
-              className={`py-1.5 rounded-sm text-xs sm:text-sm font-bold uppercase transition-all ${
+              className={`py-1.5 rounded-sm text-xs sm:text-sm font-bold uppercase transition-colors ${
                 note.fontSize === size
                   ? 'bg-white text-slate-900 shadow-2xs'
                   : 'text-slate-500 hover:text-slate-800'

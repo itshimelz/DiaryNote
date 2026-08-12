@@ -132,7 +132,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150 select-none">
       <div
-        className={`w-full max-w-md rounded-sm shadow-sm border p-6 transition-all ${
+        className={`w-full max-w-md rounded-sm shadow-sm border p-6 transition-colors ${
           isDark ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
         }`}
       >
@@ -236,7 +236,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
                 </div>
                 <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>
                   <div
-                    className="h-full bg-emerald-500 transition-all duration-300 rounded-full"
+                    className="h-full bg-emerald-500 transition-[width] duration-300 rounded-full"
                     style={{ width: `${Math.min(100, Math.max(5, (todayCount / 50) * 100))}%` }}
                   />
                 </div>

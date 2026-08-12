@@ -57,12 +57,12 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
     : 'text-violet-500 font-bold';
 
   const getTextBtnClass = (isActive: boolean) =>
-    `flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg transition-all ${
+    `flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg transition-colors ${
       isActive ? textActiveBtnClass : normalBtnClass
     }`;
 
   const getChecklistBtnClass = (isActive: boolean) =>
-    `flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg transition-all ${
+    `flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg transition-colors ${
       isActive ? checklistActiveBtnClass : normalBtnClass
     }`;
 
@@ -94,7 +94,7 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
       <button
         type="button"
         onClick={onToggleStylePicker}
-        className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg transition-all ${normalBtnClass}`}
+        className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg transition-colors ${normalBtnClass}`}
         title="Theme & Font settings"
         aria-label="Theme and font settings"
       >
@@ -106,7 +106,7 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
         <button
           type="button"
           onClick={() => setShowMoreMenu(!showMoreMenu)}
-          className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg transition-all ${normalBtnClass}`}
+          className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg transition-colors ${normalBtnClass}`}
           title="More options"
           aria-label="More note options"
         >

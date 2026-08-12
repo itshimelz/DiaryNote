@@ -9,7 +9,7 @@ import { NoteStylePicker } from './NoteStylePicker';
 import { MentionAutocomplete } from '../MentionAutocomplete';
 import { SlashCommandMenu, SlashCommand, SLASH_COMMANDS } from './SlashCommandMenu';
 import { getUniqueTitleForDay, normalizeNoteText, resizeNoteEditor, applyMarkdownFormatting, handleSmartEnterList, FormattingType } from '../../utils';
-import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../../constants/canvas';
+import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT, DRAG_Z_INDEX } from '../../constants/canvas';
 import { Note } from '../../types';
 
 import { useNoteDrag } from '../../hooks/useNoteDrag';
@@ -323,13 +323,13 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         transform: `translate3d(${Math.round(note.x)}px, ${Math.round(note.y)}px, 0)`,
         width: `${note.width || DEFAULT_NOTE_WIDTH}px`,
         minHeight: `${note.height || DEFAULT_NOTE_HEIGHT}px`,
-        zIndex: isDragging || isCardDragging ? 10000 : note.zIndex || 10,
+        zIndex: isDragging || isCardDragging ? DRAG_Z_INDEX : note.zIndex || 10,
       }}
       className={`note-card absolute top-0 left-0 rounded-md flex flex-col justify-between shadow-sm ${
         isPanMode
           ? 'cursor-grab active:cursor-grabbing pointer-events-none'
           : isDragging || isCardDragging
-          ? 'transition-none scale-100 cursor-grabbing z-[10000]'
+          ? 'transition-none scale-100 cursor-grabbing'
           : `transition-[box-shadow,opacity] duration-150 ease-out scale-100 ${
               !isEditing ? 'cursor-grab' : ''
             }`
@@ -352,7 +352,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
                 groupName: overlappingGroup.name,
               });
             }}
-            className={`flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-semibold rounded-sm border shadow-sm backdrop-blur-md transition-all active:scale-95 ${
+            className={`flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-semibold rounded-sm border shadow-sm backdrop-blur-md transition-colors ${
               themeConfig.isDark
                 ? 'bg-slate-900/95 border-slate-800 text-slate-200 hover:bg-slate-800'
                 : 'bg-white/95 border-slate-200/90 text-slate-800 hover:bg-slate-100'
@@ -432,7 +432,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
             </p>
             <button
               onClick={() => onRequestUnlockNote?.(note.id)}
-              className={`px-4 py-2 rounded-md font-bold uppercase tracking-wider text-[10px] transition-all ${
+              className={`px-4 py-2 rounded-md font-bold uppercase tracking-wider text-[10px] transition-colors ${
                 themeConfig.isDark
                   ? 'bg-white text-slate-900 hover:bg-slate-100'
                   : 'bg-slate-900 text-white hover:bg-slate-800'

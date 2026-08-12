@@ -29,7 +29,7 @@ export const UpdateAlertBanner: React.FC<UpdateAlertBannerProps> = ({
 
   return (
     <div
-      className={`fixed top-4 right-4 z-[99999] max-w-sm w-full animate-in slide-in-from-top-4 duration-200 rounded-md shadow-sm border p-4 overflow-hidden transition-all select-none font-sans ${
+      className={`fixed top-4 right-4 z-[99999] max-w-sm w-full animate-in slide-in-from-top-4 duration-200 rounded-md shadow-sm border p-4 overflow-hidden transition-opacity select-none font-sans ${
         isDark
           ? 'bg-slate-900 border-slate-800 text-slate-100'
           : 'bg-white border-slate-200 text-slate-900'

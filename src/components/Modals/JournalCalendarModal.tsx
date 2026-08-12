@@ -137,14 +137,14 @@ export const JournalCalendarModal: React.FC<JournalCalendarModalProps> = ({
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-[99999] flex items-center justify-center p-4 transition-all duration-200 animate-in fade-in select-none font-sans ${
+      className={`fixed inset-0 z-[99999] flex items-center justify-center p-4 transition-opacity duration-200 animate-in fade-in select-none font-sans ${
         isDark ? 'bg-black/60 backdrop-blur-sm' : 'bg-slate-950/40 backdrop-blur-sm'
       }`}
       onClick={onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`w-full max-w-md rounded-md shadow-sm border p-5 overflow-hidden flex flex-col transition-all duration-200 ${
+        className={`w-full max-w-md rounded-md shadow-sm border p-5 overflow-hidden flex flex-col transition-opacity duration-200 ${
           isDark
             ? 'bg-slate-900 border-slate-800 text-slate-100'
             : 'bg-white border-slate-200 text-slate-900'
@@ -278,7 +278,7 @@ export const JournalCalendarModal: React.FC<JournalCalendarModalProps> = ({
                     onClose();
                   }}
                   title={isFuture ? 'Cannot create journal entries for future dates' : undefined}
-                  className={`h-8 w-full rounded-md text-xs flex flex-col items-center justify-center relative transition-all group ${
+                  className={`h-8 w-full rounded-md text-xs flex flex-col items-center justify-center relative transition-colors group ${
                     isFuture
                       ? isDark
                         ? 'text-slate-600 opacity-40 cursor-not-allowed'

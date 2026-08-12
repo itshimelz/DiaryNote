@@ -134,7 +134,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
         top: `${adjustedPos.clampedY}px`,
       }}
       onContextMenu={(e) => e.preventDefault()}
-      className={`fixed z-50 w-56 rounded-md border shadow-lg py-1.5 px-1 select-none font-sans text-xs transition-all animate-in fade-in zoom-in-95 duration-100 ${
+      className={`fixed z-50 w-56 rounded-md border shadow-lg py-1.5 px-1 select-none font-sans text-xs transition-opacity animate-in fade-in zoom-in-95 duration-100 ${
         isDark
           ? 'bg-slate-900/95 border-slate-800 text-slate-100 shadow-black/60 backdrop-blur-md'
           : 'bg-white/95 border-slate-200 text-slate-800 shadow-slate-300/50 backdrop-blur-md'
@@ -318,7 +318,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
                   onChangePaperTheme?.(selectedNoteIds, item.key);
                   onClose();
                 }}
-                className={`w-full h-6 rounded border transition-transform hover:scale-105 ${item.colorClass}`}
+                className={`w-full h-6 rounded border transition-colors hover:border-blue-500 ${item.colorClass}`}
                 title={item.label}
               />
             ))}

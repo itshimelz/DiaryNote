@@ -132,7 +132,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
               onClick={(e) => e.stopPropagation()}
               onDoubleClick={(e) => e.stopPropagation()}
               autoFocus
-              className={`w-full ${inputBg} font-bold text-lg sm:text-xl px-2.5 py-1 rounded-lg border ${inputBorder} focus:ring-2 focus:ring-blue-500/20 outline-none transition-all`}
+              className={`w-full ${inputBg} font-bold text-lg sm:text-xl px-2.5 py-1 rounded-lg border ${inputBorder} focus:ring-2 focus:ring-blue-500/20 outline-none transition-colors`}
             />
           ) : (
             <h3
@@ -164,7 +164,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                   e.stopPropagation();
                   setIsMoodPickerOpen((prev) => !prev);
                 }}
-                className={`p-1.5 rounded-full transition-all ${
+                className={`p-1.5 rounded-full transition-colors ${
                   note.mood === 'happy'
                     ? isDarkCard
                       ? 'text-amber-400 bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30'
