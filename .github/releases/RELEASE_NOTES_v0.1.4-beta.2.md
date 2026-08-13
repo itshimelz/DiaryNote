@@ -24,6 +24,9 @@ Pre-release notes for DiaryNote v0.1.4-beta.2 introducing desktop OS nativeness,
 - **Responsive Batch Action Bar**: Flex wrap layout for batch toolbar in `BatchActionBar.tsx` and `App.tsx` ensuring clean rendering on half-screen window snap states (640px/960px). (`commit 18835da`)
 - **Multi-Note Drag Normalization**: Fixed `React.memo` prop check in `NoteCard/index.tsx` and `useNoteDrag.ts` so grabbing any note within a multi-selection moves all selected notes together in sync. (`commit 8f95b5e`)
 
-### Branch Merges & Code Quality
-- **Branch Merge (`feature/ai-note-merging`)**: Integrated background AI note merging services, activity tracking, and multi-note selection into `feature/desktop-os-nativeness`. (`commit 81e11ec`)
-- **Type Checker & Lint Fixes**: Resolved TypeScript `KeyboardEvent` type safety issues (`tsc --noEmit` PASS with 0 errors). (`commit 577e038`)
+### Flat Status Bar & Refactoring
+- **Flat Status Bar & Controls**: Redesigned status bar with flat OS controls, clean tags summary counter (`+N`), icon-only triggers, and direct SQLite backup export. (`commit 220a20a`)
+- **Non-Destructive Smart Merge Import**: Added intelligent import resolution algorithm preserving existing canvas notes while appending new notes and updating modified entries. (`commit 220a20a`)
+- **App Architecture Destructuring**: Modularized `App.tsx` by extracting UI state into `useAppUIState` hook and lazy modals into `AppModals.tsx`. (`commit 76a0f44`)
+- **Context Menu Scaling & Ruled Paper Standard**: Scaled note context menu to native desktop dimensions with smooth canvas zoom visual scale and locked ruled paper 28px line-height baseline alignment. (`commit 4ba0cc0`)
+
