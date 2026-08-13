@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Note, PaperTheme, CanvasTheme } from '../types';
 import { PAPER_THEMES, PAPER_THEME_OPTIONS, PAPER_THEME_LABELS } from '../constants/paperThemes';
@@ -52,13 +53,44 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
   onDeleteNotes,
   onClearSelection,
 }) => {
-
-
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [showAlignMenu, setShowAlignMenu] = useState(false);
 
   const themeRef = useRef<HTMLDivElement>(null);
   const alignRef = useRef<HTMLDivElement>(null);
+  const themeBtnRef = useRef<HTMLButtonElement>(null);
+  const alignBtnRef = useRef<HTMLButtonElement>(null);
+
+  const [themePopoverPos, setThemePopoverPos] = useState<{ bottom: number; left: number }>({ bottom: 0, left: 0 });
+  const [alignPopoverPos, setAlignPopoverPos] = useState<{ bottom: number; left: number }>({ bottom: 0, left: 0 });
+
+  const handleToggleTheme = () => {
+    if (!showThemePicker && themeBtnRef.current) {
+      const rect = themeBtnRef.current.getBoundingClientRect();
+      const popoverW = 240;
+      const calcLeft = Math.max(12, Math.min(rect.left, window.innerWidth - popoverW - 12));
+      setThemePopoverPos({
+        bottom: window.innerHeight - rect.top + 8,
+        left: calcLeft,
+      });
+    }
+    setShowThemePicker((prev) => !prev);
+    setShowAlignMenu(false);
+  };
+
+  const handleToggleAlign = () => {
+    if (!showAlignMenu && alignBtnRef.current) {
+      const rect = alignBtnRef.current.getBoundingClientRect();
+      const popoverW = 208;
+      const calcLeft = Math.max(12, Math.min(rect.left, window.innerWidth - popoverW - 12));
+      setAlignPopoverPos({
+        bottom: window.innerHeight - rect.top + 8,
+        left: calcLeft,
+      });
+    }
+    setShowAlignMenu((prev) => !prev);
+    setShowThemePicker(false);
+  };
 
   const isDark = themeMode !== 'light';
 
@@ -325,189 +357,187 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
         <div className={`h-4 w-px mx-0.5 ${dividerClass}`} />
 
         {/* 1. Batch Theme Picker */}
-        <div className="relative" ref={themeRef}>
-          <button
-            type="button"
-            onClick={() => {
-              setShowThemePicker(!showThemePicker);
-              setShowAlignMenu(false);
-            }}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors ${btnClass}`}
-            title="Batch paper theme"
-          >
-            <Palette className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Theme</span>
-          </button>
-
-          {/* Theme Picker Popover */}
-          <AnimatePresence>
-            {showThemePicker && (
-              <motion.div
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 4 }}
-                transition={{ duration: 0.15, ease: 'easeOut' }}
-                className={`absolute bottom-full mb-2 left-0 z-50 w-60 rounded-md border shadow-sm p-2.5 flex flex-col gap-2 ${popoverBg}`}
-              >
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                  Change Paper Theme
-                </span>
-                <div className="grid grid-cols-3 gap-1">
-                  {PAPER_THEME_OPTIONS.map((themeKey) => {
-                    const cfg = PAPER_THEMES[themeKey];
-                    return (
-                      <button
-                        key={themeKey}
-                        type="button"
-                        onClick={() => handleBatchThemeChange(themeKey)}
-                        className={`flex flex-col items-center gap-0.5 p-1.5 rounded-md border transition-colors text-[10px] ${cfg.bg} ${cfg.border} ${cfg.text} ${
-                          isDark ? 'hover:bg-slate-800 hover:border-slate-700' : 'hover:bg-slate-100 hover:border-slate-300'
-                        }`}
-                      >
-                        <span className="truncate w-full text-center font-medium">
-                          {PAPER_THEME_LABELS[themeKey]}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+        <button
+          ref={themeBtnRef}
+          type="button"
+          onClick={handleToggleTheme}
+          className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors ${btnClass}`}
+          title="Batch paper theme"
+        >
+          <Palette className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Theme</span>
+        </button>
 
         {/* 2. Align & Distribute Menu */}
-        <div className="relative" ref={alignRef}>
-          <button
-            type="button"
-            onClick={() => {
-              setShowAlignMenu(!showAlignMenu);
-              setShowThemePicker(false);
-            }}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors ${btnClass}`}
-            title="Align & Distribute"
-          >
-            <LayoutGrid className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Align</span>
-          </button>
+        <button
+          ref={alignBtnRef}
+          type="button"
+          onClick={handleToggleAlign}
+          className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors ${btnClass}`}
+          title="Align & Distribute"
+        >
+          <LayoutGrid className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Align</span>
+        </button>
 
-          {/* Align Popover */}
-          <AnimatePresence>
-            {showAlignMenu && (
-              <motion.div
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 4 }}
-                transition={{ duration: 0.15, ease: 'easeOut' }}
-                className={`absolute bottom-full mb-2 left-0 z-50 w-52 rounded-md border shadow-sm p-2 flex flex-col gap-1 ${popoverBg}`}
-              >
-                {/* Horizontal Alignment */}
-                <span className="text-[10px] font-semibold uppercase tracking-wider px-1 text-slate-400">
-                  Horizontal Alignment
-                </span>
-                <div className="grid grid-cols-3 gap-1">
-                  <button
-                    type="button"
-                    onClick={handleAlignLeft}
-                    className={`flex flex-col items-center gap-1 p-1.5 rounded-md border text-[10px] transition-colors ${btnClass} ${
-                      isDark ? 'border-slate-800' : 'border-slate-200'
-                    }`}
-                    title="Align Left"
-                  >
-                    <AlignLeft className="w-3.5 h-3.5" />
-                    <span>Left</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleAlignCenterHorizontal}
-                    className={`flex flex-col items-center gap-1 p-1.5 rounded-md border text-[10px] transition-colors ${btnClass} ${
-                      isDark ? 'border-slate-800' : 'border-slate-200'
-                    }`}
-                    title="Align Center Horizontally"
-                  >
-                    <AlignCenter className="w-3.5 h-3.5" />
-                    <span>Center</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleAlignRight}
-                    className={`flex flex-col items-center gap-1 p-1.5 rounded-md border text-[10px] transition-colors ${btnClass} ${
-                      isDark ? 'border-slate-800' : 'border-slate-200'
-                    }`}
-                    title="Align Right"
-                  >
-                    <AlignRight className="w-3.5 h-3.5" />
-                    <span>Right</span>
-                  </button>
-                </div>
+        {/* Theme Picker Portal Popover */}
+        {showThemePicker &&
+          createPortal(
+            <div
+              ref={themeRef}
+              style={{
+                position: 'fixed',
+                bottom: `${themePopoverPos.bottom}px`,
+                left: `${themePopoverPos.left}px`,
+                zIndex: 9999,
+              }}
+              className={`w-60 rounded-md border shadow-sm p-2.5 flex flex-col gap-2 animate-in fade-in zoom-in-95 duration-150 ${popoverBg}`}
+            >
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                Change Paper Theme
+              </span>
+              <div className="grid grid-cols-3 gap-1">
+                {PAPER_THEME_OPTIONS.map((themeKey) => {
+                  const cfg = PAPER_THEMES[themeKey];
+                  return (
+                    <button
+                      key={themeKey}
+                      type="button"
+                      onClick={() => handleBatchThemeChange(themeKey)}
+                      className={`flex flex-col items-center gap-0.5 p-1.5 rounded-md border transition-colors text-[10px] ${cfg.bg} ${cfg.border} ${cfg.text} ${
+                        isDark ? 'hover:bg-slate-800 hover:border-slate-700' : 'hover:bg-slate-100 hover:border-slate-300'
+                      }`}
+                    >
+                      <span className="truncate w-full text-center font-medium">
+                        {PAPER_THEME_LABELS[themeKey]}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>,
+            document.body
+          )}
 
-                {/* Vertical Alignment */}
-                <span className="text-[10px] font-semibold uppercase tracking-wider px-1 mt-1 text-slate-400">
-                  Vertical Alignment
-                </span>
-                <div className="grid grid-cols-3 gap-1">
-                  <button
-                    type="button"
-                    onClick={handleAlignTop}
-                    className={`flex flex-col items-center gap-1 p-1.5 rounded-md border text-[10px] transition-colors ${btnClass} ${
-                      isDark ? 'border-slate-800' : 'border-slate-200'
-                    }`}
-                    title="Align Top"
-                  >
-                    <ArrowUpToLine className="w-3.5 h-3.5" />
-                    <span>Top</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleAlignCenterVertical}
-                    className={`flex flex-col items-center gap-1 p-1.5 rounded-md border text-[10px] transition-colors ${btnClass} ${
-                      isDark ? 'border-slate-800' : 'border-slate-200'
-                    }`}
-                    title="Align Middle Vertically"
-                  >
-                    <AlignJustify className="w-3.5 h-3.5" />
-                    <span>Middle</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleAlignBottom}
-                    className={`flex flex-col items-center gap-1 p-1.5 rounded-md border text-[10px] transition-colors ${btnClass} ${
-                      isDark ? 'border-slate-800' : 'border-slate-200'
-                    }`}
-                    title="Align Bottom"
-                  >
-                    <ArrowDownToLine className="w-3.5 h-3.5" />
-                    <span>Bottom</span>
-                  </button>
-                </div>
+        {/* Align Portal Popover */}
+        {showAlignMenu &&
+          createPortal(
+            <div
+              ref={alignRef}
+              style={{
+                position: 'fixed',
+                bottom: `${alignPopoverPos.bottom}px`,
+                left: `${alignPopoverPos.left}px`,
+                zIndex: 9999,
+              }}
+              className={`w-52 rounded-md border shadow-sm p-2 flex flex-col gap-1 animate-in fade-in zoom-in-95 duration-150 ${popoverBg}`}
+            >
+              {/* Horizontal Alignment */}
+              <span className="text-[10px] font-semibold uppercase tracking-wider px-1 text-slate-400">
+                Horizontal Alignment
+              </span>
+              <div className="grid grid-cols-3 gap-1">
+                <button
+                  type="button"
+                  onClick={handleAlignLeft}
+                  className={`flex flex-col items-center gap-1 p-1.5 rounded-md border text-[10px] transition-colors ${btnClass} ${
+                    isDark ? 'border-slate-800' : 'border-slate-200'
+                  }`}
+                  title="Align Left"
+                >
+                  <AlignLeft className="w-3.5 h-3.5" />
+                  <span>Left</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAlignCenterHorizontal}
+                  className={`flex flex-col items-center gap-1 p-1.5 rounded-md border text-[10px] transition-colors ${btnClass} ${
+                    isDark ? 'border-slate-800' : 'border-slate-200'
+                  }`}
+                  title="Align Center Horizontally"
+                >
+                  <AlignCenter className="w-3.5 h-3.5" />
+                  <span>Center</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAlignRight}
+                  className={`flex flex-col items-center gap-1 p-1.5 rounded-md border text-[10px] transition-colors ${btnClass} ${
+                    isDark ? 'border-slate-800' : 'border-slate-200'
+                  }`}
+                  title="Align Right"
+                >
+                  <AlignRight className="w-3.5 h-3.5" />
+                  <span>Right</span>
+                </button>
+              </div>
 
-                {/* Distribution & Spacing */}
-                <div className={`my-1 border-t ${dividerClass}`} />
-                <span className="text-[10px] font-semibold uppercase tracking-wider px-1 text-slate-400">
-                  Distribute Spacing
-                </span>
-                <div className="flex flex-col gap-0.5">
-                  <button
-                    type="button"
-                    onClick={handleDistributeHorizontal}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors ${btnClass}`}
-                  >
-                    <Columns3 className="w-3.5 h-3.5" />
-                    <span>Space Horizontally</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDistributeVertical}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors ${btnClass}`}
-                  >
-                    <Rows3 className="w-3.5 h-3.5" />
-                    <span>Space Vertically</span>
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+              {/* Vertical Alignment */}
+              <span className="text-[10px] font-semibold uppercase tracking-wider px-1 mt-1 text-slate-400">
+                Vertical Alignment
+              </span>
+              <div className="grid grid-cols-3 gap-1">
+                <button
+                  type="button"
+                  onClick={handleAlignTop}
+                  className={`flex flex-col items-center gap-1 p-1.5 rounded-md border text-[10px] transition-colors ${btnClass} ${
+                    isDark ? 'border-slate-800' : 'border-slate-200'
+                  }`}
+                  title="Align Top"
+                >
+                  <ArrowUpToLine className="w-3.5 h-3.5" />
+                  <span>Top</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAlignCenterVertical}
+                  className={`flex flex-col items-center gap-1 p-1.5 rounded-md border text-[10px] transition-colors ${btnClass} ${
+                    isDark ? 'border-slate-800' : 'border-slate-200'
+                  }`}
+                  title="Align Middle Vertically"
+                >
+                  <AlignJustify className="w-3.5 h-3.5" />
+                  <span>Middle</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAlignBottom}
+                  className={`flex flex-col items-center gap-1 p-1.5 rounded-md border text-[10px] transition-colors ${btnClass} ${
+                    isDark ? 'border-slate-800' : 'border-slate-200'
+                  }`}
+                  title="Align Bottom"
+                >
+                  <ArrowDownToLine className="w-3.5 h-3.5" />
+                  <span>Bottom</span>
+                </button>
+              </div>
+
+              {/* Distribution & Spacing */}
+              <div className={`my-1 border-t ${dividerClass}`} />
+              <span className="text-[10px] font-semibold uppercase tracking-wider px-1 text-slate-400">
+                Distribute Spacing
+              </span>
+              <div className="flex flex-col gap-0.5">
+                <button
+                  type="button"
+                  onClick={handleDistributeHorizontal}
+                  className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors ${btnClass}`}
+                >
+                  <Columns3 className="w-3.5 h-3.5" />
+                  <span>Space Horizontally</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDistributeVertical}
+                  className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors ${btnClass}`}
+                >
+                  <Rows3 className="w-3.5 h-3.5" />
+                  <span>Space Vertically</span>
+                </button>
+              </div>
+            </div>,
+            document.body
+          )}
 
         {/* 3. Group / Ungroup Notes */}
         <button
