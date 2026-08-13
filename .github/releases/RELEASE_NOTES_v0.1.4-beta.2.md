@@ -1,6 +1,6 @@
 # DiaryNote v0.1.4-beta.2 (Pre-Release)
 
-Pre-release notes for DiaryNote v0.1.4-beta.2 introducing desktop OS nativeness, precision canvas input engine, component robustness, icon scaling, and viewport-anchored zoom resets.
+Pre-release notes for DiaryNote v0.1.4-beta.2 introducing desktop OS nativeness, precision canvas input engine, multi-note drag normalization, popover clamping, and desktop window snap responsiveness.
 
 ### Desktop OS Nativeness & Save As File Picker
 - **Native Save As File Picker**: Replaced pre-saving file dumps with native OS `showSaveFilePicker` Save As dialog for backups and note exports across all formats (`.md`, `.txt`, `.json`).
@@ -18,3 +18,12 @@ Pre-release notes for DiaryNote v0.1.4-beta.2 introducing desktop OS nativeness,
 - **Dynamic Ruled Line-Height Sync**: Mapped text sizes (`sm`–`xl`) to CSS variable `--ruled-line-height` (`24px`–`40px`), eliminating line drift on ruled notebook themes. (`commit 60479a9`)
 - **UI Icon & Button Scale Polish**: Enlarged header and footer action icons (`w-5.5 h-5.5` / `w-6 h-6`), footer control buttons (`w-11 h-11`), style popover (`w-92`), slash menu (`w-72`), and checklist touch hit targets (`36px`). (`commit 60479a9`)
 - **Performance Optimizations**: Debounced search input (150ms) and memoized note connection graph parsing for stutter-free 60fps canvas operations. (`commit 60479a9`)
+
+### Desktop Layout & Popover Clamping
+- **Popover Boundary Edge Clamping**: Added `useLayoutEffect` boundary detection to `NoteStylePicker` and `SlashCommandMenu` to clamp popovers within screen edges and flip direction when positioned near window borders. (`commit 18835da`)
+- **Responsive Batch Action Bar**: Flex wrap layout for batch toolbar in `BatchActionBar.tsx` and `App.tsx` ensuring clean rendering on half-screen window snap states (640px/960px). (`commit 18835da`)
+- **Multi-Note Drag Normalization**: Fixed `React.memo` prop check in `NoteCard/index.tsx` and `useNoteDrag.ts` so grabbing any note within a multi-selection moves all selected notes together in sync. (`commit 8f95b5e`)
+
+### Branch Merges & Code Quality
+- **Branch Merge (`feature/ai-note-merging`)**: Integrated background AI note merging services, activity tracking, and multi-note selection into `feature/desktop-os-nativeness`. (`commit 81e11ec`)
+- **Type Checker & Lint Fixes**: Resolved TypeScript `KeyboardEvent` type safety issues (`tsc --noEmit` PASS with 0 errors). (`commit 577e038`)
