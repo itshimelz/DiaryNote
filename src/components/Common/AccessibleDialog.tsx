@@ -92,7 +92,7 @@ export const AccessibleDialog: React.FC<AccessibleDialogProps> = ({
       }}
     >
       <div
-        className={`w-full rounded-sm shadow-2xl border p-6 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-150 select-none ${
+        className={`w-full rounded-sm shadow-sm border p-6 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-150 select-none ${
           isDark
             ? 'bg-slate-900 border-slate-700 text-slate-100'
             : 'bg-white border-slate-200 text-slate-900'

@@ -558,7 +558,7 @@ export default function App() {
       {isZenMode && (
         <button
           onClick={() => setIsZenMode(false)}
-          className="fixed top-4 right-4 z-50 px-3.5 py-1.5 rounded-xl bg-slate-900/90 text-white text-xs font-mono border border-slate-700 shadow-xl backdrop-blur-md hover:bg-slate-800 transition-colors select-none"
+          className="fixed top-4 right-4 z-50 px-3.5 py-1.5 rounded-sm bg-slate-900/90 text-white text-xs font-mono border border-slate-700 shadow-sm backdrop-blur-md hover:bg-slate-800 transition-colors select-none cursor-pointer"
         >
           Zen Mode (Click or press Z to exit)
         </button>

@@ -8,3 +8,4 @@ export * from './journalUtils';
 export * from './osUtils';
 export * from './aiUsageTracker';
 export * from './textareaCursor';
+export * from './logger';

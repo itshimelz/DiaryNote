@@ -96,7 +96,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950 text-slate-100 p-6 font-sans select-none">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-lg shadow-2xl p-6 flex flex-col gap-5 animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-md shadow-sm p-6 flex flex-col gap-5 animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
               <div className="p-2.5 rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/20">

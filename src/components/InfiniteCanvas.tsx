@@ -635,9 +635,9 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
       )}
 
       {/* Floating 2D HTML5 Canvas Minimap */}
-      <div className="absolute bottom-6 right-6 z-20 hidden md:block">
+      <div className="absolute top-4 right-4 z-20 hidden md:block">
         <div
-          className={`p-2 rounded-sm border backdrop-blur-md shadow-2xl transition-all select-none w-48 ${
+          className={`p-2 rounded-sm border backdrop-blur-md shadow-sm transition-all select-none w-48 ${
             themeMode === 'light'
               ? 'bg-white/80 border-slate-200 text-slate-900'
               : 'bg-slate-900/85 border-slate-800 text-slate-100'

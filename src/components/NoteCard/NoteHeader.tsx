@@ -195,7 +195,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                 <div
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
-                  className={`absolute top-9 right-0 z-50 flex flex-col p-1 rounded-lg border shadow-lg min-w-[140px] text-xs font-medium ${
+                  className={`absolute top-9 right-0 z-50 flex flex-col p-1 rounded-sm border shadow-sm min-w-[140px] text-xs font-medium ${
                     isDarkCard
                       ? 'bg-slate-900 border-slate-700 text-slate-100'
                       : 'bg-white border-slate-200 text-slate-800'
