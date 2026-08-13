@@ -81,6 +81,8 @@ export function useNoteDrag({
   noteRef.current = note;
   const allNotesRef = useRef(allNotes);
   allNotesRef.current = allNotes;
+  const selectedNoteIdsRef = useRef(selectedNoteIds);
+  selectedNoteIdsRef.current = selectedNoteIds;
 
   const dragStartRef = useRef<{ x: number; y: number; noteX: number; noteY: number }>({
     x: 0,
@@ -127,7 +129,8 @@ export function useNoteDrag({
     onBringToFront(note.id);
 
     const isMulti = e.shiftKey || e.metaKey || e.ctrlKey;
-    const isAlreadySelected = selectedNoteIds.includes(note.id);
+    const currentSelectedIds = selectedNoteIdsRef.current;
+    const isAlreadySelected = currentSelectedIds.includes(note.id);
 
     if (isMulti) {
       onSelectNote(note.id, true);
@@ -137,10 +140,10 @@ export function useNoteDrag({
 
     const activeSelectedIds = isMulti
       ? isAlreadySelected
-        ? selectedNoteIds
-        : [...selectedNoteIds, note.id]
+        ? currentSelectedIds
+        : [...currentSelectedIds, note.id]
       : isAlreadySelected
-      ? selectedNoteIds
+      ? currentSelectedIds
       : [note.id];
 
     const currentPosRef = { current: { x: noteRef.current.x, y: noteRef.current.y } };

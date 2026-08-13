@@ -18,7 +18,3 @@ Pre-release notes for DiaryNote v0.1.4-beta.2 introducing desktop OS nativeness,
 - **Dynamic Ruled Line-Height Sync**: Mapped text sizes (`sm`–`xl`) to CSS variable `--ruled-line-height` (`24px`–`40px`), eliminating line drift on ruled notebook themes. (`commit 60479a9`)
 - **UI Icon & Button Scale Polish**: Enlarged header and footer action icons (`w-5.5 h-5.5` / `w-6 h-6`), footer control buttons (`w-11 h-11`), style popover (`w-92`), slash menu (`w-72`), and checklist touch hit targets (`36px`). (`commit 60479a9`)
 - **Performance Optimizations**: Debounced search input (150ms) and memoized note connection graph parsing for stutter-free 60fps canvas operations. (`commit 60479a9`)
-
-### Branch Merges & Code Quality
-- **Branch Merge (`feature/ai-note-merging`)**: Integrated background AI note merging services, activity tracking, and multi-note selection into `feature/desktop-os-nativeness`. (`commit 81e11ec`)
-- **Type Checker & Lint Fixes**: Resolved TypeScript `KeyboardEvent` type safety issues (`tsc --noEmit` PASS with 0 errors). (`commit 577e038`)

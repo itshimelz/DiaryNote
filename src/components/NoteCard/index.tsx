@@ -846,6 +846,17 @@ export const NoteCard = React.memo(NoteCardComponent, (prevProps, nextProps) => 
   const nextInSelection = nextProps.selectedNoteIds.includes(nextProps.note.id);
   if (prevInSelection !== nextInSelection) return false;
 
+  // CRITICAL FIX: If this note IS selected and selectedNoteIds array updated (notes added/removed from selection),
+  // this card MUST re-render so its selectedNoteIds prop inside useNoteDrag has the full fresh selection list!
+  if (nextInSelection && prevProps.selectedNoteIds !== nextProps.selectedNoteIds) {
+    if (
+      prevProps.selectedNoteIds.length !== nextProps.selectedNoteIds.length ||
+      !prevProps.selectedNoteIds.every((id, idx) => id === nextProps.selectedNoteIds[idx])
+    ) {
+      return false;
+    }
+  }
+
   return (
     prevProps.isCardDragging === nextProps.isCardDragging &&
     prevProps.isSelected === nextProps.isSelected &&

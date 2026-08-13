@@ -398,11 +398,12 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
   const visibleMinY = -transform.y / transform.zoom - renderBuffer;
   const visibleMaxY = (viewportHeight - transform.y) / transform.zoom + renderBuffer;
 
-  // Only render NoteCards that are within or touching the active viewport
+  // Only render NoteCards that are within or touching the active viewport (or explicitly selected)
   const visibleNotes = useMemo(() => {
     return notes.filter(
       (n) =>
         n.id === selectedNoteId ||
+        selectedNoteIds.includes(n.id) ||
         n.id === focusedNoteId ||
         n.isPinned ||
         (n.x + (n.width || 340) >= visibleMinX &&
@@ -410,7 +411,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
           n.y + (n.height || 340) >= visibleMinY &&
           n.y <= visibleMaxY)
     );
-  }, [notes, selectedNoteId, focusedNoteId, visibleMinX, visibleMaxX, visibleMinY, visibleMaxY]);
+  }, [notes, selectedNoteId, selectedNoteIds, focusedNoteId, visibleMinX, visibleMaxX, visibleMinY, visibleMaxY]);
 
   // Minimap bounding calculations memoized in a single O(N) pass
   const { minX, minY, worldWidth, worldHeight, minimapScale } = useMemo(() => {
