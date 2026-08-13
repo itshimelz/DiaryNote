@@ -73,14 +73,14 @@ main (Production Releases / Protected)
 #### Task 1: Unified Note Repository, Autosave Settlement & $O(1)$ Deletions (P0)
 - **Description:** Implement a centralized note repository layer that unifies all mutation channels (`addNote`, `updateNote`, `deleteNote`, `pasteNotes`). Ensure new note IDs are immediately registered in the dirty tracking set, that `lastSavedAt` is only updated after Dexie persistence resolves, and that deletions execute targeted `db.notes.delete(id)` / `bulkDelete(ids)` instead of rewriting the entire database with `saveBatchNotesToDB`.
 - **Acceptance criteria:**
-  - [ ] `handleAddNote` immediately marks the generated note ID dirty before scheduling autosave.
-  - [ ] Direct `setNotes` bypasses in `AppModals.tsx` and paste handlers are replaced with repository calls.
-  - [ ] `handleDeleteNote` and `handleDeleteMultipleNotes` call direct IndexedDB `delete` / `bulkDelete` ($O(1)$ disk I/O).
-  - [ ] `lastSavedAt` reflects real storage settlement and surfaces persistent UI error banners on write failure.
+  - [x] `handleAddNote` immediately marks the generated note ID dirty before scheduling autosave.
+  - [x] Direct `setNotes` bypasses in `AppModals.tsx` and paste handlers are replaced with repository calls.
+  - [x] `handleDeleteNote` and `handleDeleteMultipleNotes` call direct IndexedDB `delete` / `bulkDelete` ($O(1)$ disk I/O).
+  - [x] `lastSavedAt` reflects real storage settlement and surfaces persistent UI error banners on write failure.
 - **Verification:**
-  - [ ] Vitest unit tests for repository mutation, dirty queue settlement, and single-record deletion.
-  - [ ] Manual test: Create note, paste content, immediately reload window, verify content persists.
-  - [ ] Performance check: Benchmark deleting 1 note in a 5,000 note dataset (takes <5ms vs 500ms previously).
+  - [x] Vitest unit tests for repository mutation, dirty queue settlement, and single-record deletion.
+  - [x] Manual test: Create note, paste content, immediately reload window, verify content persists.
+  - [x] Performance check: Benchmark deleting 1 note in a 5,000 note dataset (takes <5ms vs 500ms previously).
 - **Dependencies:** None.
 - **Files likely touched:**
   - `src/hooks/useNotesManager.ts`
@@ -93,13 +93,13 @@ main (Production Releases / Protected)
 #### Task 2: History Undo/Redo Persistence & Delta-Based Snapshots (P2)
 - **Description:** Connect history state replay (`undo` and `redo`) directly to the persistence coordinator so that restored or removed notes are marked dirty and synchronized with IndexedDB. Transition history storage from full-array snapshots (`Note[][]`) to lightweight diff patches (`Partial<Note>`) to cap memory heap usage at $O(H \times 1)$ instead of $O(H \times N)$.
 - **Acceptance criteria:**
-  - [ ] `undo()` and `redo()` actions register modified/reverted note IDs into `dirtyNoteIdsRef`.
-  - [ ] Deletion undo (restoring a deleted note) re-inserts the note into IndexedDB upon autosave flush.
-  - [ ] History snapshots store diff patches instead of 50 full copies of all notes.
-  - [ ] Unload handlers flush pending dirty notes before window shutdown.
+  - [x] `undo()` and `redo()` actions register modified/reverted note IDs into `dirtyNoteIdsRef`.
+  - [x] Deletion undo (restoring a deleted note) re-inserts the note into IndexedDB upon autosave flush.
+  - [x] History snapshots store diff patches instead of 50 full copies of all notes.
+  - [x] Unload handlers flush pending dirty notes before window shutdown.
 - **Verification:**
-  - [ ] Vitest integration test for undo/redo state persistence and memory footprint.
-  - [ ] Manual test: Delete a note, press Ctrl+Z, reload app, verify restored note remains present.
+  - [x] Vitest integration test for undo/redo state persistence and memory footprint.
+  - [x] Manual test: Delete a note, press Ctrl+Z, reload app, verify restored note remains present.
 - **Dependencies:** Task 1.
 - **Files likely touched:**
   - `src/hooks/useHistoryState.ts`
@@ -112,12 +112,12 @@ main (Production Releases / Protected)
 #### Task 3: Tauri Native Path Traversal Remediation & CSP Hardening (P0)
 - **Description:** Harden `save_export_file` in the Tauri Rust backend to prevent directory traversal and arbitrary file overwrite. Enforce canonical paths inside `~/DiaryNote`, validate bare filenames, and activate a restrictive Content Security Policy in `tauri.conf.json`.
 - **Acceptance criteria:**
-  - [ ] `save_export_file` in `src-tauri/src/lib.rs` strips directory separators, rejects `..`, and validates canonical paths.
-  - [ ] Tauri export optionally triggers `tauri-plugin-dialog` native file picker.
-  - [ ] `tauri.conf.json` replaces `"csp": null` with a secure CSP restricting script execution and network origins.
+  - [x] `save_export_file` in `src-tauri/src/lib.rs` strips directory separators, rejects `..`, and validates canonical paths.
+  - [x] Tauri export optionally triggers `tauri-plugin-dialog` native file picker.
+  - [x] `tauri.conf.json` replaces `"csp": null` with a secure CSP restricting script execution and network origins.
 - **Verification:**
-  - [ ] `cargo check --manifest-path src-tauri/Cargo.toml` passes.
-  - [ ] Unit test in Rust asserting rejection of traversal paths like `../../.bashrc`.
+  - [x] `cargo check --manifest-path src-tauri/Cargo.toml` passes.
+  - [x] Unit test in Rust asserting rejection of traversal paths like `../../.bashrc`.
 - **Dependencies:** None.
 - **Files likely touched:**
   - `src-tauri/src/lib.rs`
@@ -130,10 +130,10 @@ main (Production Releases / Protected)
 #### Task 4: Automated Persistence & Restart Test Suite Setup (P1)
 - **Description:** Install and configure Vitest with `fake-indexeddb` to create an automated regression test suite covering note creation, paste, update, deletion, and simulated restart persistence.
 - **Acceptance criteria:**
-  - [ ] `npm test` script configured with Vitest and jsdom/fake-indexeddb environment.
-  - [ ] Automated tests assert note survival across simulated teardown and re-initialization.
+  - [x] `npm test` script configured with Vitest and jsdom/fake-indexeddb environment.
+  - [x] Automated tests assert note survival across simulated teardown and re-initialization.
 - **Verification:**
-  - [ ] `npm test` executes cleanly in CI environment.
+  - [x] `npm test` executes cleanly in CI environment.
 - **Dependencies:** Tasks 1, 2.
 - **Files likely touched:**
   - `package.json`
@@ -145,10 +145,10 @@ main (Production Releases / Protected)
 ---
 
 ### Checkpoint 1: Zero-Loss Persistence & Sandbox
-- [ ] New and pasted notes survive immediate app reloads.
-- [ ] History undo/redo synchronizes with IndexedDB.
-- [ ] Path traversal vectors in Tauri backend are blocked and tested.
-- [ ] $O(1)$ deletions confirmed; automated persistence test suite passes with `npm test`.
+- [x] New and pasted notes survive immediate app reloads.
+- [x] History undo/redo synchronizes with IndexedDB.
+- [x] Path traversal vectors in Tauri backend are blocked and tested.
+- [x] $O(1)$ deletions confirmed; automated persistence test suite passes with `npm test`.
 
 ---
 

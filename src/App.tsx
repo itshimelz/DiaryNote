@@ -81,6 +81,9 @@ export default function App() {
   const {
     notes,
     setNotes,
+    lastSavedAt,
+    isSaving,
+    saveError,
     initAppDatabase,
     handleAddNote,
     handleCreateOrFocusDailyEntry,
@@ -88,6 +91,7 @@ export default function App() {
     handleUpdateBatchNotes,
     handleDeleteNote,
     handleDeleteMultipleNotes,
+    handleRestoreNotes,
     bringToFront,
   } = useNotesManager(pushHistorySnapshot, resetHistory);
 
@@ -126,8 +130,8 @@ export default function App() {
     });
   }, [setUpdateReleaseAlert]);
 
-  const handleUndo = useCallback(() => triggerUndo(setNotes), [triggerUndo, setNotes]);
-  const handleRedo = useCallback(() => triggerRedo(setNotes), [triggerRedo, setNotes]);
+  const handleUndo = useCallback(() => triggerUndo(handleRestoreNotes), [triggerUndo, handleRestoreNotes]);
+  const handleRedo = useCallback(() => triggerRedo(handleRestoreNotes), [triggerRedo, handleRestoreNotes]);
 
   // Request deletion of notes - if any targeted note is locked, require passcode verification first
   const requestDeleteNotes = useCallback(
@@ -808,6 +812,9 @@ export default function App() {
           gridType={settings.gridType}
           enableAIServices={settings.enableAIServices}
           isMergingAI={isMergingAI}
+          isSaving={isSaving}
+          saveError={saveError}
+          lastSavedAt={lastSavedAt}
           onToggleSnap={handleToggleSnapToGrid}
           onCycleGridType={() =>
             setSettings((prev) => ({

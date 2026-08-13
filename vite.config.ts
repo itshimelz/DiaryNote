@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
@@ -10,6 +11,11 @@ export default defineConfig(() => {
       alias: {
         '@': path.resolve(__dirname, '.'),
       },
+    },
+    test: {
+      globals: true,
+      environment: 'jsdom',
+      setupFiles: ['./src/test/setup.ts'],
     },
     server: {
       hmr: process.env.DISABLE_HMR !== 'true',

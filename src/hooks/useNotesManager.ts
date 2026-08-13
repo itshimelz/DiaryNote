@@ -3,8 +3,9 @@ import { Note, CanvasTransform } from '../types';
 import { AppSettings } from '../lib/storage';
 import {
   initDatabase,
-  saveBatchNotesToDB,
   saveDirtyNotesToDB,
+  deleteNoteFromDB,
+  deleteMultipleNotesFromDB,
 } from '../lib/sqliteStorage';
 import { getUniqueTitleForDay, getLocalDateString } from '../utils';
 import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../constants/canvas';
@@ -15,6 +16,8 @@ export function useNotesManager(
 ) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const isDbLoadedRef = useRef<boolean>(false);
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const dirtyNoteIdsRef = useRef<Set<string>>(new Set());
@@ -27,6 +30,7 @@ export function useNotesManager(
       setNotes(dbNotes);
       resetHistory(dbNotes);
       isDbLoadedRef.current = true;
+      setLastSavedAt(new Date());
       onLoaded({ transform: dbTransform, settings: dbSettings });
     });
   }, [resetHistory]);
@@ -34,15 +38,25 @@ export function useNotesManager(
   // Debounced autosave to SQLite DB (only after DB hydration to prevent initial jumps or state overwrites)
   useEffect(() => {
     if (!isDbLoadedRef.current) return;
-    const timeout = window.setTimeout(() => {
-      const dirtyIds = dirtyNoteIdsRef.current;
+    const timeout = window.setTimeout(async () => {
+      const dirtyIds = new Set(dirtyNoteIdsRef.current);
       if (dirtyIds.size > 0) {
+        setIsSaving(true);
         // Only write modified notes to DB
         const dirtyNotes = notes.filter(n => dirtyIds.has(n.id));
-        saveDirtyNotesToDB(dirtyNotes);
-        dirtyNoteIdsRef.current = new Set();
+        const success = await saveDirtyNotesToDB(dirtyNotes);
+        if (success) {
+          // Remove processed IDs
+          for (const id of dirtyIds) {
+            dirtyNoteIdsRef.current.delete(id);
+          }
+          setLastSavedAt(new Date());
+          setSaveError(null);
+        } else {
+          setSaveError('Failed to save changes to local database');
+        }
+        setIsSaving(false);
       }
-      setLastSavedAt(new Date());
     }, 500);
     return () => window.clearTimeout(timeout);
   }, [notes]);
@@ -54,13 +68,30 @@ export function useNotesManager(
     };
   }, []);
 
+  // Flush dirty notes before window shutdown/unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const dirtyIds = dirtyNoteIdsRef.current;
+      if (dirtyIds.size > 0) {
+        const dirtyNotes = notes.filter((n) => dirtyIds.has(n.id));
+        if (dirtyNotes.length > 0) {
+          saveDirtyNotesToDB(dirtyNotes);
+        }
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [notes]);
+
   // Add new note handler
   const handleAddNote = useCallback(
     (
       transform: CanvasTransform,
       settings: AppSettings,
       customX?: number,
-      customY?: number
+      customY?: number,
+      initialTitle?: string,
+      initialContent?: string
     ): string => {
       const newId = `note-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
 
@@ -78,12 +109,12 @@ export function useNotesManager(
         viewportY = Math.round(viewportY / 24) * 24;
       }
 
-      const initialTitle = getUniqueTitleForDay('Untitled Note', newId, notes);
+      const noteTitle = initialTitle || getUniqueTitleForDay('Untitled Note', newId, notes);
 
       const newNote: Note = {
         id: newId,
-        title: initialTitle,
-        content: '',
+        title: noteTitle,
+        content: initialContent || '',
         x: viewportX,
         y: viewportY,
         width: DEFAULT_NOTE_WIDTH,
@@ -102,6 +133,7 @@ export function useNotesManager(
       const updated = [...notes, newNote];
       setNotes(updated);
       pushHistorySnapshot(updated);
+      dirtyNoteIdsRef.current.add(newId);
       return newId;
     },
     [notes, pushHistorySnapshot]
@@ -212,13 +244,13 @@ export function useNotesManager(
     [pushHistorySnapshot]
   );
 
-  // Single note deletion
+  // Single note deletion ($O(1) direct deletion)
   const handleDeleteNote = useCallback(
     (noteId: string) => {
+      dirtyNoteIdsRef.current.delete(noteId);
+      deleteNoteFromDB(noteId);
       setNotes((prev) => {
         const nextNotes = prev.filter((n) => n.id !== noteId);
-        // Full sync needed for deletes (to remove from DB)
-        saveBatchNotesToDB(nextNotes);
         pushHistorySnapshot(nextNotes);
         return nextNotes;
       });
@@ -226,20 +258,51 @@ export function useNotesManager(
     [pushHistorySnapshot]
   );
 
-  // Multiple notes deletion
+  // Multiple notes deletion ($O(1) direct bulk deletion)
   const handleDeleteMultipleNotes = useCallback(
     (idsToDelete: string[]) => {
       if (idsToDelete.length === 0) return;
+      idsToDelete.forEach((id) => dirtyNoteIdsRef.current.delete(id));
+      deleteMultipleNotesFromDB(idsToDelete);
       setNotes((prev) => {
         const nextNotes = prev.filter((n) => !idsToDelete.includes(n.id));
-        // Full sync needed for deletes (to remove from DB)
-        saveBatchNotesToDB(nextNotes);
         pushHistorySnapshot(nextNotes);
         return nextNotes;
       });
     },
     [pushHistorySnapshot]
   );
+
+  // Reconcile and persist restored history snapshots (Undo/Redo)
+  const handleRestoreNotes = useCallback((restoredNotes: Note[]) => {
+    setNotes((currentNotes) => {
+      const currentMap = new Map(currentNotes.map((n) => [n.id, n]));
+      const restoredMap = new Map(restoredNotes.map((n) => [n.id, n]));
+
+      // Mark modified or restored notes dirty
+      for (const [id, note] of restoredMap.entries()) {
+        const curr = currentMap.get(id);
+        if (!curr || JSON.stringify(curr) !== JSON.stringify(note)) {
+          dirtyNoteIdsRef.current.add(id);
+        }
+      }
+
+      // Notes removed by undo (e.g. newly created note being undone)
+      const deletedIds: string[] = [];
+      for (const id of currentMap.keys()) {
+        if (!restoredMap.has(id)) {
+          deletedIds.push(id);
+          dirtyNoteIdsRef.current.delete(id);
+        }
+      }
+
+      if (deletedIds.length > 0) {
+        deleteMultipleNotesFromDB(deletedIds);
+      }
+
+      return restoredNotes;
+    });
+  }, []);
 
   // Bring note to front (z-index)
   const bringToFront = useCallback((noteId: string) => {
@@ -258,6 +321,8 @@ export function useNotesManager(
     notes,
     setNotes,
     lastSavedAt,
+    isSaving,
+    saveError,
     initAppDatabase,
     handleAddNote,
     handleCreateOrFocusDailyEntry,
@@ -265,6 +330,7 @@ export function useNotesManager(
     handleUpdateBatchNotes,
     handleDeleteNote,
     handleDeleteMultipleNotes,
+    handleRestoreNotes,
     bringToFront,
   };
 }

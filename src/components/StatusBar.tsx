@@ -13,6 +13,7 @@ import {
   Sparkles,
   Loader2,
   Layers,
+  AlertCircle,
 } from 'lucide-react';
 
 /**
@@ -57,6 +58,9 @@ interface StatusBarProps {
   gridType?: GridType;
   enableAIServices?: boolean;
   isMergingAI?: boolean;
+  isSaving?: boolean;
+  saveError?: string | null;
+  lastSavedAt?: Date | null;
   onToggleSnap?: () => void;
   onCycleGridType?: () => void;
   onOpenBackupModal?: () => void;
@@ -72,6 +76,9 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   gridType = 'dots',
   enableAIServices = false,
   isMergingAI = false,
+  isSaving = false,
+  saveError = null,
+  lastSavedAt: _lastSavedAt = null,
   onToggleSnap,
   onCycleGridType,
   onOpenBackupModal,
@@ -324,7 +331,17 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 
         {/* Smart Status / Auto-saved / Note Updated indicator */}
         <div className="flex items-center gap-1 font-semibold">
-          {selectedSingleNote ? (
+          {saveError ? (
+            <span className="inline-flex items-center gap-1 text-[11px] text-rose-400" title={saveError}>
+              <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0 translate-y-[0.5px]" />
+              <span>Save error</span>
+            </span>
+          ) : isSaving ? (
+            <span className="inline-flex items-center gap-1 text-[11px] text-amber-400" title="Saving changes to local database...">
+              <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin shrink-0 translate-y-[0.5px]" />
+              <span>Saving...</span>
+            </span>
+          ) : selectedSingleNote ? (
             <span className="inline-flex items-center gap-1 text-[11px]" title={`Last modified: ${selectedSingleNote.title}`}>
               <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0 translate-y-[0.5px]" />
               <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>

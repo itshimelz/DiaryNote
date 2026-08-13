@@ -1,24 +1,24 @@
 # DiaryNote Remediation Task Checklist (`tasks/todo.md`)
 
 ## Phase 1: Zero-Loss Persistence & Desktop Sandboxing (`v0.2.0-alpha.1`)
-- [ ] **Task 1:** Unified Note Repository, Autosave Settlement & $O(1)$ Deletions (P0)
-  - [ ] Mark generated note ID dirty immediately on creation in `useNotesManager.ts`
-  - [ ] Refactor paste confirmation and modal actions to use repository methods instead of direct `setNotes`
-  - [ ] Replace `saveBatchNotesToDB` on deletion with direct `db.notes.delete` / `bulkDelete` ($O(1)$ disk I/O)
-  - [ ] Await storage settlement before updating `lastSavedAt` and surface write failure banners
-- [ ] **Task 2:** History Undo/Redo Persistence & Delta-Based Snapshots (P2)
-  - [ ] Connect `undo()` / `redo()` to `dirtyNoteIdsRef` in `useHistoryState.ts`
-  - [ ] Re-insert restored deleted notes into IndexedDB on save flush
-  - [ ] Implement lightweight diff patch history to eliminate 500k-object heap bloat
-  - [ ] Add beforeunload dirty queue flush
-- [ ] **Task 3:** Tauri Native Path Traversal Remediation & CSP Hardening (P0)
-  - [ ] Strip directory separators, reject `..`, and validate canonical paths in `src-tauri/src/lib.rs`
-  - [ ] Integrate `tauri-plugin-dialog` for native export file selection
-  - [ ] Replace `"csp": null` with strict Content Security Policy in `tauri.conf.json`
-- [ ] **Task 4:** Automated Persistence & Restart Test Suite Setup (P1)
-  - [ ] Configure Vitest with `fake-indexeddb` and jsdom in `package.json`
-  - [ ] Write integration test suite verifying note survival across app restarts and deletion performance
-- [ ] **Checkpoint 1:** Zero-Loss Persistence, $O(1)$ Deletions & Desktop Sandboxing verified
+- [x] **Task 1:** Unified Note Repository, Autosave Settlement & $O(1)$ Deletions (P0)
+  - [x] Mark generated note ID dirty immediately on creation in `useNotesManager.ts`
+  - [x] Refactor paste confirmation and modal actions to use repository methods instead of direct `setNotes`
+  - [x] Replace `saveBatchNotesToDB` on deletion with direct `db.notes.delete` / `bulkDelete` ($O(1)$ disk I/O)
+  - [x] Await storage settlement before updating `lastSavedAt` and surface write failure banners
+- [x] **Task 2:** History Undo/Redo Persistence & Delta-Based Snapshots (P2)
+  - [x] Connect `undo()` / `redo()` to `dirtyNoteIdsRef` in `useHistoryState.ts`
+  - [x] Re-insert restored deleted notes into IndexedDB on save flush
+  - [x] Implement lightweight diff patch history to eliminate 500k-object heap bloat
+  - [x] Add beforeunload dirty queue flush
+- [x] **Task 3:** Tauri Native Path Traversal Remediation & CSP Hardening (P0)
+  - [x] Strip directory separators, reject `..`, and validate canonical paths in `src-tauri/src/lib.rs`
+  - [x] Integrate `tauri-plugin-dialog` / path validation for native export file selection
+  - [x] Replace `"csp": null` with strict Content Security Policy in `tauri.conf.json`
+- [x] **Task 4:** Automated Persistence & Restart Test Suite Setup (P1)
+  - [x] Configure Vitest with `fake-indexeddb` and jsdom in `package.json`
+  - [x] Write integration test suite verifying note survival across app restarts and deletion performance
+- [x] **Checkpoint 1:** Zero-Loss Persistence, $O(1)$ Deletions & Desktop Sandboxing verified
 
 ---
 

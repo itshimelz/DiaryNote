@@ -1,7 +1,7 @@
 {
   "name": "react-example",
   "private": true,
-  "version": "0.1.4-beta.2",
+  "version": "0.2.0-alpha.1",
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
@@ -12,6 +12,8 @@
     "lint:fast": "oxlint",
     "lint:fix": "oxlint --fix",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "version:sync": "node scripts/sync-version.mjs",
     "version:check": "node scripts/sync-version.mjs --check",
     "version:set": "node scripts/sync-version.mjs --set",
@@ -36,12 +38,16 @@
   "devDependencies": {
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/cli": "^2.11.4",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^22.14.0",
     "esbuild": "^0.25.0",
+    "fake-indexeddb": "^6.2.5",
+    "jsdom": "^30.0.1",
     "oxlint": "^1.78.0",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.3"
+    "vite": "^6.2.3",
+    "vitest": "^4.1.10"
   }
 }

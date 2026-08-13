@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { Note, CanvasTransform, AIProvider } from '../../types';
+import { Note, CanvasTransform } from '../../types';
 import { AppSettings, exportNotesBackup } from '../../lib/storage';
 import { NoteContextMenu } from '../NoteContextMenu';
 import { HiddenClipboardListener } from '../HiddenClipboardListener';
@@ -66,14 +66,21 @@ interface AppModalsProps {
   handleDeleteMultipleNotes: (ids: string[]) => void;
   handleConfirmDelete: () => void;
   handleCreateNote: (x?: number, y?: number) => void | string;
-  handleAddNote: (transform: CanvasTransform, settings: AppSettings) => string;
+  handleAddNote: (
+    transform: CanvasTransform,
+    settings: AppSettings,
+    customX?: number,
+    customY?: number,
+    initialTitle?: string,
+    initialContent?: string
+  ) => string;
   handleOpenOrCreateTodayJournal: (dateStr?: string) => void;
   handleNavigateToNote: (id: string, setSelectedNoteIds: any) => void;
   handleLockSelectedNotes: (ids: string[]) => void;
   handleExportNote: (note: Note, format: 'md' | 'txt' | 'json') => void;
   requestDeleteNotes: (ids: string[]) => void;
   handleSaveAISettings: (newSettings: Partial<AppSettings>) => void;
-  setNotes: React.Dispatch<React.SetStateAction<Note[]>>;
+  setNotes?: React.Dispatch<React.SetStateAction<Note[]>>;
 }
 
 export const AppModals: React.FC<AppModalsProps> = ({
@@ -118,7 +125,7 @@ export const AppModals: React.FC<AppModalsProps> = ({
   handleExportNote,
   requestDeleteNotes,
   handleSaveAISettings,
-  setNotes,
+  setNotes: _setNotes,
 }) => {
   return (
     <>
@@ -312,12 +319,7 @@ export const AppModals: React.FC<AppModalsProps> = ({
           themeMode={settings.themeMode}
           onClose={() => setPasteModalState({ isOpen: false, text: '' })}
           onConfirm={(pastedTitle, pastedContent) => {
-            const newId = handleAddNote(transform, settings);
-            setNotes((prev) =>
-              prev.map((n) =>
-                n.id === newId ? { ...n, title: pastedTitle, content: pastedContent } : n
-              )
-            );
+            const newId = handleAddNote(transform, settings, undefined, undefined, pastedTitle, pastedContent);
             setSelectedNoteIds([newId]);
             sendNativeAppNotification(
               'Note Created',

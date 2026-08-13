@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import { Note, CanvasTransform, GridType, CanvasTheme } from '../types';
+import { Note, CanvasTransform } from '../types';
 import { SAMPLE_NOTES, DEFAULT_SETTINGS, INITIAL_TRANSFORM, getInitialTransform, AppSettings } from './storage';
 
 export class DiaryNoteDatabase extends Dexie {
@@ -57,7 +57,7 @@ export async function initDatabase(): Promise<{
     let transform = getInitialTransform(notes);
     const transformRecord = await db.transform.get('main');
     if (transformRecord) {
-      const { id, ...rest } = transformRecord;
+      const { id: _, ...rest } = transformRecord;
       transform = rest;
     } else {
       await db.transform.put({ id: 'main', ...transform });
@@ -67,7 +67,7 @@ export async function initDatabase(): Promise<{
     let settings = DEFAULT_SETTINGS;
     const settingsRecord = await db.settings.get('main');
     if (settingsRecord) {
-      const { id, ...rest } = settingsRecord;
+      const { id: _, ...rest } = settingsRecord;
       settings = rest;
     } else {
       const legacySettings = localStorage.getItem('infinite_notes_v1_settings');
@@ -136,18 +136,20 @@ export async function getNotesMetadata(): Promise<Note[]> {
 /**
  * Save a single note to DB
  */
-export async function saveNoteToDB(note: Note): Promise<void> {
+export async function saveNoteToDB(note: Note): Promise<boolean> {
   try {
     await db.notes.put(note);
+    return true;
   } catch (err) {
     console.error('Error saving note to DB:', err);
+    return false;
   }
 }
 
 /**
  * Save multiple notes to DB (incremental sync — no full table wipe)
  */
-export async function saveBatchNotesToDB(notes: Note[]): Promise<void> {
+export async function saveBatchNotesToDB(notes: Note[]): Promise<boolean> {
   try {
     await db.transaction('rw', db.notes, async () => {
       // Determine which notes were deleted since last save
@@ -164,53 +166,77 @@ export async function saveBatchNotesToDB(notes: Note[]): Promise<void> {
         await db.notes.bulkPut(notes);
       }
     });
+    return true;
   } catch (err) {
     console.error('Error batch saving notes to DB:', err);
+    return false;
   }
 }
 
 /**
  * Save only specific dirty/modified notes to DB (targeted upsert)
  */
-export async function saveDirtyNotesToDB(dirtyNotes: Note[]): Promise<void> {
-  if (dirtyNotes.length === 0) return;
+export async function saveDirtyNotesToDB(dirtyNotes: Note[]): Promise<boolean> {
+  if (dirtyNotes.length === 0) return true;
   try {
     await db.notes.bulkPut(dirtyNotes);
+    return true;
   } catch (err) {
     console.error('Error saving dirty notes to DB:', err);
+    return false;
   }
 }
 
 /**
- * Delete a note from DB
+ * Delete a single note from DB ($O(1) direct deletion)
  */
-export async function deleteNoteFromDB(noteId: string): Promise<void> {
+export async function deleteNoteFromDB(noteId: string): Promise<boolean> {
   try {
     await db.notes.delete(noteId);
+    return true;
   } catch (err) {
     console.error('Error deleting note from DB:', err);
+    return false;
+  }
+}
+
+/**
+ * Delete multiple notes from DB ($O(1) direct bulk deletion)
+ */
+export async function deleteMultipleNotesFromDB(noteIds: string[]): Promise<boolean> {
+  if (noteIds.length === 0) return true;
+  try {
+    await db.notes.bulkDelete(noteIds);
+    return true;
+  } catch (err) {
+    console.error('Error bulk deleting notes from DB:', err);
+    return false;
   }
 }
 
 /**
  * Save viewport canvas transform to DB
  */
-export async function saveTransformToDB(transform: CanvasTransform): Promise<void> {
+export async function saveTransformToDB(transform: CanvasTransform): Promise<boolean> {
   try {
     await db.transform.put({ id: 'main', ...transform });
+    return true;
   } catch (err) {
     console.error('Error saving transform to DB:', err);
+    return false;
   }
 }
 
 /**
  * Save app settings to DB
  */
-export async function saveSettingsToDB(settings: AppSettings): Promise<void> {
+export async function saveSettingsToDB(settings: AppSettings): Promise<boolean> {
   try {
     await db.settings.put({ id: 'main', ...settings });
+    return true;
   } catch (err) {
     console.error('Error saving settings to DB:', err);
+    return false;
   }
 }
 
