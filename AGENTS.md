@@ -1,0 +1,90 @@
+# AGENTS.md — Agent Working Rules & UI Component Registry
+
+**Document Version:** 1.0.0  
+**Target Application:** DiaryNote Desktop (Tauri + Rust + React + TypeScript)  
+**Applicability:** Mandatory for all AI agents, subagents, and automated assistants operating on this codebase.
+
+---
+
+## 1. Mandatory Agent Rule: UI Component Modification Registry
+
+> [!IMPORTANT]
+> **RULE #1 (UI CHANGE MANIFEST):**
+> Whenever an agent modifies, refactors, creates, or deletes **any UI component, modal, hook affecting rendering, or stylesheet** (`src/components/**`, `src/hooks/**`, `src/index.css`), the agent **MUST immediately update the UI Component Modification Registry below in this document (`AGENTS.md`)**.
+>
+> This enables instant identification of visual regressions, broken event handlers, or UI mismatches across phases.
+
+### Required Registry Entry Schema
+For every modified UI file, the agent must document:
+1. **Phase & Task ID** (e.g., `Phase 1 - Task 1`)
+2. **File Path** (e.g., `src/components/Modals/AppModals.tsx`)
+3. **UI Elements Affected** (e.g., Modal overlay, Paste dialog, Confirm button)
+4. **Nature of Change** (Props, State flow, DOM structure, Tailwind/CSS classes, Event handlers)
+5. **Expected Visual & Functional Behavior** (What the user should see and how it responds)
+6. **Regression Verification Checklist** (Exact UI interactions to test)
+
+---
+
+## 2. Active UI Component Modification Registry
+
+*Agents must append and update entries here during task execution.*
+
+| Phase / Task | Component / File Path | UI Elements Affected | Specific Changes Made | Expected Visual / Behavioral Result | Verification & Regression Check |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Phase 1 (Task 1)** | `src/components/Modals/AppModals.tsx` | Paste confirmation dialog, Note creation triggers | Replaced direct `setNotes` calls with repository methods; wired dirty persistence settlement. | Paste modal closes cleanly; pasted card renders immediately with persistent save indicator. | Verify paste confirmation creates card and survives immediate reload (`Ctrl+R`). |
+| **Phase 1 (Task 1)** | `src/components/StatusBar.tsx` | Save status indicator badge | Bound save status to actual IndexedDB promise settlement instead of optimistic timer. | Badge displays "Saving..." during I/O and "Saved" only after storage acknowledgement. | Verify save badge shows error banner if storage fails. |
+| **Phase 1 (Task 2)** | `src/App.tsx` | Root canvas action dispatchers | Routed history undo/redo through persistence coordinator. | Visual undo/redo on canvas remains synchronized with local database. | Press `Ctrl+Z` to restore deleted note; verify note remains present after reload. |
+| **Phase 2 (Task 5)** | `src/components/BatchActionBar.tsx` | Batch export, batch delete, align/theme popovers | Integrated `authorizeNotes()` checks before exporting or deleting selected cards. | Locked notes prompt for passcode or are safely excluded with clear UI badge notice. | Select 2 unlocked notes + 1 locked note; click Export; verify locked note is not leaked. |
+| **Phase 2 (Task 5)** | `src/components/NoteCard/NoteHeader.tsx` | Copy button, lock status icon | Guarded clipboard copy button with authorization check. | Clicking copy on a locked card prompts "Unlock note to copy" instead of copying plaintext. | Click copy icon on locked card; verify clipboard remains protected. |
+| **Phase 2 (Task 6)** | `src/components/Modals/SecurityModal.tsx` | Master passcode setup, unlock dialog | Wired Argon2id Web Worker key derivation; added exponential backoff retry UI. | Unlock modal shows subtle progress indicator during derivation; disables input on invalid retries. | Test incorrect password input; verify backoff timer disables submit button. |
+| **Phase 2 (Task 8)** | `src/components/Modals/AISettingsModal.tsx` | AI Merge progress indicator, Cancel button | Added user-facing request cancellation button and timeout progress bar. | Active AI generation displays a prominent "Cancel" button; cleanly resets UI on click. | Trigger AI Merge; click Cancel; verify spinner stops and UI returns to idle state. |
+| **Phase 3 (Task 11)** | `src/components/Modals/ImportPreviewModal.tsx` *(New)* | Staged backup import preview modal | New modal displaying incoming note counts, tag stats, and duplicate ID resolution options. | User sees visual breakdown of backup contents before committing to database. | Import backup with duplicate IDs; select "Keep Both"; verify both cards appear on canvas. |
+| **Phase 3 (Task 13)** | `src/components/Modals/JournalCalendarModal.tsx` | Calendar date grid, streak counter | Switched date markers to query `isDailyEntry && entryDate` instead of title regex. | Calendar highlights only genuine daily entries; date-titled notes do not color calendar days. | Create note titled "2026-08-14 Planning"; verify calendar does not mark it as a daily entry. |
+| **Phase 4 (Task 15)** | `src/components/Common/AccessibleDialog.tsx` *(New)* | Modal overlay container primitive | Replaces unsemantic `div` overlays with semantic `<dialog>`, focus trap, and Escape listener. | Accessible dialogs capture keyboard focus; pressing `Escape` closes modal and restores focus. | Navigate entire modal using `Tab` and `Shift+Tab`; verify focus cannot escape to background. |
+| **Phase 4 (Task 15)** | `src/components/NotesSidebar.tsx` | Note list drawer rows | Changed note items from `<div>` to semantic `<button>` tags; added list virtualization. | Sidebar keyboard navigable with arrow keys / Tab; smooth scrolling across thousands of notes. | Test navigating sidebar using only keyboard; verify DOM node count remains <30. |
+| **Phase 4 (Task 16)** | `src/components/InfiniteCanvas.tsx` | Canvas viewport, rubber-band selector, minimap | Replaced mouse listeners with Pointer Events; converted minimap to 2D `<canvas>`. | Multi-touch pinch-to-zoom and pan; minimap renders instantly with 0 extra DOM nodes. | Test canvas touch gestures; verify rubber-band selection has 0 layout reflows. |
+| **Phase 4 (Task 16)** | `src/hooks/useNoteResize.ts` | Card resize handles | Converted resizing to direct DOM style transforms (`style.width/height`) during drag. | Card resizes smoothly at 60 FPS without triggering canvas-wide re-renders. | Drag resize handle; monitor CPU in DevTools (should remain <5%). |
+| **Phase 4 (Task 17)** | `src/components/NoteCard/index.tsx` | NoteCard root component | Decoupled `allNotes` prop; isolated `React.memo` comparator to note-specific fields. | Modifying or typing in Note A re-renders *only* Note A. | Type rapidly in one note; verify other visible cards do not re-render. |
+| **Phase 4 (Task 17)** | `src/components/NoteConnections.tsx` | SVG bi-directional link paths | Added viewport culling to SVG path generator. | SVG paths render only for connections touching the active visible viewport. | Zoom out with 500 connections; verify off-screen SVG elements are not mounted. |
+| **Phase 4 (Task 18)** | `src/components/ErrorBoundary.tsx` *(New)* | Root error boundary fallback | Top-level crash recovery screen with "Emergency Backup Export" and "Reload" buttons. | Prevents blank white screens on runtime errors; lets users recover all notes safely. | Throw test error; verify emergency export downloads intact JSON backup. |
+
+---
+
+## 3. Core Architectural Invariants for Agents
+
+All agents working on DiaryNote must adhere to these standing principles:
+
+1. **Desktop Native & Offline First:**
+   - DiaryNote is a desktop application (Tauri + Rust + React). Do not introduce assumptions of remote web servers, cloud sync, or hosted SaaS infrastructure.
+   - All network interactions (updates, AI endpoints) must be strictly user-configurable and default to privacy-preserving boundaries.
+
+2. **Zero-Loss Persistence Protocol:**
+   - Never bypass the note repository layer with direct React state overrides.
+   - A note is only considered saved after IndexedDB storage confirmation resolves.
+
+3. **Zero-Knowledge Security & Privacy:**
+   - Locked notes must be encrypted at rest using Argon2id + AES-256-GCM. Plaintext locked content must never touch persistent storage or unauthenticated memory caches.
+   - Exclude locked notes from exports, clipboard copies, AI prompts, and graph indexes unless explicitly authenticated.
+
+4. **CPU & Rendering Performance:**
+   - Never call `getBoundingClientRect()`, `offsetWidth`, or `offsetHeight` inside mousemove or touchmove loops.
+   - Decouple note metadata from markdown bodies. Heavy search and cryptography operations must run in Web Workers or native Rust commands.
+
+5. **Quality Verification Before Completion:**
+   - Every task must pass:
+     ```bash
+     npm run lint
+     npm run build
+     cargo check --manifest-path src-tauri/Cargo.toml
+     ```
+   - Automated tests (`npm test`) must pass with zero errors before any task is marked done.
+
+---
+
+## 4. UI Regression Troubleshooting Guide
+
+If a UI component stops functioning, misaligns, or clips after a task:
+1. **Check the Registry Table Above:** Find the file in the registry and review what props, state, or DOM structure were altered in that phase.
+2. **Inspect Event Delegation:** Ensure Pointer Events (`onPointerDown`, `setPointerCapture`) are not being blocked by overlapping containers or missing `touch-action: none`.
+3. **Check Portal Mounting:** Ensure popovers and floating menus (e.g., Theme/Align menus) use `createPortal(..., document.body)` to prevent container overflow clipping.
+4. **Verify CSS Classes:** Verify Tailwind CSS utility classes conform to Tailwind v4 syntax without deprecated arbitrary values.
