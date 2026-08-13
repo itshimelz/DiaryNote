@@ -356,6 +356,15 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
     return null;
   }, [allNotes, note.x, note.y, note.width, note.height, note.groupId, note.id]);
 
+  const ruledLineHeight = useMemo(() => {
+    if (!isRuled) return undefined;
+    if (fontSizeClass?.includes('text-xs')) return '22px';
+    if (fontSizeClass?.includes('text-sm')) return '24px';
+    if (fontSizeClass?.includes('text-lg')) return '32px';
+    if (fontSizeClass?.includes('text-xl')) return '36px';
+    return '28px';
+  }, [isRuled, fontSizeClass]);
+
   return (
     <div
       id={`note-card-${note.id}`}
@@ -388,6 +397,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         width: `${note.width || DEFAULT_NOTE_WIDTH}px`,
         minHeight: `${note.height || DEFAULT_NOTE_HEIGHT}px`,
         zIndex: isDragging || isCardDragging ? DRAG_Z_INDEX : note.zIndex || 10,
+        ...(isRuled && ruledLineHeight ? ({ '--ruled-line-height': ruledLineHeight } as React.CSSProperties) : {}),
       }}
       className={`note-card absolute top-0 left-0 rounded-md flex flex-col justify-between shadow-sm ${
         isPanMode

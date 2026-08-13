@@ -602,10 +602,13 @@ export default function App() {
         onExportNote={handleExportNote}
         onContextMenuNote={(e, noteId) => {
           e.preventDefault();
-          setSelectedNoteIds((prev) => {
-            if (prev.includes(noteId)) return prev;
-            return e.shiftKey ? [...prev, noteId] : [noteId];
-          });
+          const nextSelected = selectedNoteIds.includes(noteId)
+            ? selectedNoteIds
+            : e.shiftKey
+            ? [...selectedNoteIds, noteId]
+            : [noteId];
+
+          setSelectedNoteIds(nextSelected);
           setContextMenuState({
             isOpen: true,
             x: e.clientX,

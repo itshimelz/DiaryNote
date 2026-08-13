@@ -57,7 +57,7 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
           <p
             className={`font-inherit ${
               isRuled
-                ? 'ruled-text-alignment mb-8 last:mb-0'
+                ? 'ruled-text-alignment'
                 : 'mb-3.5 last:mb-0 leading-relaxed'
             }`}
           >
@@ -66,8 +66,8 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
         ),
       h1: ({ children }: any) => (
         <h1
-          className={`font-bold tracking-tight text-xl my-2 ${
-            isRuled ? 'ruled-text-alignment' : ''
+          className={`font-bold tracking-tight text-xl ${
+            isRuled ? 'ruled-text-alignment m-0' : 'my-2'
           }`}
         >
           {children}
@@ -75,8 +75,8 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
       ),
       h2: ({ children }: any) => (
         <h2
-          className={`font-bold tracking-tight text-lg my-1.5 ${
-            isRuled ? 'ruled-text-alignment' : ''
+          className={`font-bold tracking-tight text-lg ${
+            isRuled ? 'ruled-text-alignment m-0' : 'my-1.5'
           }`}
         >
           {children}
@@ -84,8 +84,8 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
       ),
       h3: ({ children }: any) => (
         <h3
-          className={`font-semibold text-base my-1 ${
-            isRuled ? 'ruled-text-alignment' : ''
+          className={`font-semibold text-base ${
+            isRuled ? 'ruled-text-alignment m-0' : 'my-1'
           }`}
         >
           {children}
@@ -93,8 +93,8 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
       ),
       h4: ({ children }: any) => (
         <h4
-          className={`font-semibold text-sm my-1 ${
-            isRuled ? 'ruled-text-alignment' : ''
+          className={`font-semibold text-sm ${
+            isRuled ? 'ruled-text-alignment m-0' : 'my-1'
           }`}
         >
           {children}
@@ -110,16 +110,20 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
         const isTaskList = ulClassName?.includes('contains-task-list');
         return (
           <ul
-            className={`my-0.5 first:mt-0 last:mb-0 space-y-0.5 ${
-              isTaskList ? 'pl-0 list-none' : 'list-disc pl-5'
-            }`}
+            className={`${
+              isRuled ? 'ruled-text-alignment m-0 space-y-0' : 'my-0.5 first:mt-0 last:mb-0 space-y-0.5'
+            } ${isTaskList ? 'pl-0 list-none' : 'list-disc pl-5'}`}
           >
             {children}
           </ul>
         );
       },
       ol: ({ children }: any) => (
-        <ol className="my-0.5 first:mt-0 last:mb-0 space-y-0.5 list-decimal pl-5">
+        <ol
+          className={`${
+            isRuled ? 'ruled-text-alignment m-0 space-y-0' : 'my-0.5 first:mt-0 last:mb-0 space-y-0.5'
+          } list-decimal pl-5`}
+        >
           {children}
         </ol>
       ),
@@ -136,21 +140,21 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
 
           return (
             <li
-              className={`list-none flex items-start gap-2.5 leading-relaxed ${
-                isRuled ? 'ruled-text-alignment' : ''
+              className={`list-none flex items-start gap-2.5 ${
+                isRuled ? 'ruled-text-alignment m-0' : 'leading-relaxed'
               }`}
             >
               {checkbox && (
                 <span
                   className="shrink-0 flex items-center"
-                  style={isRuled ? { height: '32px' } : { height: '24px' }}
+                  style={isRuled ? { height: ruledLineHeight || '28px' } : { height: '24px' }}
                 >
                   {checkbox}
                 </span>
               )}
               <div
                 className={`flex-1 min-w-0 font-inherit break-words ${
-                  isRuled ? '' : 'leading-relaxed'
+                  isRuled ? 'ruled-text-alignment' : 'leading-relaxed'
                 }`}
               >
                 {textChildren}
@@ -161,8 +165,8 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
 
         return (
           <li
-            className={`leading-relaxed ${
-              isRuled ? 'ruled-text-alignment' : ''
+            className={`${
+              isRuled ? 'ruled-text-alignment m-0' : 'leading-relaxed'
             }`}
           >
             {children}
@@ -171,8 +175,8 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
       },
       blockquote: ({ children }: any) => (
         <blockquote
-          className={`border-l-3 border-blue-500/70 pl-3 my-2 italic opacity-95 ${
-            isRuled ? 'ruled-text-alignment' : ''
+          className={`border-l-3 border-blue-500/70 pl-3 italic opacity-95 ${
+            isRuled ? 'ruled-text-alignment m-0' : 'my-2'
           }`}
         >
           {children}
@@ -260,11 +264,11 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
 
   const ruledLineHeight = useMemo(() => {
     if (!isRuled) return undefined;
-    if (fontSizeClass?.includes('text-xs')) return '24px';
-    if (fontSizeClass?.includes('text-sm')) return '28px';
-    if (fontSizeClass?.includes('text-lg')) return '36px';
-    if (fontSizeClass?.includes('text-xl')) return '40px';
-    return '32px';
+    if (fontSizeClass?.includes('text-xs')) return '22px';
+    if (fontSizeClass?.includes('text-sm')) return '24px';
+    if (fontSizeClass?.includes('text-lg')) return '32px';
+    if (fontSizeClass?.includes('text-xl')) return '36px';
+    return '28px';
   }, [isRuled, fontSizeClass]);
 
   return (

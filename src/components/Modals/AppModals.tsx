@@ -228,6 +228,7 @@ export const AppModals: React.FC<AppModalsProps> = ({
         selectedNoteIds={selectedNoteIds}
         notes={notes}
         themeMode={settings.themeMode}
+        zoom={transform.zoom}
         onClose={() => setContextMenuState((prev) => ({ ...prev, isOpen: false }))}
         onNavigateToNote={(id) => handleNavigateToNote(id, setSelectedNoteIds)}
         onEditNote={(id) => {

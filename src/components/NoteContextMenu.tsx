@@ -27,6 +27,7 @@ interface NoteContextMenuProps {
   selectedNoteIds: string[];
   notes: Note[];
   themeMode?: CanvasTheme;
+  zoom?: number;
   onClose: () => void;
   onNavigateToNote?: (id: string) => void;
   onEditNote?: (id: string) => void;
@@ -43,8 +44,6 @@ interface NoteContextMenuProps {
   onSelectAllNotes?: () => void;
 }
 
-
-
 const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
   x,
   y,
@@ -52,6 +51,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
   selectedNoteIds,
   notes,
   themeMode = 'dark',
+  zoom = 1,
   onClose,
   onNavigateToNote,
   onEditNote,
@@ -84,6 +84,12 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
   const isAllGrouped =
     selectedNotes.length >= 2 && selectedNotes.every((n) => n.groupId && n.groupId === selectedNotes[0].groupId);
 
+  // Calculate visual scaling factor based on canvas zoom level (clamped between 92% and 125%)
+  const visualScale = useMemo(() => {
+    if (!zoom || isNaN(zoom)) return 1;
+    return Math.max(0.92, Math.min(1.25, Math.sqrt(zoom)));
+  }, [zoom]);
+
   // Auto-close menu on outside click or ESC key
   useEffect(() => {
     if (!isOpen) return;
@@ -96,6 +102,9 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
         onClose();
       }
     };
@@ -108,16 +117,18 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
     };
   }, [isOpen, onClose]);
 
-  // Adjust menu position to remain strictly inside viewport boundaries
+  // Adjust menu position to remain strictly inside viewport boundaries accounting for visual scale
   const adjustedPos = useMemo(() => {
-    const menuWidth = 225;
-    const menuHeight = 360;
+    const baseWidth = 272;
+    const baseHeight = 420;
+    const scaledWidth = baseWidth * visualScale;
+    const scaledHeight = baseHeight * visualScale;
 
-    let clampedX = Math.max(12, Math.min(x, window.innerWidth - menuWidth - 12));
-    let clampedY = Math.max(12, Math.min(y, window.innerHeight - menuHeight - 12));
+    let clampedX = Math.max(12, Math.min(x, window.innerWidth - scaledWidth - 12));
+    let clampedY = Math.max(12, Math.min(y, window.innerHeight - scaledHeight - 12));
 
     return { clampedX, clampedY };
-  }, [x, y]);
+  }, [x, y, visualScale]);
 
   if (!isOpen) return null;
 
@@ -133,17 +144,19 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
       style={{
         left: `${adjustedPos.clampedX}px`,
         top: `${adjustedPos.clampedY}px`,
+        transform: `scale(${visualScale})`,
+        transformOrigin: 'top left',
       }}
       onContextMenu={(e) => e.preventDefault()}
-      className={`fixed z-50 w-56 rounded-md border shadow-lg py-1.5 px-1 select-none font-sans text-xs transition-opacity animate-in fade-in zoom-in-95 duration-100 ${
+      className={`fixed z-50 w-64 sm:w-68 rounded-sm border shadow-sm py-2 px-1.5 select-none font-sans text-sm transition-opacity animate-in fade-in zoom-in-95 duration-100 ${
         isDark
-          ? 'bg-slate-900/95 border-slate-800 text-slate-100 shadow-black/60 backdrop-blur-md'
-          : 'bg-white/95 border-slate-200 text-slate-800 shadow-slate-300/50 backdrop-blur-md'
+          ? 'bg-slate-900/95 border-slate-800 text-slate-100 backdrop-blur-md'
+          : 'bg-white/95 border-slate-200 text-slate-800 backdrop-blur-md'
       }`}
     >
       {selectedNoteIds.length === 0 ? (
         <>
-          <div className="px-2 py-1 mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-800/50">
+          <div className="px-3 py-1.5 mb-1 flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-800/50">
             <span>Canvas Actions</span>
           </div>
           <button
@@ -152,11 +165,11 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
               onPasteFromClipboard?.();
               onClose();
             }}
-            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm transition-colors text-left ${btnClass}`}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
           >
-            <Clipboard className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <Clipboard className="w-4 h-4 text-slate-400 shrink-0" />
             <span className="flex-1 truncate">Paste Note from Clipboard</span>
-            <span className="text-[10px] font-mono text-slate-400">{getPlatformMetaKey()}+V</span>
+            <span className="text-xs font-mono text-slate-400">{getPlatformMetaKey()}+V</span>
           </button>
 
           <button
@@ -165,11 +178,11 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
               onCreateNoteHere?.();
               onClose();
             }}
-            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm transition-colors text-left ${btnClass}`}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
           >
-            <Plus className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <Plus className="w-4 h-4 text-slate-400 shrink-0" />
             <span className="flex-1 truncate">New Note Here</span>
-            <span className="text-[10px] font-mono text-slate-400">Dbl-Click</span>
+            <span className="text-xs font-mono text-slate-400">Dbl-Click</span>
           </button>
 
           <div className={`my-1 h-px ${dividerClass}`} />
@@ -180,220 +193,220 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
               onSelectAllNotes?.();
               onClose();
             }}
-            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm transition-colors text-left ${btnClass}`}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
           >
-            <CheckSquare className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <CheckSquare className="w-4 h-4 text-slate-400 shrink-0" />
             <span className="flex-1 truncate">Select All Notes</span>
-            <span className="text-[10px] font-mono text-slate-400">{getPlatformMetaKey()}+A</span>
+            <span className="text-xs font-mono text-slate-400">{getPlatformMetaKey()}+A</span>
           </button>
         </>
       ) : (
         <>
           {/* Header Info Badge */}
-          <div className="px-2 py-1 mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-800/50">
+          <div className="px-3 py-1.5 mb-1 flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-800/50">
             <span className="truncate">
               {isSingle ? (singleNote?.title || 'Untitled Note') : `${selectedNoteIds.length} notes selected`}
             </span>
-            <CheckSquare className="w-3 h-3 text-slate-400 shrink-0 ml-1" />
+            <CheckSquare className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
           </div>
 
-      {/* 1. Zoom & Focus Note */}
-      <button
-        type="button"
-        onClick={() => {
-          if (singleNote) onNavigateToNote?.(singleNote.id);
-          else if (selectedNoteIds.length > 0) onNavigateToNote?.(selectedNoteIds[0]);
-          onClose();
-        }}
-        className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm transition-colors text-left ${btnClass}`}
-      >
-        <Maximize2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-        <span className="flex-1 truncate">Zoom to {isSingle ? 'Note' : 'Selection'}</span>
-        <span className="text-[10px] font-mono text-slate-400">{getPlatformAltKey()}+Click</span>
-      </button>
+          {/* 1. Zoom & Focus Note */}
+          <button
+            type="button"
+            onClick={() => {
+              if (singleNote) onNavigateToNote?.(singleNote.id);
+              else if (selectedNoteIds.length > 0) onNavigateToNote?.(selectedNoteIds[0]);
+              onClose();
+            }}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
+          >
+            <Maximize2 className="w-4 h-4 text-slate-400 shrink-0" />
+            <span className="flex-1 truncate">Zoom to {isSingle ? 'Note' : 'Selection'}</span>
+            <span className="text-xs font-mono text-slate-400">{getPlatformAltKey()}+Click</span>
+          </button>
 
-      {/* 2. Edit Note (Single Selection) */}
-      {isSingle && (
-        <button
-          type="button"
-          onClick={() => {
-            if (singleNote) onEditNote?.(singleNote.id);
-            onClose();
-          }}
-          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm transition-colors text-left ${btnClass}`}
-        >
-          <Edit3 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span className="flex-1 truncate">Edit Note</span>
-          <span className="text-[10px] font-mono text-slate-400">Enter</span>
-        </button>
-      )}
+          {/* 2. Edit Note (Single Selection) */}
+          {isSingle && (
+            <button
+              type="button"
+              onClick={() => {
+                if (singleNote) onEditNote?.(singleNote.id);
+                onClose();
+              }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
+            >
+              <Edit3 className="w-4 h-4 text-slate-400 shrink-0" />
+              <span className="flex-1 truncate">Edit Note</span>
+              <span className="text-xs font-mono text-slate-400">Enter</span>
+            </button>
+          )}
 
-      <div className={`my-1 h-px ${dividerClass}`} />
+          <div className={`my-1 h-px ${dividerClass}`} />
 
-      {/* 3. Pin / Unpin */}
-      <button
-        type="button"
-        onClick={() => {
-          onTogglePin?.(selectedNoteIds);
-          onClose();
-        }}
-        className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm transition-colors text-left ${btnClass}`}
-      >
-        {isAllPinned ? (
-          <>
-            <PinOff className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span>Unpin Note{selectedNoteIds.length > 1 ? 's' : ''}</span>
-          </>
-        ) : (
-          <>
-            <Pin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span>Pin Note{selectedNoteIds.length > 1 ? 's' : ''}</span>
-          </>
-        )}
-      </button>
+          {/* 3. Pin / Unpin */}
+          <button
+            type="button"
+            onClick={() => {
+              onTogglePin?.(selectedNoteIds);
+              onClose();
+            }}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
+          >
+            {isAllPinned ? (
+              <>
+                <PinOff className="w-4 h-4 text-slate-400 shrink-0" />
+                <span>Unpin Note{selectedNoteIds.length > 1 ? 's' : ''}</span>
+              </>
+            ) : (
+              <>
+                <Pin className="w-4 h-4 text-slate-400 shrink-0" />
+                <span>Pin Note{selectedNoteIds.length > 1 ? 's' : ''}</span>
+              </>
+            )}
+          </button>
 
-      {/* 4. Lock / Unlock */}
-      <button
-        type="button"
-        onClick={() => {
-          onLockNotes?.(selectedNoteIds);
-          onClose();
-        }}
-        className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm transition-colors text-left ${btnClass}`}
-      >
-        {isAllLocked ? (
-          <>
-            <Unlock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span>Unlock Note{selectedNoteIds.length > 1 ? 's' : ''}</span>
-          </>
-        ) : (
-          <>
-            <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span>Lock Access</span>
-          </>
-        )}
-      </button>
+          {/* 4. Lock / Unlock */}
+          <button
+            type="button"
+            onClick={() => {
+              onLockNotes?.(selectedNoteIds);
+              onClose();
+            }}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
+          >
+            {isAllLocked ? (
+              <>
+                <Unlock className="w-4 h-4 text-slate-400 shrink-0" />
+                <span>Unlock Note{selectedNoteIds.length > 1 ? 's' : ''}</span>
+              </>
+            ) : (
+              <>
+                <Lock className="w-4 h-4 text-slate-400 shrink-0" />
+                <span>Lock Access</span>
+              </>
+            )}
+          </button>
 
-      {/* 5. Group / Ungroup (Multi Selection) */}
-      {selectedNoteIds.length >= 2 && (
-        <button
-          type="button"
-          onClick={() => {
-            if (isAllGrouped) onUngroupNotes?.();
-            else onGroupNotes?.();
-            onClose();
-          }}
-          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm transition-colors text-left ${btnClass}`}
-        >
-          <Layers className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span>{isAllGrouped ? 'Ungroup Notes' : 'Group Notes'}</span>
-          <span className="text-[10px] font-mono text-slate-400">{getPlatformMetaKey()}+G</span>
-        </button>
-      )}
+          {/* 5. Group / Ungroup (Multi Selection) */}
+          {selectedNoteIds.length >= 2 && (
+            <button
+              type="button"
+              onClick={() => {
+                if (isAllGrouped) onUngroupNotes?.();
+                else onGroupNotes?.();
+                onClose();
+              }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
+            >
+              <Layers className="w-4 h-4 text-slate-400 shrink-0" />
+              <span>{isAllGrouped ? 'Ungroup Notes' : 'Group Notes'}</span>
+              <span className="text-xs font-mono text-slate-400">{getPlatformMetaKey()}+G</span>
+            </button>
+          )}
 
-      {/* 6. Paper Theme Selector Submenu */}
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => setShowThemePicker(!showThemePicker)}
-          className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-sm transition-colors text-left ${btnClass}`}
-        >
-          <div className="flex items-center gap-2 min-w-0">
-            <Palette className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span>Paper Theme</span>
+          {/* 6. Paper Theme Selector Submenu */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowThemePicker(!showThemePicker)}
+              className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Palette className="w-4 h-4 text-slate-400 shrink-0" />
+                <span>Paper Theme</span>
+              </div>
+              <span className="text-xs text-slate-400">›</span>
+            </button>
+
+            {showThemePicker && (
+              <div
+                className={`p-2 my-1 rounded-sm border grid grid-cols-4 gap-1.5 ${
+                  isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
+                }`}
+              >
+                {PAPER_THEME_ITEMS.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => {
+                      onChangePaperTheme?.(selectedNoteIds, item.key);
+                      onClose();
+                    }}
+                    className={`w-full h-7 rounded-sm border transition-colors hover:border-blue-500 ${item.colorClass}`}
+                    title={item.label}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-          <span className="text-[10px] text-slate-400">›</span>
-        </button>
 
-        {showThemePicker && (
-          <div
-            className={`p-2 my-1 rounded border grid grid-cols-4 gap-1 ${
-              isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
+          <div className={`my-1 h-px ${dividerClass}`} />
+
+          {/* 7. Backup (.json) */}
+          <button
+            type="button"
+            onClick={() => {
+              onExportNotes?.(selectedNoteIds, 'json');
+              onClose();
+            }}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
+          >
+            <Download className="w-4 h-4 text-slate-400 shrink-0" />
+            <span>Backup ({isSingle ? 'Single' : 'Selected'}) (.json)</span>
+          </button>
+
+          {/* 8. Export Markdown (.md) */}
+          {isSingle && (
+            <button
+              type="button"
+              onClick={() => {
+                onExportNotes?.(selectedNoteIds, 'md');
+                onClose();
+              }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
+            >
+              <Download className="w-4 h-4 text-slate-400 shrink-0" />
+              <span>Export Markdown (.md)</span>
+            </button>
+          )}
+
+          {/* 9. Duplicate Note(s) */}
+          {isSingle && (
+            <button
+              type="button"
+              onClick={() => {
+                onDuplicateNotes?.(selectedNoteIds);
+                onClose();
+              }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
+            >
+              <Copy className="w-4 h-4 text-slate-400 shrink-0" />
+              <span>Duplicate Note</span>
+            </button>
+          )}
+
+          <div className={`my-1 h-px ${dividerClass}`} />
+
+          {/* 10. Delete Note(s) */}
+          <button
+            type="button"
+            onClick={() => {
+              onDeleteNotes?.(selectedNoteIds);
+              onClose();
+            }}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${
+              isDark
+                ? 'hover:bg-rose-950/50 text-rose-400 hover:text-rose-300'
+                : 'hover:bg-rose-50 text-rose-600 hover:text-rose-700'
             }`}
           >
-            {PAPER_THEME_ITEMS.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => {
-                  onChangePaperTheme?.(selectedNoteIds, item.key);
-                  onClose();
-                }}
-                className={`w-full h-6 rounded border transition-colors hover:border-blue-500 ${item.colorClass}`}
-                title={item.label}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className={`my-1 h-px ${dividerClass}`} />
-
-      {/* 7. Backup (.json) */}
-      <button
-        type="button"
-        onClick={() => {
-          onExportNotes?.(selectedNoteIds, 'json');
-          onClose();
-        }}
-        className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm transition-colors text-left ${btnClass}`}
-      >
-        <Download className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-        <span>Backup ({isSingle ? 'Single' : 'Selected'}) (.json)</span>
-      </button>
-
-      {/* 8. Export Markdown (.md) */}
-      {isSingle && (
-        <button
-          type="button"
-          onClick={() => {
-            onExportNotes?.(selectedNoteIds, 'md');
-            onClose();
-          }}
-          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm transition-colors text-left ${btnClass}`}
-        >
-          <Download className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span>Export Markdown (.md)</span>
-        </button>
+            <Trash2 className="w-4 h-4 text-rose-500 shrink-0" />
+            <span>Delete Note{selectedNoteIds.length > 1 ? 's' : ''}</span>
+            <span className="text-xs font-mono opacity-70 ml-auto">Del</span>
+          </button>
+        </>
       )}
-
-      {/* 9. Duplicate Note(s) */}
-      {isSingle && (
-        <button
-          type="button"
-          onClick={() => {
-            onDuplicateNotes?.(selectedNoteIds);
-            onClose();
-          }}
-          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm transition-colors text-left ${btnClass}`}
-        >
-          <Copy className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span>Duplicate Note</span>
-        </button>
-      )}
-
-      <div className={`my-1 h-px ${dividerClass}`} />
-
-      {/* 10. Delete Note(s) */}
-      <button
-        type="button"
-        onClick={() => {
-          onDeleteNotes?.(selectedNoteIds);
-          onClose();
-        }}
-        className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-sm transition-colors text-left ${
-          isDark
-            ? 'hover:bg-rose-950/50 text-rose-400 hover:text-rose-300'
-            : 'hover:bg-rose-50 text-rose-600 hover:text-rose-700'
-        }`}
-      >
-        <Trash2 className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-        <span>Delete Note{selectedNoteIds.length > 1 ? 's' : ''}</span>
-        <span className="text-[10px] font-mono opacity-70 ml-auto">Del</span>
-      </button>
-    </>
-  )}
-</div>,
+    </div>,
     document.body
   );
 };

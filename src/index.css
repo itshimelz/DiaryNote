@@ -92,21 +92,21 @@ p, h1, h2, h3, h4, span, div {
   background-size: 100% 28px;
 }
 
-/* Note Ruled Lined Paper Backgrounds */
+/* Note Ruled Lined Paper Backgrounds (PERMANENT STANDARD: 28px default line height, 0 0 position offset) */
 .bg-note-ruled {
   background-color: #faf6ee;
-  background-image: repeating-linear-gradient(transparent, transparent calc(var(--ruled-line-height, 32px) - 1px), #d4c9b4 calc(var(--ruled-line-height, 32px) - 0.5px), transparent var(--ruled-line-height, 32px));
-  background-size: 100% var(--ruled-line-height, 32px);
+  background-image: repeating-linear-gradient(transparent, transparent calc(var(--ruled-line-height, 28px) - 1px), #d4c9b4 calc(var(--ruled-line-height, 28px) - 0.5px), transparent var(--ruled-line-height, 28px));
+  background-size: 100% var(--ruled-line-height, 28px);
   background-origin: content-box;
-  background-position: 0 4px;
+  background-position: 0 0;
 }
 
 .bg-note-ruled-dark {
   background-color: #101827;
-  background-image: repeating-linear-gradient(transparent, transparent calc(var(--ruled-line-height, 32px) - 1px), #1e2d45 calc(var(--ruled-line-height, 32px) - 0.5px), transparent var(--ruled-line-height, 32px));
-  background-size: 100% var(--ruled-line-height, 32px);
+  background-image: repeating-linear-gradient(transparent, transparent calc(var(--ruled-line-height, 28px) - 1px), #1e2d45 calc(var(--ruled-line-height, 28px) - 0.5px), transparent var(--ruled-line-height, 28px));
+  background-size: 100% var(--ruled-line-height, 28px);
   background-origin: content-box;
-  background-position: 0 4px;
+  background-position: 0 0;
 }
 
 .bg-note-dotted {
@@ -116,43 +116,31 @@ p, h1, h2, h3, h4, span, div {
   background-position: 4px 4px;
 }
 
-/* Perfect alignment for ruled lined notes */
-.ruled-text-alignment {
-  line-height: var(--ruled-line-height, 32px) !important;
-}
-
+/* Permanent Standard Alignment Specification for Ruled Lined Notes */
 .ruled-text-alignment,
+.ruled-text-alignment *,
 textarea.ruled-text-alignment {
-  line-height: var(--ruled-line-height, 32px) !important;
-  padding: 0 !important;
-  padding-top: 0px !important;
-  margin: 0 !important;
+  line-height: var(--ruled-line-height, 28px) !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
 }
 
+.ruled-text-alignment p,
+.ruled-text-alignment ul,
+.ruled-text-alignment ol,
+.ruled-text-alignment li,
 .ruled-text-alignment div,
 .ruled-text-alignment span,
-.ruled-text-alignment li {
-  line-height: var(--ruled-line-height, 32px) !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-}
-
-.ruled-text-alignment p {
-  line-height: var(--ruled-line-height, 32px) !important;
-  margin-top: 0 !important;
-  margin-bottom: var(--ruled-line-height, 32px) !important;
-}
-
-.ruled-text-alignment p:last-child {
-  margin-bottom: 0 !important;
-}
-
-.ruled-text-alignment h1,
-.ruled-text-alignment h2,
-.ruled-text-alignment h3,
-.ruled-text-alignment h4,
 .ruled-text-alignment blockquote {
-  line-height: 32px !important;
+  line-height: var(--ruled-line-height, 28px) !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.ruled-text-alignment h1 {
+  line-height: calc(var(--ruled-line-height, 28px) * 2) !important;
   margin-top: 0 !important;
   margin-bottom: 0 !important;
 }
