@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { CanvasTransform, Note } from './types';
-import { exportBackup, exportNotesBackup, importBackup, saveFileWithNotification, SAMPLE_NOTES } from './lib/storage';
+import { Note } from './types';
+import { exportBackup, exportNotesBackup, importBackup, saveFileWithNotification } from './lib/storage';
 
 // Custom Hooks
 import { useHistoryState } from './hooks/useHistoryState';
 import { useNotesManager } from './hooks/useNotesManager';
 import { useCanvasTransform, screenToWorld } from './hooks/useCanvasTransform';
 import { useNoteSelection } from './hooks/useNoteSelection';
+import { useAppUIState } from './hooks/useAppUIState';
 
 // Modular Components
 import {
@@ -15,71 +16,56 @@ import {
   CanvasControls,
   NotesSidebar,
   BatchActionBar,
-  NoteContextMenu,
-  HiddenClipboardListener,
   UpdateAlertBanner,
   StatusBar,
 } from './components';
 
-// Lazy Loaded Modals for Bundle Size Optimization
-const SearchModal = lazy(() => import('./components/Modals/SearchModal').then(m => ({ default: m.SearchModal })));
-const DeleteConfirmationModal = lazy(() => import('./components/Modals/DeleteConfirmationModal').then(m => ({ default: m.DeleteConfirmationModal })));
-const SecurityModal = lazy(() => import('./components/Modals/SecurityModal').then(m => ({ default: m.SecurityModal })));
-const KeyboardShortcutsModal = lazy(() => import('./components/Modals/KeyboardShortcutsModal').then(m => ({ default: m.KeyboardShortcutsModal })));
-const PasteConfirmModal = lazy(() => import('./components/Modals/PasteConfirmModal').then(m => ({ default: m.PasteConfirmModal })));
-const AboutModal = lazy(() => import('./components/Modals/AboutModal').then(m => ({ default: m.AboutModal })));
-const JournalCalendarModal = lazy(() => import('./components/Modals/JournalCalendarModal').then(m => ({ default: m.JournalCalendarModal })));
-const AISettingsModal = lazy(() => import('./components/Modals/AISettingsModal').then(m => ({ default: m.AISettingsModal })));
-
-import { sendNativeAppNotification, recordAIRequest } from './utils';
-import { checkForAppUpdates, ReleaseInfo } from './utils/updateChecker';
+import { AppModals } from './components/Modals/AppModals';
+import { sendNativeAppNotification } from './utils';
+import { checkForAppUpdates } from './utils/updateChecker';
 import { saveSettingsToDB } from './lib/sqliteStorage';
 import { mergeNotesWithAI } from './services/ai/aiMergeService';
-
 import { AppSettings } from './lib/storage';
 
 export default function App() {
-  const [isNotesListOpen, setIsNotesListOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isJournalCalendarOpen, setIsJournalCalendarOpen] = useState(false);
-  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
-  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
-  const [isAISettingsOpen, setIsAISettingsOpen] = useState(false);
-  const [isMergingAI, setIsMergingAI] = useState(false);
-  const [mergedSelectionKeys, setMergedSelectionKeys] = useState<Set<string>>(new Set());
-  const [updateReleaseAlert, setUpdateReleaseAlert] = useState<ReleaseInfo | null>(null);
-  const [isPanMode, setIsPanMode] = useState(false);
-
-
-
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [notesToDelete, setNotesToDelete] = useState<string[]>([]);
-
-  const [isZenMode, setIsZenMode] = useState(false);
-  const [showStatusBar, setShowStatusBar] = useState<boolean>(() => {
-    const saved = localStorage.getItem('diarynote_show_statusbar');
-    return saved !== null ? saved === 'true' : true;
-  });
-  const [securityModalNoteId, setSecurityModalNoteId] = useState<string | null>(null);
-  const [securityModalMode, setSecurityModalMode] = useState<'set' | 'unlock'>('set');
-
-  const [contextMenuState, setContextMenuState] = useState<{
-    isOpen: boolean;
-    x: number;
-    y: number;
-  }>({
-    isOpen: false,
-    x: 0,
-    y: 0,
-  });
-
-  const [pasteModalState, setPasteModalState] = useState<{
-    isOpen: boolean;
-    text: string;
-  }>({
-    isOpen: false,
-    text: '',
-  });
+  const {
+    isNotesListOpen,
+    setIsNotesListOpen,
+    isSearchOpen,
+    setIsSearchOpen,
+    isJournalCalendarOpen,
+    setIsJournalCalendarOpen,
+    isShortcutsModalOpen,
+    setIsShortcutsModalOpen,
+    isAboutModalOpen,
+    setIsAboutModalOpen,
+    isAISettingsOpen,
+    setIsAISettingsOpen,
+    isMergingAI,
+    setIsMergingAI,
+    mergedSelectionKeys,
+    setMergedSelectionKeys,
+    updateReleaseAlert,
+    setUpdateReleaseAlert,
+    isPanMode,
+    isDeleteModalOpen,
+    setIsDeleteModalOpen,
+    notesToDelete,
+    setNotesToDelete,
+    isZenMode,
+    setIsZenMode,
+    showStatusBar,
+    handleToggleStatusBar,
+    handleTogglePanMode,
+    securityModalNoteId,
+    setSecurityModalNoteId,
+    securityModalMode,
+    setSecurityModalMode,
+    contextMenuState,
+    setContextMenuState,
+    pasteModalState,
+    setPasteModalState,
+  } = useAppUIState();
 
   // 1. History Stack Hook
   const {
@@ -138,18 +124,10 @@ export default function App() {
         setUpdateReleaseAlert(res.latestRelease);
       }
     });
-  }, []);
+  }, [setUpdateReleaseAlert]);
 
   const handleUndo = useCallback(() => triggerUndo(setNotes), [triggerUndo, setNotes]);
   const handleRedo = useCallback(() => triggerRedo(setNotes), [triggerRedo, setNotes]);
-
-  const handleToggleStatusBar = useCallback(() => {
-    setShowStatusBar((prev) => {
-      const next = !prev;
-      localStorage.setItem('diarynote_show_statusbar', String(next));
-      return next;
-    });
-  }, []);
 
   // Request deletion of notes - if any targeted note is locked, require passcode verification first
   const requestDeleteNotes = useCallback(
@@ -157,24 +135,17 @@ export default function App() {
       if (ids.length === 0) return;
       const hasLockedNote = ids.some((id) => notes.find((n) => n.id === id)?.isLocked);
       if (hasLockedNote) {
-        // Find first locked note id to verify passcode before deletion
         const firstLockedId = ids.find((id) => notes.find((n) => n.id === id)?.isLocked)!;
         setSecurityModalNoteId(firstLockedId);
         setSecurityModalMode('unlock');
-        // Pending notes to delete after passcode verification
         setNotesToDelete(ids);
         return;
       }
       setNotesToDelete(ids);
       setIsDeleteModalOpen(true);
     },
-    [notes]
+    [notes, setSecurityModalNoteId, setSecurityModalMode, setNotesToDelete, setIsDeleteModalOpen]
   );
-
-
-  const handleTogglePanMode = useCallback(() => {
-    setIsPanMode((prev) => !prev);
-  }, []);
 
   const handleToggleTheme = useCallback(() => {
     setSettings((prev) => ({ ...prev, themeMode: prev.themeMode === 'dark' ? 'light' : 'dark' }));
@@ -188,12 +159,11 @@ export default function App() {
     setSettings((prev) => ({ ...prev, showConnections: !prev.showConnections }));
   }, [setSettings]);
 
-  // Lock selected notes — if global master passcode already set, lock immediately; otherwise open setup modal
+  // Lock selected notes
   const handleLockSelectedNotes = useCallback(
     (ids: string[]) => {
       if (ids.length === 0) return;
       if (settings.masterPasswordHash) {
-        // Master passcode configured — lock all selected notes immediately
         const notesToLock = notes
           .filter((n) => ids.includes(n.id) && !n.isLocked)
           .map((n) => ({ ...n, isLocked: true }));
@@ -206,14 +176,12 @@ export default function App() {
           );
         }
       } else {
-        // First time global setup — open setup modal for the first selected note
         setSecurityModalNoteId(ids[0]);
         setSecurityModalMode('set');
       }
     },
-    [notes, settings.masterPasswordHash, handleUpdateBatchNotes]
+    [notes, settings.masterPasswordHash, handleUpdateBatchNotes, setSecurityModalNoteId, setSecurityModalMode]
   );
-
 
   const handleSaveAISettings = useCallback(
     (aiSettings: Partial<AppSettings>) => {
@@ -256,7 +224,6 @@ export default function App() {
     handleLockSelectedNotes,
     (id) => handleNavigateToNote(id, setSelectedNoteIds),
     () => {
-      // Group shortcut (Ctrl+G) handler
       if (selectedNoteIds.length < 2) return;
       const selectedNotes = notes.filter((n) => selectedNoteIds.includes(n.id));
       const newGroupId = `group-${Date.now()}`;
@@ -271,7 +238,6 @@ export default function App() {
       setSelectedNoteIds([]);
     },
     () => {
-      // Ungroup shortcut (Ctrl+Shift+G) handler
       if (selectedNoteIds.length === 0) return;
       const selectedNotes = notes.filter((n) => selectedNoteIds.includes(n.id) && n.groupId);
       if (selectedNotes.length === 0) return;
@@ -312,7 +278,6 @@ export default function App() {
       return;
     }
 
-    // Mark current selection key as merged, BUT KEEP NOTES SELECTED
     setIsMergingAI(true);
     setMergedSelectionKeys((prev) => new Set(prev).add(selKey));
 
@@ -322,7 +287,6 @@ export default function App() {
       `Synthesizing ${targetCount} notes in the background...`
     );
 
-    // Asynchronous background execution
     (async () => {
       try {
         const result = await mergeNotesWithAI(notesToMerge, {
@@ -335,7 +299,6 @@ export default function App() {
 
         const avgX = Math.round(notesToMerge.reduce((sum, n) => sum + n.x, 0) / notesToMerge.length);
         const avgY = Math.round(notesToMerge.reduce((sum, n) => sum + (n.y + (n.height || 340)), 0) / notesToMerge.length) + 40;
-
         const maxZ = Math.max(0, ...notes.map((n) => n.zIndex || 0));
 
         const newNote: Note = {
@@ -346,7 +309,6 @@ export default function App() {
           y: avgY,
           width: 500,
           height: 420,
-
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           fontFamily: settings.defaultFont || 'sans',
@@ -379,11 +341,7 @@ export default function App() {
         setIsMergingAI(false);
       }
     })();
-  }, [settings, notes, selectedNoteIds, mergedSelectionKeys, handleUpdateNote]);
-
-
-
-
+  }, [settings, notes, selectedNoteIds, mergedSelectionKeys, handleUpdateNote, setIsAISettingsOpen, setIsMergingAI, setMergedSelectionKeys]);
 
   const handleOpenOrCreateTodayJournal = useCallback(
     (targetDateStr?: string) => {
@@ -409,7 +367,7 @@ export default function App() {
         );
       }
     },
-    [notes, handleDeleteNote, setSelectedNoteIds]
+    [notes, handleDeleteNote, setSelectedNoteIds, setSecurityModalNoteId, setSecurityModalMode, setNotesToDelete]
   );
 
   const handleCreateNote = useCallback(
@@ -454,23 +412,19 @@ export default function App() {
             importedNotes.forEach((importedNote) => {
               const existing = existingMap.get(importedNote.id);
               if (!existing) {
-                // New note - append to workspace
                 mergedNotes.push(importedNote);
                 addedCount++;
               } else {
-                // Matching note ID - compare timestamps
                 const importedTime = new Date(importedNote.updatedAt || 0).getTime();
                 const existingTime = new Date(existing.updatedAt || 0).getTime();
 
                 if (importedTime > existingTime) {
-                  // Imported note is newer - update in-place
                   const index = mergedNotes.findIndex((n) => n.id === importedNote.id);
                   if (index !== -1) {
                     mergedNotes[index] = importedNote;
                     updatedCount++;
                   }
                 } else {
-                  // Local note is newer or identical - keep local
                   keptCount++;
                 }
               }
@@ -478,7 +432,6 @@ export default function App() {
 
             resetHistory(mergedNotes);
 
-            // Generate detailed feedback message
             const summaryParts: string[] = [];
             if (addedCount > 0) summaryParts.push(`${addedCount} new added`);
             if (updatedCount > 0) summaryParts.push(`${updatedCount} updated`);
@@ -519,9 +472,9 @@ export default function App() {
       setNotesToDelete([]);
     }
     setIsDeleteModalOpen(false);
-  }, [handleDeleteMultipleNotes, notesToDelete, setSelectedNoteIds]);
+  }, [handleDeleteMultipleNotes, notesToDelete, setSelectedNoteIds, setNotesToDelete, setIsDeleteModalOpen]);
 
-  const securityModalNote = notes.find((n) => n.id === securityModalNoteId);
+  const securityModalNote = notes.find((n) => n.id === securityModalNoteId) || null;
 
   const handleExportNote = useCallback(async (note: Note, format: 'md' | 'txt' | 'json') => {
     if (note.isLocked) {
@@ -540,39 +493,12 @@ export default function App() {
       const contentType = format === 'md' ? 'text/markdown' : 'text/plain';
       await saveFileWithNotification(fileName, text, 'Notes', contentType);
     }
-  }, []);
-
-  const handleContextMenuNote = useCallback(
-    (e: React.MouseEvent, noteId: string) => {
-      e.preventDefault();
-      setSelectedNoteIds((prev) => {
-        if (prev.includes(noteId)) return prev;
-        return e.shiftKey ? [...prev, noteId] : [noteId];
-      });
-      setContextMenuState({
-        isOpen: true,
-        x: e.clientX,
-        y: e.clientY,
-      });
-    },
-    [setSelectedNoteIds]
-  );
-
-  const handleContextMenuCanvas = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setSelectedNoteIds([]);
-    setContextMenuState({
-      isOpen: true,
-      x: e.clientX,
-      y: e.clientY,
-    });
-  }, [setSelectedNoteIds]);
+  }, [setSecurityModalNoteId, setSecurityModalMode]);
 
   // Global native paste event handler to create note from external clipboard
   useEffect(() => {
     const handleGlobalPaste = (e: ClipboardEvent) => {
       const activeEl = document.activeElement;
-      // Skip if user is typing in an input/textarea (but allow our hidden clipboard listener)
       if (
         activeEl &&
         (activeEl.tagName === 'INPUT' ||
@@ -615,7 +541,7 @@ export default function App() {
       window.removeEventListener('paste', handleGlobalPaste);
       window.removeEventListener('keydown', handleGlobalKeyDown);
     };
-  }, [handleOpenOrCreateTodayJournal]);
+  }, [handleOpenOrCreateTodayJournal, setPasteModalState]);
 
   return (
     <div className={`relative w-screen h-screen overflow-hidden ${settings.themeMode === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
@@ -653,7 +579,6 @@ export default function App() {
         onDoubleClickCanvas={handleCreateNote}
         onRequestLockNote={(id) => {
           if (settings.masterPasswordHash) {
-            // Global master passcode already set — lock immediately without modal
             const note = notes.find((n) => n.id === id);
             if (note) {
               handleUpdateNote({
@@ -666,7 +591,6 @@ export default function App() {
               );
             }
           } else {
-            // First time setup — prompt to set app-wide global master passcode
             setSecurityModalNoteId(id);
             setSecurityModalMode('set');
           }
@@ -676,11 +600,30 @@ export default function App() {
           setSecurityModalMode('unlock');
         }}
         onExportNote={handleExportNote}
-        onContextMenuNote={handleContextMenuNote}
-        onContextMenuCanvas={handleContextMenuCanvas}
+        onContextMenuNote={(e, noteId) => {
+          e.preventDefault();
+          setSelectedNoteIds((prev) => {
+            if (prev.includes(noteId)) return prev;
+            return e.shiftKey ? [...prev, noteId] : [noteId];
+          });
+          setContextMenuState({
+            isOpen: true,
+            x: e.clientX,
+            y: e.clientY,
+          });
+        }}
+        onContextMenuCanvas={(e) => {
+          e.preventDefault();
+          setSelectedNoteIds([]);
+          setContextMenuState({
+            isOpen: true,
+            x: e.clientX,
+            y: e.clientY,
+          });
+        }}
       />
 
-      {/* Docked Bottom Control Bar Container with Corner Morphing */}
+      {/* Docked Bottom Control Bar Container */}
       {!isZenMode && (
         <motion.div
           layout
@@ -699,32 +642,19 @@ export default function App() {
           className={`fixed ${showStatusBar ? 'bottom-10' : 'bottom-6'} left-1/2 -translate-x-1/2 z-40 flex flex-col items-center border shadow-sm select-none min-w-[320px] sm:min-w-[540px] md:min-w-[640px] w-auto max-w-[calc(100vw-24px)] transition-[bottom] duration-200 ${
             selectedNoteIds.length >= 2 ? 'overflow-visible' : 'overflow-hidden'
           } ${
-
             settings.themeMode === 'light'
               ? 'bg-white/95 border-slate-200 text-slate-800'
               : 'bg-slate-900/90 border-slate-800 text-slate-200'
           }`}
         >
-          {/* Batch Action Bar Header (POSITIONED BEHIND CanvasControls z-10) */}
+          {/* Batch Action Bar Header */}
           <AnimatePresence initial={false}>
             {selectedNoteIds.length >= 2 && (
               <motion.div
                 key="batch-menu-wrapper"
-                initial={{
-                  height: 0,
-                  opacity: 0,
-                  y: 15,
-                }}
-                animate={{
-                  height: 'auto',
-                  opacity: 1,
-                  y: 0,
-                }}
-                exit={{
-                  height: 0,
-                  opacity: 0,
-                  y: 15,
-                }}
+                initial={{ height: 0, opacity: 0, y: 15 }}
+                animate={{ height: 'auto', opacity: 1, y: 0 }}
+                exit={{ height: 0, opacity: 0, y: 15 }}
                 transition={{
                   height: { duration: 0.16, ease: [0.16, 1, 0.3, 1] },
                   y: { duration: 0.16, ease: [0.16, 1, 0.3, 1] },
@@ -741,7 +671,6 @@ export default function App() {
                   isAlreadyMerged={isCurrentSelectionMerged}
                   onMergeNotesAI={handleMergeNotesAI}
                   onUpdateBatchNotes={handleUpdateBatchNotes}
-
                   onDeleteNotes={(ids) => {
                     setNotesToDelete(ids);
                     setIsDeleteModalOpen(true);
@@ -752,7 +681,7 @@ export default function App() {
             )}
           </AnimatePresence>
 
-          {/* Primary Canvas Controls Row (POSITIONED IN FRONT z-20) */}
+          {/* Primary Canvas Controls Row */}
           <div className={`w-full relative z-20 rounded-b-[inherit] ${
             settings.themeMode === 'light' ? 'bg-white/95' : 'bg-slate-900/90'
           }`}>
@@ -807,224 +736,51 @@ export default function App() {
         onDeleteNote={handleDeleteProtectedNote}
       />
 
-      <Suspense fallback={null}>
-        {/* AI Features & Key Settings Modal */}
-        <AISettingsModal
-          isOpen={isAISettingsOpen}
-          themeMode={settings.themeMode}
-          enableAIServices={settings.enableAIServices}
-          aiProvider={settings.aiProvider}
-          encryptedApiKey={settings.encryptedApiKey}
-          apiKeyIv={settings.apiKeyIv}
-          customBaseUrl={settings.customBaseUrl}
-          customModelName={settings.customModelName}
-          onClose={() => setIsAISettingsOpen(false)}
-          onSaveAISettings={handleSaveAISettings}
-        />
-
-        {/* Command Palette Search Modal */}
-        <SearchModal
-          isOpen={isSearchOpen}
-          notes={notes}
-          themeMode={settings.themeMode}
-          onClose={() => setIsSearchOpen(false)}
-          onSelectNote={(id) => handleNavigateToNote(id, setSelectedNoteIds)}
-        />
-
-
-        {/* Delete Confirmation Modal */}
-        <DeleteConfirmationModal
-          isOpen={isDeleteModalOpen}
-          count={notesToDelete.length}
-          themeMode={settings.themeMode}
-          onConfirm={handleConfirmDelete}
-          onClose={() => setIsDeleteModalOpen(false)}
-        />
-
-        {/* App Global Master Security Lock & Unlock Modal */}
-        <SecurityModal
-          isOpen={securityModalNoteId !== null}
-          mode={securityModalMode}
-          themeMode={settings.themeMode}
-          existingQuestion={settings.masterSecurityQuestion}
-          existingPasswordHash={settings.masterPasswordHash}
-          existingAnswerHash={settings.masterSecurityAnswerHash}
-          onClose={() => setSecurityModalNoteId(null)}
-          onSuccessSet={(masterPasswordHash, masterSecurityQuestion, masterSecurityAnswerHash) => {
-            // Store global master passcode & recovery question in App Settings
-            setSettings((prev) => ({
-              ...prev,
-              masterPasswordHash,
-              masterSecurityQuestion,
-              masterSecurityAnswerHash,
-            }));
-
-            // Lock target note immediately
-            if (securityModalNote) {
-              handleUpdateNote({
-                ...securityModalNote,
-                isLocked: true,
-              });
-            }
-          }}
-          onSuccessUnlock={() => {
-            if (!securityModalNote) return;
-            
-            // If pending deletion was requested, proceed with deletion after successful unlock
-            if (notesToDelete.length > 0) {
-              handleDeleteMultipleNotes(notesToDelete);
-              setSelectedNoteIds((prev) => prev.filter((id) => !notesToDelete.includes(id)));
-              const count = notesToDelete.length;
-              sendNativeAppNotification(
-                'Note Deleted',
-                count === 1 ? `Deleted protected note "${securityModalNote.title || 'Untitled Note'}"` : `Deleted ${count} protected notes`
-              );
-              setNotesToDelete([]);
-              return;
-            }
-
-            // Otherwise unlock note view
-            handleUpdateNote({
-              ...securityModalNote,
-              isLocked: false,
-            });
-          }}
-        />
-
-        {/* Keyboard Shortcuts Cheatsheet Modal */}
-        <KeyboardShortcutsModal
-          isOpen={isShortcutsModalOpen}
-          themeMode={settings.themeMode}
-          onClose={() => setIsShortcutsModalOpen(false)}
-        />
-
-        {/* Journal Calendar Modal */}
-        <JournalCalendarModal
-          isOpen={isJournalCalendarOpen}
-          onClose={() => setIsJournalCalendarOpen(false)}
-          notes={notes}
-          onSelectOrCreateDate={(dateStr) => handleOpenOrCreateTodayJournal(dateStr)}
-          themeMode={settings.themeMode}
-        />
-      </Suspense>
-
-      {/* Right-Click Context Menu for Selected Note(s) */}
-      <NoteContextMenu
-        x={contextMenuState.x}
-        y={contextMenuState.y}
-        isOpen={contextMenuState.isOpen}
-        selectedNoteIds={selectedNoteIds}
+      {/* Modals Container */}
+      <AppModals
         notes={notes}
-        themeMode={settings.themeMode}
-        onClose={() => setContextMenuState((prev) => ({ ...prev, isOpen: false }))}
-        onNavigateToNote={(id) => handleNavigateToNote(id, setSelectedNoteIds)}
-        onEditNote={(id) => {
-          setSelectedNoteIds([id]);
-          setEditingNoteId(id);
-        }}
-        onTogglePin={(ids) => {
-          const targets = notes.filter((n) => ids.includes(n.id));
-          const allPinned = targets.every((n) => n.isPinned);
-          const updated = targets.map((n) => ({ ...n, isPinned: !allPinned }));
-          handleUpdateBatchNotes(updated);
-        }}
-        onLockNotes={(ids) => handleLockSelectedNotes(ids)}
-        onGroupNotes={() => {
-          if (selectedNoteIds.length < 2) return;
-          const targets = notes.filter((n) => selectedNoteIds.includes(n.id));
-          const newGroupId = `group-${Date.now()}`;
-          const groupName = `Group ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-          const updated = targets.map((n) => ({
-            ...n,
-            groupId: newGroupId,
-            groupName,
-          }));
-          handleUpdateBatchNotes(updated);
-        }}
-        onUngroupNotes={() => {
-          const targets = notes.filter((n) => selectedNoteIds.includes(n.id) && n.groupId);
-          const updated = targets.map((n) => ({
-            ...n,
-            groupId: undefined,
-            groupName: undefined,
-          }));
-          handleUpdateBatchNotes(updated);
-        }}
-        onDuplicateNotes={(ids) => {
-          ids.forEach((id) => {
-            const target = notes.find((n) => n.id === id);
-            if (target) {
-              const newId = `note-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-              const dupNote: Note = {
-                ...target,
-                id: newId,
-                title: `${target.title || 'Untitled'} (Copy)`,
-                x: target.x + 30,
-                y: target.y + 30,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              };
-              handleUpdateNote(dupNote);
-              setSelectedNoteIds([newId]);
-            }
-          });
-        }}
-        onExportNotes={(ids, format) => {
-          const targets = notes.filter((n) => ids.includes(n.id));
-          if (targets.length === 1) {
-            handleExportNote(targets[0], format);
-          } else if (targets.length > 1) {
-            const fileName = `selected-notes-backup-${new Date().toISOString().slice(0, 10)}.json`;
-            exportNotesBackup(targets, fileName);
-          }
-        }}
-        onDeleteNotes={(ids) => requestDeleteNotes(ids)}
-        onChangePaperTheme={(ids, paperTheme) => {
-          const targets = notes.filter((n) => ids.includes(n.id));
-          const updated = targets.map((n) => ({ ...n, paperTheme }));
-          handleUpdateBatchNotes(updated);
-        }}
-        onPasteFromClipboard={() => {
-          setPasteModalState({ isOpen: true, text: '' });
-        }}
-        onCreateNoteHere={() => handleCreateNote(contextMenuState.x, contextMenuState.y)}
-        onSelectAllNotes={() => setSelectedNoteIds(notes.map((n) => n.id))}
+        settings={settings}
+        setSettings={setSettings}
+        transform={transform}
+        selectedNoteIds={selectedNoteIds}
+        setSelectedNoteIds={setSelectedNoteIds}
+        setEditingNoteId={setEditingNoteId}
+        securityModalNote={securityModalNote}
+        securityModalNoteId={securityModalNoteId}
+        setSecurityModalNoteId={setSecurityModalNoteId}
+        securityModalMode={securityModalMode}
+        notesToDelete={notesToDelete}
+        setNotesToDelete={setNotesToDelete}
+        isDeleteModalOpen={isDeleteModalOpen}
+        setIsDeleteModalOpen={setIsDeleteModalOpen}
+        isSearchOpen={isSearchOpen}
+        setIsSearchOpen={setIsSearchOpen}
+        isJournalCalendarOpen={isJournalCalendarOpen}
+        setIsJournalCalendarOpen={setIsJournalCalendarOpen}
+        isShortcutsModalOpen={isShortcutsModalOpen}
+        setIsShortcutsModalOpen={setIsShortcutsModalOpen}
+        isAboutModalOpen={isAboutModalOpen}
+        setIsAboutModalOpen={setIsAboutModalOpen}
+        isAISettingsOpen={isAISettingsOpen}
+        setIsAISettingsOpen={setIsAISettingsOpen}
+        contextMenuState={contextMenuState}
+        setContextMenuState={setContextMenuState}
+        pasteModalState={pasteModalState}
+        setPasteModalState={setPasteModalState}
+        handleUpdateNote={handleUpdateNote}
+        handleUpdateBatchNotes={handleUpdateBatchNotes}
+        handleDeleteMultipleNotes={handleDeleteMultipleNotes}
+        handleConfirmDelete={handleConfirmDelete}
+        handleCreateNote={handleCreateNote}
+        handleAddNote={handleAddNote}
+        handleOpenOrCreateTodayJournal={handleOpenOrCreateTodayJournal}
+        handleNavigateToNote={handleNavigateToNote}
+        handleLockSelectedNotes={handleLockSelectedNotes}
+        handleExportNote={handleExportNote}
+        requestDeleteNotes={requestDeleteNotes}
+        handleSaveAISettings={handleSaveAISettings}
+        setNotes={setNotes}
       />
-
-      <Suspense fallback={null}>
-        {/* Clipboard Ctrl+V Paste Confirm Modal */}
-        <PasteConfirmModal
-          isOpen={pasteModalState.isOpen}
-          pastedText={pasteModalState.text}
-          themeMode={settings.themeMode}
-          onClose={() => setPasteModalState({ isOpen: false, text: '' })}
-          onConfirm={(pastedTitle, pastedContent) => {
-            const newId = handleAddNote(transform, settings);
-            setNotes((prev) =>
-              prev.map((n) =>
-                n.id === newId ? { ...n, title: pastedTitle, content: pastedContent } : n
-              )
-            );
-            setSelectedNoteIds([newId]);
-            sendNativeAppNotification(
-              'Note Created',
-              `Created note "${pastedTitle}" from clipboard paste`
-            );
-          }}
-        />
-
-        {/* Hidden Native Clipboard Paste Listener (bypasses browser/distro permissions) */}
-        <HiddenClipboardListener
-          onPasteText={(text) => setPasteModalState({ isOpen: true, text })}
-        />
-
-        {/* About Application Modal */}
-        <AboutModal
-          isOpen={isAboutModalOpen}
-          themeMode={settings.themeMode}
-          onClose={() => setIsAboutModalOpen(false)}
-        />
-      </Suspense>
 
       {/* First-Time Release Update Alert Banner */}
       {updateReleaseAlert && (
