@@ -70,50 +70,47 @@ export const PasteConfirmModal: React.FC<PasteConfirmModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className={`flex items-center justify-between pb-3 mb-4 border-b ${
-          isDark ? 'border-slate-800' : 'border-slate-200'
-        }`}>
-          <div className="flex items-center gap-2.5">
-            <div className={`p-1.5 rounded-md ${isDark ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
-              <Clipboard className="w-4 h-4" />
-            </div>
+        <div
+          className={`flex items-center justify-between pb-3 mb-3.5 border-b transition-colors ${
+            isDark ? 'border-slate-800' : 'border-slate-200/80'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Clipboard className={`w-4 h-4 ${isDark ? 'text-slate-300' : 'text-slate-700'}`} />
             <div>
-              <h2 className="text-sm font-bold tracking-tight">Create Note from Clipboard</h2>
-              <p className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                Pasted text detected from external source
-              </p>
+              <h2 className="text-sm font-bold tracking-tight leading-none">Create Note from Clipboard</h2>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className={`p-1 rounded-md transition-colors ${
-              isDark ? 'hover:bg-slate-800 text-slate-400 hover:text-slate-200' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'
+            className={`p-1 rounded-sm transition-colors cursor-pointer ${
+              isDark ? 'hover:bg-slate-800 text-slate-400 hover:text-slate-200' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-800'
             }`}
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="space-y-3.5">
+        <form onSubmit={handleSubmit} className="space-y-3 text-xs">
           <div>
-            <label className={`block text-xs font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Note Title</label>
+            <label className={`block font-semibold mb-1 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>Note Title</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Title..."
-              className={`w-full px-3 py-2 text-xs rounded-md border outline-none transition-colors ${
+              className={`w-full px-3 py-1.5 rounded-sm border outline-none transition-colors ${
                 isDark
-                  ? 'bg-slate-950/60 border-slate-800 text-slate-100 focus:border-slate-700'
-                  : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-slate-300'
+                  ? 'bg-slate-800/80 border-slate-700 text-slate-100 focus:border-slate-500'
+                  : 'bg-white border-slate-300 text-slate-900 focus:border-slate-500'
               }`}
             />
           </div>
 
           <div>
-            <label className={`block text-xs font-semibold mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Content Preview</label>
+            <label className={`block font-semibold mb-1 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>Content Preview</label>
             <textarea
               autoFocus
               rows={6}
@@ -130,23 +127,25 @@ export const PasteConfirmModal: React.FC<PasteConfirmModalProps> = ({
                 }
               }}
               placeholder="Paste text here (Ctrl+V) or type content..."
-              className={`w-full p-3 text-xs font-sans rounded-md border outline-none resize-none transition-colors ${
+              className={`w-full p-3 font-mono text-xs rounded-sm border outline-none resize-none transition-colors ${
                 isDark
-                  ? 'bg-slate-950/60 border-slate-800 text-slate-200 focus:border-slate-700'
-                  : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-slate-300'
+                  ? 'bg-slate-800/80 border-slate-700 text-slate-200 focus:border-slate-500'
+                  : 'bg-white border-slate-300 text-slate-800 focus:border-slate-500'
               }`}
             />
           </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800/40">
+          <div className={`flex items-center justify-end gap-2 pt-3 border-t transition-colors ${
+            isDark ? 'border-slate-800' : 'border-slate-200/80'
+          }`}>
             <button
               type="button"
               onClick={onClose}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-md border transition-colors ${
+              className={`px-3.5 py-1.5 font-semibold rounded-sm border transition-colors cursor-pointer ${
                 isDark
-                  ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
-                  : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+                  ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700'
+                  : 'bg-slate-100 border-slate-200 text-slate-800 hover:bg-slate-200'
               }`}
             >
               Cancel
@@ -154,10 +153,10 @@ export const PasteConfirmModal: React.FC<PasteConfirmModalProps> = ({
             <button
               type="submit"
               disabled={!content.trim()}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 font-semibold rounded-sm transition-colors cursor-pointer ${
                 isDark
-                  ? 'bg-white text-slate-900 hover:bg-slate-100 disabled:opacity-50'
-                  : 'bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50'
+                  ? 'bg-white text-slate-900 hover:bg-slate-100 disabled:opacity-40'
+                  : 'bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-40'
               }`}
             >
               <Check className="w-3.5 h-3.5" />

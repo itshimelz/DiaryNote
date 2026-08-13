@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Note, CanvasTheme } from '../../types';
 import { formatDate } from '../../utils';
 import { Search, Calendar, Tag, FileText, CornerDownLeft, X, Layers, Lock, CheckSquare } from 'lucide-react';
-import { SmartMarkdownText } from '../NoteCard/SmartMarkdownText';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -119,40 +119,34 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
 
       const title = (note.title || '').toLowerCase();
       const content = (note.content || '').toLowerCase();
-
-      const matchesKeyword = title.includes(q) || content.includes(q);
-      if (filterType === 'all' && matchesKeyword) return true;
-
-      const noteTags = [
-        ...(note.tags || []).filter((t) => !/^#?Group\s/i.test(t)),
-        ...((note.title + ' ' + note.content).match(/#[a-zA-Z0-9_\-\u0980-\u09FF]+/g) || []).filter(
-          (t) => !/^#?Group\s/i.test(t)
-        ),
-      ].map((t) => t.toLowerCase());
+      const tags = (note.tags || []).map((t) => t.toLowerCase());
+      const processed = processedNotesMap.get(note.id);
+      const userHashtags = (processed?.userHashtags || []).map((t) => t.toLowerCase());
 
       if (filterType === 'tags') {
-        return noteTags.some((t) => t.includes(q)) || (q.startsWith('#') && noteTags.some((t) => t.includes(q.substring(1))));
+        const queryTag = q.startsWith('#') ? q : `#${q}`;
+        return (
+          tags.some((t) => (t.startsWith('#') ? t : `#${t}`).includes(queryTag)) ||
+          userHashtags.some((t) => t.includes(queryTag))
+        );
       }
-
-      const isoCreated = (note.createdAt || '').toLowerCase();
-      const formattedCreated = formatDate(note.createdAt).toLowerCase();
-      const formattedUpdated = formatDate(note.updatedAt).toLowerCase();
-      const matchesDate = formattedCreated.includes(q) || formattedUpdated.includes(q) || isoCreated.includes(q);
 
       if (filterType === 'date') {
-        return matchesDate;
+        const createdDate = formatDate(note.createdAt).toLowerCase();
+        const updatedDate = formatDate(note.updatedAt).toLowerCase();
+        return createdDate.includes(q) || updatedDate.includes(q);
       }
 
-      const matchesTag = noteTags.some((t) => t.includes(q));
-      return matchesKeyword || matchesDate || matchesTag;
+      return (
+        title.includes(q) ||
+        content.includes(q) ||
+        tags.some((t) => t.includes(q)) ||
+        userHashtags.some((t) => t.includes(q))
+      );
     });
-  }, [notes, query, filterType]);
+  }, [notes, query, filterType, processedNotesMap]);
 
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [query, filterType]);
-
-  // Keyboard navigation inside search modal
+  // Keyboard navigation inside search results
   useEffect(() => {
     if (!isOpen) return;
 
@@ -162,10 +156,14 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
         onClose();
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedIndex((prev) => (filteredNotes.length > 0 ? (prev + 1) % filteredNotes.length : 0));
+        setSelectedIndex((prev) =>
+          prev < filteredNotes.length - 1 ? prev + 1 : 0
+        );
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setSelectedIndex((prev) => (filteredNotes.length > 0 ? (prev - 1 + filteredNotes.length) % filteredNotes.length : 0));
+        setSelectedIndex((prev) =>
+          prev > 0 ? prev - 1 : Math.max(0, filteredNotes.length - 1)
+        );
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (filteredNotes[selectedIndex]) {
@@ -181,25 +179,25 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div
-      className={`fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 transition-opacity duration-200 animate-in fade-in select-none ${
-        isDark ? 'bg-black/60 backdrop-blur-md' : 'bg-slate-900/30 backdrop-blur-md'
+      className={`fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 transition-opacity duration-200 animate-in fade-in select-none font-sans ${
+        isDark ? 'bg-black/60 backdrop-blur-sm' : 'bg-slate-950/40 backdrop-blur-sm'
       }`}
       onClick={onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`w-full max-w-2xl rounded-md shadow-sm overflow-hidden flex flex-col max-h-[80vh] border transition-opacity duration-200 backdrop-blur-xl ${
+        className={`w-full max-w-2xl rounded-md shadow-sm overflow-hidden flex flex-col max-h-[80vh] border transition-opacity duration-200 ${
           isDark
-            ? 'bg-slate-900/95 border-slate-800 text-slate-100'
-            : 'bg-white/95 border-slate-200 text-slate-900'
+            ? 'bg-slate-900 border-slate-800 text-slate-100'
+            : 'bg-white border-slate-200 text-slate-900'
         }`}
       >
         {/* Search Header */}
         <div
           className={`p-3.5 border-b flex items-center gap-3 transition-colors ${
-            isDark ? 'border-slate-800/80 bg-slate-950/40' : 'border-slate-200/80 bg-slate-50/70'
+            isDark ? 'border-slate-800 bg-slate-950/40' : 'border-slate-200/80 bg-slate-50/70'
           }`}
         >
           <Search className={`w-4 h-4 shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
@@ -208,7 +206,7 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search notes, dates (e.g. Aug 5), tags (#ideas)..."
+            placeholder="Search notes, dates, tags (#journal)..."
             className={`w-full bg-transparent border-none text-xs sm:text-sm font-sans focus:outline-none ${
               isDark ? 'text-slate-100 placeholder-slate-500' : 'text-slate-900 placeholder-slate-400'
             }`}
@@ -216,7 +214,7 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
           {query && (
             <button
               onClick={() => setQuery('')}
-              className={`p-1 rounded-sm text-xs transition-colors ${
+              className={`p-1 rounded-sm text-xs transition-colors cursor-pointer ${
                 isDark ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/60'
               }`}
             >
@@ -236,20 +234,20 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
 
         {/* Filter Pills & Quick Tags Bar */}
         <div
-          className={`px-3 py-2 border-b flex items-center justify-between gap-2 overflow-x-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden text-xs ${
-            isDark ? 'border-slate-800/60 bg-slate-950/30' : 'border-slate-200/60 bg-slate-50/40'
+          className={`px-3.5 py-2 border-b flex items-center justify-between gap-2 overflow-x-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden text-xs ${
+            isDark ? 'border-slate-800/60 bg-slate-950/20' : 'border-slate-200/60 bg-slate-50/40'
           }`}
         >
           <div className="flex items-center gap-1.5 shrink-0 font-sans">
             <button
               onClick={() => setFilterType('all')}
-              className={`px-2.5 py-1 rounded-sm text-xs font-semibold transition-colors ${
+              className={`px-2.5 py-1 rounded-sm text-xs font-semibold transition-colors cursor-pointer ${
                 filterType === 'all'
                   ? isDark
-                    ? 'bg-slate-800 text-white border border-slate-700'
-                    : 'bg-slate-200 text-slate-900 border border-slate-300'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'bg-slate-900 text-white shadow-xs'
                   : isDark
-                  ? 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
+                  ? 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
@@ -257,13 +255,13 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
             </button>
             <button
               onClick={() => setFilterType('tags')}
-              className={`px-2.5 py-1 rounded-sm text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+              className={`px-2.5 py-1 rounded-sm text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
                 filterType === 'tags'
                   ? isDark
-                    ? 'bg-slate-800 text-white border border-slate-700'
-                    : 'bg-slate-200 text-slate-900 border border-slate-300'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'bg-slate-900 text-white shadow-xs'
                   : isDark
-                  ? 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
+                  ? 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
@@ -272,13 +270,13 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
             </button>
             <button
               onClick={() => setFilterType('date')}
-              className={`px-2.5 py-1 rounded-sm text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+              className={`px-2.5 py-1 rounded-sm text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
                 filterType === 'date'
                   ? isDark
-                    ? 'bg-slate-800 text-white border border-slate-700'
-                    : 'bg-slate-200 text-slate-900 border border-slate-300'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'bg-slate-900 text-white shadow-xs'
                   : isDark
-                  ? 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
+                  ? 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
@@ -297,10 +295,10 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
                     setQuery(tag);
                     setFilterType('tags');
                   }}
-                  className={`px-2 py-0.5 rounded-sm font-mono text-[10px] shrink-0 transition-colors ${
+                  className={`px-2 py-0.5 rounded-sm font-mono text-[10px] shrink-0 border transition-colors cursor-pointer ${
                     isDark
-                      ? 'bg-slate-800/80 text-slate-300 hover:bg-slate-700'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      ? 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-700'
+                      : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
                   }`}
                 >
                   {tag}
@@ -338,33 +336,33 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
                   onMouseEnter={() => {
                     if (selectedIndex !== index) setSelectedIndex(index);
                   }}
-                  className={`px-3 py-2 rounded-lg cursor-pointer transition-colors flex items-center justify-between gap-3 border ${
+                  className={`px-3 py-2 rounded-sm cursor-pointer transition-colors flex items-center justify-between gap-3 border ${
                     isSelected
                       ? isDark
-                        ? 'bg-blue-600/15 border-blue-500/40 text-slate-100 shadow-sm'
-                        : 'bg-blue-50 border-blue-200 text-slate-900 shadow-sm'
+                        ? 'bg-slate-800 border-slate-700 text-slate-100'
+                        : 'bg-slate-100 border-slate-300 text-slate-900'
                       : isDark
-                      ? 'border-transparent hover:bg-slate-800/60 text-slate-200'
-                      : 'border-transparent hover:bg-slate-100 text-slate-800'
+                      ? 'border-transparent hover:bg-slate-800/40 text-slate-300'
+                      : 'border-transparent hover:bg-slate-50 text-slate-700'
                   }`}
                 >
                   {/* Left: Icon + Title & 1-Line Clean Preview */}
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     <div
-                      className={`p-1.5 rounded-md shrink-0 ${
+                      className={`p-1.5 rounded-sm shrink-0 ${
                         isSelected
-                          ? 'bg-blue-500/20 text-blue-400'
+                          ? isDark ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-900'
                           : isDark
                           ? 'bg-slate-800 text-slate-400'
                           : 'bg-slate-100 text-slate-500'
                       }`}
                     >
                       {note.isLocked ? (
-                        <Lock className="w-4 h-4 text-amber-400" />
+                        <Lock className="w-3.5 h-3.5 text-slate-400" />
                       ) : note.content?.includes('- [') ? (
-                        <CheckSquare className="w-4 h-4 text-blue-500" />
+                        <CheckSquare className="w-3.5 h-3.5" />
                       ) : (
-                        <FileText className="w-4 h-4 text-slate-400" />
+                        <FileText className="w-3.5 h-3.5" />
                       )}
                     </div>
 
@@ -375,13 +373,13 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
                         </h4>
                         {note.groupId && (
                           <span
-                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-sans font-medium border shrink-0 ${
+                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[9px] font-sans font-medium border shrink-0 ${
                               isDark
                                 ? 'bg-slate-800 border-slate-700 text-slate-300'
                                 : 'bg-slate-100 border-slate-200 text-slate-700'
                             }`}
                           >
-                            <Layers className="w-2.5 h-2.5 text-blue-400" />
+                            <Layers className="w-2.5 h-2.5" />
                             <span>{note.groupName || 'Group'}</span>
                           </span>
                         )}
@@ -404,8 +402,8 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
                         {Array.from(new Set(userHashtags)).slice(0, 2).map((t) => (
                           <span
                             key={t}
-                            className={`px-1.5 py-0.5 rounded font-mono text-[9px] ${
-                              isDark ? 'bg-slate-800/80 text-slate-400' : 'bg-slate-100 text-slate-600'
+                            className={`px-1.5 py-0.5 rounded-sm font-mono text-[9px] border ${
+                              isDark ? 'bg-slate-800/80 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'
                             }`}
                           >
                             {t}
@@ -421,7 +419,7 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
                     {isSelected && (
                       <span
                         className={`flex items-center gap-1 font-mono font-medium ${
-                          isDark ? 'text-blue-400' : 'text-blue-600'
+                          isDark ? 'text-slate-300' : 'text-slate-700'
                         }`}
                       >
                         <span>Jump</span>
@@ -437,28 +435,28 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
 
         {/* Footer Shortcut Bar */}
         <div
-          className={`px-4 py-2.5 border-t text-[10px] font-mono flex items-center justify-between ${
+          className={`px-4 py-2.5 border-t text-[10px] font-mono flex items-center justify-between transition-colors ${
             isDark
-              ? 'border-slate-800/80 bg-slate-950/80 text-slate-400'
-              : 'border-slate-100 bg-slate-50/90 text-slate-500'
+              ? 'border-slate-800 bg-slate-950/80 text-slate-400'
+              : 'border-slate-200/80 bg-slate-50/90 text-slate-500'
           }`}
         >
           <div className="flex items-center gap-3">
             <span>
               <kbd
-                className={`px-1.5 py-0.5 rounded border ${
+                className={`px-1.5 py-0.5 rounded-sm border ${
                   isDark
                     ? 'bg-slate-800 border-slate-700 text-slate-300'
-                    : 'bg-slate-200/80 border-slate-300 text-slate-700'
+                    : 'bg-slate-100 border-slate-200 text-slate-700'
                 }`}
               >
                 ↑
               </kbd>{' '}
               <kbd
-                className={`px-1.5 py-0.5 rounded border ${
+                className={`px-1.5 py-0.5 rounded-sm border ${
                   isDark
                     ? 'bg-slate-800 border-slate-700 text-slate-300'
-                    : 'bg-slate-200/80 border-slate-300 text-slate-700'
+                    : 'bg-slate-100 border-slate-200 text-slate-700'
                 }`}
               >
                 ↓
@@ -467,10 +465,10 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
             </span>
             <span>
               <kbd
-                className={`px-1.5 py-0.5 rounded border ${
+                className={`px-1.5 py-0.5 rounded-sm border ${
                   isDark
                     ? 'bg-slate-800 border-slate-700 text-slate-300'
-                    : 'bg-slate-200/80 border-slate-300 text-slate-700'
+                    : 'bg-slate-100 border-slate-200 text-slate-700'
                 }`}
               >
                 ↵
@@ -481,7 +479,8 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
           <span>{filteredNotes.length} matching notes</span>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
