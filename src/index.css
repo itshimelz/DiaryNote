@@ -95,16 +95,16 @@ p, h1, h2, h3, h4, span, div {
 /* Note Ruled Lined Paper Backgrounds */
 .bg-note-ruled {
   background-color: #faf6ee;
-  background-image: repeating-linear-gradient(transparent, transparent 31px, #d4c9b4 31.5px, transparent 32px);
-  background-size: 100% 32px;
+  background-image: repeating-linear-gradient(transparent, transparent calc(var(--ruled-line-height, 32px) - 1px), #d4c9b4 calc(var(--ruled-line-height, 32px) - 0.5px), transparent var(--ruled-line-height, 32px));
+  background-size: 100% var(--ruled-line-height, 32px);
   background-origin: content-box;
   background-position: 0 4px;
 }
 
 .bg-note-ruled-dark {
   background-color: #101827;
-  background-image: repeating-linear-gradient(transparent, transparent 31px, #1e2d45 31.5px, transparent 32px);
-  background-size: 100% 32px;
+  background-image: repeating-linear-gradient(transparent, transparent calc(var(--ruled-line-height, 32px) - 1px), #1e2d45 calc(var(--ruled-line-height, 32px) - 0.5px), transparent var(--ruled-line-height, 32px));
+  background-size: 100% var(--ruled-line-height, 32px);
   background-origin: content-box;
   background-position: 0 4px;
 }
@@ -118,12 +118,12 @@ p, h1, h2, h3, h4, span, div {
 
 /* Perfect alignment for ruled lined notes */
 .ruled-text-alignment {
-  line-height: 32px !important;
+  line-height: var(--ruled-line-height, 32px) !important;
 }
 
 .ruled-text-alignment,
 textarea.ruled-text-alignment {
-  line-height: 32px !important;
+  line-height: var(--ruled-line-height, 32px) !important;
   padding: 0 !important;
   padding-top: 0px !important;
   margin: 0 !important;
@@ -132,15 +132,15 @@ textarea.ruled-text-alignment {
 .ruled-text-alignment div,
 .ruled-text-alignment span,
 .ruled-text-alignment li {
-  line-height: 32px !important;
+  line-height: var(--ruled-line-height, 32px) !important;
   margin-top: 0 !important;
   margin-bottom: 0 !important;
 }
 
 .ruled-text-alignment p {
-  line-height: 32px !important;
+  line-height: var(--ruled-line-height, 32px) !important;
   margin-top: 0 !important;
-  margin-bottom: 32px !important;
+  margin-bottom: var(--ruled-line-height, 32px) !important;
 }
 
 .ruled-text-alignment p:last-child {

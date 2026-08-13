@@ -29,18 +29,18 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
   onClose,
 }) => {
   return (
-    <div className="absolute bottom-13 left-1/2 -translate-x-1/2 z-50 w-80 sm:w-84 bg-white rounded-sm shadow-sm border border-slate-200 p-4 flex flex-col gap-3.5 text-xs sm:text-sm animate-in fade-in zoom-in-95 duration-150">
-      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-        <div className="flex items-center gap-2 font-bold text-sm sm:text-base text-slate-800">
-          <Palette className="w-5 h-5 text-blue-500" />
+    <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-50 w-84 sm:w-92 bg-white rounded-xl shadow-xl border border-slate-200 p-4.5 flex flex-col gap-4 text-sm animate-in fade-in zoom-in-95 duration-150">
+      <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+        <div className="flex items-center gap-2.5 font-bold text-base text-slate-800">
+          <Palette className="w-5.5 h-5.5 text-blue-500" />
           <span>Card Style & Typography</span>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="p-1 text-slate-400 hover:text-slate-600 rounded-sm transition-colors"
+          className="p-1.5 text-slate-400 hover:text-slate-600 rounded-md transition-colors"
         >
-          <X className="w-4 h-4" />
+          <X className="w-5 h-5" />
         </button>
       </div>
 

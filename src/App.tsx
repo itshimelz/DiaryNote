@@ -114,6 +114,7 @@ export default function App() {
     handleCanvasTransformChange,
     handleZoomIn,
     handleZoomOut,
+    handleResetZoom,
     handleFitNotes,
     handleNavigateToNote,
   } = useCanvasTransform(notes, bringToFront);
@@ -170,10 +171,6 @@ export default function App() {
     [notes]
   );
 
-
-  const handleResetZoom = useCallback(() => {
-    handleCanvasTransformChange({ x: Math.round(window.innerWidth / 2 - 400), y: Math.round(window.innerHeight / 2 - 300), zoom: 1 });
-  }, [handleCanvasTransformChange]);
 
   const handleTogglePanMode = useCallback(() => {
     setIsPanMode((prev) => !prev);

@@ -31,7 +31,16 @@ const NotesSidebarComponent: React.FC<NotesSidebarProps> = ({
   themeMode = 'dark',
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [sortBy, setSortBy] = useState<'created' | 'modified' | 'title'>('created');
+
+  // Debounce search query input (150ms) to prevent UI micro-stutters
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 150);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   // Close on Escape
   useEffect(() => {
@@ -46,7 +55,7 @@ const NotesSidebarComponent: React.FC<NotesSidebarProps> = ({
   }, [isOpen, onClose]);
 
   const filteredNotes = useMemo(() => {
-    const q = searchQuery.toLowerCase();
+    const q = debouncedQuery.toLowerCase();
     const filtered = notes.filter((n) => {
       return n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q);
     });
@@ -61,7 +70,7 @@ const NotesSidebarComponent: React.FC<NotesSidebarProps> = ({
       return a.title.localeCompare(b.title);
     });
     return filtered;
-  }, [notes, searchQuery, sortBy]);
+  }, [notes, debouncedQuery, sortBy]);
 
   const isDark = themeMode !== 'light';
 

@@ -57,12 +57,12 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
     : 'text-violet-500 font-bold';
 
   const getTextBtnClass = (isActive: boolean) =>
-    `flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg transition-colors ${
+    `flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-lg transition-colors ${
       isActive ? textActiveBtnClass : normalBtnClass
     }`;
 
   const getChecklistBtnClass = (isActive: boolean) =>
-    `flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg transition-colors ${
+    `flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-lg transition-colors ${
       isActive ? checklistActiveBtnClass : normalBtnClass
     }`;
 
@@ -87,18 +87,18 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
         title="Checklist mode"
         aria-label="Checklist mode"
       >
-        <ListChecks className="w-5 h-5" />
+        <ListChecks className="w-5.5 h-5.5 sm:w-6 sm:h-6" />
       </button>
 
       {/* 3. Palette / Style Theme Button */}
       <button
         type="button"
         onClick={onToggleStylePicker}
-        className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg transition-colors ${normalBtnClass}`}
+        className={`flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-lg transition-colors ${normalBtnClass}`}
         title="Theme & Font settings"
         aria-label="Theme and font settings"
       >
-        <Palette className="w-5 h-5" />
+        <Palette className="w-5.5 h-5.5 sm:w-6 sm:h-6" />
       </button>
 
       {/* 4. More Options Button */}
@@ -106,11 +106,11 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
         <button
           type="button"
           onClick={() => setShowMoreMenu(!showMoreMenu)}
-          className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg transition-colors ${normalBtnClass}`}
+          className={`flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-lg transition-colors ${normalBtnClass}`}
           title="More options"
           aria-label="More note options"
         >
-          <MoreVertical className="w-5 h-5" />
+          <MoreVertical className="w-5.5 h-5.5 sm:w-6 sm:h-6" />
         </button>
 
         {/* More Options Popover */}
@@ -132,12 +132,12 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
               >
                 {note.isLocked ? (
                   <>
-                    <Unlock className="w-4.5 h-4.5 text-slate-400 shrink-0" />
+                    <Unlock className="w-5 h-5 text-slate-400 shrink-0" />
                     <span>Unlock Note</span>
                   </>
                 ) : (
                   <>
-                    <Lock className="w-4.5 h-4.5 text-slate-400 shrink-0" />
+                    <Lock className="w-5 h-5 text-slate-400 shrink-0" />
                     <span>Lock Access</span>
                   </>
                 )}
@@ -156,7 +156,7 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
                   isDarkCard ? 'hover:bg-slate-800 text-slate-200' : 'hover:bg-slate-100 text-slate-700'
                 }`}
               >
-                <Download className="w-4.5 h-4.5 text-blue-500 shrink-0" />
+                <Download className="w-5 h-5 text-blue-500 shrink-0" />
                 <span>Backup Note (.json)</span>
               </button>
             )}
@@ -173,7 +173,7 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
                   isDarkCard ? 'hover:bg-slate-800 text-slate-200' : 'hover:bg-slate-100 text-slate-700'
                 }`}
               >
-                <Download className="w-4.5 h-4.5 text-slate-400 shrink-0" />
+                <Download className="w-5 h-5 text-slate-400 shrink-0" />
                 <span>Export (.md)</span>
               </button>
             )}
@@ -189,7 +189,7 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
                   isDarkCard ? 'hover:bg-slate-800 text-slate-200' : 'hover:bg-slate-100 text-slate-700'
                 }`}
               >
-                <Copy className="w-4.5 h-4.5 text-slate-400 shrink-0" />
+                <Copy className="w-5 h-5 text-slate-400 shrink-0" />
                 <span>Duplicate Note</span>
               </button>
             )}
@@ -204,7 +204,7 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
                 isDarkCard ? 'hover:bg-rose-950/40 text-rose-400' : 'hover:bg-rose-50'
               }`}
             >
-              <Trash2 className="w-4.5 h-4.5 text-rose-500 shrink-0" />
+              <Trash2 className="w-5 h-5 text-rose-500 shrink-0" />
               <span>Delete Note</span>
             </button>
           </div>

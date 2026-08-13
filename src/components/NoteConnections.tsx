@@ -48,7 +48,7 @@ const NoteConnectionsComponent: React.FC<NoteConnectionsProps> = ({
   themeMode = 'dark',
 }) => {
   const connectionsContentKey = useMemo(
-    () => (notes || []).map((n) => `${n.id}:${n.title || ''}:${n.content || ''}`).join('||'),
+    () => (notes || []).map((n) => `${n.id}:${n.updatedAt || n.createdAt}:${n.content?.length || 0}`).join(';'),
     [notes]
   );
 

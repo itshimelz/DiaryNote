@@ -81,16 +81,20 @@ const ChecklistItemRowComponent: React.FC<ChecklistItemRowProps> = ({
         isRuled ? 'ruled-text-alignment' : ''
       }`}
     >
-      {/* Custom rounded square checkbox */}
+      {/* Custom rounded square checkbox with 36px expanded touch target */}
       <button
         type="button"
         onClick={() => onToggleItem(item.id)}
-        style={isRuled ? { marginTop: '6px' } : { marginTop: '2px' }}
-        className={`shrink-0 w-4.5 h-4.5 rounded-md border-2 flex items-center justify-center ${
-          item.completed ? themeConfig.checkboxChecked : themeConfig.checkboxUnchecked
-        }`}
+        style={isRuled ? { marginTop: '2px' } : { marginTop: '-2px' }}
+        className="shrink-0 w-9 h-9 -m-2 flex items-center justify-center rounded-lg transition-colors select-none group/chk"
       >
-        {item.completed && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+        <span
+          className={`w-4.5 h-4.5 rounded-md border-2 flex items-center justify-center transition-transform group-hover/chk:scale-105 ${
+            item.completed ? themeConfig.checkboxChecked : themeConfig.checkboxUnchecked
+          }`}
+        >
+          {item.completed && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+        </span>
       </button>
 
       {/* Task text item: Markdown preview when inactive, Textarea when editing */}
@@ -163,10 +167,10 @@ const ChecklistItemRowComponent: React.FC<ChecklistItemRowProps> = ({
       <button
         type="button"
         onClick={() => onDeleteItem(item.id)}
-        className={`opacity-0 group-hover:opacity-100 p-1 ${themeConfig.subtext} hover:text-rose-500 shrink-0`}
+        className={`opacity-0 group-hover:opacity-100 p-1.5 ${themeConfig.subtext} hover:text-rose-500 rounded-md shrink-0 transition-opacity`}
         title="Delete task"
       >
-        <Trash2 className="w-3.5 h-3.5" />
+        <Trash2 className="w-4.5 h-4.5" />
       </button>
     </div>
   );
@@ -199,7 +203,7 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
       const headingMatch = line.match(/^(#{1,6})\s+(.*)/);
       if (headingMatch) {
         return {
-          id: `item-heading-${idx}`,
+          id: `item-heading-${headingMatch[2].trim()}-${idx}`,
           text: headingMatch[2],
           completed: false,
           isHeading: true,
@@ -210,7 +214,7 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
       const isChecked = /- \[[xX]\]/.test(line);
       const text = line.replace(/^- \[[xX\s]?\]\s*/, '').replace(/^- \s*/, '');
       return {
-        id: `item-task-${idx}`,
+        id: `item-task-${text.trim()}-${idx}`,
         text,
         completed: isChecked,
         isHeading: false,
@@ -388,14 +392,14 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
         />
         <button
           type="submit"
-          className={`p-1.5 ${
+          className={`p-2 ${
             themeConfig.isDark
               ? 'bg-blue-600 hover:bg-blue-500 text-white'
               : 'bg-slate-900 hover:bg-slate-800 text-white'
           } rounded-xl transition-colors shrink-0 shadow-2xs`}
           title="Add task"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-5 h-5" />
         </button>
       </form>
     </div>

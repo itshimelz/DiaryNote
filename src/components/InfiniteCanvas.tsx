@@ -169,13 +169,22 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
       };
 
       if (e.ctrlKey || e.metaKey) {
-        // Smooth exponential zoom around mouse pointer
+        // Native desktop zoom anchored at mouse cursor position
         const rect = containerRef.current.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
 
-        const sensitivity = e.deltaMode === 1 ? 0.03 : 0.008;
-        const zoomFactor = Math.exp(-e.deltaY * sensitivity);
+        // Distinguish discrete desktop mouse wheel ticks (large deltaY or line deltaMode) vs trackpad pinch
+        let zoomFactor: number;
+        if (e.deltaMode === 1 || Math.abs(e.deltaY) >= 40) {
+          // Discrete mouse wheel tick: step zoom by a clean, native ~12% increment per tick
+          const ticks = Math.sign(e.deltaY);
+          zoomFactor = ticks > 0 ? (1 / 1.12) : 1.12;
+        } else {
+          // Continuous trackpad pinch gesture: smooth exponential dampening
+          zoomFactor = Math.exp(-e.deltaY * 0.0025);
+        }
+
         const newZoom = Math.max(minZoom, Math.min(maxZoom, baseTransform.zoom * zoomFactor));
 
         // Keep point under mouse fixed in world coordinates

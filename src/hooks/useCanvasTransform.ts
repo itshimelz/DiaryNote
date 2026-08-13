@@ -156,6 +156,19 @@ export function useCanvasTransform(notes: Note[], bringToFront: (noteId: string)
     });
   }, [animateTransformTo, getViewport, getZoomBounds, transform]);
 
+  const handleResetZoom = useCallback(() => {
+    const newZoom = 1;
+    const viewport = getViewport();
+    const centerWorldX = (viewport.width / 2 - transform.x) / transform.zoom;
+    const centerWorldY = (viewport.height / 2 - transform.y) / transform.zoom;
+
+    animateTransformTo({
+      zoom: newZoom,
+      x: Math.round(viewport.width / 2 - centerWorldX * newZoom),
+      y: Math.round(viewport.height / 2 - centerWorldY * newZoom),
+    });
+  }, [animateTransformTo, getViewport, transform]);
+
   const handleFitNotes = useCallback(() => {
     if (notes.length === 0) return;
 
@@ -237,6 +250,7 @@ export function useCanvasTransform(notes: Note[], bringToFront: (noteId: string)
     handleCanvasTransformChange,
     handleZoomIn,
     handleZoomOut,
+    handleResetZoom,
     handleFitNotes,
     handleNavigateToNote,
   };

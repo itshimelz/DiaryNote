@@ -258,6 +258,15 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
     [inline, processedContent]
   );
 
+  const ruledLineHeight = useMemo(() => {
+    if (!isRuled) return undefined;
+    if (fontSizeClass?.includes('text-xs')) return '24px';
+    if (fontSizeClass?.includes('text-sm')) return '28px';
+    if (fontSizeClass?.includes('text-lg')) return '36px';
+    if (fontSizeClass?.includes('text-xl')) return '40px';
+    return '32px';
+  }, [isRuled, fontSizeClass]);
+
   return (
     <div
       ref={markdownRef}
@@ -265,6 +274,7 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
         if ((e.target as HTMLElement).closest('button, a, input, textarea')) return;
         if (onDoubleClick) onDoubleClick(e);
       }}
+      style={isRuled ? ({ '--ruled-line-height': ruledLineHeight } as React.CSSProperties) : undefined}
       className={`break-words ${
         isRuled ? 'ruled-text-alignment' : ''
       } ${fontClass} ${fontSizeClass} ${themeConfig.text} ${className}`}

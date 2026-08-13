@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Share2, X, Pin, Check, FolderMinus, Layers, Smile, Sun, Zap, Coffee, CloudRain, SmilePlus } from 'lucide-react';
+import { Share2, X, Pin, Check, FolderMinus, Layers, Smile, Sun, Zap, Coffee, CloudRain, SmilePlus, MoreVertical } from 'lucide-react';
 import { Note, JournalMood } from '../../types';
 import { getUniqueTitleForDay } from '../../utils';
 import { PaperThemeConfig } from './types';
@@ -37,7 +37,22 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
   const [isEditingTitleLocal, setIsEditingTitleLocal] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isMoodPickerOpen, setIsMoodPickerOpen] = useState(false);
+  const [isOverflowMenuOpen, setIsOverflowMenuOpen] = useState(false);
+  const [isCompact, setIsCompact] = useState(false);
+  const headerRef = useRef<HTMLDivElement>(null);
   const skipBlurSaveRef = useRef(false);
+
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setIsCompact(entry.contentRect.width < 280);
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     setTitle(note.title || 'Untitled Note');
@@ -97,6 +112,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
 
   return (
     <div
+      ref={headerRef}
       {...headerDragProps}
       className={`flex flex-col gap-0.5 px-4 pt-3.5 pb-2 border-b ${divider} select-none cursor-grab active:cursor-grabbing group/header rounded-t-md ${headerBg}`}
     >
@@ -153,206 +169,288 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
         </div>
 
         {/* Top Right Action Icons */}
-        <div className="flex items-center gap-1.5 shrink-0 relative">
-          {/* Mood Icon Picker */}
-          {onUpdateMood && (
+        <div className="flex items-center gap-1 shrink-0 relative">
+          {isCompact ? (
             <div className="relative">
               <button
                 type="button"
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setIsMoodPickerOpen((prev) => !prev);
+                  setIsOverflowMenuOpen((prev) => !prev);
                 }}
-                className={`p-1.5 rounded-full transition-colors ${
-                  note.mood === 'happy'
-                    ? isDarkCard
-                      ? 'text-amber-400 bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30'
-                      : 'text-amber-600 bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25'
-                    : note.mood === 'calm'
-                    ? isDarkCard
-                      ? 'text-emerald-400 bg-emerald-500/20 border border-emerald-500/40 hover:bg-emerald-500/30'
-                      : 'text-emerald-600 bg-emerald-500/15 border border-emerald-500/30 hover:bg-emerald-500/25'
-                    : note.mood === 'focused'
-                    ? isDarkCard
-                      ? 'text-indigo-400 bg-indigo-500/20 border border-indigo-500/40 hover:bg-indigo-500/30'
-                      : 'text-indigo-600 bg-indigo-500/15 border border-indigo-500/30 hover:bg-indigo-500/25'
-                    : note.mood === 'reflective'
-                    ? isDarkCard
-                      ? 'text-purple-400 bg-purple-500/20 border border-purple-500/40 hover:bg-purple-500/30'
-                      : 'text-purple-600 bg-purple-500/15 border border-purple-500/30 hover:bg-purple-500/25'
-                    : note.mood === 'low'
-                    ? isDarkCard
-                      ? 'text-sky-400 bg-sky-500/20 border border-sky-500/40 hover:bg-sky-500/30'
-                      : 'text-sky-600 bg-sky-500/15 border border-sky-500/30 hover:bg-sky-500/25'
-                    : actionBtnClass
-                }`}
-                title={note.mood ? `Mood: ${note.mood}` : 'Set entry mood'}
-                aria-label="Set mood"
+                className={`p-1.5 rounded-full transition-colors ${actionBtnClass}`}
+                title="More actions"
+                aria-label="More actions"
               >
-                {note.mood === 'happy' && <Smile className="w-5 h-5" />}
-                {note.mood === 'calm' && <Sun className="w-5 h-5" />}
-                {note.mood === 'focused' && <Zap className="w-5 h-5" />}
-                {note.mood === 'reflective' && <Coffee className="w-5 h-5" />}
-                {note.mood === 'low' && <CloudRain className="w-5 h-5" />}
-                {!note.mood && <SmilePlus className="w-5 h-5" />}
+                <MoreVertical className="w-5 h-5" />
               </button>
 
-              {/* Mood Popover */}
-              {isMoodPickerOpen && (
+              {isOverflowMenuOpen && (
                 <div
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
-                  className={`absolute top-9 right-0 z-50 flex items-center gap-1 p-1.5 rounded-md border shadow-sm ${
+                  className={`absolute top-9 right-0 z-50 flex flex-col p-1 rounded-lg border shadow-lg min-w-[140px] text-xs font-medium ${
                     isDarkCard
-                      ? 'bg-slate-900/95 border-slate-700/80 text-slate-100'
-                      : 'bg-white/95 border-slate-200/90 text-slate-800'
+                      ? 'bg-slate-900 border-slate-700 text-slate-100'
+                      : 'bg-white border-slate-200 text-slate-800'
                   }`}
                 >
                   <button
+                    type="button"
                     onClick={() => {
-                      onUpdateMood('happy');
-                      setIsMoodPickerOpen(false);
+                      onTogglePin();
+                      setIsOverflowMenuOpen(false);
                     }}
-                    className={`p-1.5 rounded-lg transition-colors ${
-                      isDarkCard ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
-                    } ${note.mood === 'happy' ? (isDarkCard ? 'bg-slate-800 ring-1 ring-amber-500' : 'bg-slate-100 ring-1 ring-amber-500') : ''}`}
-                    title="Happy"
+                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors`}
                   >
-                    <Smile className="w-5 h-5 text-amber-500" />
+                    <Pin className={`w-4 h-4 ${note.isPinned ? 'fill-amber-500 text-amber-500' : ''}`} />
+                    <span>{note.isPinned ? 'Unpin Note' : 'Pin Note'}</span>
                   </button>
+
                   <button
+                    type="button"
                     onClick={() => {
-                      onUpdateMood('calm');
-                      setIsMoodPickerOpen(false);
+                      handleShare();
+                      setIsOverflowMenuOpen(false);
                     }}
-                    className={`p-1.5 rounded-lg transition-colors ${
-                      isDarkCard ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
-                    } ${note.mood === 'calm' ? (isDarkCard ? 'bg-slate-800 ring-1 ring-emerald-500' : 'bg-slate-100 ring-1 ring-emerald-500') : ''}`}
-                    title="Calm"
+                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors`}
                   >
-                    <Sun className="w-5 h-5 text-emerald-500" />
+                    <Share2 className="w-4 h-4" />
+                    <span>{isCopied ? 'Copied!' : 'Share Note'}</span>
                   </button>
-                  <button
-                    onClick={() => {
-                      onUpdateMood('focused');
-                      setIsMoodPickerOpen(false);
-                    }}
-                    className={`p-1.5 rounded-lg transition-colors ${
-                      isDarkCard ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
-                    } ${note.mood === 'focused' ? (isDarkCard ? 'bg-slate-800 ring-1 ring-indigo-500' : 'bg-slate-100 ring-1 ring-indigo-500') : ''}`}
-                    title="Focused"
-                  >
-                    <Zap className="w-5 h-5 text-indigo-500" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      onUpdateMood('reflective');
-                      setIsMoodPickerOpen(false);
-                    }}
-                    className={`p-1.5 rounded-lg transition-colors ${
-                      isDarkCard ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
-                    } ${note.mood === 'reflective' ? (isDarkCard ? 'bg-slate-800 ring-1 ring-purple-500' : 'bg-slate-100 ring-1 ring-purple-500') : ''}`}
-                    title="Reflective"
-                  >
-                    <Coffee className="w-5 h-5 text-purple-500" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      onUpdateMood('low');
-                      setIsMoodPickerOpen(false);
-                    }}
-                    className={`p-1.5 rounded-lg transition-colors ${
-                      isDarkCard ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
-                    } ${note.mood === 'low' ? (isDarkCard ? 'bg-slate-800 ring-1 ring-sky-500' : 'bg-slate-100 ring-1 ring-sky-500') : ''}`}
-                    title="Low Energy"
-                  >
-                    <CloudRain className="w-5 h-5 text-sky-500" />
-                  </button>
-                  {note.mood && (
+
+                  {note.groupId && onRemoveFromGroup && (
                     <button
+                      type="button"
                       onClick={() => {
-                        onUpdateMood(undefined);
-                        setIsMoodPickerOpen(false);
+                        onRemoveFromGroup();
+                        setIsOverflowMenuOpen(false);
                       }}
-                      className="p-1.5 rounded-lg hover:bg-rose-500/20 text-rose-500 text-xs transition-colors ml-0.5"
-                      title="Clear Mood"
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-blue-500 transition-colors`}
                     >
-                      <X className="w-4 h-4" />
+                      <FolderMinus className="w-4 h-4" />
+                      <span>Remove Group</span>
                     </button>
                   )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onDeleteNote();
+                      setIsOverflowMenuOpen(false);
+                    }}
+                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md hover:bg-rose-500/10 text-rose-500 transition-colors border-t border-slate-100 dark:border-slate-800 mt-1 pt-1.5`}
+                  >
+                    <X className="w-4 h-4" />
+                    <span>Delete Note</span>
+                  </button>
                 </div>
               )}
             </div>
+          ) : (
+            <>
+              {/* Mood Icon Picker */}
+              {onUpdateMood && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsMoodPickerOpen((prev) => !prev);
+                    }}
+                    className={`p-1.5 rounded-full transition-colors ${
+                      note.mood === 'happy'
+                        ? isDarkCard
+                          ? 'text-amber-400 bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30'
+                          : 'text-amber-600 bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25'
+                        : note.mood === 'calm'
+                        ? isDarkCard
+                          ? 'text-emerald-400 bg-emerald-500/20 border border-emerald-500/40 hover:bg-emerald-500/30'
+                          : 'text-emerald-600 bg-emerald-500/15 border border-emerald-500/30 hover:bg-emerald-500/25'
+                        : note.mood === 'focused'
+                        ? isDarkCard
+                          ? 'text-indigo-400 bg-indigo-500/20 border border-indigo-500/40 hover:bg-indigo-500/30'
+                          : 'text-indigo-600 bg-indigo-500/15 border border-indigo-500/30 hover:bg-indigo-500/25'
+                        : note.mood === 'reflective'
+                        ? isDarkCard
+                          ? 'text-purple-400 bg-purple-500/20 border border-purple-500/40 hover:bg-purple-500/30'
+                          : 'text-purple-600 bg-purple-500/15 border border-purple-500/30 hover:bg-purple-500/25'
+                        : note.mood === 'low'
+                        ? isDarkCard
+                          ? 'text-sky-400 bg-sky-500/20 border border-sky-500/40 hover:bg-sky-500/30'
+                          : 'text-sky-600 bg-sky-500/15 border border-sky-500/30 hover:bg-sky-500/25'
+                        : actionBtnClass
+                    }`}
+                    title={note.mood ? `Mood: ${note.mood}` : 'Set entry mood'}
+                    aria-label="Set mood"
+                  >
+                    {note.mood === 'happy' && <Smile className="w-5 h-5" />}
+                    {note.mood === 'calm' && <Sun className="w-5 h-5" />}
+                    {note.mood === 'focused' && <Zap className="w-5 h-5" />}
+                    {note.mood === 'reflective' && <Coffee className="w-5 h-5" />}
+                    {note.mood === 'low' && <CloudRain className="w-5 h-5" />}
+                    {!note.mood && <SmilePlus className="w-5 h-5" />}
+                  </button>
+
+                  {/* Mood Popover */}
+                  {isMoodPickerOpen && (
+                    <div
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                      className={`absolute top-9 right-0 z-50 flex items-center gap-1 p-1.5 rounded-md border shadow-sm ${
+                        isDarkCard
+                          ? 'bg-slate-900/95 border-slate-700/80 text-slate-100'
+                          : 'bg-white/95 border-slate-200/90 text-slate-800'
+                      }`}
+                    >
+                      <button
+                        onClick={() => {
+                          onUpdateMood('happy');
+                          setIsMoodPickerOpen(false);
+                        }}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          isDarkCard ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
+                        } ${note.mood === 'happy' ? (isDarkCard ? 'bg-slate-800 ring-1 ring-amber-500' : 'bg-slate-100 ring-1 ring-amber-500') : ''}`}
+                        title="Happy"
+                      >
+                        <Smile className="w-5 h-5 text-amber-500" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          onUpdateMood('calm');
+                          setIsMoodPickerOpen(false);
+                        }}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          isDarkCard ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
+                        } ${note.mood === 'calm' ? (isDarkCard ? 'bg-slate-800 ring-1 ring-emerald-500' : 'bg-slate-100 ring-1 ring-emerald-500') : ''}`}
+                        title="Calm"
+                      >
+                        <Sun className="w-5 h-5 text-emerald-500" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          onUpdateMood('focused');
+                          setIsMoodPickerOpen(false);
+                        }}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          isDarkCard ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
+                        } ${note.mood === 'focused' ? (isDarkCard ? 'bg-slate-800 ring-1 ring-indigo-500' : 'bg-slate-100 ring-1 ring-indigo-500') : ''}`}
+                        title="Focused"
+                      >
+                        <Zap className="w-5 h-5 text-indigo-500" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          onUpdateMood('reflective');
+                          setIsMoodPickerOpen(false);
+                        }}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          isDarkCard ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
+                        } ${note.mood === 'reflective' ? (isDarkCard ? 'bg-slate-800 ring-1 ring-purple-500' : 'bg-slate-100 ring-1 ring-purple-500') : ''}`}
+                        title="Reflective"
+                      >
+                        <Coffee className="w-5 h-5 text-purple-500" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          onUpdateMood('low');
+                          setIsMoodPickerOpen(false);
+                        }}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          isDarkCard ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
+                        } ${note.mood === 'low' ? (isDarkCard ? 'bg-slate-800 ring-1 ring-sky-500' : 'bg-slate-100 ring-1 ring-sky-500') : ''}`}
+                        title="Low Energy"
+                      >
+                        <CloudRain className="w-5 h-5 text-sky-500" />
+                      </button>
+                      {note.mood && (
+                        <button
+                          onClick={() => {
+                            onUpdateMood(undefined);
+                            setIsMoodPickerOpen(false);
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-rose-500/20 text-rose-500 text-xs transition-colors ml-0.5"
+                          title="Clear Mood"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Pin Icon */}
+              <button
+                type="button"
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTogglePin();
+                }}
+                className={`p-1.5 rounded-full transition-colors ${
+                  note.isPinned
+                    ? 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
+                    : actionBtnClass
+                }`}
+                title={note.isPinned ? 'Unpin note' : 'Pin note'}
+                aria-label={note.isPinned ? 'Unpin note' : 'Pin note'}
+              >
+                <Pin className={`w-5 h-5 ${note.isPinned ? 'fill-amber-500' : ''}`} />
+              </button>
+
+              {/* Remove from Group Icon */}
+              {note.groupId && onRemoveFromGroup && (
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemoveFromGroup();
+                  }}
+                  className={`p-1.5 rounded-full transition-colors text-blue-500 hover:bg-rose-500/10 hover:text-rose-500`}
+                  title="Remove note from group"
+                  aria-label="Remove note from group"
+                >
+                  <FolderMinus className="w-5 h-5" />
+                </button>
+              )}
+
+              {/* Share Icon */}
+              <button
+                type="button"
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleShare();
+                }}
+                className={`p-1.5 rounded-full transition-colors relative ${actionBtnClass}`}
+                title={isCopied ? 'Copied to clipboard!' : 'Share note'}
+                aria-label={isCopied ? 'Copied to clipboard' : 'Copy note to clipboard'}
+              >
+                {isCopied ? <Check className="w-5 h-5 text-emerald-600" /> : <Share2 className="w-5 h-5" />}
+              </button>
+
+              {/* Close/Delete Icon */}
+              <button
+                type="button"
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteNote();
+                }}
+                className={`p-1.5 rounded-full hover:text-rose-600 ${
+                  isDarkCard ? 'hover:bg-rose-950/40 text-slate-400' : 'hover:bg-rose-50 text-slate-500'
+                } transition-colors`}
+                title="Delete note"
+                aria-label="Delete note"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </>
           )}
-
-          {/* Pin Icon */}
-          <button
-            type="button"
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              onTogglePin();
-            }}
-            className={`p-1.5 rounded-full transition-colors ${
-              note.isPinned
-                ? 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
-                : actionBtnClass
-            }`}
-            title={note.isPinned ? 'Unpin note' : 'Pin note'}
-            aria-label={note.isPinned ? 'Unpin note' : 'Pin note'}
-          >
-            <Pin className={`w-5 h-5 ${note.isPinned ? 'fill-amber-500' : ''}`} />
-          </button>
-
-          {/* Remove from Group Icon */}
-          {note.groupId && onRemoveFromGroup && (
-            <button
-              type="button"
-              onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemoveFromGroup();
-              }}
-              className={`p-1.5 rounded-full transition-colors text-blue-500 hover:bg-rose-500/10 hover:text-rose-500`}
-              title="Remove note from group"
-              aria-label="Remove note from group"
-            >
-              <FolderMinus className="w-5 h-5" />
-            </button>
-          )}
-
-          {/* Share Icon */}
-          <button
-            type="button"
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleShare();
-            }}
-            className={`p-1.5 rounded-full transition-colors relative ${actionBtnClass}`}
-            title={isCopied ? 'Copied to clipboard!' : 'Share note'}
-            aria-label={isCopied ? 'Copied to clipboard' : 'Copy note to clipboard'}
-          >
-            {isCopied ? <Check className="w-5 h-5 text-emerald-600" /> : <Share2 className="w-5 h-5" />}
-          </button>
-
-          {/* Close/Delete Icon */}
-          <button
-            type="button"
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              onDeleteNote();
-            }}
-            className={`p-1.5 rounded-full hover:text-rose-600 ${
-              isDarkCard ? 'hover:bg-rose-950/40 text-slate-400' : 'hover:bg-rose-50 text-slate-500'
-            } transition-colors`}
-            title="Delete note"
-            aria-label="Delete note"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
       </div>
 
