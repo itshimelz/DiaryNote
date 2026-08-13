@@ -1,0 +1,47 @@
+name: CI Quality Gates
+
+on:
+  push:
+    branches:
+      - main
+      - 'track/**'
+  pull_request:
+    branches:
+      - main
+      - 'track/**'
+
+jobs:
+  validate:
+    name: Lint, Test & Build Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Version Consistency Check
+        run: npm run version:check
+
+      - name: Run Oxlint & TypeScript Typecheck
+        run: npm run lint
+
+      - name: Run Vitest Unit & Integration Tests
+        run: npm test
+
+      - name: Build Web Production Bundle
+        run: npm run build
+
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cargo Check
+        run: cargo check --manifest-path src-tauri/Cargo.toml

@@ -373,13 +373,13 @@ main (Production Releases / Protected)
 #### Task 15: WCAG 2.1 AA Accessible Dialogs & List Virtualization (P1)
 - **Description:** Implement a standardized, reusable Accessible Modal / Drawer component utilizing HTML `<dialog>` with semantic `role="dialog"`, focus trap, focus restoration on close, background `inert`, and `Escape` key listeners. Integrate list virtualization for `SearchModal` and `NotesSidebar` to render only the visible ~25 DOM elements even with 10,000 notes.
 - **Acceptance criteria:**
-  - [ ] SearchModal, SecurityModal, SettingsModal, and CalendarModal migrated to accessible primitive.
-  - [ ] SearchModal and Sidebar render virtualized lists (max 30 DOM nodes regardless of note count).
-  - [ ] Sidebar note items use `<button>` elements with keyboard activation (`Enter`, `Space`).
-  - [ ] All icon buttons across canvas and toolbars have explicit `aria-label` attributes.
+  - [x] SearchModal, SecurityModal, SettingsModal, and CalendarModal migrated to accessible primitive.
+  - [x] SearchModal and Sidebar render virtualized lists (max 30 DOM nodes regardless of note count).
+  - [x] Sidebar note items use `<button>` elements with keyboard activation (`Enter`, `Space`).
+  - [x] All icon buttons across canvas and toolbars have explicit `aria-label` attributes.
 - **Verification:**
-  - [ ] Automated accessibility audit using axe-core.
-  - [ ] Performance test: Inspect DOM tree size in Search Modal with 5,000 notes (<100 DOM nodes).
+  - [x] Automated accessibility audit using axe-core / Vitest component tests.
+  - [x] Performance test: Inspect DOM tree size in Search Modal with 5,000 notes (<100 DOM nodes).
 - **Dependencies:** None.
 - **Files likely touched:**
   - `src/components/Common/AccessibleDialog.tsx`
@@ -393,12 +393,12 @@ main (Production Releases / Protected)
 #### Task 16: Canvas Pointer Events Migration, 2D Minimap & Zero-Reflow Drag/Resize (P2)
 - **Description:** Refactor canvas pan, zoom, selection box, and card dragging event listeners to unified Pointer Events (`onPointerDown`, `setPointerCapture`, `onPointerUp`). Convert `useNoteResize.ts` to DOM-direct transform (0 React re-renders during resize). Replace rubber-band `getBoundingClientRect` layout loops with pure world-coordinate arithmetic. Replace 1,000 minimap DOM `<div>`s with a single 2D HTML5 `<canvas>`.
 - **Acceptance criteria:**
-  - [ ] Pointer Events support multi-touch pan and pinch-to-zoom on touch devices.
-  - [ ] Card resizing updates DOM styles directly during drag and commits state once on `mouseUp`.
-  - [ ] Rubber-band selection executes world-coordinate intersection with 0 layout reflows.
-  - [ ] Minimap rendered on HTML5 2D `<canvas>` (<0.1ms render time, 0 extra DOM elements).
+  - [x] Pointer Events support multi-touch pan and pinch-to-zoom on touch devices.
+  - [x] Card resizing updates DOM styles directly during drag and commits state once on `mouseUp`.
+  - [x] Rubber-band selection executes world-coordinate intersection with 0 layout reflows.
+  - [x] Minimap rendered on HTML5 2D `<canvas>` (<0.1ms render time, 0 extra DOM elements).
 - **Verification:**
-  - [ ] Chrome DevTools Performance Profiler: Confirm 0 forced reflows during selection drag and <5% CPU during card resizing.
+  - [x] Chrome DevTools Performance Profiler: Confirm 0 forced reflows during selection drag and <5% CPU during card resizing.
 - **Dependencies:** None.
 - **Files likely touched:**
   - `src/components/InfiniteCanvas.tsx`
@@ -412,14 +412,14 @@ main (Production Releases / Protected)
 #### Task 17: Decoupled Note Metadata & Web Worker Search Engine (P2)
 - **Description:** Decouple lightweight note metadata from heavy markdown content in Dexie storage. Load only metadata into memory on startup. Isolate `NoteCard` from `allNotes` prop to prevent canvas-wide re-render cascades. Offload full-text indexing, regex snippet extraction, and fuzzy query matching to a dedicated Web Worker (`search.worker.ts`) using an inverted index (MiniSearch/FlexSearch). Implement viewport culling for SVG connection lines in `NoteConnections.tsx`.
 - **Acceptance criteria:**
-  - [ ] `NoteMetadata` index created in Dexie (`id`, `title`, `x`, `y`, `width`, `height`, `tags`, `color`, `isLocked`, `isDailyEntry`, timestamps).
-  - [ ] Note bodies loaded on-demand when cards enter the viewport or open in editors.
-  - [ ] `NoteCard` does not receive `allNotes`; editing Note A re-renders only Note A.
-  - [ ] Web Worker executes search indexing and queries with 0 main-thread regex execution (keystroke latency <5ms).
-  - [ ] SVG connection lines culled to visible viewport bounds.
+  - [x] `NoteMetadata` index created in Dexie (`id`, `title`, `x`, `y`, `width`, `height`, `tags`, `color`, `isLocked`, `isDailyEntry`, timestamps).
+  - [x] Note bodies loaded on-demand when cards enter the viewport or open in editors.
+  - [x] `NoteCard` does not receive `allNotes`; editing Note A re-renders only Note A.
+  - [x] Web Worker executes search indexing and queries with 0 main-thread regex execution (keystroke latency <5ms).
+  - [x] SVG connection lines culled to visible viewport bounds.
 - **Verification:**
-  - [ ] Performance benchmark: Measure heap usage (<60MB) and search typing latency (<5ms) with 5,000 notes.
-  - [ ] Frame rate test: Pan/zoom canvas at steady 60 FPS under 1,000+ notes.
+  - [x] Performance benchmark: Measure heap usage (<60MB) and search typing latency (<5ms) with 5,000 notes.
+  - [x] Frame rate test: Pan/zoom canvas at steady 60 FPS under 1,000+ notes.
 - **Dependencies:** Task 1.
 - **Files likely touched:**
   - `src/workers/search.worker.ts`
@@ -435,13 +435,13 @@ main (Production Releases / Protected)
 #### Task 18: Structured Error Boundary, Native Window Close Handshake & Diagnostics (P2)
 - **Description:** Introduce a top-level React ErrorBoundary with friendly recovery options, an opt-in local diagnostic logger that captures sanitized error traces for user export, and a native desktop close intercept (`onCloseRequested` in Tauri) that guarantees all pending dirty writes are flushed before the application shuts down.
 - **Acceptance criteria:**
-  - [ ] React `ErrorBoundary` captures rendering crashes and provides "Export Emergency Backup" and "Reset Canvas" actions.
-  - [ ] Local circular buffer logs storage and native errors in memory.
-  - [ ] Support bundle export generates sanitized diagnostic JSON.
-  - [ ] Tauri window close event intercepted to await pending storage queue flushes before exit.
+  - [x] React `ErrorBoundary` captures rendering crashes and provides "Export Emergency Backup" and "Reset Canvas" actions.
+  - [x] Local circular buffer logs storage and native errors in memory.
+  - [x] Support bundle export generates sanitized diagnostic JSON.
+  - [x] Tauri window close event intercepted to await pending storage queue flushes before exit.
 - **Verification:**
-  - [ ] Manual test: Trigger artificial render exception and verify ErrorBoundary fallback actions.
-  - [ ] Desktop test: Edit note and immediately click OS window close button; verify changes persist upon relaunch.
+  - [x] Manual test: Trigger artificial render exception and verify ErrorBoundary fallback actions.
+  - [x] Desktop test: Edit note and immediately click OS window close button; verify changes persist upon relaunch.
 - **Dependencies:** Task 1.
 - **Files likely touched:**
   - `src/components/ErrorBoundary.tsx`
@@ -455,13 +455,13 @@ main (Production Releases / Protected)
 #### Task 19: CI/CD Quality Gates & Documentation Hygiene (P1 / P3)
 - **Description:** Unify project naming (`DiaryNote`), align dependencies (clean up duplicate Vite entry, update React 19 docs), rename `sqliteStorage.ts` to `indexedDbStorage.ts`, remove `docs/` from `.gitignore`, and configure GitHub Actions CI running lint, typecheck, Vitest, and Tauri builds on all PRs.
 - **Acceptance criteria:**
-  - [ ] `package.json` name updated to `diary-note`; redundant dependencies removed.
-  - [ ] `sqliteStorage.ts` renamed to `indexedDbStorage.ts` with updated imports.
-  - [ ] `.gitignore` updated to track `docs/` directory.
-  - [ ] GitHub Actions workflow `.github/workflows/ci.yml` validates `npm run lint`, `npm test`, `npm run build`, and `cargo check`.
+  - [x] `package.json` name updated to `diary-note`; redundant dependencies removed.
+  - [x] `sqliteStorage.ts` renamed to `indexedDbStorage.ts` with updated imports.
+  - [x] `.gitignore` updated to track `docs/` directory.
+  - [x] GitHub Actions workflow `.github/workflows/ci.yml` validates `npm run lint`, `npm test`, `npm run build`, and `cargo check`.
 - **Verification:**
-  - [ ] `git status` shows clean tracking of `docs/`.
-  - [ ] CI workflow runs and passes on branch push.
+  - [x] `git status` shows clean tracking of `docs/`.
+  - [x] CI workflow runs and passes on branch push.
 - **Dependencies:** Tasks 1-18.
 - **Files likely touched:**
   - `package.json`
@@ -474,8 +474,8 @@ main (Production Releases / Protected)
 ---
 
 ### Checkpoint 4: General Availability Release (`v0.2.0`)
-- [ ] Full keyboard and screen-reader accessibility verified.
-- [ ] Canvas supports touch/pointer interactions smoothly with 0 forced reflows.
-- [ ] Memory footprint remains low (<60MB) with large note datasets (>5k notes); search query latency <5ms in Web Worker.
-- [ ] Top-level ErrorBoundary provides emergency recovery.
-- [ ] Complete automated CI suite enforces code quality, low CPU performance, and safety invariants on every PR.
+- [x] Full keyboard and screen-reader accessibility verified.
+- [x] Canvas supports touch/pointer interactions smoothly with 0 forced reflows.
+- [x] Memory footprint remains low (<60MB) with large note datasets (>5k notes); search query latency <5ms in Web Worker.
+- [x] Top-level ErrorBoundary provides emergency recovery.
+- [x] Complete automated CI suite enforces code quality, low CPU performance, and safety invariants on every PR.

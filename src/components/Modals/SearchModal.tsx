@@ -177,6 +177,15 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, filteredNotes, selectedIndex, onClose, onSelectNote]);
 
+  const [searchScrollTop, setSearchScrollTop] = useState(0);
+
+  // Virtualization windowing calculations for SearchModal
+  const searchStartIndex = Math.max(0, Math.floor(searchScrollTop / 52) - 3);
+  const searchEndIndex = Math.min(filteredNotes.length, searchStartIndex + 15);
+  const visibleFilteredNotes = useMemo(() => {
+    return filteredNotes.slice(searchStartIndex, searchEndIndex);
+  }, [filteredNotes, searchStartIndex, searchEndIndex]);
+
   if (!isOpen) return null;
 
   return createPortal(
@@ -308,8 +317,13 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
           )}
         </div>
 
-        {/* Results List */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+        {/* Results List (Virtualized) */}
+        <div
+          onScroll={(e) => setSearchScrollTop(e.currentTarget.scrollTop)}
+          className="flex-1 overflow-y-auto p-2"
+          role="listbox"
+          aria-label="Search results"
+        >
           {filteredNotes.length === 0 ? (
             <div className="py-12 text-center text-xs font-sans space-y-1">
               <FileText className={`w-7 h-7 mx-auto ${isDark ? 'text-slate-700' : 'text-slate-300'}`} />
@@ -319,117 +333,128 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
               </p>
             </div>
           ) : (
-            filteredNotes.map((note, index) => {
-              const isSelected = index === selectedIndex;
-              const processed = processedNotesMap.get(note.id) || { plainSnippet: '', userHashtags: [] };
-              const userHashtags = processed.userHashtags;
-              const plainSnippet = processed.plainSnippet;
+            <div
+              style={{
+                paddingTop: `${searchStartIndex * 52}px`,
+                paddingBottom: `${Math.max(0, (filteredNotes.length - searchEndIndex) * 52)}px`,
+              }}
+              className="space-y-1"
+            >
+              {visibleFilteredNotes.map((note, idx) => {
+                const actualIndex = searchStartIndex + idx;
+                const isSelected = actualIndex === selectedIndex;
+                const processed = processedNotesMap.get(note.id) || { plainSnippet: '', userHashtags: [] };
+                const userHashtags = processed.userHashtags;
+                const plainSnippet = processed.plainSnippet;
 
-              return (
-                <div
-                  key={note.id}
-                  ref={isSelected ? selectedItemRef : null}
-                  onClick={() => {
-                    onSelectNote(note.id);
-                    onClose();
-                  }}
-                  onMouseEnter={() => {
-                    if (selectedIndex !== index) setSelectedIndex(index);
-                  }}
-                  className={`px-3 py-2 rounded-sm cursor-pointer transition-colors flex items-center justify-between gap-3 border ${
-                    isSelected
-                      ? isDark
-                        ? 'bg-slate-800 border-slate-700 text-slate-100'
-                        : 'bg-slate-100 border-slate-300 text-slate-900'
-                      : isDark
-                      ? 'border-transparent hover:bg-slate-800/40 text-slate-300'
-                      : 'border-transparent hover:bg-slate-50 text-slate-700'
-                  }`}
-                >
-                  {/* Left: Icon + Title & 1-Line Clean Preview */}
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <div
-                      className={`p-1.5 rounded-sm shrink-0 ${
-                        isSelected
-                          ? isDark ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-900'
-                          : isDark
-                          ? 'bg-slate-800 text-slate-400'
-                          : 'bg-slate-100 text-slate-500'
-                      }`}
-                    >
-                      {note.isLocked ? (
-                        <Lock className="w-3.5 h-3.5 text-slate-400" />
-                      ) : note.content?.includes('- [') ? (
-                        <CheckSquare className="w-3.5 h-3.5" />
-                      ) : (
-                        <FileText className="w-3.5 h-3.5" />
-                      )}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-semibold text-xs truncate">
-                          {note.isLocked ? 'Locked Note' : note.title || 'Untitled Note'}
-                        </h4>
-                        {note.groupId && (
-                          <span
-                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[9px] font-sans font-medium border shrink-0 ${
-                              isDark
-                                ? 'bg-slate-800 border-slate-700 text-slate-300'
-                                : 'bg-slate-100 border-slate-200 text-slate-700'
-                            }`}
-                          >
-                            <Layers className="w-2.5 h-2.5" />
-                            <span>{note.groupName || 'Group'}</span>
-                          </span>
-                        )}
-                      </div>
-
-                      <p className={`text-[11px] truncate mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                        {note.isLocked ? (
-                          <span className="italic">Passcode required</span>
-                        ) : (
-                          plainSnippet || <span className="italic opacity-60">Empty note</span>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Right: Tags, Date & Jump Shortcut */}
-                  <div className="flex items-center gap-3 shrink-0 text-[10px]">
-                    {userHashtags.length > 0 && (
-                      <div className="hidden sm:flex gap-1">
-                        {Array.from(new Set(userHashtags)).slice(0, 2).map((t) => (
-                          <span
-                            key={t}
-                            className={`px-1.5 py-0.5 rounded-sm font-mono text-[9px] border ${
-                              isDark ? 'bg-slate-800/80 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'
-                            }`}
-                          >
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    <span className={`font-mono text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                      {formatDate(note.createdAt)}
-                    </span>
-
-                    {isSelected && (
-                      <span
-                        className={`flex items-center gap-1 font-mono font-medium ${
-                          isDark ? 'text-slate-300' : 'text-slate-700'
+                return (
+                  <div
+                    key={note.id}
+                    ref={isSelected ? selectedItemRef : null}
+                    onClick={() => {
+                      onSelectNote(note.id);
+                      onClose();
+                    }}
+                    onMouseEnter={() => {
+                      if (selectedIndex !== actualIndex) setSelectedIndex(actualIndex);
+                    }}
+                    role="option"
+                    aria-selected={isSelected}
+                    className={`px-3 py-2 rounded-sm cursor-pointer transition-colors flex items-center justify-between gap-3 border ${
+                      isSelected
+                        ? isDark
+                          ? 'bg-slate-800 border-slate-700 text-slate-100'
+                          : 'bg-slate-100 border-slate-300 text-slate-900'
+                        : isDark
+                        ? 'border-transparent hover:bg-slate-800/40 text-slate-300'
+                        : 'border-transparent hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    {/* Left: Icon + Title & 1-Line Clean Preview */}
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <div
+                        className={`p-1.5 rounded-sm shrink-0 ${
+                          isSelected
+                            ? isDark ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-900'
+                            : isDark
+                            ? 'bg-slate-800 text-slate-400'
+                            : 'bg-slate-100 text-slate-500'
                         }`}
                       >
-                        <span>Jump</span>
-                        <CornerDownLeft className="w-3 h-3" />
+                        {note.isLocked ? (
+                          <Lock className="w-3.5 h-3.5 text-slate-400" />
+                        ) : note.content?.includes('- [') ? (
+                          <CheckSquare className="w-3.5 h-3.5" />
+                        ) : (
+                          <FileText className="w-3.5 h-3.5" />
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-semibold text-xs truncate">
+                            {note.isLocked ? 'Locked Note' : note.title || 'Untitled Note'}
+                          </h4>
+                          {note.groupId && (
+                            <span
+                              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[9px] font-sans font-medium border shrink-0 ${
+                                isDark
+                                  ? 'bg-slate-800 border-slate-700 text-slate-300'
+                                  : 'bg-slate-100 border-slate-200 text-slate-700'
+                              }`}
+                            >
+                              <Layers className="w-2.5 h-2.5" />
+                              <span>{note.groupName || 'Group'}</span>
+                            </span>
+                          )}
+                        </div>
+
+                        <p className={`text-[11px] truncate mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                          {note.isLocked ? (
+                            <span className="italic">Passcode required</span>
+                          ) : (
+                            plainSnippet || <span className="italic opacity-60">Empty note</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Right: Tags, Date & Jump Shortcut */}
+                    <div className="flex items-center gap-3 shrink-0 text-[10px]">
+                      {userHashtags.length > 0 && (
+                        <div className="hidden sm:flex gap-1">
+                          {Array.from(new Set(userHashtags)).slice(0, 2).map((t) => (
+                            <span
+                              key={t}
+                              className={`px-1.5 py-0.5 rounded-sm font-mono text-[9px] border ${
+                                isDark ? 'bg-slate-800/80 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'
+                              }`}
+                            >
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      <span className={`font-mono text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                        {formatDate(note.createdAt)}
                       </span>
-                    )}
+
+                      {isSelected && (
+                        <span
+                          className={`flex items-center gap-1 font-mono font-medium ${
+                            isDark ? 'text-slate-300' : 'text-slate-700'
+                          }`}
+                        >
+                          <span>Jump</span>
+                          <CornerDownLeft className="w-3 h-3" />
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           )}
         </div>
 

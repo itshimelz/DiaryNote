@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, RefObject } from 'react';
 import { Note } from '../types';
 
 interface UseNoteResizeOptions {
@@ -6,6 +6,7 @@ interface UseNoteResizeOptions {
   zoom: number;
   isPanMode: boolean;
   onUpdateNote: (updatedNote: Note) => void;
+  cardRef?: RefObject<HTMLDivElement | null>;
 }
 
 export function useNoteResize({
@@ -13,6 +14,7 @@ export function useNoteResize({
   zoom,
   isPanMode,
   onUpdateNote,
+  cardRef,
 }: UseNoteResizeOptions) {
   const [isResizing, setIsResizing] = useState(false);
   const resizeStartRef = useRef<{ x: number; y: number; w: number; h: number }>({
@@ -21,19 +23,19 @@ export function useNoteResize({
     w: 0,
     h: 0,
   });
+  const currentSizeRef = useRef<{ w: number; h: number }>({
+    w: note.width || 340,
+    h: note.height || 360,
+  });
 
   const activeMouseHandlersRef = useRef<{ move: (e: MouseEvent) => void; up: () => void } | null>(null);
-  const activeFrameRef = useRef<number | null>(null);
 
-  // Clean up any lingering mouse listeners and animation frames on unmount
+  // Clean up any lingering mouse listeners on unmount
   useEffect(() => {
     return () => {
       if (activeMouseHandlersRef.current) {
         window.removeEventListener('mousemove', activeMouseHandlersRef.current.move);
         window.removeEventListener('mouseup', activeMouseHandlersRef.current.up);
-      }
-      if (activeFrameRef.current !== null) {
-        cancelAnimationFrame(activeFrameRef.current);
       }
     };
   }, []);
@@ -42,48 +44,43 @@ export function useNoteResize({
     if (isPanMode) return;
     e.stopPropagation();
     setIsResizing(true);
+    const initialW = note.width || 340;
+    const initialH = note.height || 360;
+
     resizeStartRef.current = {
       x: e.clientX,
       y: e.clientY,
-      w: note.width || 340,
-      h: note.height || 360,
+      w: initialW,
+      h: initialH,
     };
-
-    let frame: number | null = null;
-    let pendingSize: Pick<Note, 'width' | 'height'> | null = null;
-
-    const flushResize = () => {
-      if (pendingSize) {
-        onUpdateNote({ ...note, ...pendingSize });
-        pendingSize = null;
-      }
-      frame = null;
-      activeFrameRef.current = null;
-    };
+    currentSizeRef.current = { w: initialW, h: initialH };
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const dx = (moveEvent.clientX - resizeStartRef.current.x) / zoom;
       const dy = (moveEvent.clientY - resizeStartRef.current.y) / zoom;
-      const newW = Math.max(260, resizeStartRef.current.w + dx);
-      const newH = Math.max(220, resizeStartRef.current.h + dy);
+      const newW = Math.max(260, Math.round(resizeStartRef.current.w + dx));
+      const newH = Math.max(220, Math.round(resizeStartRef.current.h + dy));
 
-      pendingSize = { width: newW, height: newH };
-      if (frame === null) {
-        frame = requestAnimationFrame(flushResize);
-        activeFrameRef.current = frame;
+      currentSizeRef.current = { w: newW, h: newH };
+
+      // Direct DOM style mutation to achieve 60 FPS without triggering React canvas-wide re-renders
+      if (cardRef?.current) {
+        cardRef.current.style.width = `${newW}px`;
+        cardRef.current.style.height = `${newH}px`;
       }
     };
 
     const handleMouseUp = () => {
-      if (frame !== null) {
-        cancelAnimationFrame(frame);
-        flushResize();
-      }
       setIsResizing(false);
-      activeFrameRef.current = null;
       activeMouseHandlersRef.current = null;
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+
+      const finalW = currentSizeRef.current.w;
+      const finalH = currentSizeRef.current.h;
+
+      // Commit final size once to React and IndexedDB storage
+      onUpdateNote({ ...note, width: finalW, height: finalH });
     };
 
     activeMouseHandlersRef.current = { move: handleMouseMove, up: handleMouseUp };

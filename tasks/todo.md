@@ -77,29 +77,29 @@
 ---
 
 ## Phase 4: Accessibility, Viewport Scalability & CI Quality Gates (`v0.2.0` GA)
-- [ ] **Task 15:** WCAG 2.1 AA Accessible Dialogs & List Virtualization (P1)
-  - [ ] Build `AccessibleDialog.tsx` with semantic roles, focus trapping, and Escape handling
-  - [ ] Integrate list virtualization into `SearchModal` and `NotesSidebar` (cap at ~25 DOM elements)
-  - [ ] Convert SearchModal, SecurityModal, SettingsModal, and CalendarModal to accessible dialogs
-  - [ ] Make sidebar note rows semantic `<button>` elements and add `aria-label`s to icon buttons
-- [ ] **Task 16:** Canvas Pointer Events Migration, 2D Minimap & Zero-Reflow Drag/Resize (P2)
-  - [ ] Migrate canvas pan, zoom, and dragging event listeners to Pointer Events
-  - [ ] Refactor `useNoteResize.ts` to DOM-direct transform (eliminate 60 FPS React re-renders)
-  - [ ] Replace rubber-band `getBoundingClientRect` loops with pure world-coordinate math (0 reflows)
-  - [ ] Replace 1,000 minimap DOM `<div>`s with a single HTML5 2D `<canvas>` (<0.1ms render)
-- [ ] **Task 17:** Decoupled Note Metadata & Web Worker Search Engine (P2)
-  - [ ] Create `NoteMetadata` schema in Dexie separating heavy markdown text
-  - [ ] Remove `allNotes` prop from `NoteCard` to eliminate canvas-wide re-render cascade
-  - [ ] Offload search indexing, regex snippet extraction, and queries to Web Worker (`search.worker.ts`)
-  - [ ] Cull SVG connection lines in `NoteConnections.tsx` to visible viewport bounds
-- [ ] **Task 18:** Structured Error Boundary, Native Window Close Handshake & Diagnostics (P2)
-  - [ ] Implement top-level React `ErrorBoundary.tsx` with emergency backup export
-  - [ ] Intercept native window close (`onCloseRequested` in Tauri) to await and flush pending IndexedDB writes before process exit
-  - [ ] Create local circular logging buffer in `logger.ts`
-  - [ ] Provide sanitized diagnostic support bundle export
-- [ ] **Task 19:** CI/CD Quality Gates & Documentation Hygiene (P1 / P3)
-  - [ ] Rename `package.json` to `diary-note` and remove duplicate Vite dependency
-  - [ ] Rename `sqliteStorage.ts` to `indexedDbStorage.ts`
-  - [ ] Unignore `docs/` in `.gitignore`
-  - [ ] Create GitHub Actions CI workflow for lint, test, build, and cargo check
-- [ ] **Checkpoint 4:** General Availability (`v0.2.0`) & High-Scale Performance (<5% CPU) verified
+- [x] **Task 15:** WCAG 2.1 AA Accessible Dialogs & List Virtualization (P1)
+  - [x] Build `AccessibleDialog.tsx` with semantic roles, focus trapping, and Escape handling
+  - [x] Integrate list virtualization into `SearchModal` and `NotesSidebar` (cap at ~25 DOM elements)
+  - [x] Convert SearchModal, SecurityModal, SettingsModal, and CalendarModal to accessible dialogs
+  - [x] Make sidebar note rows semantic `<button>` elements and add `aria-label`s to icon buttons
+- [x] **Task 16:** Canvas Pointer Events Migration, 2D Minimap & Zero-Reflow Drag/Resize (P2)
+  - [x] Migrate canvas pan, zoom, and dragging event listeners to Pointer Events
+  - [x] Refactor `useNoteResize.ts` to DOM-direct transform (eliminate 60 FPS React re-renders)
+  - [x] Replace rubber-band `getBoundingClientRect` loops with pure world-coordinate math (0 reflows)
+  - [x] Replace 1,000 minimap DOM `<div>`s with a single HTML5 2D `<canvas>` (<0.1ms render)
+- [x] **Task 17:** Decoupled Note Metadata & Web Worker Search Engine (P2)
+  - [x] Create `NoteMetadata` schema in Dexie separating heavy markdown text
+  - [x] Remove `allNotes` prop from `NoteCard` to eliminate canvas-wide re-render cascade
+  - [x] Offload search indexing, regex snippet extraction, and queries to Web Worker (`search.worker.ts`)
+  - [x] Cull SVG connection lines in `NoteConnections.tsx` to visible viewport bounds
+- [x] **Task 18:** Structured Error Boundary, Native Window Close Handshake & Diagnostics (P2)
+  - [x] Implement top-level React `ErrorBoundary.tsx` with emergency backup export
+  - [x] Intercept native window close (`onCloseRequested` in Tauri) to await and flush pending IndexedDB writes before process exit
+  - [x] Create local circular logging buffer in `logger.ts`
+  - [x] Provide sanitized diagnostic support bundle export
+- [x] **Task 19:** CI/CD Quality Gates & Documentation Hygiene (P1 / P3)
+  - [x] Rename `package.json` to `diary-note` and remove duplicate Vite dependency
+  - [x] Rename `sqliteStorage.ts` to `indexedDbStorage.ts`
+  - [x] Unignore `docs/` in `.gitignore`
+  - [x] Create GitHub Actions CI workflow for lint, test, build, and cargo check
+- [x] **Checkpoint 4:** General Availability (`v0.2.0`) & High-Scale Performance (<5% CPU) verified

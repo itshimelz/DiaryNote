@@ -3,8 +3,6 @@ import { Note, CanvasTransform, GridType, CanvasTheme } from '../types';
 import { NoteCard } from './NoteCard';
 import { NoteConnections } from './NoteConnections';
 import { GroupFrame } from './GroupFrame';
-import { Layers, X, FolderOutput } from 'lucide-react';
-
 
 interface InfiniteCanvasProps {
   notes: Note[];
@@ -36,6 +34,80 @@ interface InfiniteCanvasProps {
   onContextMenuNote?: (e: React.MouseEvent, noteId: string) => void;
   onContextMenuCanvas?: (e: React.MouseEvent) => void;
 }
+
+/**
+ * 2D HTML5 Canvas Minimap component.
+ * Renders all notes and active viewport box in a single GPU draw call with 0 extra DOM elements.
+ */
+const MinimapCanvas: React.FC<{
+  notes: Note[];
+  transform: CanvasTransform;
+  minX: number;
+  minY: number;
+  minimapScale: number;
+  viewportWidth: number;
+  viewportHeight: number;
+  selectedNoteId: string | null;
+  themeMode?: CanvasTheme;
+}> = ({
+  notes,
+  transform,
+  minX,
+  minY,
+  minimapScale,
+  viewportWidth,
+  viewportHeight,
+  selectedNoteId,
+  themeMode = 'dark',
+}) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const isLight = themeMode === 'light';
+    const noteFill = isLight ? 'rgba(148, 163, 184, 0.75)' : 'rgba(100, 116, 139, 0.75)';
+    const selectedFill = '#3b82f6';
+
+    // Draw all notes in a single batch
+    for (let i = 0; i < notes.length; i++) {
+      const n = notes[i];
+      const mx = (n.x - minX) * minimapScale;
+      const my = (n.y - minY) * minimapScale;
+      const mw = Math.max(3, (n.width || 340) * minimapScale);
+      const mh = Math.max(3, (n.height || 300) * minimapScale);
+
+      ctx.fillStyle = n.id === selectedNoteId ? selectedFill : noteFill;
+      ctx.fillRect(mx, my, mw, mh);
+    }
+
+    // Draw active viewport box
+    const vpX = (-transform.x / transform.zoom - minX) * minimapScale;
+    const vpY = (-transform.y / transform.zoom - minY) * minimapScale;
+    const vpW = (viewportWidth / transform.zoom) * minimapScale;
+    const vpH = (viewportHeight / transform.zoom) * minimapScale;
+
+    ctx.fillStyle = 'rgba(59, 130, 246, 0.15)';
+    ctx.fillRect(vpX, vpY, vpW, vpH);
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(vpX, vpY, vpW, vpH);
+  }, [notes, transform, minX, minY, minimapScale, viewportWidth, viewportHeight, selectedNoteId, themeMode]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={170}
+      height={110}
+      className="w-full h-full pointer-events-none rounded-xs"
+    />
+  );
+};
 
 const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
   notes,
@@ -98,7 +170,6 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
         setIsSpacePressed(false);
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     return () => {
@@ -107,46 +178,73 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
     };
   }, []);
 
-  useEffect(() => () => {
-    if (wheelFrameRef.current !== null) cancelAnimationFrame(wheelFrameRef.current);
+  // Update viewport dimensions on resize
+  useEffect(() => {
+    const updateSize = () => {
+      if (containerRef.current) {
+        setViewport({
+          width: containerRef.current.clientWidth || window.innerWidth,
+          height: containerRef.current.clientHeight || window.innerHeight,
+        });
+      }
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
   }, []);
 
-  // Throttle minimap notes — update at most every 100ms, not every pan frame
+  // Debounce minimap synchronization to prevent layout pressure
   useEffect(() => {
-    const timer = setTimeout(() => setMinimapNotes(notes), 100);
+    const timer = setTimeout(() => {
+      setMinimapNotes(notes);
+    }, 250);
     return () => clearTimeout(timer);
   }, [notes]);
 
+  // Synchronize CSS custom properties directly on the world element
   useEffect(() => {
-    const element = containerRef.current;
-    if (!element) return;
-    const updateViewport = () => setViewport({ width: element.clientWidth, height: element.clientHeight });
-    updateViewport();
-    const observer = new ResizeObserver(updateViewport);
-    observer.observe(element);
-    return () => observer.disconnect();
+    if (worldLayerRef.current) {
+      worldLayerRef.current.style.setProperty('--canvas-x', `${transform.x}px`);
+      worldLayerRef.current.style.setProperty('--canvas-y', `${transform.y}px`);
+      worldLayerRef.current.style.setProperty('--canvas-zoom', `${transform.zoom}`);
+    }
+  }, [transform.x, transform.y, transform.zoom]);
+
+  // Synchronize CSS custom properties directly on the background element
+  useEffect(() => {
+    if (gridBgRef.current) {
+      gridBgRef.current.style.setProperty('--grid-pos-x', `${transform.x}px`);
+      gridBgRef.current.style.setProperty('--grid-pos-y', `${transform.y}px`);
+      gridBgRef.current.style.setProperty('--grid-size', `${24 * transform.zoom}px`);
+    }
+  }, [transform.x, transform.y, transform.zoom]);
+
+  // Track dragging state from child NoteCards
+  const handleDragStateChange = useCallback((ids: string[]) => {
+    setDraggingNoteIds(ids);
   }, []);
 
-  // Wheel zoom around mouse cursor & wheel pan
+  // Wheel handling: zoom and pan with requestAnimationFrame throttling
   const handleWheel = useCallback(
     (e: WheelEvent) => {
-      const target = e.target as HTMLElement;
-      const noteCardEl = target ? (target.closest('.note-card') as HTMLElement) : null;
-
-      if (!e.ctrlKey && !e.metaKey && noteCardEl) {
-        let curr: HTMLElement | null = target;
+      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+        let curr = e.target as HTMLElement | null;
         let canScroll = false;
-        while (curr && curr !== noteCardEl) {
-          const isScrollY = curr.scrollHeight > curr.clientHeight + 1;
-          const isScrollX = curr.scrollWidth > curr.clientWidth + 1;
-
-          if (isScrollY && e.deltaY !== 0) {
-            if (e.deltaY < 0 && curr.scrollTop > 0) canScroll = true;
-            if (e.deltaY > 0 && curr.scrollTop + curr.clientHeight < curr.scrollHeight - 1) canScroll = true;
-          }
-          if (isScrollX && e.deltaX !== 0) {
-            if (e.deltaX < 0 && curr.scrollLeft > 0) canScroll = true;
-            if (e.deltaX > 0 && curr.scrollLeft + curr.clientWidth < curr.scrollWidth - 1) canScroll = true;
+        while (curr && curr !== containerRef.current) {
+          if (
+            curr.tagName === 'TEXTAREA' ||
+            curr.classList.contains('notes-card-content') ||
+            curr.classList.contains('overflow-y-auto')
+          ) {
+            const hasVerticalScroll = curr.scrollHeight > curr.clientHeight;
+            if (hasVerticalScroll) {
+              const atTop = curr.scrollTop <= 0 && e.deltaY < 0;
+              const atBottom = curr.scrollTop + curr.clientHeight >= curr.scrollHeight - 1 && e.deltaY > 0;
+              if (!atTop && !atBottom) {
+                canScroll = true;
+                break;
+              }
+            }
           }
           if (canScroll) break;
           curr = curr.parentElement;
@@ -169,25 +267,20 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
       };
 
       if (e.ctrlKey || e.metaKey) {
-        // Native desktop zoom anchored at mouse cursor position
         const rect = containerRef.current.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
 
-        // Distinguish discrete desktop mouse wheel ticks (large deltaY or line deltaMode) vs trackpad pinch
         let zoomFactor: number;
         if (e.deltaMode === 1 || Math.abs(e.deltaY) >= 40) {
-          // Discrete mouse wheel tick: step zoom by a clean, native ~12% increment per tick
           const ticks = Math.sign(e.deltaY);
           zoomFactor = ticks > 0 ? (1 / 1.12) : 1.12;
         } else {
-          // Continuous trackpad pinch gesture: smooth exponential dampening
           zoomFactor = Math.exp(-e.deltaY * 0.0025);
         }
 
         const newZoom = Math.max(minZoom, Math.min(maxZoom, baseTransform.zoom * zoomFactor));
 
-        // Keep point under mouse fixed in world coordinates
         const worldX = (mouseX - baseTransform.x) / baseTransform.zoom;
         const worldY = (mouseY - baseTransform.y) / baseTransform.zoom;
 
@@ -200,7 +293,6 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
           zoom: Number(newZoom.toFixed(4)),
         });
       } else {
-        // Wheel pans naturally; Shift makes a vertical wheel movement horizontal.
         const horizontalDelta = e.shiftKey ? (e.deltaY || e.deltaX) : e.deltaX;
         const verticalDelta = e.shiftKey ? 0 : e.deltaY;
         scheduleWheelTransform({
@@ -220,7 +312,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
     return () => el.removeEventListener('wheel', handleWheel);
   }, [handleWheel]);
 
-  // Canvas gestures: select by default, pan with Space / pan mode / middle mouse.
+  // Canvas gestures: select by default, pan with Space / pan mode / middle mouse
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0 && e.button !== 1) return;
     const target = e.target as HTMLElement;
@@ -253,11 +345,6 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
         return true;
       };
 
-      // Query note card DOM elements for pixel-perfect bounding box matching (supports long/expanded notes)
-      const cardElements = containerRef.current
-        ? Array.from(containerRef.current.querySelectorAll<HTMLElement>('.note-card[data-note-id]'))
-        : [];
-
       const processSelectionUpdate = (moveEvt: MouseEvent) => {
         const curX = moveEvt.clientX - rect.left;
         const curY = moveEvt.clientY - rect.top;
@@ -277,37 +364,20 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
         const selTop = Math.min(startY, curY);
         const selBottom = Math.max(startY, curY);
 
+        // Zero-reflow world coordinate intersection calculation
+        const boxMinX = (selLeft - transform.x) / transform.zoom;
+        const boxMaxX = (selRight - transform.x) / transform.zoom;
+        const boxMinY = (selTop - transform.y) / transform.zoom;
+        const boxMaxY = (selBottom - transform.y) / transform.zoom;
+
         const newlyMatchedIds: string[] = [];
-
-        if (cardElements.length > 0) {
-          for (let i = 0; i < cardElements.length; i++) {
-            const el = cardElements[i];
-            const noteId = el.getAttribute('data-note-id');
-            if (!noteId) continue;
-            const r = el.getBoundingClientRect();
-            const cardLeft = r.left - rect.left;
-            const cardRight = r.right - rect.left;
-            const cardTop = r.top - rect.top;
-            const cardBottom = r.bottom - rect.top;
-
-            if (selLeft <= cardRight && selRight >= cardLeft && selTop <= cardBottom && selBottom >= cardTop) {
-              newlyMatchedIds.push(noteId);
-            }
+        for (let i = 0; i < notes.length; i++) {
+          const n = notes[i];
+          const w = n.width || 340;
+          const h = n.height || 300;
+          if (n.x + w >= boxMinX && n.x <= boxMaxX && n.y + h >= boxMinY && n.y <= boxMaxY) {
+            newlyMatchedIds.push(n.id);
           }
-        } else {
-          // Fallback to world coordinate calculations
-          const boxMinX = (selLeft - transform.x) / transform.zoom;
-          const boxMaxX = (selRight - transform.x) / transform.zoom;
-          const boxMinY = (selTop - transform.y) / transform.zoom;
-          const boxMaxY = (selBottom - transform.y) / transform.zoom;
-
-          notes.forEach((n) => {
-            const w = n.width || 340;
-            const h = n.height || 340;
-            if (n.x + w >= boxMinX && n.x <= boxMaxX && n.y + h >= boxMinY && n.y <= boxMaxY) {
-              newlyMatchedIds.push(n.id);
-            }
-          });
         }
 
         const combinedIds = Array.from(new Set([...initialSelectedIds, ...newlyMatchedIds]));
@@ -348,36 +418,41 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
     panStartRef.current = { x: e.clientX, y: e.clientY, transformX: transform.x, transformY: transform.y };
     let nextPosition = { x: transform.x, y: transform.y };
     const handleMouseMove = (moveEvt: MouseEvent) => {
+      const dx = moveEvt.clientX - panStartRef.current.x;
+      const dy = moveEvt.clientY - panStartRef.current.y;
       nextPosition = {
-        x: Math.round(panStartRef.current.transformX + moveEvt.clientX - panStartRef.current.x),
-        y: Math.round(panStartRef.current.transformY + moveEvt.clientY - panStartRef.current.y),
+        x: Math.round(panStartRef.current.transformX + dx),
+        y: Math.round(panStartRef.current.transformY + dy),
       };
-      if (worldLayerRef.current) {
-        worldLayerRef.current.style.transform = `translate3d(${nextPosition.x}px, ${nextPosition.y}px, 0) scale(${transform.zoom})`;
-      }
-      if (gridBgRef.current) {
-        gridBgRef.current.style.backgroundPosition = `${nextPosition.x}px ${nextPosition.y}px`;
-      }
+      onTransformChange({
+        ...transform,
+        x: nextPosition.x,
+        y: nextPosition.y,
+      });
     };
+
     const handleMouseUp = () => {
-      onTransformChange({ ...transform, ...nextPosition });
       setIsPanning(false);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
+
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
   };
 
-  // Double click canvas to add note at mouse pointer location
   const handleDoubleClick = (e: React.MouseEvent) => {
-    const isCanvasClick = !(e.target as HTMLElement).closest('.note-card');
-    if (isCanvasClick && containerRef.current && !isPanMode && !isSpacePressed) {
-      onDoubleClickCanvas(e.clientX, e.clientY);
-    }
+    if (!containerRef.current) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('.note-card')) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    const worldX = (clickX - transform.x) / transform.zoom;
+    const worldY = (clickY - transform.y) / transform.zoom;
+    onDoubleClickCanvas(Math.round(worldX), Math.round(worldY));
   };
 
-  // Background CSS pattern class
   const getBackgroundClass = () => {
     if (themeMode === 'gradient') return 'bg-gradient-to-br from-[#1d4ed8] to-[#3b82f6]';
     if (gridType === 'blank') return themeMode === 'dark' ? 'bg-slate-950' : 'bg-[#f8fafc]';
@@ -388,17 +463,16 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
     return isDark ? 'bg-slate-950' : 'bg-[#f8fafc]';
   };
 
-  // Viewport Culling (Canvas Virtualization) for high performance
+  // Viewport Culling for high performance
   const viewportWidth = viewport.width;
   const viewportHeight = viewport.height;
-  const renderBuffer = 600 / transform.zoom; // buffer margin in world coordinates
+  const renderBuffer = 600 / transform.zoom;
 
   const visibleMinX = -transform.x / transform.zoom - renderBuffer;
   const visibleMaxX = (viewportWidth - transform.x) / transform.zoom + renderBuffer;
   const visibleMinY = -transform.y / transform.zoom - renderBuffer;
   const visibleMaxY = (viewportHeight - transform.y) / transform.zoom + renderBuffer;
 
-  // Only render NoteCards that are within or touching the active viewport (or explicitly selected)
   const visibleNotes = useMemo(() => {
     return notes.filter(
       (n) =>
@@ -408,15 +482,15 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
         n.isPinned ||
         (n.x + (n.width || 340) >= visibleMinX &&
           n.x <= visibleMaxX &&
-          n.y + (n.height || 340) >= visibleMinY &&
+          n.y + (n.height || 300) >= visibleMinY &&
           n.y <= visibleMaxY)
     );
   }, [notes, selectedNoteId, selectedNoteIds, focusedNoteId, visibleMinX, visibleMaxX, visibleMinY, visibleMaxY]);
 
-  // Minimap bounding calculations memoized in a single O(N) pass
-  const { minX, minY, worldWidth, worldHeight, minimapScale } = useMemo(() => {
+  // Minimap scale and bounds in a single memoized calculation
+  const { minX, minY, minimapScale } = useMemo(() => {
     if (notes.length === 0) {
-      return { minX: -100, minY: -100, worldWidth: 1200, worldHeight: 1000, minimapScale: 0.12 };
+      return { minX: -100, minY: -100, minimapScale: 0.12 };
     }
     let minXVal = 0;
     let maxXVal = 1000;
@@ -441,10 +515,9 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
     const wHeight = maxYBoundary - minYBoundary;
     const scale = Math.min(150 / wWidth, 90 / wHeight);
 
-    return { minX: minXBoundary, minY: minYBoundary, worldWidth: wWidth, worldHeight: wHeight, minimapScale: scale };
+    return { minX: minXBoundary, minY: minYBoundary, minimapScale: scale };
   }, [notes]);
 
-  // Memoize note grouping (was computed inline in JSX on every render)
   const noteGroups = useMemo(() => {
     const groups = new Map<string, Note[]>();
     for (const n of notes) {
@@ -457,7 +530,6 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
     return groups;
   }, [notes]);
 
-  // Stabilize onSelectNote to avoid breaking NoteCard's React.memo
   const handleSelectNoteStable = useCallback(
     (id: string | null, isMulti?: boolean) => onSelectNote(id, isMulti),
     [onSelectNote]
@@ -469,168 +541,144 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
       onMouseDown={handleMouseDown}
       onDoubleClick={handleDoubleClick}
       onContextMenu={(e) => {
-        e.preventDefault();
-        onContextMenuCanvas?.(e);
+        const target = e.target as HTMLElement;
+        if (!target.closest('.note-card')) {
+          onContextMenuCanvas?.(e);
+        }
       }}
-      className={`relative w-screen h-screen overflow-hidden select-none transition-colors duration-300 ${getBackgroundClass()} ${
-        isPanning || isSpacePressed || isPanMode ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
+      className={`relative w-full h-full overflow-hidden select-none touch-none ${
+        isPanMode || isSpacePressed ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default'
       }`}
     >
-      {/* Background Grid Pattern element */}
+      {/* Background layer */}
       <div
-        id="canvas-grid-bg"
         ref={gridBgRef}
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          backgroundPosition: `${transform.x}px ${transform.y}px`,
-          backgroundSize: `${24 * transform.zoom}px ${24 * transform.zoom}px`,
-        }}
+        className={`absolute inset-0 pointer-events-none transition-colors duration-300 ${getBackgroundClass()}`}
       />
 
-      {/* Rubber-band Drag Selection Box Overlay */}
-      {selectionBox && Math.max(Math.abs(selectionBox.currentX - selectionBox.startX), Math.abs(selectionBox.currentY - selectionBox.startY)) > 2 && (
-        <div
-          style={{
-            left: `${Math.min(selectionBox.startX, selectionBox.currentX)}px`,
-            top: `${Math.min(selectionBox.startY, selectionBox.currentY)}px`,
-            width: `${Math.abs(selectionBox.currentX - selectionBox.startX)}px`,
-            height: `${Math.abs(selectionBox.currentY - selectionBox.startY)}px`,
-          }}
-          className="fixed border border-blue-500/80 bg-blue-500/15 rounded-xs pointer-events-none z-50 shadow-2xs backdrop-blur-[0.5px] transition-none"
-        />
-      )}
-
-      {/* Scaled World Coordinates Canvas Layer */}
+      {/* World layer */}
       <div
         ref={worldLayerRef}
-        className="absolute inset-0 origin-top-left pointer-events-none"
+        className="absolute inset-0 origin-top-left will-change-transform"
         style={{
-          transform: `translate3d(${Math.round(transform.x)}px, ${Math.round(transform.y)}px, 0) scale(${transform.zoom})`,
+          transform: `translate3d(${transform.x}px, ${transform.y}px, 0) scale(${transform.zoom})`,
         }}
       >
+        {/* Render group bounding frames */}
+        {Array.from(noteGroups.entries()).map(([groupId, groupNotes]) => (
+          <GroupFrame
+            key={groupId}
+            groupId={groupId}
+            groupNotes={groupNotes}
+            zoom={transform.zoom}
+            themeMode={themeMode}
+            onUpdateBatchNotes={onUpdateBatchNotes}
+          />
+        ))}
+
+        {/* Bi-directional markdown connection lines */}
         {showConnections && (
           <NoteConnections
             notes={notes}
             selectedNoteId={selectedNoteId}
             onSelectNote={onNavigateToNote}
             themeMode={themeMode}
+            viewportBounds={{
+              minX: visibleMinX,
+              maxX: visibleMaxX,
+              minY: visibleMinY,
+              maxY: visibleMaxY,
+            }}
           />
         )}
 
-        <div className="pointer-events-auto">
-          {/* Visual Group Frame Containers */}
-          {Array.from(noteGroups).map(([groupId, groupNotes]) => (
-            <GroupFrame
-              key={groupId}
-              groupId={groupId}
-              groupNotes={groupNotes}
-              themeMode={themeMode}
-              zoom={transform.zoom}
-              snapToGrid={snapToGrid}
-              onUpdateBatchNotes={onUpdateBatchNotes}
-              onSelectMultipleNotes={onSelectMultipleNotes}
-              onDragStateChange={setDraggingNoteIds}
-            />
-          ))}
-
-          {visibleNotes.map((note) => (
-            <NoteCard
-              key={note.id}
-              note={note}
-              allNotes={notes}
-              zoom={transform.zoom}
-              isSelected={selectedNoteIds.includes(note.id) || selectedNoteId === note.id}
-              selectedNoteIds={selectedNoteIds}
-              isFocused={focusedNoteId === note.id}
-              onSelectNote={handleSelectNoteStable}
-              onNavigateToNote={onNavigateToNote}
-              onUpdateNote={onUpdateNote}
-              onUpdateBatchNotes={onUpdateBatchNotes}
-              onDeleteNote={onDeleteNote}
-              onBringToFront={onBringToFront}
-              snapToGrid={snapToGrid}
-              isPanMode={isPanMode || isSpacePressed || isPanning}
-              shouldStartEditing={editingNoteId === note.id}
-              onRequestLockNote={onRequestLockNote}
-              onRequestUnlockNote={onRequestUnlockNote}
-              onExportNote={onExportNote}
-              isCardDragging={draggingNoteIds.includes(note.id)}
-              onDragStateChange={setDraggingNoteIds}
-              onContextMenu={onContextMenuNote}
-            />
-          ))}
-        </div>
+        {/* Note Cards */}
+        {visibleNotes.map((note) => (
+          <NoteCard
+            key={note.id}
+            note={note}
+            allNotes={notes}
+            zoom={transform.zoom}
+            isSelected={selectedNoteId === note.id || selectedNoteIds.includes(note.id)}
+            selectedNoteIds={selectedNoteIds}
+            isFocused={focusedNoteId === note.id}
+            isCardDragging={draggingNoteIds.includes(note.id)}
+            onDragStateChange={handleDragStateChange}
+            shouldStartEditing={editingNoteId === note.id}
+            onSelectNote={handleSelectNoteStable}
+            onNavigateToNote={onNavigateToNote}
+            onUpdateNote={onUpdateNote}
+            onUpdateBatchNotes={onUpdateBatchNotes}
+            onDeleteNote={onDeleteNote}
+            onBringToFront={onBringToFront}
+            isPanMode={isPanMode || isSpacePressed}
+            snapToGrid={snapToGrid}
+            onRequestLockNote={onRequestLockNote}
+            onRequestUnlockNote={onRequestUnlockNote}
+            onExportNote={onExportNote}
+            onContextMenu={onContextMenuNote}
+          />
+        ))}
       </div>
 
-      {/* Upgraded Canvas MiniMap placed at Top Right */}
-      <div className={`fixed top-4 right-4 z-30 w-44 h-32 border rounded-md shadow-sm backdrop-blur-md overflow-hidden p-2.5 hidden md:block select-none transition-colors ${
-        themeMode === 'light'
-          ? 'bg-white/90 border-slate-200 text-slate-800 shadow-slate-200/50'
-          : 'bg-slate-900/90 border-slate-800 text-slate-200 shadow-black/50'
-      }`}>
-        <div className="flex items-center justify-between text-[10px] font-sans font-medium text-slate-400 mb-1.5 px-0.5">
-          <span>Canvas map</span>
-        </div>
+      {/* Selection Box overlay */}
+      {selectionBox && (
         <div
-          className={`relative w-full h-22 rounded-md border overflow-hidden cursor-pointer transition-colors ${
-            themeMode === 'light' ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-950/80 border-slate-800'
-          }`}
-          onClick={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const clickX = e.clientX - rect.left;
-            const clickY = e.clientY - rect.top;
-
-            const targetWorldX = minX + clickX / minimapScale;
-            const targetWorldY = minY + clickY / minimapScale;
-
-            const nextTransform = {
-              ...transform,
-              x: Math.round(viewportWidth / 2 - targetWorldX * transform.zoom),
-              y: Math.round(viewportHeight / 2 - targetWorldY * transform.zoom),
-            };
-            if (onAnimateTransform) onAnimateTransform(nextTransform);
-            else onTransformChange(nextTransform);
+          className="absolute border border-blue-500 bg-blue-500/10 pointer-events-none rounded-xs z-30"
+          style={{
+            left: Math.min(selectionBox.startX, selectionBox.currentX),
+            top: Math.min(selectionBox.startY, selectionBox.currentY),
+            width: Math.abs(selectionBox.currentX - selectionBox.startX),
+            height: Math.abs(selectionBox.currentY - selectionBox.startY),
           }}
+        />
+      )}
+
+      {/* Floating 2D HTML5 Canvas Minimap */}
+      <div className="absolute bottom-6 right-6 z-20 hidden md:block">
+        <div
+          className={`p-2 rounded-sm border backdrop-blur-md shadow-2xl transition-all select-none w-48 ${
+            themeMode === 'light'
+              ? 'bg-white/80 border-slate-200 text-slate-900'
+              : 'bg-slate-900/85 border-slate-800 text-slate-100'
+          }`}
         >
-          {/* Note bounding boxes on minimap */}
-          {minimapNotes.map((n) => {
-            const mx = (n.x - minX) * minimapScale;
-            const my = (n.y - minY) * minimapScale;
-            const mw = Math.max(3, n.width * minimapScale);
-            const mh = Math.max(3, n.height * minimapScale);
+          <div className="flex items-center justify-between text-[10px] font-sans font-medium text-slate-400 mb-1.5 px-0.5">
+            <span>Canvas map</span>
+          </div>
+          <div
+            className={`relative w-full h-22 rounded-sm border overflow-hidden cursor-pointer transition-colors ${
+              themeMode === 'light' ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-950/80 border-slate-800'
+            }`}
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const clickX = e.clientX - rect.left;
+              const clickY = e.clientY - rect.top;
 
-            return (
-              <div
-                key={n.id}
-                style={{
-                  left: `${mx}px`,
-                  top: `${my}px`,
-                  width: `${mw}px`,
-                  height: `${mh}px`,
-                }}
-                className={`absolute rounded-[1px] transition-colors ${
-                  selectedNoteId === n.id
-                    ? 'bg-blue-500 ring-1 ring-blue-300 z-10'
-                    : themeMode === 'light'
-                    ? 'bg-slate-400/70 hover:bg-blue-400'
-                    : 'bg-slate-500/70 hover:bg-blue-400'
-                }`}
-              />
-            );
-          })}
+              const targetWorldX = minX + clickX / minimapScale;
+              const targetWorldY = minY + clickY / minimapScale;
 
-          {/* Current Viewport box */}
-          {containerRef.current && (
-            <div
-              style={{
-                left: `${(-transform.x / transform.zoom - minX) * minimapScale}px`,
-                top: `${(-transform.y / transform.zoom - minY) * minimapScale}px`,
-                width: `${(viewportWidth / transform.zoom) * minimapScale}px`,
-                height: `${(viewportHeight / transform.zoom) * minimapScale}px`,
-              }}
-              className="absolute border-2 border-blue-500 bg-blue-500/15 pointer-events-none rounded-[2px] shadow-sm"
+              const nextTransform = {
+                ...transform,
+                x: Math.round(viewportWidth / 2 - targetWorldX * transform.zoom),
+                y: Math.round(viewportHeight / 2 - targetWorldY * transform.zoom),
+              };
+              if (onAnimateTransform) onAnimateTransform(nextTransform);
+              else onTransformChange(nextTransform);
+            }}
+          >
+            <MinimapCanvas
+              notes={minimapNotes}
+              transform={transform}
+              minX={minX}
+              minY={minY}
+              minimapScale={minimapScale}
+              viewportWidth={viewportWidth}
+              viewportHeight={viewportHeight}
+              selectedNoteId={selectedNoteId}
+              themeMode={themeMode}
             />
-          )}
+          </div>
         </div>
       </div>
     </div>

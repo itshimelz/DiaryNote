@@ -7,6 +7,7 @@ interface NoteConnectionsProps {
   selectedNoteId: string | null;
   onSelectNote: (noteId: string) => void;
   themeMode?: 'dark' | 'light' | 'gradient';
+  viewportBounds?: { minX: number; maxX: number; minY: number; maxY: number };
 }
 
 /**
@@ -46,6 +47,7 @@ const NoteConnectionsComponent: React.FC<NoteConnectionsProps> = ({
   selectedNoteId,
   onSelectNote,
   themeMode = 'dark',
+  viewportBounds,
 }) => {
   const connectionsContentKey = useMemo(
     () => (notes || []).map((n) => `${n.id}:${n.updatedAt || n.createdAt}:${n.content?.length || 0}`).join(';'),
@@ -105,6 +107,25 @@ const NoteConnectionsComponent: React.FC<NoteConnectionsProps> = ({
         const fromHeight = fromNote.height || 340;
         const toWidth = toNote.width || 340;
         const toHeight = toNote.height || 340;
+
+        // Viewport culling: do not render SVG path if both ends are completely off-screen
+        if (viewportBounds) {
+          const fromVisible =
+            fromNote.x + fromWidth >= viewportBounds.minX &&
+            fromNote.x <= viewportBounds.maxX &&
+            fromNote.y + fromHeight >= viewportBounds.minY &&
+            fromNote.y <= viewportBounds.maxY;
+
+          const toVisible =
+            toNote.x + toWidth >= viewportBounds.minX &&
+            toNote.x <= viewportBounds.maxX &&
+            toNote.y + toHeight >= viewportBounds.minY &&
+            toNote.y <= viewportBounds.maxY;
+
+          if (!fromVisible && !toVisible) {
+            return null;
+          }
+        }
 
         // Calculate center points in world coordinates
         const fromCenterX = fromNote.x + fromWidth / 2;
