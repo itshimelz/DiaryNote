@@ -65,6 +65,8 @@ interface CanvasControlsProps {
   onOpenAbout?: () => void;
   showStatusBar?: boolean;
   onToggleStatusBar?: () => void;
+  checkForUpdatesOnLaunch?: boolean;
+  onToggleCheckForUpdates?: () => void;
 }
 
 
@@ -101,6 +103,8 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
   onOpenAbout,
   showStatusBar = true,
   onToggleStatusBar,
+  checkForUpdatesOnLaunch = true,
+  onToggleCheckForUpdates,
   enableAIServices = false,
   onOpenAISettings,
 }) => {
@@ -656,6 +660,43 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
                     />
                   </button>
                 </div>
+
+                {/* Auto Check Updates Toggle */}
+                {onToggleCheckForUpdates && (
+                  <div
+                    className={`flex items-center justify-between p-3 rounded-sm border transition-colors ${
+                      themeMode === 'dark'
+                        ? 'bg-slate-800/60 border-slate-700/60'
+                        : 'bg-slate-50 border-slate-200/90'
+                    }`}
+                  >
+                    <div>
+                      <div
+                        className={`font-semibold flex items-center gap-1.5 ${
+                          themeMode === 'dark' ? 'text-slate-100' : 'text-slate-900'
+                        }`}
+                      >
+                        <Share2 className="w-4 h-4 text-blue-500" />
+                        <span>Check Updates on Launch</span>
+                      </div>
+                      <p className={`text-[11px] mt-0.5 ${themeMode === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+                        Query GitHub Releases on app launch to notify about new versions
+                      </p>
+                    </div>
+                    <button
+                      onClick={onToggleCheckForUpdates}
+                      className={`w-10 h-5.5 rounded-full transition-colors relative flex items-center px-0.5 shrink-0 ml-3 cursor-pointer ${
+                        checkForUpdatesOnLaunch ? 'bg-blue-600' : 'bg-slate-300'
+                      }`}
+                    >
+                      <div
+                        className={`w-4.5 h-4.5 rounded-full bg-white shadow-xs transition-transform ${
+                          checkForUpdatesOnLaunch ? 'translate-x-4.5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                )}
 
                 {/* Canvas Overview & Stats Card */}
                 <div

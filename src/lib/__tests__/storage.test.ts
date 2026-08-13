@@ -11,6 +11,8 @@ import {
   compactDatabase,
   saveTransformToDB,
   saveSettingsToDB,
+  saveImportedNotesToDB,
+  getDailyEntryByDate,
 } from '../sqliteStorage';
 import { Note } from '../../types';
 import { DEFAULT_SETTINGS, exportBackup, exportNotesBackup } from '../storage';
@@ -214,5 +216,36 @@ describe('IndexedDB Storage Engine (sqliteStorage.ts)', () => {
     // Also test selection backup exclusion
     const selectionRes = await exportNotesBackup([lockedNote]);
     expect(selectionRes).toBe('');
+  });
+
+  it('atomically saves imported notes to IndexedDB via saveImportedNotesToDB', async () => {
+    const importedNotes = [
+      createTestNote({ id: 'import-1', title: 'Imported 1' }),
+      createTestNote({ id: 'import-2', title: 'Imported 2' }),
+    ];
+
+    const success = await saveImportedNotesToDB(importedNotes);
+    expect(success).toBe(true);
+
+    const count = await db.notes.count();
+    expect(count).toBe(2);
+  });
+
+  it('queries daily journal entry by exact date via getDailyEntryByDate', async () => {
+    const dailyNote = createTestNote({
+      id: 'journal-2026-08-14',
+      title: '2026-08-14',
+      isDailyEntry: true,
+      entryDate: '2026-08-14',
+    });
+
+    await saveNoteToDB(dailyNote);
+
+    const found = await getDailyEntryByDate('2026-08-14');
+    expect(found).toBeDefined();
+    expect(found?.id).toBe('journal-2026-08-14');
+
+    const notFound = await getDailyEntryByDate('2026-08-15');
+    expect(notFound).toBeUndefined();
   });
 });

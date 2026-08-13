@@ -38,18 +38,12 @@ export function formatJournalDateDisplay(dateStr: string): string {
 export function calculateJournalStreak(notes: Note[]): { currentStreak: number; totalEntries: number; datesWithEntries: Set<string> } {
   const datesWithEntries = new Set<string>();
 
-  notes.forEach((note) => {
-    if (note.entryDate) {
+  (notes || []).forEach((note) => {
+    if (!note) return;
+    if (note.isDailyEntry && note.entryDate) {
       datesWithEntries.add(note.entryDate);
-    } else if (note.isDailyEntry || (note.tags && note.tags.includes('journal'))) {
-      const createdDate = getLocalDateString(new Date(note.createdAt));
-      datesWithEntries.add(createdDate);
-    } else {
-      // Check title for YYYY-MM-DD pattern
-      const dateMatch = note.title.match(/\d{4}-\d{2}-\d{2}/);
-      if (dateMatch) {
-        datesWithEntries.add(dateMatch[0]);
-      }
+    } else if (note.entryDate && note.tags?.includes('journal')) {
+      datesWithEntries.add(note.entryDate);
     }
   });
 

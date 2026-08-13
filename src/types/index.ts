@@ -39,6 +39,8 @@ export interface Note {
   height: number;
   createdAt: string;
   updatedAt: string;
+  createdTimestamp?: number;
+  updatedTimestamp?: number;
   fontFamily: HandFont;
   fontSize: 'sm' | 'md' | 'lg' | 'xl';
   paperTheme: PaperTheme;

@@ -267,14 +267,14 @@ main (Production Releases / Protected)
 #### Task 10: Strict Versioned JSON Backup Schema with Zod & Pre-Indexed Timestamps (P1)
 - **Description:** Implement a versioned schema definition for backup imports using Zod. Validate all note fields (coordinates, dates, IDs, tags) and enforce a 50MB file size limit before parsing. Include pre-calculated integer timestamps (`createdTimestamp`, `updatedTimestamp`) to accelerate list sorting without runtime `Date` parsing. Ensure backup import pipelines commit directly and transactionally to IndexedDB rather than unpersisted `setNotes` state bypasses.
 - **Acceptance criteria:**
-  - [ ] Strict Zod schema for `BackupDataV1` and `BackupDataV2`.
-  - [ ] Rejection of malformed JSON, invalid date strings, and out-of-bound coordinates.
-  - [ ] Automatic population of numeric millisecond timestamps on import and creation.
-  - [ ] System preferences and security hashes quarantined from raw note imports.
-  - [ ] Backup import commits atomically to IndexedDB and synchronizes with active canvas state.
+  - [x] Strict Zod schema for `BackupDataV1` and `BackupDataV2`.
+  - [x] Rejection of malformed JSON, invalid date strings, and out-of-bound coordinates.
+  - [x] Automatic population of numeric millisecond timestamps on import and creation.
+  - [x] System preferences and security hashes quarantined from raw note imports.
+  - [x] Backup import commits atomically to IndexedDB and synchronizes with active canvas state.
 - **Verification:**
-  - [ ] Vitest unit tests verifying schema rejection of invalid/malicious payloads and import persistence.
-  - [ ] Manual test: Attempt importing legacy and corrupted JSON backups; reload app and verify persistence.
+  - [x] Vitest unit tests verifying schema rejection of invalid/malicious payloads and import persistence.
+  - [x] Manual test: Attempt importing legacy and corrupted JSON backups; reload app and verify persistence.
 - **Dependencies:** Task 1.
 - **Files likely touched:**
   - `src/schemas/backupSchema.ts`
@@ -288,12 +288,12 @@ main (Production Releases / Protected)
 #### Task 11: Staged Import Preview, Conflict Resolution & Atomic Commit (P1)
 - **Description:** Build a pre-import staging dialog that displays parsed note counts, duplicate ID resolutions, and warnings prior to committing changes to the active database. Commit validated imports atomically to IndexedDB using transactions before updating React state to guarantee durability on immediate reload.
 - **Acceptance criteria:**
-  - [ ] Modal presents summary of incoming notes, tags, and detected conflicts.
-  - [ ] User can choose conflict resolution strategy (Overwrite, Keep Both, Skip).
-  - [ ] Validated imports commit atomically to IndexedDB via transactional batch write.
+  - [x] Modal presents summary of incoming notes, tags, and detected conflicts.
+  - [x] User can choose conflict resolution strategy (Overwrite, Keep Both, Skip).
+  - [x] Validated imports commit atomically to IndexedDB via transactional batch write.
 - **Verification:**
-  - [ ] Vitest tests for duplicate ID resolution strategies and atomic persistence.
-  - [ ] Manual test: Import backup with overlapping IDs and verify non-destructive merge survives immediate restart.
+  - [x] Vitest tests for duplicate ID resolution strategies and atomic persistence.
+  - [x] Manual test: Import backup with overlapping IDs and verify non-destructive merge survives immediate restart.
 - **Dependencies:** Task 10.
 - **Files likely touched:**
   - `src/components/Modals/ImportPreviewModal.tsx`
@@ -306,12 +306,12 @@ main (Production Releases / Protected)
 #### Task 12: Atomic Database Migration with Rollback Recovery Sentinel (P1)
 - **Description:** Refactor database initialization and legacy migration into an atomic Dexie transaction. Preserve timestamped legacy backups in `localStorage` until verified across multiple restarts, and eliminate silent mock-sample seeding on initialization failure.
 - **Acceptance criteria:**
-  - [ ] Migrations execute inside `db.transaction('rw', ...)`.
-  - [ ] Legacy data retained until second successful launch verified.
-  - [ ] Initialization failure presents diagnostic recovery UI instead of overwriting with demo notes.
+  - [x] Migrations execute inside `db.transaction('rw', ...)`.
+  - [x] Legacy data retained until second successful launch verified.
+  - [x] Initialization failure presents diagnostic recovery UI instead of overwriting with demo notes.
 - **Verification:**
-  - [ ] Vitest migration simulation tests with corrupted/partial datasets.
-  - [ ] Manual test: Simulate migration interruption and verify rollback preservation.
+  - [x] Vitest migration simulation tests with corrupted/partial datasets.
+  - [x] Manual test: Simulate migration interruption and verify rollback preservation.
 - **Dependencies:** Task 1.
 - **Files likely touched:**
   - `src/lib/sqliteStorage.ts`
@@ -323,14 +323,14 @@ main (Production Releases / Protected)
 #### Task 13: First-Class Journal Data Model, Streak Migration & Instant History Flush (P1)
 - **Description:** Decouple daily journaling from title/tag heuristics. Add explicit `isDailyEntry: boolean` and `entryDate: string` (ISO `YYYY-MM-DD`) fields to the `Note` schema. Optimize streak calculations in `StatusBar` to query an indexed Set of entry dates instead of running full-note regex on every keystroke. Furthermore, enhance `useHistoryState.ts` and `useNotesManager.ts` to immediately flush pending debounced typing snapshots before applying undo/redo diffs, eliminating edit skipping during active typing.
 - **Acceptance criteria:**
-  - [ ] `Note` type definition updated with explicit journal fields.
-  - [ ] Streak calculation and calendar modal query strictly against `isDailyEntry && entryDate`.
-  - [ ] Pre-aggregated date set avoids per-keystroke regex scans across all notes.
-  - [ ] Automatic migration script upgrades existing journal entries cleanly.
-  - [ ] `handleUndo` and `handleRedo` synchronously flush pending typing snapshot timers before reverting state.
+  - [x] `Note` type definition updated with explicit journal fields.
+  - [x] Streak calculation and calendar modal query strictly against `isDailyEntry && entryDate`.
+  - [x] Pre-aggregated date set avoids per-keystroke regex scans across all notes.
+  - [x] Automatic migration script upgrades existing journal entries cleanly.
+  - [x] `handleUndo` and `handleRedo` synchronously flush pending typing snapshot timers before reverting state.
 - **Verification:**
-  - [ ] Vitest tests for streak calculation, calendar query accuracy, and instant undo after continuous typing.
-  - [ ] Manual test: Type continuously and press Ctrl+Z immediately; verify only the latest typing step is undone.
+  - [x] Vitest tests for streak calculation, calendar query accuracy, and instant undo after continuous typing.
+  - [x] Manual test: Type continuously and press Ctrl+Z immediately; verify only the latest typing step is undone.
 - **Dependencies:** Task 10.
 - **Files likely touched:**
   - `src/types/index.ts`
@@ -346,25 +346,25 @@ main (Production Releases / Protected)
 #### Task 14: Accurate Network Transparency & Update Checker Settings (P1)
 - **Description:** Provide an explicit settings toggle for automatic GitHub update checks (defaulting to opt-in or transparent notice) and update documentation to accurately describe network boundaries.
 - **Acceptance criteria:**
-  - [ ] Settings modal includes toggle for "Check for updates on launch".
-  - [ ] `updateChecker.ts` respects user toggle and skips network requests when disabled.
-  - [ ] Documentation updated to reflect exact online vs. offline capabilities.
+  - [x] Settings modal includes toggle for "Check for updates on launch".
+  - [x] `updateChecker.ts` respects user toggle and skips network requests when disabled.
+  - [x] Documentation updated to reflect exact online vs. offline capabilities.
 - **Verification:**
-  - [ ] Manual test: Disable update checks, restart app, inspect network tab to confirm zero outgoing requests.
+  - [x] Manual test: Disable update checks, restart app, inspect network tab to confirm zero outgoing requests.
 - **Dependencies:** None.
 - **Files likely touched:**
   - `src/utils/updateChecker.ts`
-  - `src/components/Modals/SettingsModal.tsx`
+  - `src/components/CanvasControls.tsx`
   - `README.md`
 - **Estimated scope:** Small (3 files).
 
 ---
 
 ### Checkpoint 3: Schema Interchange & Journal Model
-- [ ] Backup imports validated against strict Zod schema with conflict preview and atomic persistence.
-- [ ] Migrations are atomic and non-destructive with legacy backup retention.
-- [ ] Daily journaling operates on dedicated metadata rather than title guessing.
-- [ ] Delta-based undo history prevents heap memory bloat and flushes debounced typing cleanly.
+- [x] Backup imports validated against strict Zod schema with conflict preview and atomic persistence.
+- [x] Migrations are atomic and non-destructive with legacy backup retention.
+- [x] Daily journaling operates on dedicated metadata rather than title guessing.
+- [x] Delta-based undo history prevents heap memory bloat and flushes debounced typing cleanly.
 
 ---
 

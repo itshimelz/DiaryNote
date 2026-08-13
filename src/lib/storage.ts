@@ -2,6 +2,7 @@ import { Note, CanvasTransform, GridType, CanvasTheme, AIProvider } from '../typ
 import { invoke } from '@tauri-apps/api/core';
 import { sendNativeAppNotification } from '../utils';
 import { authorizeNotes } from '../services/authPolicyService';
+import { validateAndParseBackupContent } from '../schemas/backupSchema';
 
 const NOTES_STORAGE_KEY = 'infinite_notes_v1_notes';
 const CANVAS_TRANSFORM_KEY = 'infinite_notes_v1_transform';
@@ -17,6 +18,9 @@ export interface AppSettings {
   masterPasswordHash?: string;
   masterSecurityQuestion?: string;
   masterSecurityAnswerHash?: string;
+
+  // Network Transparency
+  checkForUpdatesOnLaunch?: boolean;
 
   // AI Service Settings
   enableAIServices?: boolean;
@@ -34,6 +38,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   snapToGrid: false,
   showConnections: true,
   showMinimap: true,
+  checkForUpdatesOnLaunch: true,
   enableAIServices: false,
   aiProvider: 'gemini',
   customBaseUrl: '',
@@ -363,18 +368,12 @@ export function importBackup(file: File): Promise<{ notes: Note[]; transform?: C
     reader.onload = (event) => {
       try {
         const content = event.target?.result as string;
-        const parsed = JSON.parse(content);
-        if (parsed && Array.isArray(parsed.notes)) {
-          resolve({
-            notes: parsed.notes,
-            transform: parsed.transform,
-            settings: parsed.settings,
-          });
-        } else if (Array.isArray(parsed)) {
-          resolve({ notes: parsed });
-        } else {
-          reject(new Error('Invalid JSON backup file structure'));
-        }
+        const parsed = validateAndParseBackupContent(content);
+        resolve({
+          notes: parsed.notes,
+          transform: parsed.transform,
+          settings: parsed.settings,
+        });
       } catch (e) {
         reject(e);
       }

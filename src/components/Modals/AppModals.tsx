@@ -30,6 +30,9 @@ const JournalCalendarModal = lazy(() =>
 const AISettingsModal = lazy(() =>
   import('./AISettingsModal').then((m) => ({ default: m.AISettingsModal }))
 );
+const ImportPreviewModal = lazy(() =>
+  import('./ImportPreviewModal').then((m) => ({ default: m.ImportPreviewModal }))
+);
 
 interface AppModalsProps {
   notes: Note[];
@@ -57,6 +60,9 @@ interface AppModalsProps {
   setIsAboutModalOpen: (open: boolean) => void;
   isAISettingsOpen: boolean;
   setIsAISettingsOpen: (open: boolean) => void;
+  stagedImportData: { isOpen: boolean; notes: Note[]; transform?: CanvasTransform; settings?: AppSettings };
+  setStagedImportData: React.Dispatch<React.SetStateAction<{ isOpen: boolean; notes: Note[]; transform?: CanvasTransform; settings?: AppSettings }>>;
+  handleCommitImport: (resolvedNotes: Note[], transform?: CanvasTransform, settings?: AppSettings) => void;
   contextMenuState: { isOpen: boolean; x: number; y: number };
   setContextMenuState: React.Dispatch<React.SetStateAction<{ isOpen: boolean; x: number; y: number }>>;
   pasteModalState: { isOpen: boolean; text: string };
@@ -109,6 +115,9 @@ export const AppModals: React.FC<AppModalsProps> = ({
   setIsAboutModalOpen,
   isAISettingsOpen,
   setIsAISettingsOpen,
+  stagedImportData,
+  setStagedImportData,
+  handleCommitImport,
   contextMenuState,
   setContextMenuState,
   pasteModalState,
@@ -130,6 +139,17 @@ export const AppModals: React.FC<AppModalsProps> = ({
   return (
     <>
       <Suspense fallback={null}>
+        {/* Staged Import Preview & Conflict Resolution Modal */}
+        <ImportPreviewModal
+          isOpen={stagedImportData.isOpen}
+          themeMode={settings.themeMode}
+          incomingNotes={stagedImportData.notes}
+          existingNotes={notes}
+          incomingTransform={stagedImportData.transform}
+          incomingSettings={stagedImportData.settings}
+          onClose={() => setStagedImportData({ isOpen: false, notes: [] })}
+          onConfirmImport={handleCommitImport}
+        />
         {/* AI Features & Key Settings Modal */}
         <AISettingsModal
           isOpen={isAISettingsOpen}

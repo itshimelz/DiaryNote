@@ -1,6 +1,6 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Note } from './types';
+import { Note, CanvasTransform } from './types';
 import { exportBackup, exportNotesBackup, importBackup, saveFileWithNotification } from './lib/storage';
 
 // Custom Hooks
@@ -23,7 +23,7 @@ import {
 import { AppModals } from './components/Modals/AppModals';
 import { sendNativeAppNotification } from './utils';
 import { checkForAppUpdates } from './utils/updateChecker';
-import { saveSettingsToDB } from './lib/sqliteStorage';
+import { saveSettingsToDB, saveImportedNotesToDB } from './lib/sqliteStorage';
 import { mergeNotesWithAI } from './services/ai/aiMergeService';
 import { AppSettings } from './lib/storage';
 
@@ -93,6 +93,7 @@ export default function App() {
     handleDeleteMultipleNotes,
     handleRestoreNotes,
     bringToFront,
+    flushPendingHistory,
   } = useNotesManager(pushHistorySnapshot, resetHistory);
 
   // 3. Canvas Transform Hook
@@ -121,17 +122,34 @@ export default function App() {
     });
   }, [initAppDatabase, handleCanvasTransformChange, setSettings]);
 
-  // Check GitHub for first-time release updates on mount
+  // Task 14: Network Transparency — Check GitHub for updates on mount only if opted-in
   useEffect(() => {
-    checkForAppUpdates().then((res) => {
-      if (res.updateAvailable && res.isFirstTimeAlert && res.latestRelease) {
-        setUpdateReleaseAlert(res.latestRelease);
-      }
-    });
-  }, [setUpdateReleaseAlert]);
+    if (settings.checkForUpdatesOnLaunch !== false) {
+      checkForAppUpdates().then((res) => {
+        if (res.updateAvailable && res.isFirstTimeAlert && res.latestRelease) {
+          setUpdateReleaseAlert(res.latestRelease);
+        }
+      });
+    }
+  }, [settings.checkForUpdatesOnLaunch, setUpdateReleaseAlert]);
 
-  const handleUndo = useCallback(() => triggerUndo(handleRestoreNotes), [triggerUndo, handleRestoreNotes]);
-  const handleRedo = useCallback(() => triggerRedo(handleRestoreNotes), [triggerRedo, handleRestoreNotes]);
+  // Staged backup import preview modal state
+  const [stagedImportData, setStagedImportData] = useState<{
+    isOpen: boolean;
+    notes: Note[];
+    transform?: CanvasTransform;
+    settings?: AppSettings;
+  }>({ isOpen: false, notes: [] });
+
+  const handleUndo = useCallback(() => {
+    flushPendingHistory();
+    triggerUndo(handleRestoreNotes);
+  }, [flushPendingHistory, triggerUndo, handleRestoreNotes]);
+
+  const handleRedo = useCallback(() => {
+    flushPendingHistory();
+    triggerRedo(handleRestoreNotes);
+  }, [flushPendingHistory, triggerRedo, handleRestoreNotes]);
 
   // Request deletion of notes - if any targeted note is locked, require passcode verification first
   const requestDeleteNotes = useCallback(
@@ -399,69 +417,56 @@ export default function App() {
   const handleImportBackupFile = useCallback(
     (file: File) => {
       importBackup(file)
-        .then(({ notes: importedNotes, settings: importedSettings }) => {
-          if (!importedNotes || importedNotes.length === 0) {
+        .then((parsed) => {
+          if (!parsed.notes || parsed.notes.length === 0) {
             sendNativeAppNotification('Import Failed', `No notes found in ${file.name}`);
             return;
           }
-
-          setNotes((currentNotes) => {
-            const existingMap = new Map<string, Note>(currentNotes.map((n) => [n.id, n]));
-            let addedCount = 0;
-            let updatedCount = 0;
-            let keptCount = 0;
-
-            const mergedNotes = [...currentNotes];
-
-            importedNotes.forEach((importedNote) => {
-              const existing = existingMap.get(importedNote.id);
-              if (!existing) {
-                mergedNotes.push(importedNote);
-                addedCount++;
-              } else {
-                const importedTime = new Date(importedNote.updatedAt || 0).getTime();
-                const existingTime = new Date(existing.updatedAt || 0).getTime();
-
-                if (importedTime > existingTime) {
-                  const index = mergedNotes.findIndex((n) => n.id === importedNote.id);
-                  if (index !== -1) {
-                    mergedNotes[index] = importedNote;
-                    updatedCount++;
-                  }
-                } else {
-                  keptCount++;
-                }
-              }
-            });
-
-            resetHistory(mergedNotes);
-
-            const summaryParts: string[] = [];
-            if (addedCount > 0) summaryParts.push(`${addedCount} new added`);
-            if (updatedCount > 0) summaryParts.push(`${updatedCount} updated`);
-            if (keptCount > 0) summaryParts.push(`${keptCount} local kept`);
-
-            const summaryStr = summaryParts.length > 0 ? summaryParts.join(', ') : 'All notes up to date';
-
-            sendNativeAppNotification(
-              'Smart Merge Successful',
-              `Imported ${file.name} (${summaryStr})`
-            );
-
-            return mergedNotes;
+          setStagedImportData({
+            isOpen: true,
+            notes: parsed.notes,
+            transform: parsed.transform,
+            settings: parsed.settings,
           });
-
-          if (importedSettings) setSettings((prev) => ({ ...prev, ...importedSettings }));
         })
-        .catch((err) => {
-          console.error('Failed to import backup:', err);
+        .catch((err: any) => {
+          console.error('Failed to parse backup:', err);
           sendNativeAppNotification(
             'Import Failed',
-            `Failed to import backup from ${file.name}: ${err.message || 'Invalid backup structure'}`
+            `Failed to parse backup from ${file.name}: ${err?.message || 'Invalid backup structure'}`
           );
         });
     },
-    [resetHistory, setNotes, setSettings]
+    []
+  );
+
+  const handleCommitImport = useCallback(
+    async (resolvedNotes: Note[], newTransform?: CanvasTransform, newSettings?: AppSettings) => {
+      try {
+        await saveImportedNotesToDB(resolvedNotes);
+        setNotes(resolvedNotes);
+        resetHistory(resolvedNotes);
+
+        if (newTransform) {
+          handleCanvasTransformChange(newTransform);
+        }
+        if (newSettings) {
+          setSettings((prev) => ({ ...prev, ...newSettings }));
+        }
+
+        sendNativeAppNotification(
+          'Import Successful',
+          `Imported ${resolvedNotes.length} notes into canvas.`
+        );
+      } catch (err: any) {
+        console.error('Failed to persist imported notes to IndexedDB:', err);
+        sendNativeAppNotification(
+          'Import Error',
+          `Failed to persist imported notes: ${err?.message || 'Storage error'}`
+        );
+      }
+    },
+    [handleCanvasTransformChange, resetHistory, setNotes, setSettings]
   );
 
   const handleConfirmDelete = useCallback(() => {
@@ -727,6 +732,13 @@ export default function App() {
               onImportBackup={handleImportBackupFile}
               showStatusBar={showStatusBar}
               onToggleStatusBar={handleToggleStatusBar}
+              checkForUpdatesOnLaunch={settings.checkForUpdatesOnLaunch !== false}
+              onToggleCheckForUpdates={() =>
+                setSettings((prev) => ({
+                  ...prev,
+                  checkForUpdatesOnLaunch: prev.checkForUpdatesOnLaunch === false ? true : false,
+                }))
+              }
             />
           </div>
         </motion.div>
@@ -770,6 +782,9 @@ export default function App() {
         setIsAboutModalOpen={setIsAboutModalOpen}
         isAISettingsOpen={isAISettingsOpen}
         setIsAISettingsOpen={setIsAISettingsOpen}
+        stagedImportData={stagedImportData}
+        setStagedImportData={setStagedImportData}
+        handleCommitImport={handleCommitImport}
         contextMenuState={contextMenuState}
         setContextMenuState={setContextMenuState}
         pasteModalState={pasteModalState}

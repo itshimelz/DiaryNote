@@ -20,6 +20,22 @@ export class DiaryNoteDatabase extends Dexie {
       settings: 'id',
       transform: 'id',
     });
+    this.version(2).stores({
+      notes: 'id, title, paperTheme, isPinned, createdAt, updatedAt, createdTimestamp, updatedTimestamp, isDailyEntry, entryDate, [isDailyEntry+entryDate], *tags',
+      settings: 'id',
+      transform: 'id',
+    }).upgrade(async (tx) => {
+      await tx.table('notes').toCollection().modify((note: Note) => {
+        if (!note.createdTimestamp && note.createdAt) {
+          const t = new Date(note.createdAt).getTime();
+          note.createdTimestamp = isNaN(t) ? Date.now() : t;
+        }
+        if (!note.updatedTimestamp && note.updatedAt) {
+          const t = new Date(note.updatedAt).getTime();
+          note.updatedTimestamp = isNaN(t) ? (note.createdTimestamp || Date.now()) : t;
+        }
+      });
+    });
   }
 }
 
@@ -342,4 +358,37 @@ export async function compactDatabase(): Promise<{ freedKeys: number }> {
   }
 
   return { freedKeys };
+}
+
+/**
+ * Commits imported notes directly and atomically into IndexedDB within a single transaction.
+ */
+export async function saveImportedNotesToDB(importedNotes: Note[]): Promise<boolean> {
+  if (!importedNotes || importedNotes.length === 0) return true;
+  try {
+    const sanitized = await Promise.all(importedNotes.map(sanitizeNoteForStorage));
+    await db.transaction('rw', db.notes, async () => {
+      await db.notes.bulkPut(sanitized);
+    });
+    return true;
+  } catch (err) {
+    console.error('Error committing imported notes to IndexedDB:', err);
+    return false;
+  }
+}
+
+/**
+ * Retrieves a daily journal entry by exact date ('YYYY-MM-DD').
+ */
+export async function getDailyEntryByDate(dateStr: string): Promise<Note | undefined> {
+  if (!dateStr) return undefined;
+  try {
+    const entry = await db.notes
+      .filter((n) => Boolean(n.isDailyEntry) && n.entryDate === dateStr)
+      .first();
+    return entry ? prepareNoteForMemory(entry) : undefined;
+  } catch (err) {
+    console.error('Error fetching daily entry by date:', err);
+    return undefined;
+  }
 }

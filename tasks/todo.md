@@ -49,30 +49,30 @@
 ---
 
 ## Phase 3: Schema Interchange, Migration Safety & Journal Data Model (`v0.2.0-beta.1`)
-- [ ] **Task 10:** Strict Versioned JSON Backup Schema with Zod & Pre-Indexed Timestamps (P1)
-  - [ ] Implement versioned Zod schemas (`BackupDataV1`, `BackupDataV2`)
-  - [ ] Populate numeric integer timestamps (`createdTimestamp`, `updatedTimestamp`) to eliminate `new Date()` sort thrash
-  - [ ] Enforce 50MB file size cap and field type validation on import
-  - [ ] Isolate settings and security hashes from raw note imports
-  - [ ] Ensure backup import commits atomically to IndexedDB directly (eliminating in-memory bypasses)
-- [ ] **Task 11:** Staged Import Preview & Conflict Resolution Modal (P1)
-  - [ ] Create `ImportPreviewModal.tsx` showing parsed note counts and conflict summaries
-  - [ ] Implement conflict resolution strategies (Overwrite, Keep Both, Skip)
-  - [ ] Commit validated imports atomically to IndexedDB via transactional batch write
-- [ ] **Task 12:** Atomic Database Migration with Rollback Recovery Sentinel (P1)
-  - [ ] Execute database migrations in atomic `db.transaction('rw', ...)`
-  - [ ] Retain legacy `localStorage` backup snapshots across restarts
-  - [ ] Replace silent sample-note seeding with diagnostic recovery UI
-- [ ] **Task 13:** First-Class Journal Data Model & Pre-Aggregated Streak Set (P1)
-  - [ ] Add explicit `isDailyEntry: boolean` and `entryDate: string` fields to `Note`
-  - [ ] Maintain pre-aggregated set of entry dates to eliminate per-keystroke regex scans across all notes
-  - [ ] Synchronously flush pending typing snapshot debounce timers prior to executing `handleUndo` / `handleRedo`
-  - [ ] Implement automated one-time migration for legacy heuristic entries
-- [ ] **Task 14:** Accurate Network Transparency & Update Checker Settings (P1)
-  - [ ] Add user toggle for update checking in Settings modal
-  - [ ] Enforce update check disablement in `updateChecker.ts`
-  - [ ] Update README and product copy to reflect accurate network boundaries
-- [ ] **Checkpoint 3:** Schema Interchange, Fast Numerical Sorting, Atomic Imports & Journal Model verified
+- [x] **Task 10:** Strict Versioned JSON Backup Schema with Zod & Pre-Indexed Timestamps (P1)
+  - [x] Implement versioned Zod schemas (`BackupDataV1`, `BackupDataV2`)
+  - [x] Populate numeric integer timestamps (`createdTimestamp`, `updatedTimestamp`) to eliminate `new Date()` sort thrash
+  - [x] Enforce 50MB file size cap and field type validation on import
+  - [x] Isolate settings and security hashes from raw note imports
+  - [x] Ensure backup import commits atomically to IndexedDB directly (eliminating in-memory bypasses)
+- [x] **Task 11:** Staged Import Preview & Conflict Resolution Modal (P1)
+  - [x] Create `ImportPreviewModal.tsx` showing parsed note counts and conflict summaries
+  - [x] Implement conflict resolution strategies (Overwrite, Keep Both, Skip)
+  - [x] Commit validated imports atomically to IndexedDB via transactional batch write
+- [x] **Task 12:** Atomic Database Migration with Rollback Recovery Sentinel (P1)
+  - [x] Execute database migrations in atomic `db.transaction('rw', ...)`
+  - [x] Retain legacy `localStorage` backup snapshots across restarts
+  - [x] Replace silent sample-note seeding with diagnostic recovery UI
+- [x] **Task 13:** First-Class Journal Data Model & Pre-Aggregated Streak Set (P1)
+  - [x] Add explicit `isDailyEntry: boolean` and `entryDate: string` fields to `Note`
+  - [x] Maintain pre-aggregated set of entry dates to eliminate per-keystroke regex scans across all notes
+  - [x] Synchronously flush pending typing snapshot debounce timers prior to executing `handleUndo` / `handleRedo`
+  - [x] Implement automated one-time migration for legacy heuristic entries
+- [x] **Task 14:** Accurate Network Transparency & Update Checker Settings (P1)
+  - [x] Add user toggle for update checking in Settings modal
+  - [x] Enforce update check disablement in `updateChecker.ts`
+  - [x] Update README and product copy to reflect accurate network boundaries
+- [x] **Checkpoint 3:** Schema Interchange, Fast Numerical Sorting, Atomic Imports & Journal Model verified
 
 ---
 

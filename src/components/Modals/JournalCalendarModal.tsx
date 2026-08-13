@@ -87,7 +87,7 @@ export const JournalCalendarModal: React.FC<JournalCalendarModalProps> = ({
     for (let day = 1; day <= totalDays; day++) {
       const currentDate = new Date(year, month, day);
       const dStr = getLocalDateString(currentDate);
-      const matchingNote = notes.find((n) => n.entryDate === dStr || n.title.includes(dStr));
+      const matchingNote = notes.find((n) => (Boolean(n.isDailyEntry) && n.entryDate === dStr) || (n.entryDate === dStr && n.tags?.includes('journal')));
 
       days.push({
         dateStr: dStr,

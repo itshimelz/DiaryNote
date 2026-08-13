@@ -20,7 +20,19 @@ export function useNotesManager(
   const [saveError, setSaveError] = useState<string | null>(null);
   const isDbLoadedRef = useRef<boolean>(false);
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingHistoryNotesRef = useRef<Note[] | null>(null);
   const dirtyNoteIdsRef = useRef<Set<string>>(new Set());
+
+  const flushPendingHistory = useCallback(() => {
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+      updateTimeoutRef.current = null;
+    }
+    if (pendingHistoryNotesRef.current) {
+      pushHistorySnapshot(pendingHistoryNotesRef.current);
+      pendingHistoryNotesRef.current = null;
+    }
+  }, [pushHistorySnapshot]);
 
   // Initialize DB on mount
   const initAppDatabase = useCallback((
@@ -214,9 +226,11 @@ export function useNotesManager(
           ? prevNotes.map((n) => (n.id === updated.id ? updated : n))
           : [...prevNotes, updated];
 
+        pendingHistoryNotesRef.current = nextNotes;
         if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current);
         updateTimeoutRef.current = setTimeout(() => {
           pushHistorySnapshot(nextNotes);
+          pendingHistoryNotesRef.current = null;
         }, 400);
 
         return nextNotes;
@@ -233,9 +247,11 @@ export function useNotesManager(
         const updatedMap = new Map(updatedNotes.map((n) => [n.id, n]));
         const nextNotes = prevNotes.map((n) => updatedMap.get(n.id) || n);
 
+        pendingHistoryNotesRef.current = nextNotes;
         if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current);
         updateTimeoutRef.current = setTimeout(() => {
           pushHistorySnapshot(nextNotes);
+          pendingHistoryNotesRef.current = null;
         }, 400);
 
         return nextNotes;
@@ -364,5 +380,6 @@ export function useNotesManager(
     handleDeleteMultipleNotes,
     handleRestoreNotes,
     bringToFront,
+    flushPendingHistory,
   };
 }
