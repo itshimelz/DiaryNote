@@ -437,20 +437,64 @@ export default function App() {
   const handleImportBackupFile = useCallback(
     (file: File) => {
       importBackup(file)
-        .then(({ notes: importedNotes, transform: importedTransform, settings: importedSettings }) => {
-          let importedCount = 0;
-          if (importedNotes) {
-            setNotes(importedNotes);
-            resetHistory(importedNotes);
-            importedCount = importedNotes.length;
+        .then(({ notes: importedNotes, settings: importedSettings }) => {
+          if (!importedNotes || importedNotes.length === 0) {
+            sendNativeAppNotification('Import Failed', `No notes found in ${file.name}`);
+            return;
           }
-          if (importedTransform) handleCanvasTransformChange(importedTransform);
-          if (importedSettings) setSettings((prev) => ({ ...prev, ...importedSettings }));
 
-          sendNativeAppNotification(
-            'Import Successful',
-            `Successfully imported ${importedCount} note${importedCount === 1 ? '' : 's'} from ${file.name}`
-          );
+          setNotes((currentNotes) => {
+            const existingMap = new Map<string, Note>(currentNotes.map((n) => [n.id, n]));
+            let addedCount = 0;
+            let updatedCount = 0;
+            let keptCount = 0;
+
+            const mergedNotes = [...currentNotes];
+
+            importedNotes.forEach((importedNote) => {
+              const existing = existingMap.get(importedNote.id);
+              if (!existing) {
+                // New note - append to workspace
+                mergedNotes.push(importedNote);
+                addedCount++;
+              } else {
+                // Matching note ID - compare timestamps
+                const importedTime = new Date(importedNote.updatedAt || 0).getTime();
+                const existingTime = new Date(existing.updatedAt || 0).getTime();
+
+                if (importedTime > existingTime) {
+                  // Imported note is newer - update in-place
+                  const index = mergedNotes.findIndex((n) => n.id === importedNote.id);
+                  if (index !== -1) {
+                    mergedNotes[index] = importedNote;
+                    updatedCount++;
+                  }
+                } else {
+                  // Local note is newer or identical - keep local
+                  keptCount++;
+                }
+              }
+            });
+
+            resetHistory(mergedNotes);
+
+            // Generate detailed feedback message
+            const summaryParts: string[] = [];
+            if (addedCount > 0) summaryParts.push(`${addedCount} new added`);
+            if (updatedCount > 0) summaryParts.push(`${updatedCount} updated`);
+            if (keptCount > 0) summaryParts.push(`${keptCount} local kept`);
+
+            const summaryStr = summaryParts.length > 0 ? summaryParts.join(', ') : 'All notes up to date';
+
+            sendNativeAppNotification(
+              'Smart Merge Successful',
+              `Imported ${file.name} (${summaryStr})`
+            );
+
+            return mergedNotes;
+          });
+
+          if (importedSettings) setSettings((prev) => ({ ...prev, ...importedSettings }));
         })
         .catch((err) => {
           console.error('Failed to import backup:', err);
@@ -460,7 +504,7 @@ export default function App() {
           );
         });
     },
-    [handleCanvasTransformChange, resetHistory, setNotes, setSettings]
+    [resetHistory, setNotes, setSettings]
   );
 
   const handleConfirmDelete = useCallback(() => {
@@ -1003,6 +1047,25 @@ export default function App() {
           selectedNoteIds={selectedNoteIds}
           snapToGrid={settings.snapToGrid}
           gridType={settings.gridType}
+          enableAIServices={settings.enableAIServices}
+          isMergingAI={isMergingAI}
+          onToggleSnap={handleToggleSnapToGrid}
+          onCycleGridType={() =>
+            setSettings((prev) => ({
+              ...prev,
+              gridType:
+                prev.gridType === 'dots'
+                  ? 'grid'
+                  : prev.gridType === 'grid'
+                  ? 'ruled'
+                  : prev.gridType === 'ruled'
+                  ? 'blank'
+                  : 'dots',
+            }))
+          }
+          onOpenBackupModal={() => exportBackup(notes, transform, settings)}
+          onOpenSearchModal={() => setIsSearchOpen(true)}
+          onOpenJournalCalendar={() => setIsJournalCalendarOpen(true)}
         />
       )}
     </div>

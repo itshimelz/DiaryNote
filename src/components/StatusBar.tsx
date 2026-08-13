@@ -1,7 +1,19 @@
 import React, { useMemo } from 'react';
 import { Note, CanvasTheme, GridType } from '../types';
 import { calculateJournalStreak } from '../utils';
-import { Database, Grid2X2, CheckSquare, Clock, FileText, Flame, CheckCircle2 } from 'lucide-react';
+import {
+  Database,
+  Grid2X2,
+  CheckSquare,
+  Clock,
+  FileText,
+  Flame,
+  CheckCircle2,
+  Tag,
+  Sparkles,
+  Loader2,
+  Layers,
+} from 'lucide-react';
 
 /**
  * Smart relative time formatter
@@ -43,6 +55,13 @@ interface StatusBarProps {
   selectedNoteIds?: string[];
   snapToGrid?: boolean;
   gridType?: GridType;
+  enableAIServices?: boolean;
+  isMergingAI?: boolean;
+  onToggleSnap?: () => void;
+  onCycleGridType?: () => void;
+  onOpenBackupModal?: () => void;
+  onOpenSearchModal?: (query?: string) => void;
+  onOpenJournalCalendar?: () => void;
 }
 
 export const StatusBar: React.FC<StatusBarProps> = ({
@@ -51,6 +70,13 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   selectedNoteIds = [],
   snapToGrid = false,
   gridType = 'dots',
+  enableAIServices = false,
+  isMergingAI = false,
+  onToggleSnap,
+  onCycleGridType,
+  onOpenBackupModal,
+  onOpenSearchModal,
+  onOpenJournalCalendar,
 }) => {
   const isDark = themeMode !== 'light';
 
@@ -115,6 +141,40 @@ export const StatusBar: React.FC<StatusBarProps> = ({
     return calculateJournalStreak(notes);
   }, [notes]);
 
+  // Extract unique hashtags (#tag) ONLY when note(s) are selected; show max 3 tags + count remainder
+  const tagInfo = useMemo(() => {
+    if (selectedNoteIds.length === 0) {
+      return { count: 0, displayTags: [], extraCount: 0, firstTag: '' };
+    }
+
+    const selectedNotes = notes.filter((n) => selectedNoteIds.includes(n.id));
+    const tagSet = new Set<string>();
+    const tagRegex = /#([a-zA-Z0-9_\-\u0980-\u09FF]+)/g;
+
+    for (let i = 0; i < selectedNotes.length; i++) {
+      const content = selectedNotes[i].content || '';
+      let match: RegExpExecArray | null;
+      while ((match = tagRegex.exec(content)) !== null) {
+        if (match[1]) tagSet.add(match[1]);
+      }
+    }
+
+    const uniqueTags = Array.from(tagSet);
+    const displayTags = uniqueTags.slice(0, 3).map((t) => `#${t}`);
+    const extraCount = Math.max(0, uniqueTags.length - 3);
+
+    return {
+      count: uniqueTags.length,
+      displayTags,
+      extraCount,
+      firstTag: uniqueTags.length > 0 ? `#${uniqueTags[0]}` : '',
+    };
+  }, [notes, selectedNoteIds]);
+
+  const flatItemHoverClass = `transition-colors cursor-pointer opacity-80 hover:opacity-100 ${
+    isDark ? 'text-slate-300 hover:text-blue-400' : 'text-slate-700 hover:text-blue-600'
+  }`;
+
   return (
     <div
       className={`fixed bottom-0 left-0 right-0 z-40 h-8 border-t backdrop-blur-md px-4 text-[11px] font-sans flex items-center justify-between transition-colors select-none ${
@@ -123,7 +183,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           : 'bg-white/95 border-slate-200 text-slate-700'
       }`}
     >
-      {/* Left Section: Contextual Insights (Single Note / Multi Note / Workspace) */}
+      {/* Left Section: Contextual Insights & Tag Summary (Flat Styling) */}
       <div className="flex items-center gap-2.5 min-w-0">
         {selectedSingleNote ? (
           <div className="flex items-center gap-1.5 truncate font-sans text-[11px]">
@@ -138,8 +198,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           </div>
         ) : multiSelectionStats ? (
           <div className="flex items-center gap-2 font-sans text-[11px]">
-            <span className="font-bold px-1.5 py-0.5 rounded-sm bg-blue-500/10 text-blue-500 border border-blue-500/20 inline-flex items-center gap-1">
-              <CheckSquare className="w-3 h-3 shrink-0 translate-y-[0.5px]" />
+            <span className="font-bold inline-flex items-center gap-1 text-blue-400">
+              <CheckSquare className="w-3.5 h-3.5 shrink-0 translate-y-[0.5px]" />
               <span>{multiSelectionStats.count} notes selected</span>
             </span>
             <span className={isDark ? 'text-slate-400' : 'text-slate-600'}>
@@ -163,47 +223,102 @@ export const StatusBar: React.FC<StatusBarProps> = ({
             </span>
           </div>
         )}
+
+        {/* Task 13: Tag & Category Summary (Only visible when note(s) selected; max 3 tags + extra count) */}
+        {tagInfo.count > 0 && (
+          <>
+            <span className={isDark ? 'text-slate-600' : 'text-slate-300'}>·</span>
+            <button
+              type="button"
+              onClick={() => onOpenSearchModal?.(tagInfo.firstTag)}
+              className={`inline-flex items-center gap-1 font-medium ${flatItemHoverClass}`}
+              title={`Selected tags: ${tagInfo.displayTags.join(' ')}${
+                tagInfo.extraCount > 0 ? ` +${tagInfo.extraCount} more` : ''
+              }. Click to search.`}
+            >
+              <Tag className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+              <span>
+                {tagInfo.displayTags.join(' ')}
+                {tagInfo.extraCount > 0 && (
+                  <span className="ml-0.5 opacity-70 font-semibold">+{tagInfo.extraCount}</span>
+                )}
+              </span>
+            </button>
+          </>
+        )}
       </div>
 
-      {/* Middle Section: Journal Streak & Engine Status */}
-      <div className="hidden md:flex items-center gap-3 font-sans text-[11px]">
+      {/* Middle Section: Journal Streak, AI Engine Status, & Database Engine (Flat Styling) */}
+      <div className="hidden md:flex items-center gap-3.5 font-sans text-[11px]">
+        {/* Journal Streak Button */}
         {streakStats.currentStreak > 0 && (
-          <div
-            className={`px-1.5 py-0.5 rounded-md border font-semibold inline-flex items-center gap-1 transition-colors ${
-              isDark
-                ? 'bg-slate-800/80 border-slate-700/50 text-slate-200'
-                : 'bg-slate-50 border-slate-200 text-slate-700'
-            }`}
-            title="Current Daily Journal Streak"
+          <button
+            type="button"
+            onClick={onOpenJournalCalendar}
+            className={`inline-flex items-center gap-1 font-semibold ${flatItemHoverClass}`}
+            title="Click to view Journal Calendar"
           >
             <Flame className="w-3.5 h-3.5 text-amber-400 shrink-0" />
             <span>{streakStats.currentStreak} d streak</span>
-          </div>
+          </button>
         )}
-        <div className="flex items-center gap-1.5 opacity-75">
-          <Database className="w-3.5 h-3.5 text-blue-400 shrink-0 translate-y-[0.5px]" />
-          <span>SQLite Local Engine</span>
+
+        {/* Task 14: Dynamic AI Engine Status Indicator */}
+        <div
+          className={`inline-flex items-center gap-1 font-semibold transition-colors ${
+            isMergingAI
+              ? 'text-blue-400'
+              : enableAIServices
+              ? isDark ? 'text-slate-300' : 'text-slate-700'
+              : 'opacity-50'
+          }`}
+          title={isMergingAI ? 'AI merging operation in progress' : enableAIServices ? 'AI Engine Service Ready' : 'AI Services Disabled'}
+        >
+          {isMergingAI ? (
+            <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin shrink-0" />
+          ) : (
+            <Sparkles className={`w-3.5 h-3.5 shrink-0 ${enableAIServices ? 'text-amber-400' : 'opacity-40'}`} />
+          )}
+          <span>{isMergingAI ? 'AI Merging...' : enableAIServices ? 'AI Ready' : 'AI Off'}</span>
         </div>
+
+        {/* Task 16: Clickable Database Engine & Quick Storage Trigger */}
+        <button
+          type="button"
+          onClick={onOpenBackupModal}
+          className={`inline-flex items-center gap-1 font-semibold ${flatItemHoverClass}`}
+          title="SQLite Local Storage Engine. Click to export full database backup."
+        >
+          <Database className="w-3.5 h-3.5 text-blue-400 shrink-0 translate-y-[0.5px]" />
+          <span>SQLite Engine</span>
+        </button>
       </div>
 
-      {/* Right Section: Canvas Grid State & Auto-Save */}
+      {/* Right Section: Interactive Grid & Snap Controls + Auto-Save Status (Flat Styling) */}
       <div className="flex items-center gap-3 font-sans text-[11px]">
-        {/* Grid & Snap Indicator */}
-        <div className="flex items-center gap-1.5">
-          <span
-            className={`px-1.5 py-0.5 rounded-md border capitalize font-semibold inline-flex items-center gap-1 ${
-              snapToGrid
-                ? isDark
-                  ? 'bg-slate-800/80 border-slate-700/50 text-slate-200'
-                  : 'bg-slate-50 border-slate-200 text-slate-800'
-                : 'opacity-60 border-transparent'
-            }`}
-            title={snapToGrid ? 'Snap to Grid (24px Enabled)' : 'Free-form Placement'}
-          >
-            <Grid2X2 className="w-3.5 h-3.5 opacity-70 shrink-0 translate-y-[0.5px]" />
-            <span>{snapToGrid ? `Snap 24px (${gridType})` : `Grid: ${gridType}`}</span>
-          </span>
-        </div>
+        {/* Task 15: Interactive Clickable Grid Type Switcher */}
+        <button
+          type="button"
+          onClick={onCycleGridType}
+          className={`capitalize font-semibold inline-flex items-center gap-1 ${flatItemHoverClass}`}
+          title={`Grid background: ${gridType}. Click to cycle type.`}
+        >
+          <Grid2X2 className="w-3.5 h-3.5 opacity-70 shrink-0 translate-y-[0.5px]" />
+          <span>Grid: {gridType}</span>
+        </button>
+
+        {/* Task 15: Interactive Clickable Grid Snap Switcher */}
+        <button
+          type="button"
+          onClick={onToggleSnap}
+          className={`capitalize font-semibold inline-flex items-center gap-1 ${flatItemHoverClass} ${
+            snapToGrid ? 'text-blue-400 font-bold opacity-100' : 'opacity-60'
+          }`}
+          title={snapToGrid ? 'Snap to Grid (24px Enabled). Click to toggle.' : 'Free-form Placement. Click to enable 24px Snap.'}
+        >
+          <Layers className="w-3.5 h-3.5 shrink-0 translate-y-[0.5px]" />
+          <span>{snapToGrid ? 'Snap 24px' : 'Freeform'}</span>
+        </button>
 
         <div className={`h-3 w-px ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`} />
 
