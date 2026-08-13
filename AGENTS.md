@@ -25,7 +25,22 @@ For every modified UI file, the agent must document:
 
 ---
 
-## 2. Active UI Component Modification Registry
+## 2. Mandatory Operational Commands & Tool Rules
+
+> [!CAUTION]
+> **RULE #2 (NO DEV SERVER EXECUTION):**
+> **DO NOT EVER run `npm run dev`, `bun dev`, `vite`, or launch background development servers.**
+> DiaryNote is tested and validated via static checks, unit tests, and production build verification (`npm run lint`, `npm test`, `npm run build`, and `cargo check`). Do not spawn long-running server processes.
+
+> [!IMPORTANT]
+> **RULE #3 (ALWAYS CHECK LINT WITH OXLINT):**
+> **Always execute `npm run lint` before concluding any task.**
+> `npm run lint` is configured with `oxlint` as the default ultra-fast linter combined with TypeScript strict typechecking (`oxlint && tsc --noEmit`).
+> Tasks must never be marked complete if `npm run lint` reports any errors.
+
+---
+
+## 3. Active UI Component Modification Registry
 
 *Agents must append and update entries here during task execution.*
 
@@ -50,7 +65,7 @@ For every modified UI file, the agent must document:
 
 ---
 
-## 3. Core Architectural Invariants for Agents
+## 4. Core Architectural Invariants for Agents
 
 All agents working on DiaryNote must adhere to these standing principles:
 
@@ -81,7 +96,7 @@ All agents working on DiaryNote must adhere to these standing principles:
 
 ---
 
-## 4. UI Regression Troubleshooting Guide
+## 5. UI Regression Troubleshooting Guide
 
 If a UI component stops functioning, misaligns, or clips after a task:
 1. **Check the Registry Table Above:** Find the file in the registry and review what props, state, or DOM structure were altered in that phase.
