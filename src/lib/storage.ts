@@ -211,8 +211,8 @@ export function saveSettings(settings: AppSettings): void {
 }
 
 /**
- * Saves file content either via native Tauri Rust command to ~/DiaryNote/<subfolder>/
- * or via browser download fallback. Triggers OS notification with saved path.
+ * Saves file content via native OS "Save As" file picker dialog or browser download.
+ * Triggers OS notification with the saved file path/name upon completion.
  */
 export async function saveFileWithNotification(
   filename: string,
@@ -221,21 +221,51 @@ export async function saveFileWithNotification(
   contentType: string = 'application/json'
 ): Promise<string> {
   const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
-  let savedPath = `~/DiaryNote/${subfolder}/${filename}`;
 
-  if (isTauri) {
+  // Try Native Web File System Access API (Native OS Save As Dialog)
+  if (typeof window !== 'undefined' && 'showSaveFilePicker' in window) {
     try {
-      savedPath = await invoke<string>('save_export_file', { filename, content, subfolder });
-    } catch (err) {
-      console.warn('Tauri save_export_file failed, falling back to browser download', err);
-      triggerBrowserDownload(filename, content, contentType);
+      const ext = filename.split('.').pop() || (contentType === 'application/json' ? 'json' : 'md');
+      const handle = await (window as any).showSaveFilePicker({
+        suggestedName: filename,
+        types: [
+          {
+            description: contentType === 'application/json' ? 'JSON Backup File' : 'Markdown Note File',
+            accept: { [contentType]: [`.${ext}`] },
+          },
+        ],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(content);
+      await writable.close();
+
+      const savedName = handle.name || filename;
+      sendNativeAppNotification('Export Successful', `Saved file: ${savedName}`);
+      return savedName;
+    } catch (err: any) {
+      if (err?.name === 'AbortError') {
+        // User cancelled the native save dialog picker
+        return '';
+      }
+      console.warn('Native Save Picker unavailable, falling back to download handler', err);
     }
-  } else {
-    triggerBrowserDownload(filename, content, contentType);
   }
 
-  sendNativeAppNotification('Export Successful', `Saved file to: ${savedPath}`);
-  return savedPath;
+  // Tauri Rust Native Direct Save Fallback
+  if (isTauri) {
+    try {
+      const savedPath = await invoke<string>('save_export_file', { filename, content, subfolder });
+      sendNativeAppNotification('Export Successful', `Saved file to: ${savedPath}`);
+      return savedPath;
+    } catch (err) {
+      console.warn('Tauri save_export_file failed, falling back to browser download', err);
+    }
+  }
+
+  // Web Browser Standard Blob Download Fallback
+  triggerBrowserDownload(filename, content, contentType);
+  sendNativeAppNotification('Export Successful', `Exported file: ${filename}`);
+  return filename;
 }
 
 function triggerBrowserDownload(filename: string, content: string, contentType: string) {

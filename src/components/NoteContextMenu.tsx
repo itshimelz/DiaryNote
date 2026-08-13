@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Note, PaperTheme, CanvasTheme } from '../types';
 import { PAPER_THEME_ITEMS } from '../constants/paperThemes';
+import { getPlatformMetaKey, getPlatformAltKey } from '../utils';
 import {
   Maximize2,
   Edit3,
@@ -155,7 +156,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
           >
             <Clipboard className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <span className="flex-1 truncate">Paste Note from Clipboard</span>
-            <span className="text-[10px] font-mono text-slate-400">Ctrl+V</span>
+            <span className="text-[10px] font-mono text-slate-400">{getPlatformMetaKey()}+V</span>
           </button>
 
           <button
@@ -183,7 +184,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
           >
             <CheckSquare className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <span className="flex-1 truncate">Select All Notes</span>
-            <span className="text-[10px] font-mono text-slate-400">Ctrl+A</span>
+            <span className="text-[10px] font-mono text-slate-400">{getPlatformMetaKey()}+A</span>
           </button>
         </>
       ) : (
@@ -208,7 +209,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
       >
         <Maximize2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
         <span className="flex-1 truncate">Zoom to {isSingle ? 'Note' : 'Selection'}</span>
-        <span className="text-[10px] font-mono text-slate-400">Alt+Click</span>
+        <span className="text-[10px] font-mono text-slate-400">{getPlatformAltKey()}+Click</span>
       </button>
 
       {/* 2. Edit Note (Single Selection) */}
@@ -286,7 +287,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
         >
           <Layers className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <span>{isAllGrouped ? 'Ungroup Notes' : 'Group Notes'}</span>
-          <span className="text-[10px] font-mono text-slate-400">Ctrl+G</span>
+          <span className="text-[10px] font-mono text-slate-400">{getPlatformMetaKey()}+G</span>
         </button>
       )}
 

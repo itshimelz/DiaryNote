@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { Keyboard, X, Search } from 'lucide-react';
 import { CanvasTheme } from '../../types';
 import { SHORTCUT_CATEGORIES } from '../../constants/shortcuts';
+import { formatShortcutKey, getPlatformMetaKey } from '../../utils';
+
 
 interface KeyboardShortcutsModalProps {
   isOpen: boolean;
@@ -167,7 +169,7 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
                                     : 'bg-slate-100 border-slate-200 text-slate-800'
                                 }`}
                               >
-                                {key}
+                                {formatShortcutKey(key)}
                               </kbd>
                             </React.Fragment>
                           ))}
@@ -187,7 +189,7 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
             isDark ? 'border-slate-800 text-slate-500' : 'border-slate-200 text-slate-400'
           }`}
         >
-          <span>Press <kbd className="font-mono font-semibold px-1 py-0.5 rounded border border-slate-700 bg-slate-800 text-slate-300">Ctrl + /</kbd> anytime to toggle</span>
+          <span>Press <kbd className="font-mono font-semibold px-1 py-0.5 rounded border border-slate-700 bg-slate-800 text-slate-300">{getPlatformMetaKey()} + /</kbd> anytime to toggle</span>
           <button onClick={onClose} className="hover:underline">
             Close
           </button>

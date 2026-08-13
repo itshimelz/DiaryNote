@@ -23,15 +23,15 @@
     font-family: 'Noto Serif Bengali', serif;
   }
   .font-sans {
-    font-family: 'Google Sans Flex', 'Google Sans', 'Plus Jakarta Sans', 'Hind Siliguri', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Google Sans Flex', 'Google Sans', 'SF Pro Text', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Ubuntu', 'Cantarell', 'Liberation Sans', 'DejaVu Sans', 'Plus Jakarta Sans', 'Hind Siliguri', Roboto, sans-serif;
   }
   .font-mono-code {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Source Code Pro', 'Ubuntu Mono', 'Consolas', monospace;
   }
 }
 
 :root {
-  font-family: 'Google Sans Flex', 'Plus Jakarta Sans', 'Hind Siliguri', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Google Sans Flex', 'Google Sans', 'SF Pro Text', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Ubuntu', 'Cantarell', 'Liberation Sans', 'DejaVu Sans', 'Plus Jakarta Sans', 'Hind Siliguri', Roboto, sans-serif;
   -webkit-font-smoothing: subpixel-antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: geometricPrecision;
