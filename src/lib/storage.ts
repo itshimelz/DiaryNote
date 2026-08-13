@@ -225,13 +225,14 @@ export async function saveFileWithNotification(
   // Try Native Web File System Access API (Native OS Save As Dialog)
   if (typeof window !== 'undefined' && 'showSaveFilePicker' in window) {
     try {
-      const ext = filename.split('.').pop() || (contentType === 'application/json' ? 'json' : 'md');
+      const ext = filename.split('.').pop() || (contentType.includes('json') ? 'json' : 'md');
+      const cleanMime = contentType.split(';')[0].trim() || 'application/json';
       const handle = await (window as any).showSaveFilePicker({
         suggestedName: filename,
         types: [
           {
-            description: contentType === 'application/json' ? 'JSON Backup File' : 'Markdown Note File',
-            accept: { [contentType]: [`.${ext}`] },
+            description: cleanMime === 'application/json' ? 'JSON Backup File' : 'Markdown Note File',
+            accept: { [cleanMime]: [`.${ext}`] },
           },
         ],
       });

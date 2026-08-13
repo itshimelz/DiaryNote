@@ -373,7 +373,7 @@ export default function App() {
       await exportNotesBackup([note], fileName);
     } else {
       const text = `# ${note.title || 'Untitled Note'}\n\n${note.content || ''}`;
-      const contentType = format === 'md' ? 'text/markdown;charset=utf-8;' : 'text/plain;charset=utf-8;';
+      const contentType = format === 'md' ? 'text/markdown' : 'text/plain';
       await saveFileWithNotification(fileName, text, 'Notes', contentType);
     }
   }, []);
