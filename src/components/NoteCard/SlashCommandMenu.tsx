@@ -148,8 +148,32 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const [adjustedPos, setAdjustedPos] = React.useState<{ top: number; left: number }>({
+    top: position.top,
+    left: position.left,
+  });
 
   const themeConfig = PAPER_THEMES[(paperTheme as PaperTheme) || 'white'];
+
+  React.useLayoutEffect(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    let newTop = position.top;
+    let newLeft = position.left;
+
+    // Vertical clamping: if menu overflows bottom of viewport, flip to render above the cursor
+    if (rect.bottom > window.innerHeight - 16) {
+      newTop = Math.max(8, position.top - rect.height - 24);
+    }
+
+    // Horizontal clamping: if menu overflows right of viewport, shift left
+    if (rect.right > window.innerWidth - 16) {
+      const overflowRight = rect.right - (window.innerWidth - 16);
+      newLeft = Math.max(8, position.left - overflowRight);
+    }
+
+    setAdjustedPos({ top: newTop, left: newLeft });
+  }, [position.top, position.left]);
 
   const filteredCommands = useMemo(() => {
     const q = (query || '').toLowerCase().trim();
@@ -183,8 +207,8 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
   return (
     <div
       ref={containerRef}
-      style={{ top: `${position.top}px`, left: `${position.left}px` }}
-      className={`absolute z-50 w-72 max-w-[calc(100%-2rem)] border rounded-xl shadow-lg overflow-hidden py-1.5 text-sm backdrop-blur-md transition-colors select-none ${themeConfig.headerBg} ${themeConfig.border} ${themeConfig.text}`}
+      style={{ top: `${adjustedPos.top}px`, left: `${adjustedPos.left}px` }}
+      className={`absolute z-50 w-72 max-w-[calc(100%-2rem)] border rounded-xl shadow-sm overflow-hidden py-1.5 text-sm transition-colors select-none ${themeConfig.headerBg} ${themeConfig.border} ${themeConfig.text}`}
     >
       <div
         className={`px-3 py-2 border-b text-xs font-semibold uppercase tracking-wider flex items-center justify-between ${themeConfig.divider} ${themeConfig.subtext}`}

@@ -652,7 +652,7 @@ export default function App() {
               ? { duration: 0.15, ease: 'easeOut' }
               : { duration: 0.18, ease: 'easeOut', delay: 0.16 },
           }}
-          className={`fixed ${showStatusBar ? 'bottom-10' : 'bottom-6'} left-1/2 -translate-x-1/2 z-40 flex flex-col items-center border shadow-sm select-none min-w-[640px] w-auto max-w-[calc(100vw-32px)] transition-[bottom] duration-200 ${
+          className={`fixed ${showStatusBar ? 'bottom-10' : 'bottom-6'} left-1/2 -translate-x-1/2 z-40 flex flex-col items-center border shadow-sm select-none min-w-[320px] sm:min-w-[540px] md:min-w-[640px] w-auto max-w-[calc(100vw-24px)] transition-[bottom] duration-200 ${
             selectedNoteIds.length >= 2 ? 'overflow-visible' : 'overflow-hidden'
           } ${
 

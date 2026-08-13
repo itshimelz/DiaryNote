@@ -28,8 +28,39 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
   onUpdateNote,
   onClose,
 }) => {
+  const pickerRef = React.useRef<HTMLDivElement>(null);
+  const [positionStyle, setPositionStyle] = React.useState<React.CSSProperties>({});
+
+  React.useLayoutEffect(() => {
+    if (!pickerRef.current) return;
+    const rect = pickerRef.current.getBoundingClientRect();
+    const styles: React.CSSProperties = {};
+
+    // Vertical clamping: if popover top overflows off-screen (<12px), flip to render below card toolbar
+    if (rect.top < 12) {
+      styles.top = '100%';
+      styles.bottom = 'auto';
+      styles.marginTop = '8px';
+    }
+
+    // Horizontal clamping: keep popover bounded within screen edges
+    if (rect.left < 12) {
+      const overflowLeft = 12 - rect.left;
+      styles.transform = `translateX(calc(-50% + ${overflowLeft}px))`;
+    } else if (rect.right > window.innerWidth - 12) {
+      const overflowRight = rect.right - (window.innerWidth - 12);
+      styles.transform = `translateX(calc(-50% - ${overflowRight}px))`;
+    }
+
+    setPositionStyle(styles);
+  }, []);
+
   return (
-    <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-50 w-84 sm:w-92 bg-white rounded-xl shadow-xl border border-slate-200 p-4.5 flex flex-col gap-4 text-sm animate-in fade-in zoom-in-95 duration-150">
+    <div
+      ref={pickerRef}
+      style={positionStyle}
+      className="absolute bottom-14 left-1/2 -translate-x-1/2 z-50 w-84 sm:w-92 bg-white rounded-xl shadow-sm border border-slate-200 p-4.5 flex flex-col gap-4 text-sm animate-in fade-in zoom-in-95 duration-150 max-h-[calc(100vh-32px)] overflow-y-auto"
+    >
       <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
         <div className="flex items-center gap-2.5 font-bold text-base text-slate-800">
           <Palette className="w-5.5 h-5.5 text-blue-500" />
