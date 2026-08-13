@@ -1,13 +1,15 @@
 # DiaryNote Remediation Task Checklist (`tasks/todo.md`)
 
 ## Phase 1: Zero-Loss Persistence & Desktop Sandboxing (`v0.2.0-alpha.1`)
-- [ ] **Task 1:** Unified Note Repository & Autosave Settlement (P0)
+- [ ] **Task 1:** Unified Note Repository, Autosave Settlement & $O(1)$ Deletions (P0)
   - [ ] Mark generated note ID dirty immediately on creation in `useNotesManager.ts`
   - [ ] Refactor paste confirmation and modal actions to use repository methods instead of direct `setNotes`
+  - [ ] Replace `saveBatchNotesToDB` on deletion with direct `db.notes.delete` / `bulkDelete` ($O(1)$ disk I/O)
   - [ ] Await storage settlement before updating `lastSavedAt` and surface write failure banners
-- [ ] **Task 2:** History Undo/Redo Persistence Synchronization (P2)
+- [ ] **Task 2:** History Undo/Redo Persistence & Delta-Based Snapshots (P2)
   - [ ] Connect `undo()` / `redo()` to `dirtyNoteIdsRef` in `useHistoryState.ts`
   - [ ] Re-insert restored deleted notes into IndexedDB on save flush
+  - [ ] Implement lightweight diff patch history to eliminate 500k-object heap bloat
   - [ ] Add beforeunload dirty queue flush
 - [ ] **Task 3:** Tauri Native Path Traversal Remediation & CSP Hardening (P0)
   - [ ] Strip directory separators, reject `..`, and validate canonical paths in `src-tauri/src/lib.rs`
@@ -15,8 +17,8 @@
   - [ ] Replace `"csp": null` with strict Content Security Policy in `tauri.conf.json`
 - [ ] **Task 4:** Automated Persistence & Restart Test Suite Setup (P1)
   - [ ] Configure Vitest with `fake-indexeddb` and jsdom in `package.json`
-  - [ ] Write integration test suite verifying note survival across app restarts
-- [ ] **Checkpoint 1:** Zero-Loss Persistence & Desktop Sandboxing verified
+  - [ ] Write integration test suite verifying note survival across app restarts and deletion performance
+- [ ] **Checkpoint 1:** Zero-Loss Persistence, $O(1)$ Deletions & Desktop Sandboxing verified
 
 ---
 
@@ -25,9 +27,10 @@
   - [ ] Create `src/services/authPolicyService.ts` with explicit `AccessIntent`
   - [ ] Enforce authorization check on batch export, multi-export, and card header clipboard copy
   - [ ] Redact locked notes from markdown mention extraction and graph links
-- [ ] **Task 6:** True At-Rest Note Encryption (Argon2id + AES-256-GCM) (P1)
-  - [ ] Derive 256-bit vault key via Argon2id / PBKDF2 with unique salt
-  - [ ] Encrypt locked note bodies with AES-256-GCM before writing to IndexedDB
+- [ ] **Task 6:** Worker-Based Note Encryption (Argon2id + AES-256-GCM) with Session Caching (P1)
+  - [ ] Offload Argon2id KDF to Web Worker (`crypto.worker.ts`) or Rust to maintain 60 FPS (0ms UI freeze)
+  - [ ] Encrypt locked note bodies with hardware-accelerated AES-256-GCM before writing to IndexedDB
+  - [ ] Cache derived session `CryptoKey` in memory with configurable auto-lock timeout
   - [ ] Implement exponential backoff rate limiting for passcode verification
 - [ ] **Task 7:** Secure Credential Storage & OS Keyring Integration (P0)
   - [ ] Remove hardcoded encryption seeds from `src/utils/aiSecurity.ts`
@@ -40,13 +43,14 @@
 - [ ] **Task 9:** Standardize UUID Generation Across Entity Creation (P2)
   - [ ] Replace `Date.now()` / random string ID generators with `crypto.randomUUID()`
   - [ ] Verify entity ID uniqueness across notes, groups, and connections
-- [ ] **Checkpoint 2:** Authorization & Cryptographic Vault verified
+- [ ] **Checkpoint 2:** Authorization, Background Cryptography & Session Vault verified
 
 ---
 
-## Phase 3: Schema Validation, Migration Safety & Journal Data Model (`v0.2.0-beta.1`)
-- [ ] **Task 10:** Strict Versioned JSON Backup Schema with Zod (P1)
+## Phase 3: Schema Interchange, Migration Safety & Journal Data Model (`v0.2.0-beta.1`)
+- [ ] **Task 10:** Strict Versioned JSON Backup Schema with Zod & Pre-Indexed Timestamps (P1)
   - [ ] Implement versioned Zod schemas (`BackupDataV1`, `BackupDataV2`)
+  - [ ] Populate numeric integer timestamps (`createdTimestamp`, `updatedTimestamp`) to eliminate `new Date()` sort thrash
   - [ ] Enforce 50MB file size cap and field type validation on import
   - [ ] Isolate settings and security hashes from raw note imports
 - [ ] **Task 11:** Staged Import Preview & Conflict Resolution Modal (P1)
@@ -57,31 +61,34 @@
   - [ ] Execute database migrations in atomic `db.transaction('rw', ...)`
   - [ ] Retain legacy `localStorage` backup snapshots across restarts
   - [ ] Replace silent sample-note seeding with diagnostic recovery UI
-- [ ] **Task 13:** First-Class Journal Data Model & Streak Migration (P1)
+- [ ] **Task 13:** First-Class Journal Data Model & Pre-Aggregated Streak Set (P1)
   - [ ] Add explicit `isDailyEntry: boolean` and `entryDate: string` fields to `Note`
-  - [ ] Refactor streak logic and calendar matching to use explicit fields exclusively
+  - [ ] Maintain pre-aggregated set of entry dates to eliminate per-keystroke regex scans across all notes
   - [ ] Implement automated one-time migration for legacy heuristic entries
 - [ ] **Task 14:** Accurate Network Transparency & Update Checker Settings (P1)
   - [ ] Add user toggle for update checking in Settings modal
   - [ ] Enforce update check disablement in `updateChecker.ts`
   - [ ] Update README and product copy to reflect accurate network boundaries
-- [ ] **Checkpoint 3:** Schema Interchange & Journal Model verified
+- [ ] **Checkpoint 3:** Schema Interchange, Fast Numerical Sorting & Journal Model verified
 
 ---
 
 ## Phase 4: Accessibility, Viewport Scalability & CI Quality Gates (`v0.2.0` GA)
-- [ ] **Task 15:** WCAG 2.1 AA Accessible Dialog and Drawer Primitives (P1)
+- [ ] **Task 15:** WCAG 2.1 AA Accessible Dialogs & List Virtualization (P1)
   - [ ] Build `AccessibleDialog.tsx` with semantic roles, focus trapping, and Escape handling
+  - [ ] Integrate list virtualization into `SearchModal` and `NotesSidebar` (cap at ~25 DOM elements)
   - [ ] Convert SearchModal, SecurityModal, SettingsModal, and CalendarModal to accessible dialogs
   - [ ] Make sidebar note rows semantic `<button>` elements and add `aria-label`s to icon buttons
-- [ ] **Task 16:** Canvas Pointer Events Migration & Touch Gestures (P2)
+- [ ] **Task 16:** Canvas Pointer Events Migration, 2D Minimap & Zero-Reflow Drag/Resize (P2)
   - [ ] Migrate canvas pan, zoom, and dragging event listeners to Pointer Events
-  - [ ] Add touch pinch-to-zoom and multi-touch panning
-  - [ ] Implement responsive drawer layout for compact viewports (<800px)
-- [ ] **Task 17:** Decoupled Note Metadata & On-Demand Body Loading (P2)
+  - [ ] Refactor `useNoteResize.ts` to DOM-direct transform (eliminate 60 FPS React re-renders)
+  - [ ] Replace rubber-band `getBoundingClientRect` loops with pure world-coordinate math (0 reflows)
+  - [ ] Replace 1,000 minimap DOM `<div>`s with a single HTML5 2D `<canvas>` (<0.1ms render)
+- [ ] **Task 17:** Decoupled Note Metadata & Web Worker Search Engine (P2)
   - [ ] Create `NoteMetadata` schema in Dexie separating heavy markdown text
-  - [ ] Load note bodies asynchronously on viewport entry or editor focus
-  - [ ] Offload search queries to a Web Worker
+  - [ ] Remove `allNotes` prop from `NoteCard` to eliminate canvas-wide re-render cascade
+  - [ ] Offload search indexing, regex snippet extraction, and queries to Web Worker (`search.worker.ts`)
+  - [ ] Cull SVG connection lines in `NoteConnections.tsx` to visible viewport bounds
 - [ ] **Task 18:** Structured Error Boundary & Support Bundle Diagnostics (P2)
   - [ ] Implement top-level React `ErrorBoundary.tsx` with emergency backup export
   - [ ] Create local circular logging buffer in `logger.ts`
@@ -91,4 +98,4 @@
   - [ ] Rename `sqliteStorage.ts` to `indexedDbStorage.ts`
   - [ ] Unignore `docs/` in `.gitignore`
   - [ ] Create GitHub Actions CI workflow for lint, test, build, and cargo check
-- [ ] **Checkpoint 4:** General Availability (`v0.2.0`) verified
+- [ ] **Checkpoint 4:** General Availability (`v0.2.0`) & High-Scale Performance (<5% CPU) verified
