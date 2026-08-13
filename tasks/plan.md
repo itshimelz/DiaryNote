@@ -154,14 +154,16 @@ main (Production Releases / Protected)
 
 ### Phase 2: Authorization Engine & Cryptographic Vault (Milestone: `v0.2.0-alpha.2`)
 
-#### Task 5: Centralized Authorization Policy Service (P0)
-- **Description:** Create an `authorizeNotes(noteIds: string[], intent: AccessIntent)` domain policy service that centrally guards all operations (`read`, `copy`, `export`, `delete`, `sendToAI`, `graphIndex`).
+#### Task 5: Centralized Authorization Policy Service & Deletion Settlement Hardening (P0)
+- **Description:** Create an `authorizeNotes(noteIds: string[], intent: AccessIntent)` domain policy service that centrally guards all operations (`read`, `copy`, `export`, `delete`, `sendToAI`, `graphIndex`). Additionally, harden the persistence coordinator by awaiting deletion promises in `handleDeleteNote` and `handleDeleteMultipleNotes`, ensuring storage failure states are captured on `saveError` and preventing silent resurrection of failed deletions.
 - **Acceptance criteria:**
   - [ ] Dedicated `authPolicyService.ts` module with explicit `AccessIntent` types.
   - [ ] Batch export, context-menu export, and single-note copy verify authorization before reading note bodies.
   - [ ] Locked notes are redacted from markdown mention extraction and graph link indexing unless unlocked.
+  - [ ] Single and multiple note deletions await storage settlement; failure surfaces persistent error banner and prevents state desynchronization.
 - **Verification:**
   - [ ] Vitest unit tests verifying authorization enforcement across all intents.
+  - [ ] Vitest unit test asserting `saveError` and state integrity upon simulated deletion failure.
   - [ ] Manual test: Attempt batch export of locked notes without unlocking; verify exclusion or unlock prompt.
 - **Dependencies:** Task 1.
 - **Files likely touched:**
@@ -169,8 +171,9 @@ main (Production Releases / Protected)
   - `src/components/BatchActionBar.tsx`
   - `src/components/Modals/AppModals.tsx`
   - `src/components/NoteCard/NoteHeader.tsx`
+  - `src/hooks/useNotesManager.ts`
   - `src/utils/markdownMention.ts`
-- **Estimated scope:** Medium (5 files).
+- **Estimated scope:** Medium (6 files).
 
 ---
 
@@ -255,21 +258,23 @@ main (Production Releases / Protected)
 - [ ] IndexedDB stores only ciphertext for locked notes; Argon2id derivation runs in Web Worker.
 - [ ] Hardcoded seeds removed; credentials isolated from standard backups.
 - [ ] AI requests feature timeout, cancellation, and header-based authentication.
+- [ ] Deletion error states and settlement are fully guaranteed across UI and IndexedDB.
 
 ---
 
 ### Phase 3: Schema Validation, Migration Safety & Journal Data Model (Milestone: `v0.2.0-beta.1`)
 
 #### Task 10: Strict Versioned JSON Backup Schema with Zod & Pre-Indexed Timestamps (P1)
-- **Description:** Implement a versioned schema definition for backup imports using Zod. Validate all note fields (coordinates, dates, IDs, tags) and enforce a 50MB file size limit before parsing. Include pre-calculated integer timestamps (`createdTimestamp`, `updatedTimestamp`) to accelerate list sorting without runtime `Date` parsing.
+- **Description:** Implement a versioned schema definition for backup imports using Zod. Validate all note fields (coordinates, dates, IDs, tags) and enforce a 50MB file size limit before parsing. Include pre-calculated integer timestamps (`createdTimestamp`, `updatedTimestamp`) to accelerate list sorting without runtime `Date` parsing. Ensure backup import pipelines commit directly and transactionally to IndexedDB rather than unpersisted `setNotes` state bypasses.
 - **Acceptance criteria:**
   - [ ] Strict Zod schema for `BackupDataV1` and `BackupDataV2`.
   - [ ] Rejection of malformed JSON, invalid date strings, and out-of-bound coordinates.
   - [ ] Automatic population of numeric millisecond timestamps on import and creation.
   - [ ] System preferences and security hashes quarantined from raw note imports.
+  - [ ] Backup import commits atomically to IndexedDB and synchronizes with active canvas state.
 - **Verification:**
-  - [ ] Vitest unit tests verifying schema rejection of invalid/malicious payloads.
-  - [ ] Manual test: Attempt importing legacy and corrupted JSON backups.
+  - [ ] Vitest unit tests verifying schema rejection of invalid/malicious payloads and import persistence.
+  - [ ] Manual test: Attempt importing legacy and corrupted JSON backups; reload app and verify persistence.
 - **Dependencies:** Task 1.
 - **Files likely touched:**
   - `src/schemas/backupSchema.ts`
@@ -280,15 +285,15 @@ main (Production Releases / Protected)
 
 ---
 
-#### Task 11: Staged Import Preview & Conflict Resolution Modal (P1)
-- **Description:** Build a pre-import staging dialog that displays parsed note counts, duplicate ID resolutions, and warnings prior to committing changes to the active database.
+#### Task 11: Staged Import Preview, Conflict Resolution & Atomic Commit (P1)
+- **Description:** Build a pre-import staging dialog that displays parsed note counts, duplicate ID resolutions, and warnings prior to committing changes to the active database. Commit validated imports atomically to IndexedDB using transactions before updating React state to guarantee durability on immediate reload.
 - **Acceptance criteria:**
   - [ ] Modal presents summary of incoming notes, tags, and detected conflicts.
   - [ ] User can choose conflict resolution strategy (Overwrite, Keep Both, Skip).
-  - [ ] Validated imports commit atomically to IndexedDB.
+  - [ ] Validated imports commit atomically to IndexedDB via transactional batch write.
 - **Verification:**
-  - [ ] Vitest tests for duplicate ID resolution strategies.
-  - [ ] Manual test: Import backup with overlapping IDs and verify non-destructive merge.
+  - [ ] Vitest tests for duplicate ID resolution strategies and atomic persistence.
+  - [ ] Manual test: Import backup with overlapping IDs and verify non-destructive merge survives immediate restart.
 - **Dependencies:** Task 10.
 - **Files likely touched:**
   - `src/components/Modals/ImportPreviewModal.tsx`
@@ -315,16 +320,17 @@ main (Production Releases / Protected)
 
 ---
 
-#### Task 13: First-Class Journal Data Model & Streak Migration (P1)
-- **Description:** Decouple daily journaling from title/tag heuristics. Add explicit `isDailyEntry: boolean` and `entryDate: string` (ISO `YYYY-MM-DD`) fields to the `Note` schema. Optimize streak calculations in `StatusBar` to query an indexed Set of entry dates instead of running full-note regex on every keystroke.
+#### Task 13: First-Class Journal Data Model, Streak Migration & Instant History Flush (P1)
+- **Description:** Decouple daily journaling from title/tag heuristics. Add explicit `isDailyEntry: boolean` and `entryDate: string` (ISO `YYYY-MM-DD`) fields to the `Note` schema. Optimize streak calculations in `StatusBar` to query an indexed Set of entry dates instead of running full-note regex on every keystroke. Furthermore, enhance `useHistoryState.ts` and `useNotesManager.ts` to immediately flush pending debounced typing snapshots before applying undo/redo diffs, eliminating edit skipping during active typing.
 - **Acceptance criteria:**
   - [ ] `Note` type definition updated with explicit journal fields.
   - [ ] Streak calculation and calendar modal query strictly against `isDailyEntry && entryDate`.
   - [ ] Pre-aggregated date set avoids per-keystroke regex scans across all notes.
   - [ ] Automatic migration script upgrades existing journal entries cleanly.
+  - [ ] `handleUndo` and `handleRedo` synchronously flush pending typing snapshot timers before reverting state.
 - **Verification:**
-  - [ ] Vitest tests for streak calculation and calendar query accuracy and performance.
-  - [ ] Manual test: Create non-journal note with date title; verify it does not trigger daily entry collisions.
+  - [ ] Vitest tests for streak calculation, calendar query accuracy, and instant undo after continuous typing.
+  - [ ] Manual test: Type continuously and press Ctrl+Z immediately; verify only the latest typing step is undone.
 - **Dependencies:** Task 10.
 - **Files likely touched:**
   - `src/types/index.ts`
@@ -332,7 +338,8 @@ main (Production Releases / Protected)
   - `src/components/Modals/JournalCalendarModal.tsx`
   - `src/components/StatusBar.tsx`
   - `src/hooks/useNotesManager.ts`
-- **Estimated scope:** Medium (5 files).
+  - `src/hooks/useHistoryState.ts`
+- **Estimated scope:** Large (6 files).
 
 ---
 
@@ -354,10 +361,10 @@ main (Production Releases / Protected)
 ---
 
 ### Checkpoint 3: Schema Interchange & Journal Model
-- [ ] Backup imports validated against strict Zod schema with conflict preview.
+- [ ] Backup imports validated against strict Zod schema with conflict preview and atomic persistence.
 - [ ] Migrations are atomic and non-destructive with legacy backup retention.
 - [ ] Daily journaling operates on dedicated metadata rather than title guessing.
-- [ ] Delta-based undo history prevents heap memory bloat.
+- [ ] Delta-based undo history prevents heap memory bloat and flushes debounced typing cleanly.
 
 ---
 
@@ -425,20 +432,23 @@ main (Production Releases / Protected)
 
 ---
 
-#### Task 18: Structured Error Boundary & Support Bundle Diagnostics (P2)
-- **Description:** Introduce a top-level React ErrorBoundary with friendly recovery options and an opt-in local diagnostic logger that captures sanitized error traces for user export.
+#### Task 18: Structured Error Boundary, Native Window Close Handshake & Diagnostics (P2)
+- **Description:** Introduce a top-level React ErrorBoundary with friendly recovery options, an opt-in local diagnostic logger that captures sanitized error traces for user export, and a native desktop close intercept (`onCloseRequested` in Tauri) that guarantees all pending dirty writes are flushed before the application shuts down.
 - **Acceptance criteria:**
   - [ ] React `ErrorBoundary` captures rendering crashes and provides "Export Emergency Backup" and "Reset Canvas" actions.
   - [ ] Local circular buffer logs storage and native errors in memory.
   - [ ] Support bundle export generates sanitized diagnostic JSON.
+  - [ ] Tauri window close event intercepted to await pending storage queue flushes before exit.
 - **Verification:**
   - [ ] Manual test: Trigger artificial render exception and verify ErrorBoundary fallback actions.
+  - [ ] Desktop test: Edit note and immediately click OS window close button; verify changes persist upon relaunch.
 - **Dependencies:** Task 1.
 - **Files likely touched:**
   - `src/components/ErrorBoundary.tsx`
   - `src/utils/logger.ts`
   - `src/App.tsx`
-- **Estimated scope:** Small (3 files).
+  - `src-tauri/src/lib.rs`
+- **Estimated scope:** Medium (4 files).
 
 ---
 

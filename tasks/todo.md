@@ -23,10 +23,11 @@
 ---
 
 ## Phase 2: Authorization Engine & Cryptographic Vault (`v0.2.0-alpha.2`)
-- [ ] **Task 5:** Centralized Authorization Policy Service (P0)
+- [ ] **Task 5:** Centralized Authorization Policy Service & Deletion Settlement Hardening (P0)
   - [ ] Create `src/services/authPolicyService.ts` with explicit `AccessIntent`
   - [ ] Enforce authorization check on batch export, multi-export, and card header clipboard copy
   - [ ] Redact locked notes from markdown mention extraction and graph links
+  - [ ] Await storage settlement on single & bulk deletions; surface persistent error banners on failure
 - [ ] **Task 6:** Worker-Based Note Encryption (Argon2id + AES-256-GCM) with Session Caching (P1)
   - [ ] Offload Argon2id KDF to Web Worker (`crypto.worker.ts`) or Rust to maintain 60 FPS (0ms UI freeze)
   - [ ] Encrypt locked note bodies with hardware-accelerated AES-256-GCM before writing to IndexedDB
@@ -43,7 +44,7 @@
 - [ ] **Task 9:** Standardize UUID Generation Across Entity Creation (P2)
   - [ ] Replace `Date.now()` / random string ID generators with `crypto.randomUUID()`
   - [ ] Verify entity ID uniqueness across notes, groups, and connections
-- [ ] **Checkpoint 2:** Authorization, Background Cryptography & Session Vault verified
+- [ ] **Checkpoint 2:** Authorization, Background Cryptography & Deletion Settlement verified
 
 ---
 
@@ -53,10 +54,11 @@
   - [ ] Populate numeric integer timestamps (`createdTimestamp`, `updatedTimestamp`) to eliminate `new Date()` sort thrash
   - [ ] Enforce 50MB file size cap and field type validation on import
   - [ ] Isolate settings and security hashes from raw note imports
+  - [ ] Ensure backup import commits atomically to IndexedDB directly (eliminating in-memory bypasses)
 - [ ] **Task 11:** Staged Import Preview & Conflict Resolution Modal (P1)
   - [ ] Create `ImportPreviewModal.tsx` showing parsed note counts and conflict summaries
   - [ ] Implement conflict resolution strategies (Overwrite, Keep Both, Skip)
-  - [ ] Commit validated imports atomically to IndexedDB
+  - [ ] Commit validated imports atomically to IndexedDB via transactional batch write
 - [ ] **Task 12:** Atomic Database Migration with Rollback Recovery Sentinel (P1)
   - [ ] Execute database migrations in atomic `db.transaction('rw', ...)`
   - [ ] Retain legacy `localStorage` backup snapshots across restarts
@@ -64,12 +66,13 @@
 - [ ] **Task 13:** First-Class Journal Data Model & Pre-Aggregated Streak Set (P1)
   - [ ] Add explicit `isDailyEntry: boolean` and `entryDate: string` fields to `Note`
   - [ ] Maintain pre-aggregated set of entry dates to eliminate per-keystroke regex scans across all notes
+  - [ ] Synchronously flush pending typing snapshot debounce timers prior to executing `handleUndo` / `handleRedo`
   - [ ] Implement automated one-time migration for legacy heuristic entries
 - [ ] **Task 14:** Accurate Network Transparency & Update Checker Settings (P1)
   - [ ] Add user toggle for update checking in Settings modal
   - [ ] Enforce update check disablement in `updateChecker.ts`
   - [ ] Update README and product copy to reflect accurate network boundaries
-- [ ] **Checkpoint 3:** Schema Interchange, Fast Numerical Sorting & Journal Model verified
+- [ ] **Checkpoint 3:** Schema Interchange, Fast Numerical Sorting, Atomic Imports & Journal Model verified
 
 ---
 
@@ -89,8 +92,9 @@
   - [ ] Remove `allNotes` prop from `NoteCard` to eliminate canvas-wide re-render cascade
   - [ ] Offload search indexing, regex snippet extraction, and queries to Web Worker (`search.worker.ts`)
   - [ ] Cull SVG connection lines in `NoteConnections.tsx` to visible viewport bounds
-- [ ] **Task 18:** Structured Error Boundary & Support Bundle Diagnostics (P2)
+- [ ] **Task 18:** Structured Error Boundary, Native Window Close Handshake & Diagnostics (P2)
   - [ ] Implement top-level React `ErrorBoundary.tsx` with emergency backup export
+  - [ ] Intercept native window close (`onCloseRequested` in Tauri) to await and flush pending IndexedDB writes before process exit
   - [ ] Create local circular logging buffer in `logger.ts`
   - [ ] Provide sanitized diagnostic support bundle export
 - [ ] **Task 19:** CI/CD Quality Gates & Documentation Hygiene (P1 / P3)
