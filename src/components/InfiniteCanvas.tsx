@@ -174,7 +174,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
 
-        const sensitivity = e.deltaMode === 1 ? 0.03 : 0.0015;
+        const sensitivity = e.deltaMode === 1 ? 0.03 : 0.008;
         const zoomFactor = Math.exp(-e.deltaY * sensitivity);
         const newZoom = Math.max(minZoom, Math.min(maxZoom, baseTransform.zoom * zoomFactor));
 

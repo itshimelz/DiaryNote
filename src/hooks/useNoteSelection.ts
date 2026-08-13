@@ -132,10 +132,11 @@ export function useNoteSelection(
 
       const target = e.target as HTMLElement;
       const isEditingText =
-        target &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.isContentEditable);
+        Boolean(e.isComposing) ||
+        (target &&
+          (target.tagName === 'INPUT' ||
+            target.tagName === 'TEXTAREA' ||
+            target.isContentEditable));
 
       // If user is currently editing text inside an input or textarea, bypass canvas single-key shortcuts
       if (isEditingText) return;

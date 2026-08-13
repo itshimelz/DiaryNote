@@ -51,8 +51,31 @@ export const HiddenClipboardListener: React.FC<HiddenClipboardListenerProps> = (
       }
     };
 
+    const handlePasteEvent = (e: ClipboardEvent) => {
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          (activeEl as HTMLElement).isContentEditable ||
+          activeEl.getAttribute('contenteditable') === 'true')
+      ) {
+        return;
+      }
+
+      const pastedText = e.clipboardData?.getData('text/plain');
+      if (pastedText && pastedText.trim().length > 0) {
+        e.preventDefault();
+        onPasteTextRef.current(pastedText.trim());
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown, true);
-    return () => window.removeEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('paste', handlePasteEvent, true);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('paste', handlePasteEvent, true);
+    };
   }, []);
 
   return null;
