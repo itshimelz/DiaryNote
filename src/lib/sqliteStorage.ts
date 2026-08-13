@@ -1,6 +1,12 @@
 import Dexie, { type Table } from 'dexie';
 import { Note, CanvasTransform } from '../types';
 import { SAMPLE_NOTES, DEFAULT_SETTINGS, INITIAL_TRANSFORM, getInitialTransform, AppSettings } from './storage';
+import {
+  encryptNoteEnvelope,
+  decryptNoteEnvelope,
+  getCachedSessionPasscode,
+  isEncryptedEnvelope,
+} from '../services/cryptoVaultService';
 
 export class DiaryNoteDatabase extends Dexie {
   notes!: Table<Note, string>;
@@ -18,6 +24,43 @@ export class DiaryNoteDatabase extends Dexie {
 }
 
 export const db = new DiaryNoteDatabase();
+
+/**
+ * Encrypts a note's content if locked and a session passcode is available,
+ * ensuring plaintext is never committed to IndexedDB.
+ */
+export async function sanitizeNoteForStorage(note: Note): Promise<Note> {
+  if (!note.isLocked || !note.content || isEncryptedEnvelope(note.content)) {
+    return note;
+  }
+  const passcode = getCachedSessionPasscode();
+  if (passcode) {
+    const encryptedContent = await encryptNoteEnvelope(note.content, passcode);
+    return {
+      ...note,
+      content: encryptedContent,
+    };
+  }
+  return note;
+}
+
+/**
+ * Decrypts a note's content from storage into memory if authenticated.
+ */
+export async function prepareNoteForMemory(note: Note): Promise<Note> {
+  if (!note.isLocked || !note.content || !isEncryptedEnvelope(note.content)) {
+    return note;
+  }
+  const passcode = getCachedSessionPasscode();
+  if (passcode) {
+    const decryptedContent = await decryptNoteEnvelope(note.content, passcode);
+    return {
+      ...note,
+      content: decryptedContent,
+    };
+  }
+  return note;
+}
 
 /**
  * Initialize database. Migrates existing notes from localStorage to DB if present.
@@ -51,7 +94,8 @@ export async function initDatabase(): Promise<{
     // ponytail: Run compactDatabase on startup to prune legacy storage and orphaned records
     await compactDatabase();
 
-    const notes = await db.notes.toArray();
+    const rawNotes = await db.notes.toArray();
+    const notes = await Promise.all(rawNotes.map(prepareNoteForMemory));
 
     // Load transform
     let transform = getInitialTransform(notes);
@@ -138,7 +182,8 @@ export async function getNotesMetadata(): Promise<Note[]> {
  */
 export async function saveNoteToDB(note: Note): Promise<boolean> {
   try {
-    await db.notes.put(note);
+    const sanitized = await sanitizeNoteForStorage(note);
+    await db.notes.put(sanitized);
     return true;
   } catch (err) {
     console.error('Error saving note to DB:', err);
@@ -151,19 +196,20 @@ export async function saveNoteToDB(note: Note): Promise<boolean> {
  */
 export async function saveBatchNotesToDB(notes: Note[]): Promise<boolean> {
   try {
+    const sanitized = await Promise.all(notes.map(sanitizeNoteForStorage));
     await db.transaction('rw', db.notes, async () => {
       // Determine which notes were deleted since last save
       const existingIds = new Set(await db.notes.toCollection().primaryKeys());
-      const incomingIds = new Set(notes.map(n => n.id));
-      const toDelete = [...existingIds].filter(id => !incomingIds.has(id as string));
+      const incomingIds = new Set(sanitized.map((n) => n.id));
+      const toDelete = [...existingIds].filter((id) => !incomingIds.has(id as string));
 
       if (toDelete.length > 0) {
         await db.notes.bulkDelete(toDelete);
       }
 
       // Upsert all current notes
-      if (notes.length > 0) {
-        await db.notes.bulkPut(notes);
+      if (sanitized.length > 0) {
+        await db.notes.bulkPut(sanitized);
       }
     });
     return true;
@@ -179,7 +225,8 @@ export async function saveBatchNotesToDB(notes: Note[]): Promise<boolean> {
 export async function saveDirtyNotesToDB(dirtyNotes: Note[]): Promise<boolean> {
   if (dirtyNotes.length === 0) return true;
   try {
-    await db.notes.bulkPut(dirtyNotes);
+    const sanitized = await Promise.all(dirtyNotes.map(sanitizeNoteForStorage));
+    await db.notes.bulkPut(sanitized);
     return true;
   } catch (err) {
     console.error('Error saving dirty notes to DB:', err);

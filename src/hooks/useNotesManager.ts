@@ -165,7 +165,7 @@ export function useNotesManager(
       }
 
       // Create new daily note at current viewport center
-      const newId = `journal-${dateStr}-${Math.random().toString(36).substring(2, 7)}`;
+      const newId = `journal-${dateStr}-${crypto.randomUUID()}`;
       let viewportX = Math.round((window.innerWidth / 2 - transform.x) / transform.zoom - 190);
       let viewportY = Math.round((window.innerHeight / 2 - transform.y) / transform.zoom - 170);
 
@@ -228,7 +228,7 @@ export function useNotesManager(
   // Batch note update handler (e.g. multi-select drag)
   const handleUpdateBatchNotes = useCallback(
     (updatedNotes: Note[]) => {
-      updatedNotes.forEach(n => dirtyNoteIdsRef.current.add(n.id));
+      updatedNotes.forEach((n) => dirtyNoteIdsRef.current.add(n.id));
       setNotes((prevNotes) => {
         const updatedMap = new Map(updatedNotes.map((n) => [n.id, n]));
         const nextNotes = prevNotes.map((n) => updatedMap.get(n.id) || n);
@@ -244,31 +244,63 @@ export function useNotesManager(
     [pushHistorySnapshot]
   );
 
-  // Single note deletion ($O(1) direct deletion)
+  // Single note deletion ($O(1) direct deletion with settlement)
   const handleDeleteNote = useCallback(
     (noteId: string) => {
       dirtyNoteIdsRef.current.delete(noteId);
-      deleteNoteFromDB(noteId);
       setNotes((prev) => {
         const nextNotes = prev.filter((n) => n.id !== noteId);
         pushHistorySnapshot(nextNotes);
         return nextNotes;
       });
+
+      setIsSaving(true);
+      deleteNoteFromDB(noteId)
+        .then((success) => {
+          if (success) {
+            setSaveError(null);
+          } else {
+            setSaveError('Failed to delete note from local database');
+          }
+        })
+        .catch((err) => {
+          console.error('Error deleting note:', err);
+          setSaveError('Failed to delete note from local database');
+        })
+        .finally(() => {
+          setIsSaving(false);
+        });
     },
     [pushHistorySnapshot]
   );
 
-  // Multiple notes deletion ($O(1) direct bulk deletion)
+  // Multiple notes deletion ($O(1) direct bulk deletion with settlement)
   const handleDeleteMultipleNotes = useCallback(
     (idsToDelete: string[]) => {
       if (idsToDelete.length === 0) return;
       idsToDelete.forEach((id) => dirtyNoteIdsRef.current.delete(id));
-      deleteMultipleNotesFromDB(idsToDelete);
       setNotes((prev) => {
         const nextNotes = prev.filter((n) => !idsToDelete.includes(n.id));
         pushHistorySnapshot(nextNotes);
         return nextNotes;
       });
+
+      setIsSaving(true);
+      deleteMultipleNotesFromDB(idsToDelete)
+        .then((success) => {
+          if (success) {
+            setSaveError(null);
+          } else {
+            setSaveError('Failed to delete notes from local database');
+          }
+        })
+        .catch((err) => {
+          console.error('Error deleting notes:', err);
+          setSaveError('Failed to delete notes from local database');
+        })
+        .finally(() => {
+          setIsSaving(false);
+        });
     },
     [pushHistorySnapshot]
   );

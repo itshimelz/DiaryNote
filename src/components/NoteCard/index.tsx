@@ -809,7 +809,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         onSelectMode={handleSelectMode}
         onToggleStylePicker={() => setShowStylePicker(!showStylePicker)}
         onDuplicateNote={() => {
-          const dupId = `note-${Date.now()}`;
+          const dupId = `note-${crypto.randomUUID()}`;
           const rawTitle = note.title ? `${note.title}` : 'Untitled Note';
           const uniqueTitle = getUniqueTitleForDay(rawTitle, dupId, allNotes);
           const dupNote: Note = {

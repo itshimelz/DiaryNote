@@ -252,7 +252,7 @@ export const AppModals: React.FC<AppModalsProps> = ({
         onGroupNotes={() => {
           if (selectedNoteIds.length < 2) return;
           const targets = notes.filter((n) => selectedNoteIds.includes(n.id));
-          const newGroupId = `group-${Date.now()}`;
+          const newGroupId = `group-${crypto.randomUUID()}`;
           const groupName = `Group ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
           const updated = targets.map((n) => ({
             ...n,
@@ -274,7 +274,7 @@ export const AppModals: React.FC<AppModalsProps> = ({
           ids.forEach((id) => {
             const target = notes.find((n) => n.id === id);
             if (target) {
-              const newId = `note-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+              const newId = `note-${crypto.randomUUID()}`;
               const dupNote: Note = {
                 ...target,
                 id: newId,

@@ -230,7 +230,7 @@ export default function App() {
     () => {
       if (selectedNoteIds.length < 2) return;
       const selectedNotes = notes.filter((n) => selectedNoteIds.includes(n.id));
-      const newGroupId = `group-${Date.now()}`;
+      const newGroupId = `group-${crypto.randomUUID()}`;
       const groupName = `Group ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
       const updated = selectedNotes.map((n) => ({
         ...n,
@@ -306,7 +306,7 @@ export default function App() {
         const maxZ = Math.max(0, ...notes.map((n) => n.zIndex || 0));
 
         const newNote: Note = {
-          id: `note-${Date.now()}`,
+          id: `note-${crypto.randomUUID()}`,
           title: result.title,
           content: result.content,
           x: avgX,

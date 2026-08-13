@@ -3,6 +3,7 @@ import { decryptApiKey } from '../../utils/aiSecurity';
 import { recordAIRequest } from '../../utils/aiUsageTracker';
 import { REPO_URL, REPO_NAME } from '../../utils/updateChecker';
 import { authorizeNotes } from '../authPolicyService';
+import { isEncryptedEnvelope } from '../cryptoVaultService';
 import {
   getNoteSynthesisSystemPrompt,
   getNoteSynthesisUserPrompt,
@@ -277,6 +278,10 @@ export async function generateAutoTagsWithAI(
   config: AIServiceConfig,
   externalSignal?: AbortSignal
 ): Promise<string[]> {
+  if (isEncryptedEnvelope(content) || content.includes('CONTENT ENCRYPTED') || content.includes('Locked Note')) {
+    throw new Error('Cannot generate tags for encrypted or locked note without authentication.');
+  }
+
   const apiKey = await decryptApiKey(config.encryptedApiKey, config.apiKeyIv);
   if (!apiKey.trim()) {
     throw new Error('API key is missing or invalid. Please configure AI settings.');

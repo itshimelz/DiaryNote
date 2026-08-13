@@ -218,4 +218,29 @@ describe('useNotesManager Hook & Persistence Lifecycle', () => {
     expect(restoredInDb).toBeDefined();
     expect(restoredInDb?.title).toBe('Note Before Delete');
   });
+
+  it('generates standard UUIDs for new notes and daily journal entries', async () => {
+    const { result: historyResult } = renderHook(() => useHistoryState());
+    const { result: notesResult } = renderHook(() =>
+      useNotesManager(historyResult.current.pushHistorySnapshot, historyResult.current.resetHistory)
+    );
+
+    let noteId = '';
+    act(() => {
+      noteId = notesResult.current.handleAddNote(INITIAL_TRANSFORM, DEFAULT_SETTINGS);
+    });
+    expect(noteId).toMatch(/^note-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+
+    let journalRes = { noteId: '', isNew: false };
+    act(() => {
+      journalRes = notesResult.current.handleCreateOrFocusDailyEntry(
+        INITIAL_TRANSFORM,
+        DEFAULT_SETTINGS,
+        '2026-08-14'
+      );
+    });
+    expect(journalRes.noteId).toMatch(
+      /^journal-2026-08-14-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    );
+  });
 });

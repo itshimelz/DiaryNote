@@ -4,6 +4,9 @@ import {
   verifySecurityInputSecure,
   encryptNoteContent,
   decryptNoteContent,
+  isEncryptedEnvelope,
+  encryptNoteEnvelope,
+  decryptNoteEnvelope,
   cacheSessionPasscode,
   getCachedSessionPasscode,
   lockSessionVault,
@@ -81,5 +84,19 @@ describe('Cryptographic Vault & Session Service (cryptoVaultService.ts)', () => 
 
     // Attempting during backoff throws rate limit error
     await expect(verifySecurityInputSecure('wrong2', hash)).rejects.toThrow(/Too many incorrect attempts/);
+  });
+
+  it('packs and unpacks self-contained encrypted envelope strings', async () => {
+    const rawNote = '# Secret Entry\nPersonal notes here.';
+    const passcode = 'MySafePasscode123';
+
+    expect(isEncryptedEnvelope(rawNote)).toBe(false);
+
+    const envelope = await encryptNoteEnvelope(rawNote, passcode);
+    expect(envelope.startsWith('$aes-gcm$')).toBe(true);
+    expect(isEncryptedEnvelope(envelope)).toBe(true);
+
+    const decrypted = await decryptNoteEnvelope(envelope, passcode);
+    expect(decrypted).toBe(rawNote);
   });
 });

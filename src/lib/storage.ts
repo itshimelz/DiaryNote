@@ -1,6 +1,7 @@
 import { Note, CanvasTransform, GridType, CanvasTheme, AIProvider } from '../types';
 import { invoke } from '@tauri-apps/api/core';
 import { sendNativeAppNotification } from '../utils';
+import { authorizeNotes } from '../services/authPolicyService';
 
 const NOTES_STORAGE_KEY = 'infinite_notes_v1_notes';
 const CANVAS_TRANSFORM_KEY = 'infinite_notes_v1_transform';
@@ -305,10 +306,21 @@ export async function exportBackup(notes: Note[], transform: CanvasTransform, se
     masterSecurityAnswerHash: '',
   };
 
+  // Guard locked notes; redact unauthorized locked content from raw JSON export
+  const authResult = authorizeNotes(notes, 'export');
+  if (!authResult.allowed) {
+    sendNativeAppNotification(
+      'Backup Export Notice',
+      `${authResult.lockedNoteIds.length} locked note(s) were redacted in this backup. Unlock notes to export full plaintext.`
+    );
+  }
+
+  const exportNotes = authResult.redactedNotes;
+
   const data = {
     version: 1,
     exportedAt: new Date().toISOString(),
-    notes,
+    notes: exportNotes,
     transform,
     settings: sanitizedSettings,
   };
@@ -318,15 +330,28 @@ export async function exportBackup(notes: Note[], transform: CanvasTransform, se
 
 export async function exportNotesBackup(notesToExport: Note[], customFilename?: string): Promise<string> {
   const dateStr = new Date().toISOString().slice(0, 10);
-  const count = notesToExport.length;
+  const authResult = authorizeNotes(notesToExport, 'export');
+  if (!authResult.allowed) {
+    sendNativeAppNotification(
+      'Export Restricted',
+      `${authResult.lockedNoteIds.length} locked note(s) excluded from export. Unlock notes to export.`
+    );
+  }
+
+  const exportNotes = authResult.authorizedNotes;
+  if (exportNotes.length === 0) {
+    return '';
+  }
+
+  const count = exportNotes.length;
   const filename = customFilename || (count === 1
-    ? `${(notesToExport[0]?.title || 'Note').replace(/[^a-z0-9]/gi, '_')}_${dateStr}.json`
+    ? `${(exportNotes[0]?.title || 'Note').replace(/[^a-z0-9]/gi, '_')}_${dateStr}.json`
     : `DiaryNote-Selection-${count}-notes_${dateStr}.json`);
 
   const data = {
     version: 1,
     exportedAt: new Date().toISOString(),
-    notes: notesToExport,
+    notes: exportNotes,
   };
   const jsonString = JSON.stringify(data, null, 2);
   return saveFileWithNotification(filename, jsonString, 'Notes', 'application/json');

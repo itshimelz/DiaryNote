@@ -253,6 +253,37 @@ export async function decryptNoteContent(
 }
 
 /**
+ * Checks if a content string is stored in an encrypted envelope format.
+ */
+export function isEncryptedEnvelope(content?: string): boolean {
+  return typeof content === 'string' && content.startsWith('$aes-gcm$');
+}
+
+/**
+ * Encrypts plaintext into a self-contained $aes-gcm$ envelope string.
+ */
+export async function encryptNoteEnvelope(plaintext: string, passcode: string): Promise<string> {
+  if (!plaintext) return '';
+  if (isEncryptedEnvelope(plaintext)) return plaintext;
+  const { ciphertext, iv, salt } = await encryptNoteContent(plaintext, passcode);
+  return `$aes-gcm$${salt}$${iv}$${ciphertext}`;
+}
+
+/**
+ * Decrypts a self-contained $aes-gcm$ envelope string using the provided passcode.
+ */
+export async function decryptNoteEnvelope(envelope: string, passcode: string): Promise<string> {
+  if (!envelope || !isEncryptedEnvelope(envelope)) return envelope || '';
+  const parts = envelope.split('$');
+  // Expected parts: ['', 'aes-gcm', saltB64, ivB64, ciphertextB64]
+  if (parts.length !== 5) return envelope;
+  const saltB64 = parts[2];
+  const ivB64 = parts[3];
+  const ciphertextB64 = parts[4];
+  return decryptNoteContent(ciphertextB64, ivB64, saltB64, passcode);
+}
+
+/**
  * Session Vault: Stores authenticated passcode in memory with auto-lock timer.
  */
 export function cacheSessionPasscode(passcode: string, timeoutMs: number = 15 * 60 * 1000): void {

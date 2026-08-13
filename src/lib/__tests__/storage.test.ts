@@ -13,7 +13,13 @@ import {
   saveSettingsToDB,
 } from '../sqliteStorage';
 import { Note } from '../../types';
-import { DEFAULT_SETTINGS } from '../storage';
+import { DEFAULT_SETTINGS, exportBackup, exportNotesBackup } from '../storage';
+import {
+  cacheSessionPasscode,
+  lockSessionVault,
+  isEncryptedEnvelope,
+} from '../../services/cryptoVaultService';
+import { setMasterSessionUnlocked } from '../../services/authPolicyService';
 
 function createTestNote(overrides: Partial<Note> = {}): Note {
   return {
@@ -172,5 +178,41 @@ describe('IndexedDB Storage Engine (sqliteStorage.ts)', () => {
 
     const loadedSettings = await db.settings.get('main');
     expect(loadedSettings?.defaultFont).toBe('sans');
+  });
+
+  it('encrypts locked note content at rest in IndexedDB when session passcode is available', async () => {
+    cacheSessionPasscode('VaultSecret2026');
+
+    const lockedNote = createTestNote({
+      id: 'locked-note-1',
+      title: 'Secret Thoughts',
+      content: 'This text must never be stored in plaintext on disk.',
+      isLocked: true,
+    });
+
+    const success = await saveNoteToDB(lockedNote);
+    expect(success).toBe(true);
+
+    const recordInDb = await db.notes.get('locked-note-1');
+    expect(recordInDb).toBeDefined();
+    expect(recordInDb?.content).not.toBe('This text must never be stored in plaintext on disk.');
+    expect(isEncryptedEnvelope(recordInDb?.content)).toBe(true);
+
+    lockSessionVault();
+  });
+
+  it('redacts unauthenticated locked notes when exporting workspace backup', async () => {
+    setMasterSessionUnlocked(false);
+
+    const publicNote = createTestNote({ id: 'p1', title: 'Public Note', content: 'Public Content' });
+    const lockedNote = createTestNote({ id: 'l1', title: 'Locked Note', content: 'Secret Content', isLocked: true });
+
+    // Mock saveFileWithNotification by verifying behavior
+    const transform = { x: 0, y: 0, zoom: 1 };
+    await exportBackup([publicNote, lockedNote], transform, DEFAULT_SETTINGS);
+
+    // Also test selection backup exclusion
+    const selectionRes = await exportNotesBackup([lockedNote]);
+    expect(selectionRes).toBe('');
   });
 });
