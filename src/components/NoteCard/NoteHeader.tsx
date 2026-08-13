@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Share2, X, Pin, Check, FolderMinus, Layers, Smile, Sun, Zap, Coffee, CloudRain, SmilePlus, MoreVertical } from 'lucide-react';
+import { Share2, X, Pin, Check, FolderMinus, Smile, Sun, Zap, Coffee, CloudRain, SmilePlus, MoreVertical } from 'lucide-react';
 import { Note, JournalMood } from '../../types';
-import { getUniqueTitleForDay } from '../../utils';
+import { getUniqueTitleForDay, sendNativeAppNotification } from '../../utils';
+import { isNoteAuthorized } from '../../services/authPolicyService';
 import { PaperThemeConfig } from './types';
 
 interface NoteHeaderProps {
@@ -86,6 +87,10 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
   };
 
   const handleShare = () => {
+    if (note.isLocked && !isNoteAuthorized(note)) {
+      sendNativeAppNotification('Note Protected', 'Unlock this note before copying content.');
+      return;
+    }
     if (onShareNote) {
       onShareNote();
       return;

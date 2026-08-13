@@ -1,4 +1,5 @@
 import { Note, Connection } from '../types';
+import { isNoteAuthorized } from '../services/authPolicyService';
 
 /**
  * Extracts connections between notes based on @[Title] or @[Title](id) or @Title references in content
@@ -16,7 +17,10 @@ export function extractNoteConnections(notes: Note[]): Connection[] {
   });
 
   (notes || []).forEach((sourceNote) => {
-    if (!sourceNote || !sourceNote.content) return;
+    // Redact unauthenticated locked note contents from graph indexing
+    if (!sourceNote || !sourceNote.content || (sourceNote.isLocked && !isNoteAuthorized(sourceNote))) {
+      return;
+    }
     const bracketRegex = /@\[([^\]]+)\](?:\(([^)]+)\))?/g;
     let match: RegExpExecArray | null;
 
@@ -30,10 +34,12 @@ export function extractNoteConnections(notes: Note[]): Connection[] {
       }
 
       if (foundId && idMap.has(foundId) && foundId !== sourceNote.id) {
+        const targetNote = idMap.get(foundId);
+        const targetAuthorized = targetNote ? isNoteAuthorized(targetNote) : true;
         connections.push({
           fromId: sourceNote.id,
           toId: foundId,
-          toTitle: idMap.get(foundId)?.title || title,
+          toTitle: targetAuthorized ? (targetNote?.title || title) : '🔒 Locked Note',
         });
       }
     }

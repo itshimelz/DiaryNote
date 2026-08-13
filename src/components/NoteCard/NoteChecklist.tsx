@@ -290,7 +290,7 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
       let newId = '';
       setItems((prevItems) => {
         const currentIndex = prevItems.findIndex((i) => i.id === currentId);
-        newId = `item-task-${Date.now()}`;
+        newId = `item-task-${crypto.randomUUID()}`;
         const newItem: ChecklistItem = {
           id: newId,
           text: '',
@@ -321,7 +321,7 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
   const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault();
     if (newItemText.trim()) {
-      const newId = `item-task-${Date.now()}`;
+      const newId = `item-task-${crypto.randomUUID()}`;
       const newItem: ChecklistItem = {
         id: newId,
         text: newItemText.trim(),

@@ -93,7 +93,7 @@ export function useNotesManager(
       initialTitle?: string,
       initialContent?: string
     ): string => {
-      const newId = `note-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const newId = `note-${crypto.randomUUID()}`;
 
       let viewportX =
         typeof customX === 'number' && !isNaN(customX)

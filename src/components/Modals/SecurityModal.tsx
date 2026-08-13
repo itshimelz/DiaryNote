@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Lock, Unlock, ShieldAlert, KeyRound, HelpCircle, X } from 'lucide-react';
 import { hashSecurityInput, verifySecurityInput } from '../../utils';
 import { CanvasTheme } from '../../types';
+import { cacheSessionPasscode } from '../../services/cryptoVaultService';
+import { setMasterSessionUnlocked } from '../../services/authPolicyService';
 
 export type SecurityModalMode = 'set' | 'unlock';
 
@@ -70,23 +72,35 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({
       return;
     }
 
-    const passHash = await hashSecurityInput(password);
-    const ansHash = await hashSecurityInput(recoveryAnswer);
+    try {
+      const passHash = await hashSecurityInput(password);
+      const ansHash = await hashSecurityInput(recoveryAnswer);
+      cacheSessionPasscode(password);
+      setMasterSessionUnlocked(true);
 
-    onSuccessSet(passHash, finalQuestion, ansHash);
-    onClose();
+      onSuccessSet(passHash, finalQuestion, ansHash);
+      onClose();
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Failed to set security passcode.');
+    }
   };
 
   const handleVerifyPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
-    const isValid = await verifySecurityInput(password, existingPasswordHash);
-    if (isValid) {
-      onSuccessUnlock();
-      onClose();
-    } else {
-      setErrorMessage('Incorrect password. Please try again or use recovery.');
+    try {
+      const isValid = await verifySecurityInput(password, existingPasswordHash);
+      if (isValid) {
+        cacheSessionPasscode(password);
+        setMasterSessionUnlocked(true);
+        onSuccessUnlock();
+        onClose();
+      } else {
+        setErrorMessage('Incorrect password. Please try again or use recovery.');
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Verification rate limit in effect. Please wait.');
     }
   };
 
@@ -94,12 +108,17 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({
     e.preventDefault();
     setErrorMessage(null);
 
-    const isValid = await verifySecurityInput(recoveryAnswer, existingAnswerHash);
-    if (isValid) {
-      onSuccessUnlock();
-      onClose();
-    } else {
-      setErrorMessage('Incorrect recovery answer. Please double-check spelling.');
+    try {
+      const isValid = await verifySecurityInput(recoveryAnswer, existingAnswerHash);
+      if (isValid) {
+        setMasterSessionUnlocked(true);
+        onSuccessUnlock();
+        onClose();
+      } else {
+        setErrorMessage('Incorrect recovery answer. Please double-check spelling.');
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Verification rate limit in effect. Please wait.');
     }
   };
 

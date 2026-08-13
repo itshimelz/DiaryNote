@@ -295,12 +295,22 @@ function triggerBrowserDownload(filename: string, content: string, contentType: 
 export async function exportBackup(notes: Note[], transform: CanvasTransform, settings: AppSettings): Promise<string> {
   const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const filename = `DiaryNote-Backup-${dateStr}.json`;
+
+  // Strip sensitive credentials and security digests from backup files
+  const sanitizedSettings: AppSettings = {
+    ...settings,
+    encryptedApiKey: '',
+    apiKeyIv: '',
+    masterPasswordHash: '',
+    masterSecurityAnswerHash: '',
+  };
+
   const data = {
     version: 1,
     exportedAt: new Date().toISOString(),
     notes,
     transform,
-    settings,
+    settings: sanitizedSettings,
   };
   const jsonString = JSON.stringify(data, null, 2);
   return saveFileWithNotification(filename, jsonString, 'Backups', 'application/json');

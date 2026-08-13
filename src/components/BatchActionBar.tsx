@@ -1,11 +1,12 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { Note, PaperTheme, CanvasTheme } from '../types';
 import { PAPER_THEMES, PAPER_THEME_OPTIONS, PAPER_THEME_LABELS } from '../constants/paperThemes';
-
 import { exportNotesBackup } from '../lib/storage';
+import { authorizeNotes, isNoteAuthorized } from '../services/authPolicyService';
+import { sendNativeAppNotification } from '../utils';
 import {
   CheckSquare,
   Palette,
@@ -302,7 +303,7 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
       onUpdateBatchNotes(updated);
       onClearSelection();
     } else {
-      const newGroupId = `group-${Date.now()}`;
+      const newGroupId = `group-${crypto.randomUUID()}`;
       const groupName = `Group ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
       const updated = selectedNotes.map((n) => ({
         ...n,
@@ -568,8 +569,18 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
           type="button"
           onClick={() => {
             if (selectedNotes.length > 0) {
-              const fileName = `selected-notes-backup-${new Date().toISOString().slice(0, 10)}.json`;
-              exportNotesBackup(selectedNotes, fileName);
+              const authResult = authorizeNotes(selectedNotes, 'export');
+              if (!authResult.allowed) {
+                sendNativeAppNotification(
+                  'Export Restricted',
+                  `${authResult.lockedNoteIds.length} locked note(s) excluded from export.`
+                );
+              }
+              const exportable = authResult.authorizedNotes;
+              if (exportable.length > 0) {
+                const fileName = `selected-notes-backup-${new Date().toISOString().slice(0, 10)}.json`;
+                exportNotesBackup(exportable, fileName);
+              }
             }
           }}
           className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors ${btnClass}`}
@@ -584,15 +595,26 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
           <button
             type="button"
             onClick={onMergeNotesAI}
-            disabled={isMergingAI || isAlreadyMerged || selectedNotes.length < 2 || selectedNotes.length > 5}
+            disabled={
+              isMergingAI ||
+              isAlreadyMerged ||
+              selectedNotes.length < 2 ||
+              selectedNotes.length > 5 ||
+              selectedNotes.some((n) => n.isLocked && !isNoteAuthorized(n))
+            }
             className={`flex items-center gap-1.5 px-2 py-1 rounded-sm transition-colors ${btnClass} ${
-              isMergingAI || isAlreadyMerged || selectedNotes.length < 2 || selectedNotes.length > 5
+              isMergingAI ||
+              isAlreadyMerged ||
+              selectedNotes.length < 2 ||
+              selectedNotes.length > 5 ||
+              selectedNotes.some((n) => n.isLocked && !isNoteAuthorized(n))
                 ? 'opacity-50 cursor-not-allowed'
                 : ''
             }`}
-
             title={
-              isAlreadyMerged
+              selectedNotes.some((n) => n.isLocked && !isNoteAuthorized(n))
+                ? 'Unlock locked note(s) before AI merge'
+                : isAlreadyMerged
                 ? 'This selection of notes has already been merged'
                 : selectedNotes.length > 5
                 ? 'Select up to 5 notes for AI Merge'

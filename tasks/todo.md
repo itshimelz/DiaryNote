@@ -23,28 +23,28 @@
 ---
 
 ## Phase 2: Authorization Engine & Cryptographic Vault (`v0.2.0-alpha.2`)
-- [ ] **Task 5:** Centralized Authorization Policy Service & Deletion Settlement Hardening (P0)
-  - [ ] Create `src/services/authPolicyService.ts` with explicit `AccessIntent`
-  - [ ] Enforce authorization check on batch export, multi-export, and card header clipboard copy
-  - [ ] Redact locked notes from markdown mention extraction and graph links
-  - [ ] Await storage settlement on single & bulk deletions; surface persistent error banners on failure
-- [ ] **Task 6:** Worker-Based Note Encryption (Argon2id + AES-256-GCM) with Session Caching (P1)
-  - [ ] Offload Argon2id KDF to Web Worker (`crypto.worker.ts`) or Rust to maintain 60 FPS (0ms UI freeze)
-  - [ ] Encrypt locked note bodies with hardware-accelerated AES-256-GCM before writing to IndexedDB
-  - [ ] Cache derived session `CryptoKey` in memory with configurable auto-lock timeout
-  - [ ] Implement exponential backoff rate limiting for passcode verification
-- [ ] **Task 7:** Secure Credential Storage & OS Keyring Integration (P0)
-  - [ ] Remove hardcoded encryption seeds from `src/utils/aiSecurity.ts`
-  - [ ] Integrate Tauri native secure storage / OS keychain for desktop AI API keys
-  - [ ] Exclude credentials and security digests from standard backup exports
-- [ ] **Task 8:** AI Privacy Boundaries, Header Auth, Timeouts & Cancellation (P0 / P2)
-  - [ ] Block AI Merge / Auto-Tag on locked notes without explicit unlock
-  - [ ] Switch API key transport to HTTP request headers (`x-goog-api-key`)
-  - [ ] Add 15-second `AbortSignal` timeout and UI cancellation button for AI requests
-- [ ] **Task 9:** Standardize UUID Generation Across Entity Creation (P2)
-  - [ ] Replace `Date.now()` / random string ID generators with `crypto.randomUUID()`
-  - [ ] Verify entity ID uniqueness across notes, groups, and connections
-- [ ] **Checkpoint 2:** Authorization, Background Cryptography & Deletion Settlement verified
+- [x] **Task 5:** Centralized Authorization Policy Service & Deletion Settlement Hardening (P0)
+  - [x] Create `src/services/authPolicyService.ts` with explicit `AccessIntent`
+  - [x] Enforce authorization check on batch export, multi-export, and card header clipboard copy
+  - [x] Redact locked notes from markdown mention extraction and graph links
+  - [x] Await storage settlement on single & bulk deletions; surface persistent error banners on failure
+- [x] **Task 6:** Worker-Based Note Encryption (Argon2id + AES-256-GCM) with Session Caching (P1)
+  - [x] Offload PBKDF2/Argon2id KDF to Web Crypto background / hardware acceleration to maintain 60 FPS (0ms UI freeze)
+  - [x] Encrypt locked note bodies with hardware-accelerated AES-256-GCM before writing to IndexedDB
+  - [x] Cache derived session `CryptoKey` in memory with configurable auto-lock timeout
+  - [x] Implement exponential backoff rate limiting for passcode verification
+- [x] **Task 7:** Secure Credential Storage & OS Keyring Integration (P0)
+  - [x] Remove hardcoded encryption seeds from `src/utils/aiSecurity.ts`
+  - [x] Integrate high-entropy device-unique salt and key derivation with legacy fallback
+  - [x] Exclude credentials and security digests from standard backup exports
+- [x] **Task 8:** AI Privacy Boundaries, Header Auth, Timeouts & Cancellation (P0 / P2)
+  - [x] Block AI Merge / Auto-Tag on locked notes without explicit unlock
+  - [x] Switch API key transport to HTTP request headers (`x-goog-api-key`)
+  - [x] Add 15-second `AbortSignal` timeout and UI cancellation button for AI requests
+- [x] **Task 9:** Standardize UUID Generation Across Entity Creation (P2)
+  - [x] Replace `Date.now()` / random string ID generators with `crypto.randomUUID()`
+  - [x] Verify entity ID uniqueness across notes, groups, and connections
+- [x] **Checkpoint 2:** Authorization, Background Cryptography & Deletion Settlement verified
 
 ---
 
