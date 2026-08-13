@@ -48,6 +48,9 @@ export async function initDatabase(): Promise<{
       localStorage.setItem('diarynote_has_initialized', 'true');
     }
 
+    // ponytail: Run compactDatabase on startup to prune legacy storage and orphaned records
+    await compactDatabase();
+
     const notes = await db.notes.toArray();
 
     // Load transform
@@ -236,4 +239,34 @@ export async function searchNotesByVector(
     });
 
   return scored.sort((a, b) => b.score - a.score).slice(0, topK);
+}
+
+/**
+ * Minimal IndexedDB compaction and legacy storage cleanup.
+ * Removes residual localStorage keys and purges orphaned table records.
+ */
+export async function compactDatabase(): Promise<{ freedKeys: number }> {
+  let freedKeys = 0;
+  const legacyKeys = ['infinite_notes_v1_notes', 'infinite_notes_v1_settings', 'infinite_notes_v1_transform'];
+  for (const key of legacyKeys) {
+    if (localStorage.getItem(key) !== null) {
+      localStorage.removeItem(key);
+      freedKeys++;
+    }
+  }
+
+  try {
+    await db.transaction('rw', db.notes, async () => {
+      const keys = await db.notes.toCollection().primaryKeys();
+      const invalidKeys = keys.filter((k) => !k || typeof k !== 'string');
+      if (invalidKeys.length > 0) {
+        await db.notes.bulkDelete(invalidKeys as string[]);
+        freedKeys += invalidKeys.length;
+      }
+    });
+  } catch (err) {
+    console.error('IndexedDB compaction error:', err);
+  }
+
+  return { freedKeys };
 }

@@ -117,7 +117,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 
   return (
     <div
-      className={`fixed bottom-0 left-0 right-0 z-40 h-8 border-t backdrop-blur-md px-4 text-[11px] font-sans flex items-center justify-between transition-all select-none ${
+      className={`fixed bottom-0 left-0 right-0 z-40 h-8 border-t backdrop-blur-md px-4 text-[11px] font-sans flex items-center justify-between transition-colors select-none ${
         isDark
           ? 'bg-slate-900/95 border-slate-800 text-slate-300'
           : 'bg-white/95 border-slate-200 text-slate-700'
@@ -169,7 +169,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       <div className="hidden md:flex items-center gap-3 font-sans text-[11px]">
         {streakStats.currentStreak > 0 && (
           <div
-            className={`px-1.5 py-0.5 rounded-md border font-semibold inline-flex items-center gap-1 transition-all ${
+            className={`px-1.5 py-0.5 rounded-md border font-semibold inline-flex items-center gap-1 transition-colors ${
               isDark
                 ? 'bg-slate-800/80 border-slate-700/50 text-slate-200'
                 : 'bg-slate-50 border-slate-200 text-slate-700'

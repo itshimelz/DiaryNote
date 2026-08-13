@@ -1,27 +1,73 @@
-$ErrorActionPreference = 'Stop'
+Param(
+    [string]$Version = "",
+    [switch]$Prerelease = $false
+)
 
 Write-Host "==> Installing DiaryNote for Windows..." -ForegroundColor Cyan
 
-# Resolve latest release tag via web redirect (bypasses GitHub API rate limits)
 $repo = "itshimelz/DiaryNote"
-$webUrl = "https://github.com/$repo/releases/latest"
+$tagName = ""
 
-try {
-    $request = [System.Net.WebRequest]::Create($webUrl)
-    $request.AllowAutoRedirect = $false
-    $response = $request.GetResponse()
-    $location = $response.Headers["Location"]
-    $tagName = Split-Path $location -Leaf
-    if (-not $tagName) {
-        throw "Could not parse release tag from redirect."
+if ($Version) {
+    $tagName = if ($Version.StartsWith("v")) { $Version } else { "v$Version" }
+    Write-Host "Using specified version: $tagName" -ForegroundColor Cyan
+} else {
+    try {
+        $releases = @()
+        try {
+            $atomUrl = "https://github.com/$repo/releases.atom"
+            [xml]$xml = (New-Object System.Net.WebClient).DownloadString($atomUrl)
+            foreach ($e in $xml.feed.entry) {
+                $tag = $e.title
+                if ($tag -and $tag.StartsWith("v")) {
+                    $isPre = $tag.Contains("-")
+                    $releases += [PSCustomObject]@{ tag_name = $tag; prerelease = $isPre }
+                }
+            }
+        } catch {}
+
+        if ($releases.Count -eq 0) {
+            $apiUrl = "https://api.github.com/repos/$repo/releases?per_page=10"
+            $releases = Invoke-RestMethod -Uri $apiUrl -Headers @{ "User-Agent" = "DiaryNote-Installer" }
+        }
+        
+        if ($Prerelease) {
+            $tagName = $releases[0].tag_name
+        } elseif ([Environment]::UserInteractive) {
+            Write-Host "==> Available DiaryNote Versions:" -ForegroundColor Yellow
+            $count = [Math]::Min(5, $releases.Count)
+            for ($i = 0; $i -lt $count; $i++) {
+                $rel = $releases[$i]
+                $type = if ($rel.prerelease) { "Pre-Release" } else { "Stable Release" }
+                $defaultTag = if ($i -eq 0) { " [default]" } else { "" }
+                Write-Host "  ($($i + 1)) $($rel.tag_name) ($type)$defaultTag" -ForegroundColor Cyan
+            }
+            $selection = Read-Host "Select a version to install [1-$count] (default 1)"
+            if ($selection -match '^\d+$' -and [int]$selection -ge 1 -and [int]$selection -le $count) {
+                $tagName = $releases[[int]$selection - 1].tag_name
+            } else {
+                $tagName = $releases[0].tag_name
+            }
+        } else {
+            $stable = $releases | Where-Object { -not $_.prerelease } | Select-Object -First 1
+            if ($stable) { $tagName = $stable.tag_name } else { $tagName = $releases[0].tag_name }
+        }
+    } catch {
+        $webUrl = "https://github.com/$repo/releases/latest"
+        $request = [System.Net.WebRequest]::Create($webUrl)
+        $request.AllowAutoRedirect = $false
+        $response = $request.GetResponse()
+        $location = $response.Headers["Location"]
+        $tagName = Split-Path $location -Leaf
     }
-} catch {
-    Write-Host "Failed to resolve latest release tag." -ForegroundColor Red
-    Write-Host $_.Exception.Message -ForegroundColor Red
+}
+
+if (-not $tagName) {
+    Write-Host "Failed to resolve release tag." -ForegroundColor Red
     exit 1
 }
 
-Write-Host "Found latest version: $tagName" -ForegroundColor Green
+Write-Host "Selected version: $tagName" -ForegroundColor Green
 
 $versionNum = $tagName.TrimStart('v')
 $fileName = "DiaryNote_${versionNum}_x64-setup.exe"

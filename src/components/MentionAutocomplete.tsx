@@ -73,7 +73,7 @@ export const MentionAutocomplete: React.FC<MentionAutocompleteProps> = ({
     <div
       ref={containerRef}
       style={{ top: `${position.top}px`, left: `${position.left}px` }}
-      className={`absolute z-50 w-64 max-w-[calc(100%-2rem)] border rounded-md shadow-sm overflow-hidden py-1 text-xs backdrop-blur-md transition-all select-none ${themeConfig.headerBg} ${themeConfig.border} ${themeConfig.text}`}
+      className={`absolute z-50 w-64 max-w-[calc(100%-2rem)] border rounded-md shadow-sm overflow-hidden py-1 text-xs backdrop-blur-md transition-colors select-none ${themeConfig.headerBg} ${themeConfig.border} ${themeConfig.text}`}
     >
       <div
         className={`px-2.5 py-1.5 border-b text-[10px] font-semibold uppercase tracking-wider flex items-center justify-between ${themeConfig.divider} ${themeConfig.subtext}`}

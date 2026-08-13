@@ -8,8 +8,10 @@ import { NoteMarkdownView } from './NoteMarkdownView';
 import { NoteStylePicker } from './NoteStylePicker';
 import { MentionAutocomplete } from '../MentionAutocomplete';
 import { SlashCommandMenu, SlashCommand, SLASH_COMMANDS } from './SlashCommandMenu';
-import { getUniqueTitleForDay, normalizeNoteText, resizeNoteEditor, applyMarkdownFormatting, handleSmartEnterList, FormattingType } from '../../utils';
-import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../../constants/canvas';
+import { getUniqueTitleForDay, normalizeNoteText, resizeNoteEditor, applyMarkdownFormatting, handleSmartEnterList, sendNativeAppNotification, FormattingType, getTextareaCursorCoordinates } from '../../utils';
+import { loadSettings } from '../../lib/storage';
+import { generateAutoTagsWithAI } from '../../services/ai/aiMergeService';
+import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT, DRAG_Z_INDEX } from '../../constants/canvas';
 import { Note } from '../../types';
 
 import { useNoteDrag } from '../../hooks/useNoteDrag';
@@ -177,19 +179,82 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
     }, 50);
   };
 
-  const handleSelectSlashCommand = (command: SlashCommand) => {
+  const handleSelectSlashCommand = async (command: SlashCommand) => {
     if (!textareaRef.current) return;
     const val = note.content || '';
     const cursorIndex = textareaRef.current.selectionStart || val.length;
     const textBeforeCursor = val.slice(0, cursorIndex);
     const textAfterCursor = val.slice(cursorIndex);
 
-    let insertedText = typeof command.action === 'function' ? command.action(val) : command.action;
-
-    const newBefore = textBeforeCursor.replace(/(?:^|\n|\s)\/([a-zA-Z0-9]*)$/, (m) => {
+    const newBefore = textBeforeCursor.replace(/(?:^|\n|\s)\/([a-zA-Z0-9_-]*)$/, (m) => {
       const leadingPrefix = m.startsWith('\n') ? '\n' : m.startsWith(' ') ? ' ' : '';
       return leadingPrefix;
     });
+
+    setSlashQuery(null);
+
+    // ponytail: AI Auto Tag action (max 3 tags, zero content alteration, appended at end as markdown)
+    if (command.id === 'autotag') {
+      const cleanedBaseContent = (newBefore + textAfterCursor).trimEnd();
+      const settings = loadSettings();
+
+      if (!settings.enableAIServices || !settings.encryptedApiKey || !settings.apiKeyIv) {
+        sendNativeAppNotification(
+          'AI Key Required',
+          'Please enable AI Services and configure your API key in AI Settings to use /auto-tag.'
+        );
+        return;
+      }
+
+      sendNativeAppNotification('Generating Tags', 'Analyzing note content with AI...');
+
+      try {
+        const generatedTags = await generateAutoTagsWithAI(
+          note.title,
+          cleanedBaseContent,
+          {
+            aiProvider: settings.aiProvider || 'gemini',
+            encryptedApiKey: settings.encryptedApiKey,
+            apiKeyIv: settings.apiKeyIv,
+            customBaseUrl: settings.customBaseUrl,
+            customModelName: settings.customModelName,
+          }
+        );
+
+        const validTags = (generatedTags || [])
+          .map((t) => (t.startsWith('#') ? t : `#${t}`))
+          .slice(0, 3);
+
+        if (validTags.length === 0) {
+          sendNativeAppNotification('Auto Tag', 'No relevant tags generated.');
+          return;
+        }
+
+        const tagsMarkdown = validTags.join(' ');
+        const finalContent = `${cleanedBaseContent}\n\n**Tags:** ${tagsMarkdown}`;
+
+        const cleanTagNames = validTags.map((t) => t.replace(/^#/, ''));
+        const updatedTags = Array.from(new Set([...(note.tags || []), ...cleanTagNames]));
+
+        onUpdateNote({
+          ...note,
+          content: finalContent,
+          tags: updatedTags,
+          updatedAt: new Date().toISOString(),
+        });
+
+        sendNativeAppNotification('Auto Tag Complete', `Appended tags: ${tagsMarkdown}`);
+      } catch (err: any) {
+        console.error('Failed to generate auto-tags:', err);
+        sendNativeAppNotification(
+          'Auto Tag Failed',
+          err?.message || 'Failed to generate AI tags. Check API key settings.'
+        );
+      }
+      return;
+    }
+
+    let insertedText = typeof command.action === 'function' ? command.action(val) : command.action;
 
     const newContent = newBefore + insertedText + textAfterCursor;
     onUpdateNote({
@@ -197,7 +262,6 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       content: newContent,
       updatedAt: new Date().toISOString(),
     });
-    setSlashQuery(null);
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.focus();
@@ -323,13 +387,13 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         transform: `translate3d(${Math.round(note.x)}px, ${Math.round(note.y)}px, 0)`,
         width: `${note.width || DEFAULT_NOTE_WIDTH}px`,
         minHeight: `${note.height || DEFAULT_NOTE_HEIGHT}px`,
-        zIndex: isDragging || isCardDragging ? 10000 : note.zIndex || 10,
+        zIndex: isDragging || isCardDragging ? DRAG_Z_INDEX : note.zIndex || 10,
       }}
       className={`note-card absolute top-0 left-0 rounded-md flex flex-col justify-between shadow-sm ${
         isPanMode
           ? 'cursor-grab active:cursor-grabbing pointer-events-none'
           : isDragging || isCardDragging
-          ? 'transition-none scale-100 cursor-grabbing z-[10000]'
+          ? 'transition-none scale-100 cursor-grabbing'
           : `transition-[box-shadow,opacity] duration-150 ease-out scale-100 ${
               !isEditing ? 'cursor-grab' : ''
             }`
@@ -352,7 +416,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
                 groupName: overlappingGroup.name,
               });
             }}
-            className={`flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-semibold rounded-sm border shadow-sm backdrop-blur-md transition-all active:scale-95 ${
+            className={`flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-semibold rounded-sm border shadow-sm backdrop-blur-md transition-colors ${
               themeConfig.isDark
                 ? 'bg-slate-900/95 border-slate-800 text-slate-200 hover:bg-slate-800'
                 : 'bg-white/95 border-slate-200/90 text-slate-800 hover:bg-slate-100'
@@ -432,7 +496,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
             </p>
             <button
               onClick={() => onRequestUnlockNote?.(note.id)}
-              className={`px-4 py-2 rounded-md font-bold uppercase tracking-wider text-[10px] transition-all ${
+              className={`px-4 py-2 rounded-md font-bold uppercase tracking-wider text-[10px] transition-colors ${
                 themeConfig.isDark
                   ? 'bg-white text-slate-900 hover:bg-slate-100'
                   : 'bg-slate-900 text-white hover:bg-slate-800'
@@ -490,10 +554,8 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
                 const match = textBeforeCursor.match(/(?:^|\s)@([a-zA-Z0-9\s\_-]*)$/);
                 if (match) {
                   setMentionQuery(match[1]);
-                  const lineCount = textBeforeCursor.split('\n').length;
-                  const lineH = isRuled ? 32 : 24;
-                  const topPos = Math.min(lineCount * lineH + 6, 190);
-                  setMentionPos({ top: topPos, left: 10 });
+                  const pos = getTextareaCursorCoordinates(e.target, cursorIndex);
+                  setMentionPos(pos);
                   setSlashQuery(null);
                 } else {
                   setMentionQuery(null);
@@ -502,10 +564,8 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
                   const slashMatch = textBeforeCursor.match(/(?:^|\n|\s)\/([a-zA-Z0-9]*)$/);
                   if (slashMatch) {
                     setSlashQuery(slashMatch[1]);
-                    const lineCount = textBeforeCursor.split('\n').length;
-                    const lineH = isRuled ? 32 : 24;
-                    const topPos = Math.min(lineCount * lineH + 6, 190);
-                    setSlashPos({ top: topPos, left: 10 });
+                    const pos = getTextareaCursorCoordinates(e.target, cursorIndex);
+                    setSlashPos(pos);
                   } else {
                     setSlashQuery(null);
                   }

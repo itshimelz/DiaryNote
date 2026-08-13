@@ -209,7 +209,7 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
         if (type === 'checkbox') {
           return (
             <span
-              className={`inline-flex items-center justify-center shrink-0 w-4 h-4 rounded border-2 transition-all select-none ${
+              className={`inline-flex items-center justify-center shrink-0 w-4 h-4 rounded border-2 transition-colors select-none ${
                 checked
                   ? themeConfig.checkboxChecked
                   : themeConfig.checkboxUnchecked

@@ -59,14 +59,14 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-150 animate-in fade-in select-none font-sans ${
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-150 animate-in fade-in select-none font-sans ${
         isDark ? 'bg-black/60 backdrop-blur-sm' : 'bg-slate-950/40 backdrop-blur-sm'
       }`}
       onClick={onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`w-full max-w-xl max-h-[85vh] rounded-md shadow-sm border overflow-hidden flex flex-col transition-all ${
+        className={`w-full max-w-xl max-h-[85vh] rounded-md shadow-sm border overflow-hidden flex flex-col transition-colors ${
           isDark
             ? 'bg-slate-900 border-slate-800 text-slate-100'
             : 'bg-white border-slate-200 text-slate-900'

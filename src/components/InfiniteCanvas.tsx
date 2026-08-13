@@ -370,7 +370,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
 
   // Background CSS pattern class
   const getBackgroundClass = () => {
-    if (themeMode === 'gradient') return 'bg-gradient-to-br from-[#2b59c3] via-[#5d5fef] to-[#e879f9]';
+    if (themeMode === 'gradient') return 'bg-gradient-to-br from-[#1d4ed8] to-[#3b82f6]';
     if (gridType === 'blank') return themeMode === 'dark' ? 'bg-slate-950' : 'bg-[#f8fafc]';
     const isDark = themeMode === 'dark';
     if (gridType === 'dots') return isDark ? 'bg-canvas-dots-dark bg-slate-950' : 'bg-canvas-dots-light bg-[#f8fafc]';
@@ -553,13 +553,13 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
       </div>
 
       {/* Upgraded Canvas MiniMap placed at Top Right */}
-      <div className={`fixed top-4 right-4 z-30 w-44 h-32 border rounded-md shadow-sm backdrop-blur-md overflow-hidden p-2.5 hidden md:block select-none transition-all ${
+      <div className={`fixed top-4 right-4 z-30 w-44 h-32 border rounded-md shadow-sm backdrop-blur-md overflow-hidden p-2.5 hidden md:block select-none transition-colors ${
         themeMode === 'light'
           ? 'bg-white/90 border-slate-200 text-slate-800 shadow-slate-200/50'
           : 'bg-slate-900/90 border-slate-800 text-slate-200 shadow-black/50'
       }`}>
-        <div className="flex items-center justify-between text-[10px] font-mono font-semibold text-slate-400 mb-1.5 px-0.5">
-          <span className="uppercase tracking-wider">CANVAS MAP</span>
+        <div className="flex items-center justify-between text-[10px] font-sans font-medium text-slate-400 mb-1.5 px-0.5">
+          <span>Canvas map</span>
         </div>
         <div
           className={`relative w-full h-22 rounded-md border overflow-hidden cursor-pointer transition-colors ${
@@ -598,7 +598,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
                   width: `${mw}px`,
                   height: `${mh}px`,
                 }}
-                className={`absolute rounded-[1px] transition-all ${
+                className={`absolute rounded-[1px] transition-colors ${
                   selectedNoteId === n.id
                     ? 'bg-blue-500 ring-1 ring-blue-300 z-10'
                     : themeMode === 'light'

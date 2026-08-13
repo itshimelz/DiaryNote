@@ -29,9 +29,14 @@ const KeyboardShortcutsModal = lazy(() => import('./components/Modals/KeyboardSh
 const PasteConfirmModal = lazy(() => import('./components/Modals/PasteConfirmModal').then(m => ({ default: m.PasteConfirmModal })));
 const AboutModal = lazy(() => import('./components/Modals/AboutModal').then(m => ({ default: m.AboutModal })));
 const JournalCalendarModal = lazy(() => import('./components/Modals/JournalCalendarModal').then(m => ({ default: m.JournalCalendarModal })));
+const AISettingsModal = lazy(() => import('./components/Modals/AISettingsModal').then(m => ({ default: m.AISettingsModal })));
 
-import { sendNativeAppNotification } from './utils';
+import { sendNativeAppNotification, recordAIRequest } from './utils';
 import { checkForAppUpdates, ReleaseInfo } from './utils/updateChecker';
+import { saveSettingsToDB } from './lib/sqliteStorage';
+import { mergeNotesWithAI } from './services/ai/aiMergeService';
+
+import { AppSettings } from './lib/storage';
 
 export default function App() {
   const [isNotesListOpen, setIsNotesListOpen] = useState(false);
@@ -39,8 +44,13 @@ export default function App() {
   const [isJournalCalendarOpen, setIsJournalCalendarOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const [isAISettingsOpen, setIsAISettingsOpen] = useState(false);
+  const [isMergingAI, setIsMergingAI] = useState(false);
+  const [mergedSelectionKeys, setMergedSelectionKeys] = useState<Set<string>>(new Set());
   const [updateReleaseAlert, setUpdateReleaseAlert] = useState<ReleaseInfo | null>(null);
   const [isPanMode, setIsPanMode] = useState(false);
+
+
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [notesToDelete, setNotesToDelete] = useState<string[]>([]);
@@ -208,6 +218,21 @@ export default function App() {
   );
 
 
+  const handleSaveAISettings = useCallback(
+    (aiSettings: Partial<AppSettings>) => {
+      setSettings((prev) => {
+        const updated = { ...prev, ...aiSettings };
+        saveSettingsToDB(updated);
+        return updated;
+      });
+      sendNativeAppNotification(
+        'AI Settings Saved',
+        'AI service settings and key encryption updated successfully.'
+      );
+    },
+    [setSettings]
+  );
+
   // 4. Note Selection & Keyboard Shortcuts Hook
   const {
     selectedNoteIds,
@@ -262,8 +287,106 @@ export default function App() {
       handleUpdateBatchNotes(updated);
       setSelectedNoteIds([]);
     },
-    () => setIsShortcutsModalOpen((prev) => !prev)
+    () => setIsShortcutsModalOpen((prev) => !prev),
+    () => handleMergeNotesAI()
   );
+
+  const currentSelectionKey = selectedNoteIds.slice().sort().join(',');
+  const isCurrentSelectionMerged = mergedSelectionKeys.has(currentSelectionKey);
+
+  const handleMergeNotesAI = useCallback(() => {
+    if (!settings.enableAIServices || !settings.encryptedApiKey) {
+      setIsAISettingsOpen(true);
+      return;
+    }
+
+    const notesToMerge = notes.filter((n) => selectedNoteIds.includes(n.id));
+    if (notesToMerge.length < 2 || notesToMerge.length > 5) {
+      alert('Please select between 2 and 5 notes to merge.');
+      return;
+    }
+
+    const selKey = selectedNoteIds.slice().sort().join(',');
+    if (mergedSelectionKeys.has(selKey)) {
+      sendNativeAppNotification(
+        'Already Merged',
+        'This selection of notes has already been merged into a note.'
+      );
+      return;
+    }
+
+    // Mark current selection key as merged, BUT KEEP NOTES SELECTED
+    setIsMergingAI(true);
+    setMergedSelectionKeys((prev) => new Set(prev).add(selKey));
+
+    const targetCount = notesToMerge.length;
+    sendNativeAppNotification(
+      'AI Merge Started',
+      `Synthesizing ${targetCount} notes in the background...`
+    );
+
+    // Asynchronous background execution
+    (async () => {
+      try {
+        const result = await mergeNotesWithAI(notesToMerge, {
+          aiProvider: settings.aiProvider || 'gemini',
+          encryptedApiKey: settings.encryptedApiKey,
+          apiKeyIv: settings.apiKeyIv || '',
+          customBaseUrl: settings.customBaseUrl,
+          customModelName: settings.customModelName,
+        });
+
+        const avgX = Math.round(notesToMerge.reduce((sum, n) => sum + n.x, 0) / notesToMerge.length);
+        const avgY = Math.round(notesToMerge.reduce((sum, n) => sum + (n.y + (n.height || 340)), 0) / notesToMerge.length) + 40;
+
+        const maxZ = Math.max(0, ...notes.map((n) => n.zIndex || 0));
+
+        const newNote: Note = {
+          id: `note-${Date.now()}`,
+          title: result.title,
+          content: result.content,
+          x: avgX,
+          y: avgY,
+          width: 500,
+          height: 420,
+
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          fontFamily: settings.defaultFont || 'sans',
+          fontSize: 'md',
+          paperTheme: 'white',
+          activeMode: 'text',
+          isPinned: false,
+          zIndex: maxZ + 1,
+          tags: ['ai-merged'],
+        };
+
+        handleUpdateNote(newNote);
+
+        sendNativeAppNotification(
+          'AI Note Merged Successfully',
+          `Created "${result.title}" from ${targetCount} notes.`
+        );
+      } catch (err: any) {
+        console.error('Failed to merge notes with AI:', err);
+        setMergedSelectionKeys((prev) => {
+          const next = new Set(prev);
+          next.delete(selKey);
+          return next;
+        });
+        sendNativeAppNotification(
+          'AI Merge Failed',
+          err?.message || 'Failed to merge notes with AI. Please check your API Key settings.'
+        );
+      } finally {
+        setIsMergingAI(false);
+      }
+    })();
+  }, [settings, notes, selectedNoteIds, mergedSelectionKeys, handleUpdateNote]);
+
+
+
+
 
   const handleOpenOrCreateTodayJournal = useCallback(
     (targetDateStr?: string) => {
@@ -459,7 +582,7 @@ export default function App() {
       {isZenMode && (
         <button
           onClick={() => setIsZenMode(false)}
-          className="fixed top-4 right-4 z-50 px-3.5 py-1.5 rounded-xl bg-slate-900/90 text-white text-xs font-mono border border-slate-700 shadow-xl backdrop-blur-md hover:bg-slate-800 transition-all select-none"
+          className="fixed top-4 right-4 z-50 px-3.5 py-1.5 rounded-xl bg-slate-900/90 text-white text-xs font-mono border border-slate-700 shadow-xl backdrop-blur-md hover:bg-slate-800 transition-colors select-none"
         >
           Zen Mode (Click or press Z to exit)
         </button>
@@ -523,16 +646,19 @@ export default function App() {
           initial={false}
           animate={{
             borderRadius: selectedNoteIds.length >= 2
-              ? ['6px', '10px 10px 4px 4px', '6px']
-              : ['6px', '4px 4px 10px 10px', '6px'],
+              ? '10px 10px 4px 4px'
+              : '4px 4px 10px 10px',
           }}
           transition={{
             layout: { duration: 0.16, ease: [0.16, 1, 0.3, 1] },
-            borderRadius: { duration: 0.15, ease: 'easeOut' },
+            borderRadius: selectedNoteIds.length >= 2
+              ? { duration: 0.15, ease: 'easeOut' }
+              : { duration: 0.18, ease: 'easeOut', delay: 0.16 },
           }}
-          className={`fixed ${showStatusBar ? 'bottom-10' : 'bottom-6'} left-1/2 -translate-x-1/2 z-40 flex flex-col items-center border shadow-sm select-none w-[640px] max-w-[calc(100vw-32px)] transition-all duration-200 ${
+          className={`fixed ${showStatusBar ? 'bottom-10' : 'bottom-6'} left-1/2 -translate-x-1/2 z-40 flex flex-col items-center border shadow-sm select-none min-w-[640px] w-auto max-w-[calc(100vw-32px)] transition-[bottom] duration-200 ${
             selectedNoteIds.length >= 2 ? 'overflow-visible' : 'overflow-hidden'
           } ${
+
             settings.themeMode === 'light'
               ? 'bg-white/95 border-slate-200 text-slate-800'
               : 'bg-slate-900/90 border-slate-800 text-slate-200'
@@ -569,7 +695,12 @@ export default function App() {
                   selectedNoteIds={selectedNoteIds}
                   notes={notes}
                   themeMode={settings.themeMode}
+                  enableAIServices={settings.enableAIServices}
+                  isMergingAI={isMergingAI}
+                  isAlreadyMerged={isCurrentSelectionMerged}
+                  onMergeNotesAI={handleMergeNotesAI}
                   onUpdateBatchNotes={handleUpdateBatchNotes}
+
                   onDeleteNotes={(ids) => {
                     setNotesToDelete(ids);
                     setIsDeleteModalOpen(true);
@@ -592,6 +723,8 @@ export default function App() {
               snapToGrid={settings.snapToGrid}
               showConnections={settings.showConnections}
               hasBatchBar={selectedNoteIds.length >= 2}
+              enableAIServices={settings.enableAIServices}
+              onOpenAISettings={() => setIsAISettingsOpen(true)}
               isPanMode={isPanMode}
               canUndo={canUndo}
               canRedo={canRedo}
@@ -634,6 +767,20 @@ export default function App() {
       />
 
       <Suspense fallback={null}>
+        {/* AI Features & Key Settings Modal */}
+        <AISettingsModal
+          isOpen={isAISettingsOpen}
+          themeMode={settings.themeMode}
+          enableAIServices={settings.enableAIServices}
+          aiProvider={settings.aiProvider}
+          encryptedApiKey={settings.encryptedApiKey}
+          apiKeyIv={settings.apiKeyIv}
+          customBaseUrl={settings.customBaseUrl}
+          customModelName={settings.customModelName}
+          onClose={() => setIsAISettingsOpen(false)}
+          onSaveAISettings={handleSaveAISettings}
+        />
+
         {/* Command Palette Search Modal */}
         <SearchModal
           isOpen={isSearchOpen}
@@ -642,6 +789,7 @@ export default function App() {
           onClose={() => setIsSearchOpen(false)}
           onSelectNote={(id) => handleNavigateToNote(id, setSelectedNoteIds)}
         />
+
 
         {/* Delete Confirmation Modal */}
         <DeleteConfirmationModal

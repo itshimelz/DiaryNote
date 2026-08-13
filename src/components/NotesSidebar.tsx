@@ -83,8 +83,8 @@ const NotesSidebarComponent: React.FC<NotesSidebarProps> = ({
       >
         <div className="flex items-center gap-2">
           <FileText className={`w-4 h-4 ${isDark ? 'text-slate-300' : 'text-slate-700'}`} />
-          <h2 className={`font-bold text-xs uppercase tracking-wider font-mono ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-            ALL NOTES ({notes.length})
+          <h2 className={`font-semibold text-xs ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+            All notes ({notes.length})
           </h2>
         </div>
         <button
@@ -121,11 +121,11 @@ const NotesSidebarComponent: React.FC<NotesSidebarProps> = ({
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className={`absolute right-2.5 top-1/2 -translate-y-1/2 text-xs p-0.5 rounded-sm ${
+              className={`absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-sm transition-colors ${
                 isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              ✕
+              <X className="w-3 h-3" />
             </button>
           )}
         </div>
@@ -153,7 +153,7 @@ const NotesSidebarComponent: React.FC<NotesSidebarProps> = ({
               onAddNote();
               onClose();
             }}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold transition-all active:scale-98 cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold transition-colors cursor-pointer ${
               isDark
                 ? 'bg-slate-800 text-white border border-slate-700 hover:bg-slate-700'
                 : 'bg-slate-900 text-white border border-slate-800 hover:bg-slate-800 shadow-xs'
@@ -169,7 +169,7 @@ const NotesSidebarComponent: React.FC<NotesSidebarProps> = ({
       <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
         {filteredNotes.length === 0 ? (
           <div className={`text-center py-12 text-xs space-y-1 font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-            <p>No notes found matching "{searchQuery}"</p>
+            <p>No notes found matching “{searchQuery}”</p>
           </div>
         ) : (
           filteredNotes.map((note) => {
@@ -191,7 +191,7 @@ const NotesSidebarComponent: React.FC<NotesSidebarProps> = ({
                   onSelectNote(note.id);
                   onClose();
                 }}
-                className={`p-3 rounded-lg cursor-pointer transition-all border group flex flex-col gap-1.5 ${
+                className={`p-3 rounded-lg cursor-pointer transition-colors border group flex flex-col gap-1.5 ${
                   isDark
                     ? 'border-slate-800/70 bg-slate-900/50 hover:bg-slate-800/80 text-slate-200 hover:border-slate-700'
                     : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-900 hover:border-slate-300 shadow-xs'
@@ -218,7 +218,7 @@ const NotesSidebarComponent: React.FC<NotesSidebarProps> = ({
                       onDeleteNote(note.id);
                     }}
                     title="Delete Note"
-                    className={`opacity-0 group-hover:opacity-100 p-1 hover:bg-rose-500/20 rounded-sm transition-all shrink-0 -mr-1 -mt-0.5 ${
+                    className={`opacity-40 group-hover:opacity-100 group-focus-within:opacity-100 p-1 hover:bg-rose-500/20 rounded-sm transition-colors shrink-0 -mr-1 -mt-0.5 ${
                       isDark ? 'text-slate-400 hover:text-rose-400' : 'text-slate-500 hover:text-rose-600'
                     }`}
                   >

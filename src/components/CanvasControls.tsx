@@ -25,7 +25,9 @@ import {
   PanelBottom,
   Calendar,
   Flame,
+  Sparkles,
 } from 'lucide-react';
+
 import { CURRENT_VERSION } from '../utils/updateChecker';
 
 interface CanvasControlsProps {
@@ -36,6 +38,8 @@ interface CanvasControlsProps {
   snapToGrid: boolean;
   showConnections: boolean;
   hasBatchBar?: boolean;
+  enableAIServices?: boolean;
+  onOpenAISettings?: () => void;
   onAddNote: () => void;
   onOpenTodayJournal?: () => void;
   onOpenJournalCalendar?: () => void;
@@ -62,6 +66,7 @@ interface CanvasControlsProps {
   showStatusBar?: boolean;
   onToggleStatusBar?: () => void;
 }
+
 
 const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
   notes = [],
@@ -96,9 +101,12 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
   onOpenAbout,
   showStatusBar = true,
   onToggleStatusBar,
+  enableAIServices = false,
+  onOpenAISettings,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -122,7 +130,7 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
       />
 
       {/* Primary Control Bar Row inside Unified Dock */}
-      <div className="w-full flex items-center justify-between gap-1.5 p-1.5 text-xs transition-all">
+      <div className="w-full flex items-center justify-between gap-1.5 p-1.5 text-xs transition-colors">
         <div className="flex items-center gap-1.5">
           {/* Create Note CTA */}
           <button
@@ -150,7 +158,7 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
                 onOpenTodayJournal();
               }}
               title="Today's Journal Entry (Ctrl+Shift+D)"
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-colors ${
                 themeMode === 'light'
                   ? 'hover:bg-slate-100 text-slate-600 hover:text-slate-900'
                   : 'hover:bg-slate-800 text-slate-400 hover:text-slate-100'
@@ -170,7 +178,7 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
                 onOpenJournalCalendar();
               }}
               title="Open Journal Calendar"
-              className={`p-1.5 rounded-md transition-all ${
+              className={`p-1.5 rounded-md transition-colors ${
                 themeMode === 'light'
                   ? 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'
                   : 'hover:bg-slate-800 text-slate-400 hover:text-slate-100'
@@ -232,7 +240,7 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
           }}
           title={isPanMode ? 'Pan Mode (Active) - Click to switch to Select' : 'Select Mode - Click to switch to Pan'}
           aria-label={isPanMode ? 'Switch to select mode' : 'Switch to pan mode'}
-          className={`p-1.5 rounded-md transition-all ${
+          className={`p-1.5 rounded-md transition-colors ${
             isPanMode
               ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow'
               : themeMode === 'light'
@@ -373,14 +381,14 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
       {isSettingsOpen &&
         createPortal(
           <div
-            className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-200 animate-in fade-in select-none font-sans ${
+            className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-200 animate-in fade-in select-none font-sans ${
               themeMode === 'dark' ? 'bg-black/60 backdrop-blur-sm' : 'bg-slate-950/40 backdrop-blur-sm'
             }`}
             onClick={() => setIsSettingsOpen(false)}
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`w-full max-w-md rounded-md shadow-sm border p-5 overflow-hidden transition-all duration-200 ${
+              className={`w-full max-w-md rounded-md shadow-sm border p-5 overflow-hidden transition-opacity duration-200 ${
                 themeMode === 'dark'
                   ? 'bg-slate-900 border-slate-800 text-slate-100'
                   : 'bg-white border-slate-200 text-slate-900'
@@ -490,6 +498,51 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
                   </button>
                 </div>
 
+                {/* AI Features Settings */}
+                <div
+                  className={`flex items-center justify-between p-3 rounded-sm border transition-colors ${
+                    themeMode === 'dark'
+                      ? 'bg-slate-800/60 border-slate-700/60'
+                      : 'bg-slate-50 border-slate-200/90'
+                  }`}
+                >
+                  <div>
+                    <div
+                      className={`font-semibold flex items-center gap-1.5 ${
+                        themeMode === 'dark' ? 'text-slate-100' : 'text-slate-900'
+                      }`}
+                    >
+                      <Sparkles className="w-4 h-4 text-amber-400" />
+                      <span>AI Feature Settings</span>
+                    </div>
+                    <p className={`text-[11px] mt-0.5 ${themeMode === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+                      Configure API keys and enable AI note merging
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-3">
+                    {enableAIServices && (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-sm bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        Active
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onOpenAISettings) onOpenAISettings();
+                        setIsSettingsOpen(false);
+                      }}
+                      className={`px-2.5 py-1 text-xs rounded font-medium border transition-colors cursor-pointer ${
+                        themeMode === 'dark'
+                          ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      Configure
+                    </button>
+                  </div>
+                </div>
+
+
                 {/* Show Bottom Status Bar Toggle */}
                 <div
                   className={`flex items-center justify-between p-3 rounded-sm border transition-colors ${
@@ -549,7 +602,7 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
                       <button
                         key={g}
                         onClick={() => onChangeGridType(g)}
-                        className={`py-1 px-2 rounded-sm capitalize font-semibold text-[11px] border transition-all cursor-pointer ${
+                        className={`py-1 px-2 rounded-sm capitalize font-semibold text-[11px] border transition-colors cursor-pointer ${
                           gridType === g
                             ? themeMode === 'dark'
                               ? 'bg-slate-100 text-slate-900 border-slate-100 shadow-xs'
@@ -621,7 +674,7 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
                       <Info className={`w-3.5 h-3.5 ${themeMode === 'dark' ? 'text-slate-300' : 'text-slate-700'}`} />
                       <span>Canvas Overview</span>
                     </div>
-                    <span className="text-[9px] uppercase font-mono tracking-wider px-1.5 py-0.5 rounded-sm bg-emerald-500/10 text-emerald-500 font-bold border border-emerald-500/20">
+                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-sm bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
                       Active
                     </span>
                   </div>
@@ -634,7 +687,7 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
                       }`}
                     >
                       <span className={`block text-sm font-bold ${themeMode === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>{notes.length}</span>
-                      <span className={`text-[9px] font-mono ${themeMode === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Total Notes</span>
+                      <span className={`text-[9px] font-medium ${themeMode === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Total Notes</span>
                     </div>
                     <div
                       className={`p-1.5 rounded-sm border ${
@@ -644,7 +697,7 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
                       }`}
                     >
                       <span className={`block text-sm font-bold ${themeMode === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>{pinnedCount}</span>
-                      <span className={`text-[9px] font-mono ${themeMode === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Pinned</span>
+                      <span className={`text-[9px] font-medium ${themeMode === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Pinned</span>
                     </div>
                     <div
                       className={`p-1.5 rounded-sm border ${
@@ -654,7 +707,7 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
                       }`}
                     >
                       <span className={`block text-sm font-bold ${themeMode === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>{zoomPercent}%</span>
-                      <span className={`text-[9px] font-mono ${themeMode === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Zoom</span>
+                      <span className={`text-[9px] font-medium ${themeMode === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Zoom</span>
                     </div>
                   </div>
                 </div>

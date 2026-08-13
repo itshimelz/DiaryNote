@@ -108,8 +108,8 @@ jobs:
           releaseName: "${{ needs.validate.outputs.tag }}"
           releaseBodyFile: ${{ needs.validate.outputs.notes_file }}
           releaseDraft: false
-          prerelease: false
-          args: ${{ matrix.args }}
+          prerelease: ${{ contains(needs.validate.outputs.tag, '-') }}
+          args: ${{ matrix.args }} ${{ (matrix.platform == 'windows-latest' && contains(needs.validate.outputs.tag, '-')) && '--bundles nsis' || '' }}
 
       - name: Create and Upload Standalone Linux Package (DiaryNote-linux-x86_64.tar.gz)
         if: matrix.platform == 'ubuntu-22.04'

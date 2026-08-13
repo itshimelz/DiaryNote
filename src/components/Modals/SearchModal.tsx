@@ -183,14 +183,14 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 transition-all duration-200 animate-in fade-in select-none ${
+      className={`fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 transition-opacity duration-200 animate-in fade-in select-none ${
         isDark ? 'bg-black/60 backdrop-blur-md' : 'bg-slate-900/30 backdrop-blur-md'
       }`}
       onClick={onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`w-full max-w-2xl rounded-md shadow-sm overflow-hidden flex flex-col max-h-[80vh] border transition-all duration-200 backdrop-blur-xl ${
+        className={`w-full max-w-2xl rounded-md shadow-sm overflow-hidden flex flex-col max-h-[80vh] border transition-opacity duration-200 backdrop-blur-xl ${
           isDark
             ? 'bg-slate-900/95 border-slate-800 text-slate-100'
             : 'bg-white/95 border-slate-200 text-slate-900'
@@ -243,7 +243,7 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
           <div className="flex items-center gap-1.5 shrink-0 font-sans">
             <button
               onClick={() => setFilterType('all')}
-              className={`px-2.5 py-1 rounded-sm text-xs font-semibold transition-all ${
+              className={`px-2.5 py-1 rounded-sm text-xs font-semibold transition-colors ${
                 filterType === 'all'
                   ? isDark
                     ? 'bg-slate-800 text-white border border-slate-700'
@@ -257,7 +257,7 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
             </button>
             <button
               onClick={() => setFilterType('tags')}
-              className={`px-2.5 py-1 rounded-sm text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              className={`px-2.5 py-1 rounded-sm text-xs font-semibold flex items-center gap-1.5 transition-colors ${
                 filterType === 'tags'
                   ? isDark
                     ? 'bg-slate-800 text-white border border-slate-700'
@@ -272,7 +272,7 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
             </button>
             <button
               onClick={() => setFilterType('date')}
-              className={`px-2.5 py-1 rounded-sm text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              className={`px-2.5 py-1 rounded-sm text-xs font-semibold flex items-center gap-1.5 transition-colors ${
                 filterType === 'date'
                   ? isDark
                     ? 'bg-slate-800 text-white border border-slate-700'
@@ -338,7 +338,7 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
                   onMouseEnter={() => {
                     if (selectedIndex !== index) setSelectedIndex(index);
                   }}
-                  className={`px-3 py-2 rounded-lg cursor-pointer transition-all flex items-center justify-between gap-3 border ${
+                  className={`px-3 py-2 rounded-lg cursor-pointer transition-colors flex items-center justify-between gap-3 border ${
                     isSelected
                       ? isDark
                         ? 'bg-blue-600/15 border-blue-500/40 text-slate-100 shadow-sm'

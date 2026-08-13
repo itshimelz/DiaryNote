@@ -1,4 +1,4 @@
-import { Note, CanvasTransform, GridType, CanvasTheme } from '../types';
+import { Note, CanvasTransform, GridType, CanvasTheme, AIProvider } from '../types';
 import { invoke } from '@tauri-apps/api/core';
 import { sendNativeAppNotification } from '../utils';
 
@@ -16,6 +16,14 @@ export interface AppSettings {
   masterPasswordHash?: string;
   masterSecurityQuestion?: string;
   masterSecurityAnswerHash?: string;
+
+  // AI Service Settings
+  enableAIServices?: boolean;
+  aiProvider?: AIProvider;
+  encryptedApiKey?: string;
+  apiKeyIv?: string;
+  customBaseUrl?: string;
+  customModelName?: string;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -25,7 +33,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
   snapToGrid: false,
   showConnections: true,
   showMinimap: true,
+  enableAIServices: false,
+  aiProvider: 'gemini',
+  customBaseUrl: '',
+  customModelName: '',
 };
+
 
 export function getInitialTransform(notes: Note[] = SAMPLE_NOTES): CanvasTransform {
   const width = typeof window !== 'undefined' && window.innerWidth ? window.innerWidth : 1200;

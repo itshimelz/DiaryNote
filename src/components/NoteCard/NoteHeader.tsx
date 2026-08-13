@@ -132,7 +132,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
               onClick={(e) => e.stopPropagation()}
               onDoubleClick={(e) => e.stopPropagation()}
               autoFocus
-              className={`w-full ${inputBg} font-bold text-base sm:text-lg px-2 py-0.5 rounded-lg border ${inputBorder} focus:ring-2 focus:ring-blue-500/20 outline-none transition-all`}
+              className={`w-full ${inputBg} font-bold text-lg sm:text-xl px-2.5 py-1 rounded-lg border ${inputBorder} focus:ring-2 focus:ring-blue-500/20 outline-none transition-colors`}
             />
           ) : (
             <h3
@@ -144,7 +144,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                 e.stopPropagation();
                 setIsEditingTitleLocal(true);
               }}
-              className={`${textColor} font-bold text-base sm:text-lg tracking-tight truncate leading-tight cursor-text opacity-90 hover:opacity-100 transition-opacity`}
+              className={`${textColor} font-bold text-lg sm:text-xl tracking-tight truncate leading-snug cursor-text opacity-90 hover:opacity-100 transition-opacity`}
               title={note.title || 'Untitled Note'}
             >
               {note.title || 'Untitled Note'}
@@ -164,7 +164,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                   e.stopPropagation();
                   setIsMoodPickerOpen((prev) => !prev);
                 }}
-                className={`p-1 rounded-full transition-all ${
+                className={`p-1.5 rounded-full transition-colors ${
                   note.mood === 'happy'
                     ? isDarkCard
                       ? 'text-amber-400 bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30'
@@ -190,12 +190,12 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                 title={note.mood ? `Mood: ${note.mood}` : 'Set entry mood'}
                 aria-label="Set mood"
               >
-                {note.mood === 'happy' && <Smile className="w-4 h-4" />}
-                {note.mood === 'calm' && <Sun className="w-4 h-4" />}
-                {note.mood === 'focused' && <Zap className="w-4 h-4" />}
-                {note.mood === 'reflective' && <Coffee className="w-4 h-4" />}
-                {note.mood === 'low' && <CloudRain className="w-4 h-4" />}
-                {!note.mood && <SmilePlus className="w-4 h-4" />}
+                {note.mood === 'happy' && <Smile className="w-5 h-5" />}
+                {note.mood === 'calm' && <Sun className="w-5 h-5" />}
+                {note.mood === 'focused' && <Zap className="w-5 h-5" />}
+                {note.mood === 'reflective' && <Coffee className="w-5 h-5" />}
+                {note.mood === 'low' && <CloudRain className="w-5 h-5" />}
+                {!note.mood && <SmilePlus className="w-5 h-5" />}
               </button>
 
               {/* Mood Popover */}
@@ -203,7 +203,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                 <div
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
-                  className={`absolute top-8 right-0 z-50 flex items-center gap-1 p-1 rounded-md border shadow-sm ${
+                  className={`absolute top-9 right-0 z-50 flex items-center gap-1 p-1.5 rounded-md border shadow-sm ${
                     isDarkCard
                       ? 'bg-slate-900/95 border-slate-700/80 text-slate-100'
                       : 'bg-white/95 border-slate-200/90 text-slate-800'
@@ -219,7 +219,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                     } ${note.mood === 'happy' ? (isDarkCard ? 'bg-slate-800 ring-1 ring-amber-500' : 'bg-slate-100 ring-1 ring-amber-500') : ''}`}
                     title="Happy"
                   >
-                    <Smile className="w-4 h-4 text-amber-500" />
+                    <Smile className="w-5 h-5 text-amber-500" />
                   </button>
                   <button
                     onClick={() => {
@@ -231,7 +231,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                     } ${note.mood === 'calm' ? (isDarkCard ? 'bg-slate-800 ring-1 ring-emerald-500' : 'bg-slate-100 ring-1 ring-emerald-500') : ''}`}
                     title="Calm"
                   >
-                    <Sun className="w-4 h-4 text-emerald-500" />
+                    <Sun className="w-5 h-5 text-emerald-500" />
                   </button>
                   <button
                     onClick={() => {
@@ -243,7 +243,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                     } ${note.mood === 'focused' ? (isDarkCard ? 'bg-slate-800 ring-1 ring-indigo-500' : 'bg-slate-100 ring-1 ring-indigo-500') : ''}`}
                     title="Focused"
                   >
-                    <Zap className="w-4 h-4 text-indigo-500" />
+                    <Zap className="w-5 h-5 text-indigo-500" />
                   </button>
                   <button
                     onClick={() => {
@@ -255,7 +255,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                     } ${note.mood === 'reflective' ? (isDarkCard ? 'bg-slate-800 ring-1 ring-purple-500' : 'bg-slate-100 ring-1 ring-purple-500') : ''}`}
                     title="Reflective"
                   >
-                    <Coffee className="w-4 h-4 text-purple-500" />
+                    <Coffee className="w-5 h-5 text-purple-500" />
                   </button>
                   <button
                     onClick={() => {
@@ -267,7 +267,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                     } ${note.mood === 'low' ? (isDarkCard ? 'bg-slate-800 ring-1 ring-sky-500' : 'bg-slate-100 ring-1 ring-sky-500') : ''}`}
                     title="Low Energy"
                   >
-                    <CloudRain className="w-4 h-4 text-sky-500" />
+                    <CloudRain className="w-5 h-5 text-sky-500" />
                   </button>
                   {note.mood && (
                     <button
@@ -278,7 +278,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                       className="p-1.5 rounded-lg hover:bg-rose-500/20 text-rose-500 text-xs transition-colors ml-0.5"
                       title="Clear Mood"
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <X className="w-4 h-4" />
                     </button>
                   )}
                 </div>
@@ -294,7 +294,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
               e.stopPropagation();
               onTogglePin();
             }}
-            className={`p-1 rounded-full transition-colors ${
+            className={`p-1.5 rounded-full transition-colors ${
               note.isPinned
                 ? 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
                 : actionBtnClass
@@ -302,7 +302,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
             title={note.isPinned ? 'Unpin note' : 'Pin note'}
             aria-label={note.isPinned ? 'Unpin note' : 'Pin note'}
           >
-            <Pin className={`w-4 h-4 ${note.isPinned ? 'fill-amber-500' : ''}`} />
+            <Pin className={`w-5 h-5 ${note.isPinned ? 'fill-amber-500' : ''}`} />
           </button>
 
           {/* Remove from Group Icon */}
@@ -314,11 +314,11 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                 e.stopPropagation();
                 onRemoveFromGroup();
               }}
-              className={`p-1 rounded-full transition-colors text-blue-500 hover:bg-rose-500/10 hover:text-rose-500`}
+              className={`p-1.5 rounded-full transition-colors text-blue-500 hover:bg-rose-500/10 hover:text-rose-500`}
               title="Remove note from group"
               aria-label="Remove note from group"
             >
-              <FolderMinus className="w-4 h-4" />
+              <FolderMinus className="w-5 h-5" />
             </button>
           )}
 
@@ -330,11 +330,11 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
               e.stopPropagation();
               handleShare();
             }}
-            className={`p-1 rounded-full transition-colors relative ${actionBtnClass}`}
+            className={`p-1.5 rounded-full transition-colors relative ${actionBtnClass}`}
             title={isCopied ? 'Copied to clipboard!' : 'Share note'}
             aria-label={isCopied ? 'Copied to clipboard' : 'Copy note to clipboard'}
           >
-            {isCopied ? <Check className="w-4 h-4 text-emerald-600" /> : <Share2 className="w-4 h-4" />}
+            {isCopied ? <Check className="w-5 h-5 text-emerald-600" /> : <Share2 className="w-5 h-5" />}
           </button>
 
           {/* Close/Delete Icon */}
@@ -345,21 +345,22 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
               e.stopPropagation();
               onDeleteNote();
             }}
-            className={`p-1 rounded-full hover:text-rose-600 ${
+            className={`p-1.5 rounded-full hover:text-rose-600 ${
               isDarkCard ? 'hover:bg-rose-950/40 text-slate-400' : 'hover:bg-rose-50 text-slate-500'
             } transition-colors`}
             title="Delete note"
             aria-label="Delete note"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
       </div>
 
       {/* Subtitle: Last Updated Date in Grayish Tone */}
-      <div className={`text-[11px] font-medium ${subtextColor} tracking-tight flex items-center gap-1`}>
+      <div className={`text-xs sm:text-sm font-medium ${subtextColor} tracking-tight flex items-center gap-1 mt-0.5`}>
         <span>Last Updated: {formatLastUpdated(note.updatedAt || note.createdAt)}</span>
       </div>
+
     </div>
   );
 };
