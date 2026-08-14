@@ -1,14 +1,15 @@
-import { useState, useEffect, useCallback, useRef, type MutableRefObject } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { CanvasTransform, Note } from '../types';
 import { loadTransform, saveTransform, loadSettings, saveSettings, AppSettings } from '../lib/storage';
 import { saveTransformToDB, saveSettingsToDB } from '../lib/sqliteStorage';
+import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../constants/canvas';
 
 export function screenToWorld(
   screenX: number,
   screenY: number,
   transform: CanvasTransform,
-  cardWidth = 380,
-  cardHeight = 340
+  cardWidth = DEFAULT_NOTE_WIDTH,
+  cardHeight = DEFAULT_NOTE_HEIGHT
 ) {
   return {
     worldX: Math.round((screenX - transform.x) / transform.zoom - cardWidth / 2),

@@ -21,7 +21,7 @@ interface InfiniteCanvasProps {
   onUpdateBatchNotes?: (updatedNotes: Note[]) => void;
   onDeleteNote: (noteId: string) => void;
   onBringToFront: (noteId: string) => void;
-  onDoubleClickCanvas: (x: number, y: number) => void;
+  onDoubleClickCanvas: (screenX: number, screenY: number) => void;
   isPanMode: boolean;
   snapToGrid?: boolean;
   editingNoteId?: string | null;
@@ -445,12 +445,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
     if (!containerRef.current) return;
     const target = e.target as HTMLElement;
     if (target.closest('.note-card')) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
-    const worldX = (clickX - transform.x) / transform.zoom;
-    const worldY = (clickY - transform.y) / transform.zoom;
-    onDoubleClickCanvas(Math.round(worldX), Math.round(worldY));
+    onDoubleClickCanvas(e.clientX, e.clientY);
   };
 
   const getBackgroundClass = () => {
