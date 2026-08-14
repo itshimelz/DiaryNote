@@ -111,8 +111,8 @@ export function useNoteResize({
       const finalW = currentSizeRef.current.w;
       const finalH = currentSizeRef.current.h;
 
-      // Commit final size once to React and IndexedDB storage
-      onUpdateNote({ ...note, width: finalW, height: finalH, updatedAt: new Date().toISOString() });
+      // Commit final size once to React and IndexedDB storage without changing note content timestamp
+      onUpdateNote({ ...note, width: finalW, height: finalH });
     };
 
     activeMouseHandlersRef.current = { move: handleMouseMove, up: handleMouseUp };

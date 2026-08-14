@@ -98,6 +98,7 @@ describe('useNoteResize Hook', () => {
       expect.objectContaining({
         width: 482,
         height: 468,
+        updatedAt: mockNote.updatedAt,
       })
     );
   });
