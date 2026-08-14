@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Note } from '../types';
-import { GRID_SIZE } from '../constants/canvas';
+import { GRID_SIZE, DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../constants/canvas';
 
 interface UseNoteDragOptions {
   note: Note;
@@ -41,7 +41,7 @@ function updateGroupFramesDOM(
 
     groupNotes.forEach((n) => {
       const pos = updatedPosMap.get(n.id) || { x: n.x, y: n.y };
-      const dims = cardDimsMap.get(n.id) || { width: n.width || 340, height: n.height || 340 };
+      const dims = cardDimsMap.get(n.id) || { width: n.width || DEFAULT_NOTE_WIDTH, height: n.height || DEFAULT_NOTE_HEIGHT };
 
       minX = Math.min(minX, pos.x);
       minY = Math.min(minY, pos.y);
@@ -110,6 +110,7 @@ export function useNoteDrag({
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (
+      e.button !== 0 ||
       isPanMode ||
       (e.target as HTMLElement).closest(
         'button, input, textarea, a, select, .no-drag, .note-editor-container'
@@ -175,8 +176,8 @@ export function useNoteDrag({
     allNotesRef.current.forEach((n) => {
       const cardEl = document.getElementById(`note-card-${n.id}`);
       cardDimsMap.set(n.id, {
-        width: cardEl ? cardEl.offsetWidth : n.width || 340,
-        height: cardEl ? cardEl.offsetHeight : n.height || 340,
+        width: cardEl ? cardEl.offsetWidth : n.width || DEFAULT_NOTE_WIDTH,
+        height: cardEl ? cardEl.offsetHeight : n.height || DEFAULT_NOTE_HEIGHT,
       });
     });
 

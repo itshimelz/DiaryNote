@@ -318,8 +318,8 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       }
     });
 
-    const cardW = note.width || 340;
-    const cardH = note.height || 340;
+    const cardW = note.width || DEFAULT_NOTE_WIDTH;
+    const cardH = note.height || DEFAULT_NOTE_HEIGHT;
     const nMinX = note.x;
     const nMinY = note.y;
     const nMaxX = note.x + cardW;
@@ -333,8 +333,8 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       let gMaxY = -Infinity;
 
       g.notes.forEach((m) => {
-        const realW = m.width || 340;
-        const realH = m.height || 340;
+        const realW = m.width || DEFAULT_NOTE_WIDTH;
+        const realH = m.height || DEFAULT_NOTE_HEIGHT;
 
         gMinX = Math.min(gMinX, m.x);
         gMinY = Math.min(gMinY, m.y);

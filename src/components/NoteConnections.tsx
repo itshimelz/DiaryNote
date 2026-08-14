@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Note } from '../types';
 import { extractNoteConnections } from '../utils';
+import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../constants/canvas';
 
 interface NoteConnectionsProps {
   notes: Note[];
@@ -103,10 +104,10 @@ const NoteConnectionsComponent: React.FC<NoteConnectionsProps> = ({
 
         if (!fromNote || !toNote) return null;
 
-        const fromWidth = fromNote.width || 340;
-        const fromHeight = fromNote.height || 340;
-        const toWidth = toNote.width || 340;
-        const toHeight = toNote.height || 340;
+        const fromWidth = fromNote.width || DEFAULT_NOTE_WIDTH;
+        const fromHeight = fromNote.height || DEFAULT_NOTE_HEIGHT;
+        const toWidth = toNote.width || DEFAULT_NOTE_WIDTH;
+        const toHeight = toNote.height || DEFAULT_NOTE_HEIGHT;
 
         // Viewport culling: do not render SVG path if both ends are completely off-screen
         if (viewportBounds) {

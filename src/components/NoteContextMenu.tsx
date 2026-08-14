@@ -371,19 +371,17 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
           )}
 
           {/* 9. Duplicate Note(s) */}
-          {isSingle && (
-            <button
-              type="button"
-              onClick={() => {
-                onDuplicateNotes?.(selectedNoteIds);
-                onClose();
-              }}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
-            >
-              <Copy className="w-4 h-4 text-slate-400 shrink-0" />
-              <span>Duplicate Note</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              onDuplicateNotes?.(selectedNoteIds);
+              onClose();
+            }}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
+          >
+            <Copy className="w-4 h-4 text-slate-400 shrink-0" />
+            <span>Duplicate Note{selectedNoteIds.length > 1 ? 's' : ''}</span>
+          </button>
 
           <div className={`my-1 h-px ${dividerClass}`} />
 

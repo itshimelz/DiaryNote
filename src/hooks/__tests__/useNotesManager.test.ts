@@ -243,4 +243,47 @@ describe('useNotesManager Hook & Persistence Lifecycle', () => {
       /^journal-2026-08-14-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     );
   });
+
+  it('marks note dirty and persists updated zIndex on bringToFront', async () => {
+    const { result: historyResult } = renderHook(() => useHistoryState());
+    const { result: notesResult } = renderHook(() =>
+      useNotesManager(historyResult.current.pushHistorySnapshot, historyResult.current.resetHistory)
+    );
+
+    await act(async () => {
+      await new Promise<void>((resolve) => {
+        notesResult.current.initAppDatabase(() => resolve());
+      });
+    });
+
+    let note1Id = '';
+    let note2Id = '';
+    act(() => {
+      note1Id = notesResult.current.handleAddNote(INITIAL_TRANSFORM, DEFAULT_SETTINGS);
+    });
+    act(() => {
+      note2Id = notesResult.current.handleAddNote(INITIAL_TRANSFORM, DEFAULT_SETTINGS);
+    });
+
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 600));
+    });
+
+    // Bring note 1 to front
+    act(() => {
+      notesResult.current.bringToFront(note1Id);
+    });
+
+    const note1After = notesResult.current.notes.find((n) => n.id === note1Id);
+    const note2After = notesResult.current.notes.find((n) => n.id === note2Id);
+    expect((note1After?.zIndex || 0)).toBeGreaterThan(note2After?.zIndex || 0);
+
+    // Wait for autosave
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 600));
+    });
+
+    const note1InDb = await db.notes.get(note1Id);
+    expect(note1InDb?.zIndex).toBe(note1After?.zIndex);
+  });
 });

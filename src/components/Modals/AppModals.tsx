@@ -291,6 +291,8 @@ export const AppModals: React.FC<AppModalsProps> = ({
           handleUpdateBatchNotes(updated);
         }}
         onDuplicateNotes={(ids) => {
+          const newDuplicates: Note[] = [];
+          const newIds: string[] = [];
           ids.forEach((id) => {
             const target = notes.find((n) => n.id === id);
             if (target) {
@@ -304,10 +306,15 @@ export const AppModals: React.FC<AppModalsProps> = ({
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
               };
-              handleUpdateNote(dupNote);
-              setSelectedNoteIds([newId]);
+              newDuplicates.push(dupNote);
+              newIds.push(newId);
             }
           });
+
+          if (newDuplicates.length > 0) {
+            newDuplicates.forEach((n) => handleUpdateNote(n));
+            setSelectedNoteIds(newIds);
+          }
         }}
         onExportNotes={(ids, format) => {
           const targets = notes.filter((n) => ids.includes(n.id));

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Note, CanvasTransform, GridType, CanvasTheme } from '../types';
+import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../constants/canvas';
 import { NoteCard } from './NoteCard';
 import { NoteConnections } from './NoteConnections';
 import { GroupFrame } from './GroupFrame';
@@ -373,8 +374,8 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
         const newlyMatchedIds: string[] = [];
         for (let i = 0; i < notes.length; i++) {
           const n = notes[i];
-          const w = n.width || 340;
-          const h = n.height || 300;
+          const w = n.width || DEFAULT_NOTE_WIDTH;
+          const h = n.height || DEFAULT_NOTE_HEIGHT;
           if (n.x + w >= boxMinX && n.x <= boxMaxX && n.y + h >= boxMinY && n.y <= boxMaxY) {
             newlyMatchedIds.push(n.id);
           }
@@ -475,9 +476,9 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
         selectedNoteIds.includes(n.id) ||
         n.id === focusedNoteId ||
         n.isPinned ||
-        (n.x + (n.width || 340) >= visibleMinX &&
+        (n.x + (n.width || DEFAULT_NOTE_WIDTH) >= visibleMinX &&
           n.x <= visibleMaxX &&
-          n.y + (n.height || 300) >= visibleMinY &&
+          n.y + (n.height || DEFAULT_NOTE_HEIGHT) >= visibleMinY &&
           n.y <= visibleMaxY)
     );
   }, [notes, selectedNoteId, selectedNoteIds, focusedNoteId, visibleMinX, visibleMaxX, visibleMinY, visibleMaxY]);
@@ -494,10 +495,12 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
 
     for (let i = 0; i < notes.length; i++) {
       const n = notes[i];
+      const cardW = n.width || DEFAULT_NOTE_WIDTH;
+      const cardH = n.height || DEFAULT_NOTE_HEIGHT;
       if (n.x < minXVal) minXVal = n.x;
-      if (n.x + n.width > maxXVal) maxXVal = n.x + n.width;
+      if (n.x + cardW > maxXVal) maxXVal = n.x + cardW;
       if (n.y < minYVal) minYVal = n.y;
-      if (n.y + n.height > maxYVal) maxYVal = n.y + n.height;
+      if (n.y + cardH > maxYVal) maxYVal = n.y + cardH;
     }
 
     const padding = 100;
@@ -567,7 +570,10 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
             groupNotes={groupNotes}
             zoom={transform.zoom}
             themeMode={themeMode}
+            snapToGrid={snapToGrid}
             onUpdateBatchNotes={onUpdateBatchNotes}
+            onSelectMultipleNotes={onSelectMultipleNotes}
+            onDragStateChange={handleDragStateChange}
           />
         ))}
 

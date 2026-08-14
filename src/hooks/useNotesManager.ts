@@ -138,13 +138,18 @@ export function useNotesManager(
         paperTheme: 'white',
         activeMode: 'text',
         isPinned: false,
-        zIndex: (notes.length > 0 ? Math.max(...notes.map((n) => n.zIndex || 1)) : 1) + 1,
+        zIndex: 1,
         tags: [],
       };
 
-      const updated = [...notes, newNote];
-      setNotes(updated);
-      pushHistorySnapshot(updated);
+      setNotes((prevNotes) => {
+        const maxZ = prevNotes.length > 0 ? Math.max(...prevNotes.map((n) => n.zIndex || 1)) : 1;
+        const noteWithZ = { ...newNote, zIndex: maxZ + 1 };
+        const updated = [...prevNotes, noteWithZ];
+        pushHistorySnapshot(updated);
+        return updated;
+      });
+
       dirtyNoteIdsRef.current.add(newId);
       return newId;
     },
@@ -361,7 +366,10 @@ export function useNotesManager(
       if (targetNote && targetNote.zIndex === maxZ && prevNotes.filter((n) => (n.zIndex || 1) === maxZ).length === 1) {
         return prevNotes;
       }
-      return prevNotes.map((n) => (n.id === noteId ? { ...n, zIndex: maxZ + 1 } : n));
+      dirtyNoteIdsRef.current.add(noteId);
+      const nextNotes = prevNotes.map((n) => (n.id === noteId ? { ...n, zIndex: maxZ + 1 } : n));
+      pendingHistoryNotesRef.current = nextNotes;
+      return nextNotes;
     });
   }, []);
 

@@ -92,8 +92,8 @@ export function useCanvasTransform(notes: Note[], bringToFront: (noteId: string)
 
   const getZoomBounds = useCallback(() => {
     if (notes.length === 0) return { min: 0.15, max: 3 };
-    const minWidth = Math.min(...notes.map((n) => n.width || 340));
-    const minHeight = Math.min(...notes.map((n) => n.height || 340));
+    const minWidth = Math.min(...notes.map((n) => n.width || DEFAULT_NOTE_WIDTH));
+    const minHeight = Math.min(...notes.map((n) => n.height || DEFAULT_NOTE_HEIGHT));
     const maxZoom = Math.min(2.5, Math.max(1.8, Math.min(1000 / minWidth, 800 / minHeight)));
     return { min: 0.1, max: Math.max(1.5, maxZoom) };
   }, [notes]);
@@ -182,8 +182,8 @@ export function useCanvasTransform(notes: Note[], bringToFront: (noteId: string)
 
     const minX = Math.min(...notes.map((n) => n.x));
     const minY = Math.min(...notes.map((n) => n.y));
-    const maxX = Math.max(...notes.map((n) => n.x + (n.width || 340)));
-    const maxY = Math.max(...notes.map((n) => n.y + (n.height || 340)));
+    const maxX = Math.max(...notes.map((n) => n.x + (n.width || DEFAULT_NOTE_WIDTH)));
+    const maxY = Math.max(...notes.map((n) => n.y + (n.height || DEFAULT_NOTE_HEIGHT)));
 
     const boundingWidth = Math.max(100, maxX - minX);
     const boundingHeight = Math.max(100, maxY - minY);
@@ -226,12 +226,14 @@ export function useCanvasTransform(notes: Note[], bringToFront: (noteId: string)
     const screenCenterX = viewport.width / 2;
     const screenCenterY = viewport.height / 2;
 
-    const noteCenterX = targetNote.x + (targetNote.width || 380) / 2;
-    const noteCenterY = targetNote.y + (targetNote.height || 340) / 2;
+    const noteWidth = targetNote.width || DEFAULT_NOTE_WIDTH;
+    const noteHeight = targetNote.height || DEFAULT_NOTE_HEIGHT;
+    const noteCenterX = targetNote.x + noteWidth / 2;
+    const noteCenterY = targetNote.y + noteHeight / 2;
 
     // Standard comfortable zoom distance (capped between 0.85 and 1.10, defaulting to ~1.0)
-    const fitZoomX = (viewport.width - 320) / (targetNote.width || 380);
-    const fitZoomY = (viewport.height - 240) / (targetNote.height || 340);
+    const fitZoomX = (viewport.width - 320) / noteWidth;
+    const fitZoomY = (viewport.height - 240) / noteHeight;
     const calculatedFit = Math.min(fitZoomX, fitZoomY);
     const targetZoom = Math.min(1.1, Math.max(0.85, calculatedFit));
 

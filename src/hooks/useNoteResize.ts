@@ -41,7 +41,7 @@ export function useNoteResize({
   }, []);
 
   const handleResizeMouseDown = (e: React.MouseEvent) => {
-    if (isPanMode) return;
+    if (e.button !== 0 || isPanMode) return;
     e.stopPropagation();
     setIsResizing(true);
     const initialW = note.width || 340;

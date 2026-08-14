@@ -79,7 +79,7 @@ export function alignRight(notes: Note[]): Note[] {
  */
 export function alignTop(notes: Note[]): Note[] {
   if (notes.length < 2) return notes;
-  const minY = Math.min(...notes.map((n) => n.x));
+  const minY = Math.min(...notes.map((n) => n.y));
   return notes.map((n) => ({ ...n, y: minY }));
 }
 
