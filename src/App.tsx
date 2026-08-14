@@ -25,6 +25,7 @@ import { sendNativeAppNotification } from './utils';
 import { checkForAppUpdates } from './utils/updateChecker';
 import { saveSettingsToDB, saveImportedNotesToDB } from './lib/sqliteStorage';
 import { mergeNotesWithAI } from './services/ai/aiMergeService';
+import { getSessionAuthState } from './services/authPolicyService';
 import { AppSettings } from './lib/storage';
 
 export default function App() {
@@ -61,6 +62,10 @@ export default function App() {
     setSecurityModalNoteId,
     securityModalMode,
     setSecurityModalMode,
+    notesToUnlock,
+    setNotesToUnlock,
+    notesToLock,
+    setNotesToLock,
     contextMenuState,
     setContextMenuState,
     pasteModalState,
@@ -181,28 +186,56 @@ export default function App() {
     setSettings((prev) => ({ ...prev, showConnections: !prev.showConnections }));
   }, [setSettings]);
 
-  // Lock selected notes
+  // Lock or unlock selected notes
   const handleLockSelectedNotes = useCallback(
     (ids: string[]) => {
       if (ids.length === 0) return;
-      if (settings.masterPasswordHash) {
-        const notesToLock = notes
-          .filter((n) => ids.includes(n.id) && !n.isLocked)
-          .map((n) => ({ ...n, isLocked: true }));
-        if (notesToLock.length > 0) {
-          handleUpdateBatchNotes(notesToLock);
-          const count = notesToLock.length;
+      const targetNotes = notes.filter((n) => ids.includes(n.id));
+      if (targetNotes.length === 0) return;
+
+      const allLocked = targetNotes.every((n) => n.isLocked);
+
+      if (allLocked) {
+        // Unlock action
+        if (getSessionAuthState().isMasterUnlocked) {
+          const notesToUnlockBatch = targetNotes.map((n) => ({ ...n, isLocked: false }));
+          handleUpdateBatchNotes(notesToUnlockBatch);
+          const count = notesToUnlockBatch.length;
           sendNativeAppNotification(
-            'Note Locked',
-            count === 1 ? `Locked note "${notesToLock[0].title || 'Untitled Note'}"` : `Locked ${count} notes`
+            'Note Unlocked',
+            count === 1
+              ? `Unlocked note "${notesToUnlockBatch[0].title || 'Untitled Note'}"`
+              : `Unlocked ${count} notes`
           );
+        } else {
+          setNotesToUnlock(ids);
+          setSecurityModalNoteId(ids[0]);
+          setSecurityModalMode('unlock');
         }
       } else {
-        setSecurityModalNoteId(ids[0]);
-        setSecurityModalMode('set');
+        // Lock action
+        if (settings.masterPasswordHash) {
+          const notesToLockBatch = targetNotes
+            .filter((n) => !n.isLocked)
+            .map((n) => ({ ...n, isLocked: true }));
+          if (notesToLockBatch.length > 0) {
+            handleUpdateBatchNotes(notesToLockBatch);
+            const count = notesToLockBatch.length;
+            sendNativeAppNotification(
+              'Note Locked',
+              count === 1
+                ? `Locked note "${notesToLockBatch[0].title || 'Untitled Note'}"`
+                : `Locked ${count} notes`
+            );
+          }
+        } else {
+          setNotesToLock(ids);
+          setSecurityModalNoteId(ids[0]);
+          setSecurityModalMode('set');
+        }
       }
     },
-    [notes, settings.masterPasswordHash, handleUpdateBatchNotes, setSecurityModalNoteId, setSecurityModalMode]
+    [notes, settings.masterPasswordHash, handleUpdateBatchNotes, setSecurityModalNoteId, setSecurityModalMode, setNotesToUnlock, setNotesToLock]
   );
 
   const handleSaveAISettings = useCallback(
@@ -600,13 +633,29 @@ export default function App() {
               );
             }
           } else {
+            setNotesToLock([id]);
             setSecurityModalNoteId(id);
             setSecurityModalMode('set');
           }
         }}
         onRequestUnlockNote={(id) => {
-          setSecurityModalNoteId(id);
-          setSecurityModalMode('unlock');
+          if (getSessionAuthState().isMasterUnlocked) {
+            const note = notes.find((n) => n.id === id);
+            if (note) {
+              handleUpdateNote({
+                ...note,
+                isLocked: false,
+              });
+              sendNativeAppNotification(
+                'Note Unlocked',
+                `Unlocked note "${note.title || 'Untitled Note'}"`
+              );
+            }
+          } else {
+            setNotesToUnlock([id]);
+            setSecurityModalNoteId(id);
+            setSecurityModalMode('unlock');
+          }
         }}
         onExportNote={handleExportNote}
         onContextMenuNote={(e, noteId) => {
@@ -768,6 +817,10 @@ export default function App() {
         securityModalNoteId={securityModalNoteId}
         setSecurityModalNoteId={setSecurityModalNoteId}
         securityModalMode={securityModalMode}
+        notesToUnlock={notesToUnlock}
+        setNotesToUnlock={setNotesToUnlock}
+        notesToLock={notesToLock}
+        setNotesToLock={setNotesToLock}
         notesToDelete={notesToDelete}
         setNotesToDelete={setNotesToDelete}
         isDeleteModalOpen={isDeleteModalOpen}

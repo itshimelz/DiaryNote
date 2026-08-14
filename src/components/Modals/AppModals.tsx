@@ -46,6 +46,10 @@ interface AppModalsProps {
   securityModalNoteId: string | null;
   setSecurityModalNoteId: (id: string | null) => void;
   securityModalMode: 'set' | 'unlock';
+  notesToUnlock?: string[];
+  setNotesToUnlock?: (ids: string[]) => void;
+  notesToLock?: string[];
+  setNotesToLock?: (ids: string[]) => void;
   notesToDelete: string[];
   setNotesToDelete: (ids: string[]) => void;
   isDeleteModalOpen: boolean;
@@ -101,6 +105,10 @@ export const AppModals: React.FC<AppModalsProps> = ({
   securityModalNoteId,
   setSecurityModalNoteId,
   securityModalMode,
+  notesToUnlock = [],
+  setNotesToUnlock,
+  notesToLock = [],
+  setNotesToLock,
   notesToDelete,
   setNotesToDelete,
   isDeleteModalOpen,
@@ -190,7 +198,11 @@ export const AppModals: React.FC<AppModalsProps> = ({
           existingQuestion={settings.masterSecurityQuestion}
           existingPasswordHash={settings.masterPasswordHash}
           existingAnswerHash={settings.masterSecurityAnswerHash}
-          onClose={() => setSecurityModalNoteId(null)}
+          onClose={() => {
+            setSecurityModalNoteId(null);
+            setNotesToUnlock?.([]);
+            setNotesToLock?.([]);
+          }}
           onSuccessSet={(masterPasswordHash, masterSecurityQuestion, masterSecurityAnswerHash) => {
             setSettings((prev) => ({
               ...prev,
@@ -199,16 +211,26 @@ export const AppModals: React.FC<AppModalsProps> = ({
               masterSecurityAnswerHash,
             }));
 
-            if (securityModalNote) {
-              handleUpdateNote({
-                ...securityModalNote,
-                isLocked: true,
-              });
+            const targets = notesToLock.length > 0
+              ? notes.filter((n) => notesToLock.includes(n.id))
+              : securityModalNote
+              ? [securityModalNote]
+              : [];
+
+            if (targets.length > 0) {
+              const updated = targets.map((n) => ({ ...n, isLocked: true }));
+              handleUpdateBatchNotes(updated);
+              const count = updated.length;
+              sendNativeAppNotification(
+                'Note Locked',
+                count === 1
+                  ? `Locked note "${updated[0].title || 'Untitled Note'}"`
+                  : `Locked ${count} notes`
+              );
             }
+            setNotesToLock?.([]);
           }}
           onSuccessUnlock={() => {
-            if (!securityModalNote) return;
-
             if (notesToDelete.length > 0) {
               handleDeleteMultipleNotes(notesToDelete);
               setSelectedNoteIds((prev) => prev.filter((id) => !notesToDelete.includes(id)));
@@ -216,17 +238,31 @@ export const AppModals: React.FC<AppModalsProps> = ({
               sendNativeAppNotification(
                 'Note Deleted',
                 count === 1
-                  ? `Deleted protected note "${securityModalNote.title || 'Untitled Note'}"`
+                  ? `Deleted protected note "${securityModalNote?.title || 'Untitled Note'}"`
                   : `Deleted ${count} protected notes`
               );
               setNotesToDelete([]);
               return;
             }
 
-            handleUpdateNote({
-              ...securityModalNote,
-              isLocked: false,
-            });
+            const targetsToUnlock = notesToUnlock.length > 0
+              ? notes.filter((n) => notesToUnlock.includes(n.id))
+              : securityModalNote
+              ? [securityModalNote]
+              : [];
+
+            if (targetsToUnlock.length > 0) {
+              const updated = targetsToUnlock.map((n) => ({ ...n, isLocked: false }));
+              handleUpdateBatchNotes(updated);
+              const count = updated.length;
+              sendNativeAppNotification(
+                'Note Unlocked',
+                count === 1
+                  ? `Unlocked note "${updated[0].title || 'Untitled Note'}"`
+                  : `Unlocked ${count} notes`
+              );
+              setNotesToUnlock?.([]);
+            }
           }}
         />
 

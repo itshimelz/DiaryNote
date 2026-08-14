@@ -157,19 +157,25 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
 
   React.useLayoutEffect(() => {
     if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
+    const el = containerRef.current;
+    const parent = el.parentElement;
+    const menuHeight = el.offsetHeight || 240;
+    const menuWidth = el.offsetWidth || 270;
+
     let newTop = position.top;
     let newLeft = position.left;
 
-    // Vertical clamping: if menu overflows bottom of viewport, flip to render above the cursor
-    if (rect.bottom > window.innerHeight - 16) {
-      newTop = Math.max(8, position.top - rect.height - 24);
-    }
+    if (parent) {
+      const parentHeight = parent.clientHeight || 300;
+      const parentWidth = parent.clientWidth || 360;
 
-    // Horizontal clamping: if menu overflows right of viewport, shift left
-    if (rect.right > window.innerWidth - 16) {
-      const overflowRight = rect.right - (window.innerWidth - 16);
-      newLeft = Math.max(8, position.left - overflowRight);
+      // If menu would overflow bottom of parent editor, flip to render above the cursor line
+      if (position.top + menuHeight > parentHeight - 10) {
+        newTop = Math.max(8, position.top - menuHeight - 24);
+      }
+
+      // Clamp horizontally inside parent container
+      newLeft = Math.min(Math.max(8, position.left), Math.max(8, parentWidth - menuWidth - 8));
     }
 
     setAdjustedPos({ top: newTop, left: newLeft });
@@ -182,7 +188,8 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
     return SLASH_COMMANDS.filter((cmd) => {
       if (cmd.label.toLowerCase().includes(q)) return true;
       if (cmd.description.toLowerCase().includes(q)) return true;
-      return cmd.keywords.some((k) => k.toLowerCase().includes(q));
+      if (cmd.keywords.some((k) => k.toLowerCase().includes(q))) return true;
+      return false;
     });
   }, [query]);
 
@@ -204,25 +211,44 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
 
   if (filteredCommands.length === 0) return null;
 
+  const isDark = themeConfig.isDark;
+
   return (
     <div
       ref={containerRef}
       style={{ top: `${adjustedPos.top}px`, left: `${adjustedPos.left}px` }}
-      className={`absolute z-50 w-72 max-w-[calc(100%-2rem)] border rounded-xl shadow-sm overflow-hidden py-1.5 text-sm transition-colors select-none ${themeConfig.headerBg} ${themeConfig.border} ${themeConfig.text}`}
+      className={`absolute z-50 w-68 max-w-[calc(100%-1rem)] border rounded-sm shadow-sm overflow-hidden py-1 text-xs select-none font-sans transition-colors ${themeConfig.headerBg} ${themeConfig.border} ${themeConfig.text}`}
     >
       <div
-        className={`px-3 py-2 border-b text-xs font-semibold uppercase tracking-wider flex items-center justify-between ${themeConfig.divider} ${themeConfig.subtext}`}
+        className={`px-2.5 py-1 border-b text-[10px] font-semibold uppercase tracking-wider flex items-center justify-between ${themeConfig.divider} ${themeConfig.subtext}`}
       >
-        <div className="flex items-center gap-1.5 font-mono">
-          <Slash className="w-3.5 h-3.5 opacity-80" /> Format & Blocks
+        <div className="flex items-center gap-1 font-mono">
+          <Slash className="w-3 h-3 opacity-80" /> Format & Blocks
         </div>
-        <span className="text-[10px] font-mono opacity-70">↑↓ navigate, ↵ select</span>
+        <span className="text-[9px] font-mono opacity-70">↑↓ navigate  ↵ select</span>
       </div>
 
-      <div className="max-h-60 overflow-y-auto">
+      <div className="max-h-52 overflow-y-auto px-1 py-1 space-y-0.5 scrollbar-thin">
         {filteredCommands.map((cmd, idx) => {
           const isSelected = idx === selectedIndex;
           const Icon = cmd.icon;
+
+          const rowClass = isSelected
+            ? isDark
+              ? 'bg-slate-800 text-white font-medium'
+              : 'bg-slate-100 text-slate-900 font-medium'
+            : isDark
+            ? 'text-slate-300 hover:bg-slate-800/60 hover:text-slate-100'
+            : 'text-slate-700 hover:bg-slate-100/80 hover:text-slate-900';
+
+          const iconClass = isSelected
+            ? isDark
+              ? 'bg-slate-950 border-slate-700 text-slate-200'
+              : 'bg-white border-slate-300 text-slate-900'
+            : isDark
+            ? 'bg-slate-950/80 border-slate-800 text-slate-400'
+            : 'bg-slate-50 border-slate-200 text-slate-600';
+
           return (
             <button
               key={cmd.id}
@@ -230,16 +256,16 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
                 itemRefs.current[idx] = el;
               }}
               onClick={() => onSelect(cmd)}
-              className={`w-full text-left px-3 py-2 flex items-center gap-3 transition-colors ${
-                isSelected ? `${themeConfig.hoverBg} font-medium` : `hover:${themeConfig.hoverBg}`
-              }`}
+              className={`w-full text-left px-2 py-1.5 rounded-sm flex items-center gap-2 transition-colors ${rowClass}`}
             >
-              <div className={`p-1.5 rounded-md border shrink-0 ${themeConfig.border} ${themeConfig.headerBg}`}>
-                <Icon className={`w-4.5 h-4.5 ${themeConfig.subtext}`} />
+              <div className={`p-1 rounded-sm border shrink-0 transition-colors ${iconClass}`}>
+                <Icon className="w-3.5 h-3.5" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="font-semibold truncate leading-tight font-sans text-xs sm:text-sm">{cmd.label}</div>
-                <div className={`text-[11px] truncate ${themeConfig.subtext}`}>{cmd.description}</div>
+                <div className="font-semibold truncate leading-tight font-sans text-xs">
+                  {cmd.label}
+                </div>
+                <div className={`text-[10px] truncate ${themeConfig.subtext}`}>{cmd.description}</div>
               </div>
             </button>
           );

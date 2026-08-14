@@ -165,7 +165,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
               onPasteFromClipboard?.();
               onClose();
             }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
           >
             <Clipboard className="w-4 h-4 text-slate-400 shrink-0" />
             <span className="flex-1 truncate">Paste Note from Clipboard</span>
@@ -178,7 +178,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
               onCreateNoteHere?.();
               onClose();
             }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
           >
             <Plus className="w-4 h-4 text-slate-400 shrink-0" />
             <span className="flex-1 truncate">New Note Here</span>
@@ -193,7 +193,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
               onSelectAllNotes?.();
               onClose();
             }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
           >
             <CheckSquare className="w-4 h-4 text-slate-400 shrink-0" />
             <span className="flex-1 truncate">Select All Notes</span>
@@ -218,7 +218,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
               else if (selectedNoteIds.length > 0) onNavigateToNote?.(selectedNoteIds[0]);
               onClose();
             }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
           >
             <Maximize2 className="w-4 h-4 text-slate-400 shrink-0" />
             <span className="flex-1 truncate">Zoom to {isSingle ? 'Note' : 'Selection'}</span>
@@ -233,7 +233,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
                 if (singleNote) onEditNote?.(singleNote.id);
                 onClose();
               }}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
             >
               <Edit3 className="w-4 h-4 text-slate-400 shrink-0" />
               <span className="flex-1 truncate">Edit Note</span>
@@ -250,7 +250,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
               onTogglePin?.(selectedNoteIds);
               onClose();
             }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
           >
             {isAllPinned ? (
               <>
@@ -272,7 +272,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
               onLockNotes?.(selectedNoteIds);
               onClose();
             }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
           >
             {isAllLocked ? (
               <>
@@ -296,7 +296,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
                 else onGroupNotes?.();
                 onClose();
               }}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
             >
               <Layers className="w-4 h-4 text-slate-400 shrink-0" />
               <span>{isAllGrouped ? 'Ungroup Notes' : 'Group Notes'}</span>
@@ -309,7 +309,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
             <button
               type="button"
               onClick={() => setShowThemePicker(!showThemePicker)}
-              className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
+              className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
             >
               <div className="flex items-center gap-2.5 min-w-0">
                 <Palette className="w-4 h-4 text-slate-400 shrink-0" />
@@ -349,7 +349,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
               onExportNotes?.(selectedNoteIds, 'json');
               onClose();
             }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
           >
             <Download className="w-4 h-4 text-slate-400 shrink-0" />
             <span>Backup ({isSingle ? 'Single' : 'Selected'}) (.json)</span>
@@ -363,7 +363,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
                 onExportNotes?.(selectedNoteIds, 'md');
                 onClose();
               }}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
             >
               <Download className="w-4 h-4 text-slate-400 shrink-0" />
               <span>Export Markdown (.md)</span>
@@ -377,7 +377,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
               onDuplicateNotes?.(selectedNoteIds);
               onClose();
             }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${btnClass}`}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
           >
             <Copy className="w-4 h-4 text-slate-400 shrink-0" />
             <span>Duplicate Note{selectedNoteIds.length > 1 ? 's' : ''}</span>
@@ -392,7 +392,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
               onDeleteNotes?.(selectedNoteIds);
               onClose();
             }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${
               isDark
                 ? 'hover:bg-rose-950/50 text-rose-400 hover:text-rose-300'
                 : 'hover:bg-rose-50 text-rose-600 hover:text-rose-700'

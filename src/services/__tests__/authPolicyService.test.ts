@@ -99,4 +99,20 @@ describe('Centralized Authorization Policy Service (authPolicyService.ts)', () =
     expect(delAuth.allowed).toBe(true);
     expect(delAuth.lockedNoteIds).toEqual(['lock-1']);
   });
+
+  it('correctly handles batch unlock status across multiple notes', () => {
+    const locked1 = createMockNote('lock-1', true, 'Secret 1');
+    const locked2 = createMockNote('lock-2', true, 'Secret 2');
+    const unlocked1 = createMockNote('pub-1', false, 'Public 1');
+
+    // All locked notes should be identified
+    const check1 = authorizeNotes([locked1, locked2, unlocked1], 'read');
+    expect(check1.lockedNoteIds).toEqual(['lock-1', 'lock-2']);
+
+    // Master unlock authorizes all
+    setMasterSessionUnlocked(true);
+    const check2 = authorizeNotes([locked1, locked2, unlocked1], 'read');
+    expect(check2.allowed).toBe(true);
+    expect(check2.authorizedNotes.length).toBe(3);
+  });
 });

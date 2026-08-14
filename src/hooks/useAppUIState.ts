@@ -23,6 +23,8 @@ export function useAppUIState() {
   });
   const [securityModalNoteId, setSecurityModalNoteId] = useState<string | null>(null);
   const [securityModalMode, setSecurityModalMode] = useState<'set' | 'unlock'>('set');
+  const [notesToUnlock, setNotesToUnlock] = useState<string[]>([]);
+  const [notesToLock, setNotesToLock] = useState<string[]>([]);
 
   const [contextMenuState, setContextMenuState] = useState<{
     isOpen: boolean;
@@ -88,6 +90,10 @@ export function useAppUIState() {
     setSecurityModalNoteId,
     securityModalMode,
     setSecurityModalMode,
+    notesToUnlock,
+    setNotesToUnlock,
+    notesToLock,
+    setNotesToLock,
     contextMenuState,
     setContextMenuState,
     pasteModalState,

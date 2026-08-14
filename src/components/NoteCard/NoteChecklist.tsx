@@ -337,7 +337,7 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
   return (
     <div className={`w-full flex-1 flex flex-col gap-2 p-1 ${fontClass} ${fontSizeClass}`}>
       {/* Task List Items */}
-      <div className="flex-1 flex flex-col gap-1.5 pr-1 overflow-y-auto min-h-[120px]">
+      <div className="flex-1 flex flex-col gap-1.5 pr-1 min-h-[120px]">
         {items.length === 0 ? (
           <div
             onClick={() => addInputRef.current?.focus()}

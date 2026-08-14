@@ -78,6 +78,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
     note,
     zoom,
     isPanMode,
+    snapToGrid,
     onUpdateNote,
     cardRef,
   });
@@ -397,13 +398,13 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         transform: `translate3d(${Math.round(note.x)}px, ${Math.round(note.y)}px, 0)`,
         width: `${note.width || DEFAULT_NOTE_WIDTH}px`,
         minHeight: `${note.height || DEFAULT_NOTE_HEIGHT}px`,
-        zIndex: isDragging || isCardDragging ? DRAG_Z_INDEX : note.zIndex || 10,
+        zIndex: isDragging || isCardDragging || isResizing ? DRAG_Z_INDEX : note.zIndex || 10,
         ...(isRuled && ruledLineHeight ? ({ '--ruled-line-height': ruledLineHeight } as React.CSSProperties) : {}),
       }}
-      className={`note-card absolute top-0 left-0 rounded-md flex flex-col justify-between shadow-sm ${
+      className={`note-card absolute top-0 left-0 rounded-sm flex flex-col justify-between shadow-sm overflow-hidden ${
         isPanMode
           ? 'cursor-grab active:cursor-grabbing pointer-events-none'
-          : isDragging || isCardDragging
+          : isDragging || isCardDragging || isResizing
           ? 'transition-none scale-100 cursor-grabbing'
           : `transition-[box-shadow,opacity] duration-150 ease-out scale-100 ${
               !isEditing ? 'cursor-grab' : ''
@@ -487,7 +488,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
           setActiveMode('text');
           setIsEditing(true);
         }}
-        className={`flex-1 p-4 flex flex-col overflow-hidden min-h-[180px] ${themeConfig.bg}`}
+        className={`flex-1 p-3.5 flex flex-col ${themeConfig.bg}`}
       >
         {note.isLocked ? (
           /* Locked Note Protection Screen */
@@ -838,11 +839,11 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       {/* Resize Handle at Bottom Right */}
       <div
         onMouseDown={handleResizeMouseDown}
-        className={`absolute bottom-1 right-1 w-4 h-4 cursor-se-resize flex items-center justify-center ${themeConfig.subtext} opacity-60 hover:opacity-100 transition-opacity z-20`}
-        title="Resize card"
+        className={`absolute bottom-0 right-0 w-5 h-5 cursor-se-resize flex items-end justify-end p-1 ${themeConfig.subtext} opacity-50 hover:opacity-100 transition-opacity z-20 select-none group/resize`}
+        title="Resize note"
       >
-        <svg className="w-3 h-3" viewBox="0 0 12 12" fill="currentColor">
-          <path d="M11 11H9V9H11V11ZM11 8H9V6H11V8ZM8 11H6V9H8V11Z" />
+        <svg className="w-2.5 h-2.5 transition-transform group-hover/resize:scale-110" viewBox="0 0 10 10" fill="currentColor">
+          <path d="M9 9H7V7H9V9ZM9 5H7V3H9V5ZM5 9H3V7H5V9Z" />
         </svg>
       </div>
     </div>

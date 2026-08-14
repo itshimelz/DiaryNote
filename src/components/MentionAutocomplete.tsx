@@ -27,8 +27,36 @@ export const MentionAutocomplete: React.FC<MentionAutocompleteProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const [adjustedPos, setAdjustedPos] = React.useState<{ top: number; left: number }>({
+    top: position.top,
+    left: position.left,
+  });
 
   const themeConfig = PAPER_THEMES[(paperTheme as PaperTheme) || 'white'];
+
+  React.useLayoutEffect(() => {
+    if (!containerRef.current) return;
+    const el = containerRef.current;
+    const parent = el.parentElement;
+    const menuHeight = el.offsetHeight || 180;
+    const menuWidth = el.offsetWidth || 256;
+
+    let newTop = position.top;
+    let newLeft = position.left;
+
+    if (parent) {
+      const parentHeight = parent.clientHeight || 300;
+      const parentWidth = parent.clientWidth || 360;
+
+      if (position.top + menuHeight > parentHeight - 10) {
+        newTop = Math.max(8, position.top - menuHeight - 24);
+      }
+
+      newLeft = Math.min(Math.max(8, position.left), Math.max(8, parentWidth - menuWidth - 8));
+    }
+
+    setAdjustedPos({ top: newTop, left: newLeft });
+  }, [position.top, position.left]);
 
   // Fast memoized search optimized for large databases (1000s of notes)
   const filteredNotes = useMemo(() => {
@@ -69,24 +97,41 @@ export const MentionAutocomplete: React.FC<MentionAutocompleteProps> = ({
 
   if (filteredNotes.length === 0) return null;
 
+  const isDark = themeConfig.isDark;
+
   return (
     <div
       ref={containerRef}
-      style={{ top: `${position.top}px`, left: `${position.left}px` }}
-      className={`absolute z-50 w-64 max-w-[calc(100%-2rem)] border rounded-md shadow-sm overflow-hidden py-1 text-xs backdrop-blur-md transition-colors select-none ${themeConfig.headerBg} ${themeConfig.border} ${themeConfig.text}`}
+      style={{ top: `${adjustedPos.top}px`, left: `${adjustedPos.left}px` }}
+      className={`absolute z-50 w-64 max-w-[calc(100%-1rem)] border rounded-sm shadow-sm overflow-hidden py-1 text-xs select-none font-sans transition-colors ${themeConfig.headerBg} ${themeConfig.border} ${themeConfig.text}`}
     >
       <div
-        className={`px-2.5 py-1.5 border-b text-[10px] font-semibold uppercase tracking-wider flex items-center justify-between ${themeConfig.divider} ${themeConfig.subtext}`}
+        className={`px-2.5 py-1 border-b text-[10px] font-semibold uppercase tracking-wider flex items-center justify-between ${themeConfig.divider} ${themeConfig.subtext}`}
       >
         <div className="flex items-center gap-1 font-mono">
-          <AtSign className="w-3 h-3 opacity-80" /> Refer note
+          <AtSign className="w-3 h-3 opacity-80" /> Link to Note
         </div>
-        <span className="text-[9px] font-mono opacity-70">↑↓ navigate, ↵ select</span>
+        <span className="text-[9px] font-mono opacity-70">↑↓ navigate  ↵ select</span>
       </div>
 
-      <div className="max-h-44 overflow-y-auto">
+      <div className="max-h-48 overflow-y-auto px-1 py-1 space-y-0.5 scrollbar-thin">
         {filteredNotes.map((note, idx) => {
           const isSelected = idx === selectedIndex;
+
+          const rowClass = isSelected
+            ? isDark
+              ? 'bg-slate-800 text-white font-medium'
+              : 'bg-slate-100 text-slate-900 font-medium'
+            : isDark
+            ? 'text-slate-300 hover:bg-slate-800/60 hover:text-slate-100'
+            : 'text-slate-700 hover:bg-slate-100/80 hover:text-slate-900';
+
+          const iconClass = isSelected
+            ? isDark
+              ? 'text-slate-200'
+              : 'text-slate-900'
+            : themeConfig.subtext;
+
           return (
             <button
               key={note.id}
@@ -94,12 +139,10 @@ export const MentionAutocomplete: React.FC<MentionAutocompleteProps> = ({
                 itemRefs.current[idx] = el;
               }}
               onClick={() => onSelect(note)}
-              className={`w-full text-left px-2.5 py-1.5 flex items-center gap-2 transition-colors ${
-                isSelected ? `${themeConfig.hoverBg} font-medium` : `hover:${themeConfig.hoverBg}`
-              }`}
+              className={`w-full text-left px-2 py-1.5 rounded-sm flex items-center gap-2 transition-colors ${rowClass}`}
             >
-              <FileText className={`w-3.5 h-3.5 shrink-0 ${themeConfig.subtext}`} />
-              <span className="truncate font-sans">{note.title || 'Untitled Note'}</span>
+              <FileText className={`w-3.5 h-3.5 shrink-0 ${iconClass}`} />
+              <span className="truncate font-sans font-medium">{note.title || 'Untitled Note'}</span>
             </button>
           );
         })}
@@ -107,4 +150,3 @@ export const MentionAutocomplete: React.FC<MentionAutocompleteProps> = ({
     </div>
   );
 };
-
