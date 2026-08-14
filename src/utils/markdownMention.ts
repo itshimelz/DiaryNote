@@ -94,7 +94,7 @@ export function formatDate(isoString: string): string {
       hour: '2-digit',
       minute: '2-digit',
     });
-  } catch (e) {
+  } catch {
     return isoString;
   }
 }
@@ -136,7 +136,7 @@ export function insertMentionIntoText(
   const textBeforeCursor = val.slice(0, cursorIndex);
   const textAfterCursor = val.slice(cursorIndex);
 
-  const newBefore = textBeforeCursor.replace(/(?:^|\s)@([a-zA-Z0-9\s\_-]*)$/, (m) => {
+  const newBefore = textBeforeCursor.replace(/(?:^|\s)@([a-zA-Z0-9\s_-]*)$/, (m) => {
     const leadingSpace = m.startsWith(' ') || m.startsWith('\n') ? m[0] : '';
     return `${leadingSpace}@[${targetNote.title || 'Untitled Note'}](${targetNote.id}) `;
   });

@@ -43,7 +43,7 @@ export default defineConfig(() => {
               ) {
                 return 'vendor-motion';
               }
-              if (id.includes('node_modules/lucide-react/')) {
+              if (id.includes('node_modules/@hugeicons/')) {
                 return 'vendor-icons';
               }
               if (id.includes('node_modules/dexie/')) {

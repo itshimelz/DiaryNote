@@ -1,5 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ListChecks, Palette, MoreVertical, Trash2, Copy, Lock, Unlock, Download } from 'lucide-react';
+import {
+  CheckListIcon,
+  PaintBoardIcon,
+  MoreVerticalIcon,
+  Delete02Icon,
+  Copy01Icon,
+  SecurityLockIcon,
+  CircleUnlock01Icon,
+  Download04Icon,
+} from '@hugeicons/core-free-icons';
+import { Icon, Menu, MenuItem, MenuDivider } from '../ui';
 import { NoteMode, PaperThemeConfig } from './types';
 import { Note } from '../../types';
 
@@ -33,20 +43,31 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
-  // Close popovers on click outside
+  // Close popover on click outside or Escape
   useEffect(() => {
+    if (!showMoreMenu) return;
     const handleClickOutside = (e: MouseEvent) => {
       if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
         setShowMoreMenu(false);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowMoreMenu(false);
+      }
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showMoreMenu]);
 
   const toolbarBg = themeConfig?.toolbarBg || 'bg-white';
   const divider = themeConfig?.divider || 'border-slate-100';
-  const normalBtnClass = themeConfig?.toolbarBtn || 'text-slate-700 hover:text-slate-900 hover:bg-slate-100/80';
+  const normalBtnClass =
+    themeConfig?.toolbarBtn || 'text-slate-700 hover:text-slate-900 hover:bg-slate-100/80';
   const isDarkCard = themeConfig?.isDark ?? false;
 
   // Text mode active: blue icon, no border
@@ -57,17 +78,19 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
     : 'text-violet-500 font-bold';
 
   const getTextBtnClass = (isActive: boolean) =>
-    `flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-lg transition-colors ${
+    `flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-sm transition-colors cursor-pointer ${
       isActive ? textActiveBtnClass : normalBtnClass
     }`;
 
   const getChecklistBtnClass = (isActive: boolean) =>
-    `flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-lg transition-colors ${
+    `flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-sm transition-colors cursor-pointer ${
       isActive ? checklistActiveBtnClass : normalBtnClass
     }`;
 
   return (
-    <div className={`relative border-t ${divider} ${toolbarBg} backdrop-blur-xs px-3.5 py-2.5 flex items-center justify-between gap-1.5 select-none rounded-b-2xl`}>
+    <div
+      className={`relative border-t ${divider} ${toolbarBg} backdrop-blur-xs px-3.5 py-2.5 flex items-center justify-between gap-1.5 select-none rounded-b-sm`}
+    >
       {/* 1. Text Mode Button */}
       <button
         type="button"
@@ -87,129 +110,99 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
         title="Checklist mode"
         aria-label="Checklist mode"
       >
-        <ListChecks className="w-5.5 h-5.5 sm:w-6 sm:h-6" />
+        <Icon icon={CheckListIcon} size="lg" />
       </button>
 
       {/* 3. Palette / Style Theme Button */}
       <button
         type="button"
         onClick={onToggleStylePicker}
-        className={`flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-lg transition-colors ${normalBtnClass}`}
+        className={`flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-sm transition-colors cursor-pointer ${normalBtnClass}`}
         title="Theme & Font settings"
         aria-label="Theme and font settings"
       >
-        <Palette className="w-5.5 h-5.5 sm:w-6 sm:h-6" />
+        <Icon icon={PaintBoardIcon} size="lg" />
       </button>
 
       {/* 4. More Options Button */}
       <div className="relative" ref={moreRef}>
         <button
           type="button"
-          onClick={() => setShowMoreMenu(!showMoreMenu)}
-          className={`flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-lg transition-colors ${normalBtnClass}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowMoreMenu((prev) => !prev);
+          }}
+          className={`flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-sm transition-colors cursor-pointer ${normalBtnClass}`}
           title="More options"
           aria-label="More note options"
         >
-          <MoreVertical className="w-5.5 h-5.5 sm:w-6 sm:h-6" />
+          <Icon icon={MoreVerticalIcon} size="lg" />
         </button>
 
         {/* More Options Popover */}
         {showMoreMenu && (
-          <div className={`absolute bottom-12 right-0 z-50 w-56 sm:w-60 rounded-md shadow-sm border py-2 flex flex-col text-sm sm:text-base font-medium animate-in fade-in zoom-in-95 duration-150 ${
-            isDarkCard ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-800'
-          }`}>
-            {/* Lock / Unlock Note */}
-            {onToggleLockNote && (
-              <button
-                type="button"
+          <div
+            onMouseDown={(e) => e.stopPropagation()}
+            className="absolute bottom-12 right-0 z-50 animate-in fade-in zoom-in-95 duration-100"
+          >
+            <Menu minWidth="w-56 sm:w-60">
+              {onToggleLockNote && (
+                <MenuItem
+                  icon={note.isLocked ? CircleUnlock01Icon : SecurityLockIcon}
+                  label={note.isLocked ? 'Unlock Note' : 'Lock Access'}
+                  onClick={() => {
+                    onToggleLockNote();
+                    setShowMoreMenu(false);
+                  }}
+                />
+              )}
+
+              {onExportNote && (
+                <>
+                  <MenuItem
+                    icon={Download04Icon}
+                    label="Backup Note (.json)"
+                    onClick={() => {
+                      onExportNote('json');
+                      setShowMoreMenu(false);
+                    }}
+                  />
+                  <MenuItem
+                    icon={Download04Icon}
+                    label="Export (.md)"
+                    onClick={() => {
+                      onExportNote('md');
+                      setShowMoreMenu(false);
+                    }}
+                  />
+                </>
+              )}
+
+              {onDuplicateNote && (
+                <MenuItem
+                  icon={Copy01Icon}
+                  label="Duplicate Note"
+                  onClick={() => {
+                    onDuplicateNote();
+                    setShowMoreMenu(false);
+                  }}
+                />
+              )}
+
+              <MenuDivider />
+
+              <MenuItem
+                icon={Delete02Icon}
+                label="Delete Note"
+                danger
                 onClick={() => {
-                  onToggleLockNote();
+                  onDeleteNote();
                   setShowMoreMenu(false);
                 }}
-                className={`flex items-center gap-2.5 px-3.5 py-2.5 transition-colors text-left ${
-                  isDarkCard ? 'hover:bg-slate-800 text-slate-200' : 'hover:bg-slate-100 text-slate-700'
-                }`}
-              >
-                {note.isLocked ? (
-                  <>
-                    <Unlock className="w-5 h-5 text-slate-400 shrink-0" />
-                    <span>Unlock Note</span>
-                  </>
-                ) : (
-                  <>
-                    <Lock className="w-5 h-5 text-slate-400 shrink-0" />
-                    <span>Lock Access</span>
-                  </>
-                )}
-              </button>
-            )}
-
-            {/* Backup Note (.json) */}
-            {onExportNote && (
-              <button
-                type="button"
-                onClick={() => {
-                  onExportNote('json');
-                  setShowMoreMenu(false);
-                }}
-                className={`flex items-center gap-2.5 px-3.5 py-2.5 transition-colors text-left ${
-                  isDarkCard ? 'hover:bg-slate-800 text-slate-200' : 'hover:bg-slate-100 text-slate-700'
-                }`}
-              >
-                <Download className="w-5 h-5 text-blue-500 shrink-0" />
-                <span>Backup Note (.json)</span>
-              </button>
-            )}
-
-            {/* Export Note (.md) */}
-            {onExportNote && (
-              <button
-                type="button"
-                onClick={() => {
-                  onExportNote('md');
-                  setShowMoreMenu(false);
-                }}
-                className={`flex items-center gap-2.5 px-3.5 py-2.5 transition-colors text-left ${
-                  isDarkCard ? 'hover:bg-slate-800 text-slate-200' : 'hover:bg-slate-100 text-slate-700'
-                }`}
-              >
-                <Download className="w-5 h-5 text-slate-400 shrink-0" />
-                <span>Export (.md)</span>
-              </button>
-            )}
-
-            {onDuplicateNote && (
-              <button
-                type="button"
-                onClick={() => {
-                  onDuplicateNote();
-                  setShowMoreMenu(false);
-                }}
-                className={`flex items-center gap-2.5 px-3.5 py-2.5 transition-colors text-left ${
-                  isDarkCard ? 'hover:bg-slate-800 text-slate-200' : 'hover:bg-slate-100 text-slate-700'
-                }`}
-              >
-                <Copy className="w-5 h-5 text-slate-400 shrink-0" />
-                <span>Duplicate Note</span>
-              </button>
-            )}
-
-            <button
-              type="button"
-              onClick={() => {
-                onDeleteNote();
-                setShowMoreMenu(false);
-              }}
-              className={`flex items-center gap-2.5 px-3.5 py-2.5 text-rose-600 font-semibold transition-colors text-left ${
-                isDarkCard ? 'hover:bg-rose-950/40 text-rose-400' : 'hover:bg-rose-50'
-              }`}
-            >
-              <Trash2 className="w-5 h-5 text-rose-500 shrink-0" />
-              <span>Delete Note</span>
-            </button>
+              />
+            </Menu>
           </div>
         )}
-
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { Note, HandFont, PaperTheme } from '../../types';
+import { Note } from '../../types';
 
 export interface NoteCardProps {
   note: Note;

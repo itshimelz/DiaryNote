@@ -117,7 +117,7 @@ export function handleSmartEnterList(textarea: HTMLTextAreaElement): {
   const currentLine = linesBefore[linesBefore.length - 1];
 
   // 1. Check for Numbered List e.g. "1. ", "  2. ", "1) ", "  12) "
-  const numberMatch = currentLine.match(/^(\s*)(\d+)([\.\)])(\s+)(.*)$/);
+  const numberMatch = currentLine.match(/^(\s*)(\d+)([.)])(\s+)(.*)$/);
   if (numberMatch) {
     const indent = numberMatch[1];
     const num = parseInt(numberMatch[2], 10);

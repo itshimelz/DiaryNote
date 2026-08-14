@@ -77,9 +77,6 @@ export function getInitialTransform(notes: Note[] = SAMPLE_NOTES): CanvasTransfo
 }
 
 
-const nowISO = new Date().toISOString();
-const yesterdayISO = new Date(Date.now() - 86400000 * 2).toISOString();
-
 export const SAMPLE_NOTES: Note[] = [
   {
     id: 'note-todo',
@@ -110,7 +107,7 @@ export const SAMPLE_NOTES: Note[] = [
     createdAt: new Date('2023-02-08T17:39:00Z').toISOString(),
     updatedAt: new Date('2023-02-08T17:39:00Z').toISOString(),
     fontFamily: 'sans',
-    fontSize: 'sm',
+    fontSize: 'md',
     paperTheme: 'white',
     activeMode: 'text',
     isPinned: false,
@@ -152,7 +149,7 @@ But when the going gets tough, sometimes all it takes to relight the burning fir
     createdAt: new Date('2023-02-09T20:39:00Z').toISOString(),
     updatedAt: new Date('2023-02-09T20:39:00Z').toISOString(),
     fontFamily: 'sans',
-    fontSize: 'sm',
+    fontSize: 'md',
     paperTheme: 'white',
     activeMode: 'text',
     isPinned: false,

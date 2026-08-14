@@ -1,5 +1,11 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertOctagon, Download, RefreshCw, RotateCcw } from 'lucide-react';
+import {
+  Alert02Icon,
+  Download04Icon,
+  RotateLeft01Icon,
+  Loading03Icon,
+} from '@hugeicons/core-free-icons';
+import { Button, Icon } from './ui';
 import { loadNotesFromDB } from '../lib/sqliteStorage';
 
 interface Props {
@@ -56,7 +62,9 @@ export class ErrorBoundary extends Component<Props, State> {
         },
       };
 
-      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(backupPayload, null, 2));
+      const dataStr =
+        'data:text/json;charset=utf-8,' +
+        encodeURIComponent(JSON.stringify(backupPayload, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute('href', dataStr);
       downloadAnchor.setAttribute(
@@ -96,11 +104,11 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950 text-slate-100 p-6 font-sans select-none">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-md shadow-sm p-6 flex flex-col gap-5 animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-sm shadow-sm p-6 flex flex-col gap-5 animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
-              <div className="p-2.5 rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                <AlertOctagon className="w-6 h-6" />
+              <div className="p-2.5 rounded-sm bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                <Icon icon={Alert02Icon} size="xl" />
               </div>
               <div>
                 <h1 className="font-bold text-base text-slate-100">Something went wrong</h1>
@@ -111,46 +119,41 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
 
             {/* Error stack preview */}
-            <div className="bg-slate-950 border border-slate-800/80 rounded p-3 text-[11px] font-mono text-rose-300 max-h-36 overflow-y-auto whitespace-pre-wrap break-all">
+            <div className="bg-slate-950 border border-slate-800/80 rounded-sm p-3 text-[11px] font-mono text-rose-300 max-h-36 overflow-y-auto whitespace-pre-wrap break-all">
               {this.state.error?.toString() || 'Unknown Error'}
               {this.state.errorInfo?.componentStack && `\n${this.state.errorInfo.componentStack}`}
             </div>
 
             {/* Action buttons */}
             <div className="flex flex-col sm:flex-row items-center gap-2 pt-2">
-              <button
-                type="button"
+              <Button
+                variant="primary"
+                size="md"
+                fullWidth
+                icon={Download04Icon}
+                loading={this.state.isExporting}
                 onClick={this.handleEmergencyExport}
-                disabled={this.state.isExporting}
-                className="w-full sm:flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors cursor-pointer disabled:opacity-50"
               >
-                <Download className="w-4 h-4" />
-                <span>
-                  {this.state.exportSuccess
-                    ? 'Backup Exported!'
-                    : this.state.isExporting
-                    ? 'Exporting...'
-                    : 'Emergency Backup'}
-                </span>
-              </button>
+                {this.state.exportSuccess ? 'Backup Exported!' : 'Emergency Backup'}
+              </Button>
 
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                size="md"
+                icon={RotateLeft01Icon}
                 onClick={this.handleResetView}
-                className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-2 rounded text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer border border-slate-700"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset View</span>
-              </button>
+                Reset View
+              </Button>
 
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="md"
+                icon={Loading03Icon}
                 onClick={this.handleReload}
-                className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-2 rounded text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer border border-slate-700"
               >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Reload</span>
-              </button>
+                Reload
+              </Button>
             </div>
           </div>
         </div>

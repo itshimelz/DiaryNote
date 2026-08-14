@@ -258,7 +258,7 @@ export async function mergeNotesWithAI(
 
   // Format mentions in strict DiaryNote syntax: @[Title](id)
   const mentionsList = notesToMerge
-    .map((n) => `@[${(n.title || 'Untitled Note').replace(/[\[\]]/g, '')}](${n.id})`)
+    .map((n) => `@[${(n.title || 'Untitled Note').replace(/[\][]/g, '')}](${n.id})`)
     .join(', ');
 
   const referencesSection = `\n\n---\n**Merged from:** ${mentionsList}`;

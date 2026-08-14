@@ -2,7 +2,8 @@ import React, { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
-import { Check } from 'lucide-react';
+import { Tick02Icon } from '@hugeicons/core-free-icons';
+import { Icon } from '../ui';
 import { Note, PaperTheme } from '../../types';
 import { processMarkdownMentions } from '../../utils';
 import { PAPER_THEMES } from './types';
@@ -47,6 +48,15 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
   }, [content, allNotes, isRuled]);
 
   const isEmpty = !content || content.trim().length === 0;
+
+  const ruledLineHeight = useMemo(() => {
+    if (!isRuled) return undefined;
+    if (fontSizeClass?.includes('text-xs')) return '22px';
+    if (fontSizeClass?.includes('text-sm')) return '24px';
+    if (fontSizeClass?.includes('text-lg')) return '32px';
+    if (fontSizeClass?.includes('text-xl')) return '36px';
+    return '28px';
+  }, [isRuled, fontSizeClass]);
 
   const components = useMemo(
     () => ({
@@ -194,7 +204,7 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
       ),
       table: ({ children }: any) => (
         <div className="overflow-x-auto my-2">
-          <table className="w-full border-collapse text-xs rounded border border-slate-300/60 dark:border-slate-700/60">
+          <table className="w-full border-collapse text-xs rounded-sm border border-slate-300/60 dark:border-slate-700/60">
             {children}
           </table>
         </div>
@@ -213,13 +223,13 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
         if (type === 'checkbox') {
           return (
             <span
-              className={`inline-flex items-center justify-center shrink-0 w-4 h-4 rounded border-2 transition-colors select-none ${
+              className={`inline-flex items-center justify-center shrink-0 w-4 h-4 rounded-sm border-2 transition-colors select-none ${
                 checked
                   ? themeConfig.checkboxChecked
                   : themeConfig.checkboxUnchecked
               }`}
             >
-              {checked && <Check className="w-3 h-3 stroke-[3]" />}
+              {checked && <Icon icon={Tick02Icon} size="xs" className="stroke-[3]" />}
             </span>
           );
         }
@@ -254,22 +264,13 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
         );
       },
     }),
-    [inline, isRuled, themeConfig, onNavigateToNote]
+    [inline, isRuled, themeConfig, onNavigateToNote, ruledLineHeight]
   );
 
   const isPlainInlineText = useMemo(
-    () => inline && !/[*`_~#\[@\\]/.test(processedContent),
+    () => inline && !/[[*`_~#@\\]/.test(processedContent),
     [inline, processedContent]
   );
-
-  const ruledLineHeight = useMemo(() => {
-    if (!isRuled) return undefined;
-    if (fontSizeClass?.includes('text-xs')) return '22px';
-    if (fontSizeClass?.includes('text-sm')) return '24px';
-    if (fontSizeClass?.includes('text-lg')) return '32px';
-    if (fontSizeClass?.includes('text-xl')) return '36px';
-    return '28px';
-  }, [isRuled, fontSizeClass]);
 
   return (
     <div

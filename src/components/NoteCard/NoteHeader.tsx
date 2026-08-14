@@ -1,5 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Share2, X, Pin, Check, FolderMinus, Smile, Sun, Zap, Coffee, CloudRain, SmilePlus, MoreVertical } from 'lucide-react';
+import {
+  Share01Icon,
+  Cancel01Icon,
+  PinIcon,
+  Tick02Icon,
+  FolderMinusIcon,
+  SmileIcon,
+  Sun01Icon,
+  FlashIcon,
+  Coffee01Icon,
+  CloudRainIcon,
+  HappyIcon,
+  MoreVerticalIcon,
+} from '@hugeicons/core-free-icons';
+import { Icon, Menu, MenuItem, MenuDivider } from '../ui';
 import { Note, JournalMood } from '../../types';
 import { getUniqueTitleForDay, sendNativeAppNotification } from '../../utils';
 import { isNoteAuthorized } from '../../services/authPolicyService';
@@ -29,7 +43,6 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
   onTogglePin,
   onDeleteNote,
   onShareNote,
-  onDeselectNote,
   onRemoveFromGroup,
   headerDragProps = {},
   themeConfig,
@@ -41,6 +54,8 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
   const [isOverflowMenuOpen, setIsOverflowMenuOpen] = useState(false);
   const [isCompact, setIsCompact] = useState(false);
   const headerRef = useRef<HTMLDivElement>(null);
+  const moodRef = useRef<HTMLDivElement>(null);
+  const overflowRef = useRef<HTMLDivElement>(null);
   const skipBlurSaveRef = useRef(false);
 
   useEffect(() => {
@@ -59,6 +74,39 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
     setTitle(note.title || 'Untitled Note');
   }, [note.title]);
 
+  // Click outside and Escape handlers for popovers
+  useEffect(() => {
+    if (!isMoodPickerOpen && !isOverflowMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        isMoodPickerOpen &&
+        moodRef.current &&
+        !moodRef.current.contains(e.target as Node)
+      ) {
+        setIsMoodPickerOpen(false);
+      }
+      if (
+        isOverflowMenuOpen &&
+        overflowRef.current &&
+        !overflowRef.current.contains(e.target as Node)
+      ) {
+        setIsOverflowMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsMoodPickerOpen(false);
+        setIsOverflowMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isMoodPickerOpen, isOverflowMenuOpen]);
+
   const handleSaveTitle = (rawTitle: string) => {
     const uniqueTitle = getUniqueTitleForDay(rawTitle, note.id, allNotes);
     setTitle(uniqueTitle);
@@ -72,7 +120,20 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
       const d = new Date(isoString);
       if (isNaN(d.getTime())) return isoString;
       const day = d.getDate().toString().padStart(2, '0');
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthNames = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
       const month = monthNames[d.getMonth()];
       const year = d.getFullYear();
       let hours = d.getHours();
@@ -102,29 +163,23 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
   };
 
   const isDarkCard = themeConfig?.isDark ?? false;
+  const headerBg = themeConfig?.headerBg || 'bg-white/80';
+  const divider = themeConfig?.divider || 'border-slate-100';
   const textColor = themeConfig?.text || 'text-slate-900';
   const subtextColor = themeConfig?.subtext || 'text-slate-400';
-  const headerBg = themeConfig?.headerBg || 'bg-white';
-  const divider = themeConfig?.divider || 'border-slate-100';
-
-  const inputBg = themeConfig?.inputBg || 'bg-slate-50 focus:bg-white text-slate-900';
-  const inputBorder = themeConfig?.inputBorder || 'border-slate-200 focus:border-blue-400';
-  const actionBtnClass = themeConfig?.toolbarBtn || (isDarkCard
-    ? 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
-    : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100/80');
-
-  const isEditingTitleActive = isEditingTitle || isEditingTitleLocal;
+  const actionBtnClass =
+    themeConfig?.toolbarBtn || 'text-slate-400 hover:text-slate-600 hover:bg-slate-100/80';
 
   return (
     <div
       ref={headerRef}
       {...headerDragProps}
-      className={`flex flex-col gap-0.5 px-4 pt-3.5 pb-2 border-b ${divider} select-none cursor-grab active:cursor-grabbing group/header rounded-t-md ${headerBg}`}
+      className={`relative px-3.5 py-2.5 border-b ${divider} ${headerBg} backdrop-blur-xs select-none rounded-t-sm`}
     >
-      <div className="flex items-center justify-between gap-2">
-        {/* Title */}
-        <div className="flex-1 min-w-0">
-          {isEditingTitleActive ? (
+      <div className="flex items-center justify-between gap-2 mb-1 min-w-0">
+        {/* Title Input or Static View */}
+        <div className="flex-1 min-w-0 pr-1">
+          {isEditingTitle || isEditingTitleLocal ? (
             <input
               type="text"
               value={title}
@@ -137,23 +192,18 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                 handleSaveTitle(title);
               }}
               onKeyDown={(e) => {
+                e.stopPropagation();
                 if (e.key === 'Enter') {
                   handleSaveTitle(title);
-                  (e.target as HTMLInputElement).blur();
                 } else if (e.key === 'Escape') {
-                  e.preventDefault();
                   skipBlurSaveRef.current = true;
                   setTitle(note.title || 'Untitled Note');
                   setIsEditingTitleLocal(false);
-                  (e.target as HTMLInputElement).blur();
                 }
               }}
-              onMouseDown={(e) => e.stopPropagation()}
-              onMouseUp={(e) => e.stopPropagation()}
-              onClick={(e) => e.stopPropagation()}
-              onDoubleClick={(e) => e.stopPropagation()}
               autoFocus
-              className={`w-full ${inputBg} font-bold text-lg sm:text-xl px-2.5 py-1 rounded-lg border ${inputBorder} focus:ring-2 focus:ring-blue-500/20 outline-none transition-colors`}
+              className={`w-full bg-transparent font-bold text-sm sm:text-base outline-none border-b border-blue-500/80 px-0 py-0.5 ${textColor}`}
+              placeholder="Untitled Note"
             />
           ) : (
             <h3
@@ -161,11 +211,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                 e.stopPropagation();
                 setIsEditingTitleLocal(true);
               }}
-              onDoubleClick={(e) => {
-                e.stopPropagation();
-                setIsEditingTitleLocal(true);
-              }}
-              className={`${textColor} font-bold text-lg sm:text-xl tracking-tight truncate leading-snug cursor-text opacity-90 hover:opacity-100 transition-opacity`}
+              className={`font-bold text-sm sm:text-base truncate cursor-text hover:opacity-80 transition-opacity ${textColor}`}
               title={note.title || 'Untitled Note'}
             >
               {note.title || 'Untitled Note'}
@@ -173,10 +219,10 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
           )}
         </div>
 
-        {/* Top Right Action Icons */}
-        <div className="flex items-center gap-1 shrink-0 relative">
+        {/* Action Buttons */}
+        <div className="flex items-center gap-0.5 shrink-0">
           {isCompact ? (
-            <div className="relative">
+            <div className="relative" ref={overflowRef}>
               <button
                 type="button"
                 onMouseDown={(e) => e.stopPropagation()}
@@ -184,72 +230,57 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                   e.stopPropagation();
                   setIsOverflowMenuOpen((prev) => !prev);
                 }}
-                className={`p-1.5 rounded-full transition-colors ${actionBtnClass}`}
+                className={`p-1.5 rounded-sm transition-colors cursor-pointer ${actionBtnClass}`}
                 title="More actions"
                 aria-label="More actions"
               >
-                <MoreVertical className="w-5 h-5" />
+                <Icon icon={MoreVerticalIcon} size="lg" />
               </button>
 
               {isOverflowMenuOpen && (
                 <div
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
-                  className={`absolute top-9 right-0 z-50 flex flex-col p-1 rounded-sm border shadow-sm min-w-[140px] text-xs font-medium ${
-                    isDarkCard
-                      ? 'bg-slate-900 border-slate-700 text-slate-100'
-                      : 'bg-white border-slate-200 text-slate-800'
-                  }`}
+                  className="absolute top-9 right-0 z-50 animate-in fade-in zoom-in-95 duration-100"
                 >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onTogglePin();
-                      setIsOverflowMenuOpen(false);
-                    }}
-                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors`}
-                  >
-                    <Pin className={`w-4 h-4 ${note.isPinned ? 'fill-amber-500 text-amber-500' : ''}`} />
-                    <span>{note.isPinned ? 'Unpin Note' : 'Pin Note'}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleShare();
-                      setIsOverflowMenuOpen(false);
-                    }}
-                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors`}
-                  >
-                    <Share2 className="w-4 h-4" />
-                    <span>{isCopied ? 'Copied!' : 'Share Note'}</span>
-                  </button>
-
-                  {note.groupId && onRemoveFromGroup && (
-                    <button
-                      type="button"
+                  <Menu minWidth="w-44">
+                    <MenuItem
+                      icon={PinIcon}
+                      label={note.isPinned ? 'Unpin Note' : 'Pin Note'}
                       onClick={() => {
-                        onRemoveFromGroup();
+                        onTogglePin();
                         setIsOverflowMenuOpen(false);
                       }}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-blue-500 transition-colors`}
-                    >
-                      <FolderMinus className="w-4 h-4" />
-                      <span>Remove Group</span>
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onDeleteNote();
-                      setIsOverflowMenuOpen(false);
-                    }}
-                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md hover:bg-rose-500/10 text-rose-500 transition-colors border-t border-slate-100 dark:border-slate-800 mt-1 pt-1.5`}
-                  >
-                    <X className="w-4 h-4" />
-                    <span>Delete Note</span>
-                  </button>
+                    />
+                    <MenuItem
+                      icon={Share01Icon}
+                      label={isCopied ? 'Copied!' : 'Share Note'}
+                      onClick={() => {
+                        handleShare();
+                        setIsOverflowMenuOpen(false);
+                      }}
+                    />
+                    {note.groupId && onRemoveFromGroup && (
+                      <MenuItem
+                        icon={FolderMinusIcon}
+                        label="Remove Group"
+                        onClick={() => {
+                          onRemoveFromGroup();
+                          setIsOverflowMenuOpen(false);
+                        }}
+                      />
+                    )}
+                    <MenuDivider />
+                    <MenuItem
+                      icon={Cancel01Icon}
+                      label="Delete Note"
+                      danger
+                      onClick={() => {
+                        onDeleteNote();
+                        setIsOverflowMenuOpen(false);
+                      }}
+                    />
+                  </Menu>
                 </div>
               )}
             </div>
@@ -257,7 +288,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
             <>
               {/* Mood Icon Picker */}
               {onUpdateMood && (
-                <div className="relative">
+                <div className="relative" ref={moodRef}>
                   <button
                     type="button"
                     onMouseDown={(e) => e.stopPropagation()}
@@ -265,7 +296,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                       e.stopPropagation();
                       setIsMoodPickerOpen((prev) => !prev);
                     }}
-                    className={`p-1.5 rounded-full transition-colors ${
+                    className={`p-1.5 rounded-sm transition-colors cursor-pointer ${
                       note.mood === 'happy'
                         ? isDarkCard
                           ? 'text-amber-400 bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30'
@@ -291,12 +322,12 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                     title={note.mood ? `Mood: ${note.mood}` : 'Set entry mood'}
                     aria-label="Set mood"
                   >
-                    {note.mood === 'happy' && <Smile className="w-5 h-5" />}
-                    {note.mood === 'calm' && <Sun className="w-5 h-5" />}
-                    {note.mood === 'focused' && <Zap className="w-5 h-5" />}
-                    {note.mood === 'reflective' && <Coffee className="w-5 h-5" />}
-                    {note.mood === 'low' && <CloudRain className="w-5 h-5" />}
-                    {!note.mood && <SmilePlus className="w-5 h-5" />}
+                    {note.mood === 'happy' && <Icon icon={SmileIcon} size="lg" />}
+                    {note.mood === 'calm' && <Icon icon={Sun01Icon} size="lg" />}
+                    {note.mood === 'focused' && <Icon icon={FlashIcon} size="lg" />}
+                    {note.mood === 'reflective' && <Icon icon={Coffee01Icon} size="lg" />}
+                    {note.mood === 'low' && <Icon icon={CloudRainIcon} size="lg" />}
+                    {!note.mood && <Icon icon={HappyIcon} size="lg" />}
                   </button>
 
                   {/* Mood Popover */}
@@ -304,82 +335,118 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                     <div
                       onMouseDown={(e) => e.stopPropagation()}
                       onClick={(e) => e.stopPropagation()}
-                      className={`absolute top-9 right-0 z-50 flex items-center gap-1 p-1.5 rounded-md border shadow-sm ${
+                      className={`absolute top-9 right-0 z-50 flex items-center gap-1 p-1.5 rounded-sm border shadow-sm animate-in fade-in zoom-in-95 duration-100 ${
                         isDarkCard
                           ? 'bg-slate-900/95 border-slate-700/80 text-slate-100'
                           : 'bg-white/95 border-slate-200/90 text-slate-800'
                       }`}
                     >
                       <button
+                        type="button"
                         onClick={() => {
                           onUpdateMood('happy');
                           setIsMoodPickerOpen(false);
                         }}
-                        className={`p-1.5 rounded-lg transition-colors ${
+                        className={`p-1.5 rounded-sm transition-colors cursor-pointer ${
                           isDarkCard ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
-                        } ${note.mood === 'happy' ? (isDarkCard ? 'bg-slate-800 ring-1 ring-amber-500' : 'bg-slate-100 ring-1 ring-amber-500') : ''}`}
+                        } ${
+                          note.mood === 'happy'
+                            ? isDarkCard
+                              ? 'bg-slate-800 ring-1 ring-amber-500'
+                              : 'bg-slate-100 ring-1 ring-amber-500'
+                            : ''
+                        }`}
                         title="Happy"
                       >
-                        <Smile className="w-5 h-5 text-amber-500" />
+                        <Icon icon={SmileIcon} size="md" className="text-amber-500" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => {
                           onUpdateMood('calm');
                           setIsMoodPickerOpen(false);
                         }}
-                        className={`p-1.5 rounded-lg transition-colors ${
+                        className={`p-1.5 rounded-sm transition-colors cursor-pointer ${
                           isDarkCard ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
-                        } ${note.mood === 'calm' ? (isDarkCard ? 'bg-slate-800 ring-1 ring-emerald-500' : 'bg-slate-100 ring-1 ring-emerald-500') : ''}`}
+                        } ${
+                          note.mood === 'calm'
+                            ? isDarkCard
+                              ? 'bg-slate-800 ring-1 ring-emerald-500'
+                              : 'bg-slate-100 ring-1 ring-emerald-500'
+                            : ''
+                        }`}
                         title="Calm"
                       >
-                        <Sun className="w-5 h-5 text-emerald-500" />
+                        <Icon icon={Sun01Icon} size="md" className="text-emerald-500" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => {
                           onUpdateMood('focused');
                           setIsMoodPickerOpen(false);
                         }}
-                        className={`p-1.5 rounded-lg transition-colors ${
+                        className={`p-1.5 rounded-sm transition-colors cursor-pointer ${
                           isDarkCard ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
-                        } ${note.mood === 'focused' ? (isDarkCard ? 'bg-slate-800 ring-1 ring-indigo-500' : 'bg-slate-100 ring-1 ring-indigo-500') : ''}`}
+                        } ${
+                          note.mood === 'focused'
+                            ? isDarkCard
+                              ? 'bg-slate-800 ring-1 ring-indigo-500'
+                              : 'bg-slate-100 ring-1 ring-indigo-500'
+                            : ''
+                        }`}
                         title="Focused"
                       >
-                        <Zap className="w-5 h-5 text-indigo-500" />
+                        <Icon icon={FlashIcon} size="md" className="text-indigo-500" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => {
                           onUpdateMood('reflective');
                           setIsMoodPickerOpen(false);
                         }}
-                        className={`p-1.5 rounded-lg transition-colors ${
+                        className={`p-1.5 rounded-sm transition-colors cursor-pointer ${
                           isDarkCard ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
-                        } ${note.mood === 'reflective' ? (isDarkCard ? 'bg-slate-800 ring-1 ring-purple-500' : 'bg-slate-100 ring-1 ring-purple-500') : ''}`}
+                        } ${
+                          note.mood === 'reflective'
+                            ? isDarkCard
+                              ? 'bg-slate-800 ring-1 ring-purple-500'
+                              : 'bg-slate-100 ring-1 ring-purple-500'
+                            : ''
+                        }`}
                         title="Reflective"
                       >
-                        <Coffee className="w-5 h-5 text-purple-500" />
+                        <Icon icon={Coffee01Icon} size="md" className="text-purple-500" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => {
                           onUpdateMood('low');
                           setIsMoodPickerOpen(false);
                         }}
-                        className={`p-1.5 rounded-lg transition-colors ${
+                        className={`p-1.5 rounded-sm transition-colors cursor-pointer ${
                           isDarkCard ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
-                        } ${note.mood === 'low' ? (isDarkCard ? 'bg-slate-800 ring-1 ring-sky-500' : 'bg-slate-100 ring-1 ring-sky-500') : ''}`}
+                        } ${
+                          note.mood === 'low'
+                            ? isDarkCard
+                              ? 'bg-slate-800 ring-1 ring-sky-500'
+                              : 'bg-slate-100 ring-1 ring-sky-500'
+                            : ''
+                        }`}
                         title="Low Energy"
                       >
-                        <CloudRain className="w-5 h-5 text-sky-500" />
+                        <Icon icon={CloudRainIcon} size="md" className="text-sky-500" />
                       </button>
                       {note.mood && (
                         <button
+                          type="button"
                           onClick={() => {
                             onUpdateMood(undefined);
                             setIsMoodPickerOpen(false);
                           }}
-                          className="p-1.5 rounded-lg hover:bg-rose-500/20 text-rose-500 text-xs transition-colors ml-0.5"
+                          className="p-1.5 rounded-sm hover:bg-rose-500/20 text-rose-500 text-xs transition-colors ml-0.5 cursor-pointer"
                           title="Clear Mood"
                         >
-                          <X className="w-4 h-4" />
+                          <Icon icon={Cancel01Icon} size="sm" />
                         </button>
                       )}
                     </div>
@@ -387,7 +454,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                 </div>
               )}
 
-              {/* Pin Icon */}
+              {/* Pin Note Button */}
               <button
                 type="button"
                 onMouseDown={(e) => e.stopPropagation()}
@@ -395,18 +462,18 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                   e.stopPropagation();
                   onTogglePin();
                 }}
-                className={`p-1.5 rounded-full transition-colors ${
-                  note.isPinned
-                    ? 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
-                    : actionBtnClass
-                }`}
-                title={note.isPinned ? 'Unpin note' : 'Pin note'}
-                aria-label={note.isPinned ? 'Unpin note' : 'Pin note'}
+                className={`p-1.5 rounded-sm transition-colors cursor-pointer ${actionBtnClass}`}
+                title={note.isPinned ? 'Unpin note' : 'Pin note to top'}
+                aria-label={note.isPinned ? 'Unpin note' : 'Pin note to top'}
               >
-                <Pin className={`w-5 h-5 ${note.isPinned ? 'fill-amber-500' : ''}`} />
+                <Icon
+                  icon={PinIcon}
+                  size="lg"
+                  className={note.isPinned ? 'text-amber-500 fill-amber-500/20' : ''}
+                />
               </button>
 
-              {/* Remove from Group Icon */}
+              {/* Remove Group Button (if grouped) */}
               {note.groupId && onRemoveFromGroup && (
                 <button
                   type="button"
@@ -415,15 +482,15 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                     e.stopPropagation();
                     onRemoveFromGroup();
                   }}
-                  className={`p-1.5 rounded-full transition-colors text-blue-500 hover:bg-rose-500/10 hover:text-rose-500`}
-                  title="Remove note from group"
+                  className="p-1.5 rounded-sm transition-colors text-blue-500 hover:bg-blue-500/10 cursor-pointer"
+                  title={`Remove from group "${note.groupName || ''}"`}
                   aria-label="Remove note from group"
                 >
-                  <FolderMinus className="w-5 h-5" />
+                  <Icon icon={FolderMinusIcon} size="lg" />
                 </button>
               )}
 
-              {/* Share Icon */}
+              {/* Share Note Button */}
               <button
                 type="button"
                 onMouseDown={(e) => e.stopPropagation()}
@@ -431,14 +498,18 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                   e.stopPropagation();
                   handleShare();
                 }}
-                className={`p-1.5 rounded-full transition-colors relative ${actionBtnClass}`}
-                title={isCopied ? 'Copied to clipboard!' : 'Share note'}
-                aria-label={isCopied ? 'Copied to clipboard' : 'Copy note to clipboard'}
+                className={`p-1.5 rounded-sm transition-colors cursor-pointer ${actionBtnClass}`}
+                title={isCopied ? 'Copied to clipboard!' : 'Copy note content'}
+                aria-label="Share note"
               >
-                {isCopied ? <Check className="w-5 h-5 text-emerald-600" /> : <Share2 className="w-5 h-5" />}
+                <Icon
+                  icon={isCopied ? Tick02Icon : Share01Icon}
+                  size="lg"
+                  className={isCopied ? 'text-emerald-500' : ''}
+                />
               </button>
 
-              {/* Close/Delete Icon */}
+              {/* Delete Note Button */}
               <button
                 type="button"
                 onMouseDown={(e) => e.stopPropagation()}
@@ -446,24 +517,28 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                   e.stopPropagation();
                   onDeleteNote();
                 }}
-                className={`p-1.5 rounded-full hover:text-rose-600 ${
-                  isDarkCard ? 'hover:bg-rose-950/40 text-slate-400' : 'hover:bg-rose-50 text-slate-500'
-                } transition-colors`}
+                className="p-1.5 rounded-sm hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
                 title="Delete note"
                 aria-label="Delete note"
               >
-                <X className="w-5 h-5" />
+                <Icon icon={Cancel01Icon} size="lg" />
               </button>
             </>
           )}
         </div>
       </div>
 
-      {/* Subtitle: Last Updated Date in Grayish Tone */}
-      <div className={`text-xs sm:text-sm font-medium ${subtextColor} tracking-tight flex items-center gap-1 mt-0.5`}>
-        <span>Last Updated: {formatLastUpdated(note.updatedAt || note.createdAt)}</span>
+      {/* Date & Note Info Subheader */}
+      <div className="flex items-center gap-1.5 text-[10px] font-sans">
+        <span className={subtextColor}>
+          Last Updated: {formatLastUpdated(note.updatedAt || note.createdAt || '')}
+        </span>
+        {note.groupName && (
+          <span className="font-semibold text-blue-500/90 truncate max-w-[120px]">
+            · {note.groupName}
+          </span>
+        )}
       </div>
-
     </div>
   );
 };

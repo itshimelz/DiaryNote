@@ -4,21 +4,22 @@ import { Note, PaperTheme, CanvasTheme } from '../types';
 import { PAPER_THEME_ITEMS } from '../constants/paperThemes';
 import { getPlatformMetaKey, getPlatformAltKey } from '../utils';
 import {
-  Maximize2,
-  Edit3,
-  Pin,
-  PinOff,
-  Lock,
-  Unlock,
-  Layers,
-  Palette,
-  Download,
-  Copy,
-  Trash2,
-  CheckSquare,
-  Clipboard,
-  Plus,
-} from 'lucide-react';
+  Maximize01Icon,
+  Edit02Icon,
+  PinIcon,
+  PinOffIcon,
+  SecurityLockIcon,
+  CircleUnlock01Icon,
+  Layers01Icon,
+  PaintBoardIcon,
+  Download04Icon,
+  Copy01Icon,
+  Delete02Icon,
+  CheckmarkSquare02Icon,
+  ClipboardIcon,
+  Add01Icon,
+} from '@hugeicons/core-free-icons';
+import { Menu, MenuItem, MenuDivider, MenuGroupHeader, Badge } from './ui';
 
 interface NoteContextMenuProps {
   x: number;
@@ -82,9 +83,10 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
   const isAllPinned = selectedNotes.length > 0 && selectedNotes.every((n) => n.isPinned);
   const isAllLocked = selectedNotes.length > 0 && selectedNotes.every((n) => n.isLocked);
   const isAllGrouped =
-    selectedNotes.length >= 2 && selectedNotes.every((n) => n.groupId && n.groupId === selectedNotes[0].groupId);
+    selectedNotes.length >= 2 &&
+    selectedNotes.every((n) => n.groupId && n.groupId === selectedNotes[0].groupId);
 
-  // Calculate visual scaling factor based on canvas zoom level (clamped between 92% and 125%)
+  // Visual scaling factor based on canvas zoom
   const visualScale = useMemo(() => {
     if (!zoom || isNaN(zoom)) return 1;
     return Math.max(0.92, Math.min(1.25, Math.sqrt(zoom)));
@@ -104,7 +106,6 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
       if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
-        e.stopImmediatePropagation();
         onClose();
       }
     };
@@ -117,293 +118,215 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
     };
   }, [isOpen, onClose]);
 
-  // Adjust menu position to remain strictly inside viewport boundaries accounting for visual scale
+  // Clamp menu inside viewport
   const adjustedPos = useMemo(() => {
     const baseWidth = 272;
     const baseHeight = 420;
     const scaledWidth = baseWidth * visualScale;
     const scaledHeight = baseHeight * visualScale;
 
-    let clampedX = Math.max(12, Math.min(x, window.innerWidth - scaledWidth - 12));
-    let clampedY = Math.max(12, Math.min(y, window.innerHeight - scaledHeight - 12));
+    const clampedX = Math.max(12, Math.min(x, window.innerWidth - scaledWidth - 12));
+    const clampedY = Math.max(12, Math.min(y, window.innerHeight - scaledHeight - 12));
 
     return { clampedX, clampedY };
   }, [x, y, visualScale]);
 
   if (!isOpen) return null;
 
-  const btnClass = isDark
-    ? 'hover:bg-slate-800/90 text-slate-200 hover:text-white'
-    : 'hover:bg-slate-100 text-slate-700 hover:text-slate-900';
-
-  const dividerClass = isDark ? 'bg-slate-800' : 'bg-slate-200';
-
   return createPortal(
     <div
       ref={menuRef}
       style={{
+        position: 'fixed',
         left: `${adjustedPos.clampedX}px`,
         top: `${adjustedPos.clampedY}px`,
         transform: `scale(${visualScale})`,
         transformOrigin: 'top left',
+        zIndex: 9999,
       }}
       onContextMenu={(e) => e.preventDefault()}
-      className={`fixed z-50 w-64 sm:w-68 rounded-sm border shadow-sm py-2 px-1.5 select-none font-sans text-sm transition-opacity animate-in fade-in zoom-in-95 duration-100 ${
-        isDark
-          ? 'bg-slate-900/95 border-slate-800 text-slate-100 backdrop-blur-md'
-          : 'bg-white/95 border-slate-200 text-slate-800 backdrop-blur-md'
-      }`}
+      className="animate-in fade-in zoom-in-95 duration-100"
     >
-      {selectedNoteIds.length === 0 ? (
-        <>
-          <div className="px-3 py-1.5 mb-1 flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-800/50">
-            <span>Canvas Actions</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              onPasteFromClipboard?.();
-              onClose();
-            }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
-          >
-            <Clipboard className="w-4 h-4 text-slate-400 shrink-0" />
-            <span className="flex-1 truncate">Paste Note from Clipboard</span>
-            <span className="text-xs font-mono text-slate-400">{getPlatformMetaKey()}+V</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              onCreateNoteHere?.();
-              onClose();
-            }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
-          >
-            <Plus className="w-4 h-4 text-slate-400 shrink-0" />
-            <span className="flex-1 truncate">New Note Here</span>
-            <span className="text-xs font-mono text-slate-400">Dbl-Click</span>
-          </button>
-
-          <div className={`my-1 h-px ${dividerClass}`} />
-
-          <button
-            type="button"
-            onClick={() => {
-              onSelectAllNotes?.();
-              onClose();
-            }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
-          >
-            <CheckSquare className="w-4 h-4 text-slate-400 shrink-0" />
-            <span className="flex-1 truncate">Select All Notes</span>
-            <span className="text-xs font-mono text-slate-400">{getPlatformMetaKey()}+A</span>
-          </button>
-        </>
-      ) : (
-        <>
-          {/* Header Info Badge */}
-          <div className="px-3 py-1.5 mb-1 flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-800/50">
-            <span className="truncate">
-              {isSingle ? (singleNote?.title || 'Untitled Note') : `${selectedNoteIds.length} notes selected`}
-            </span>
-            <CheckSquare className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
-          </div>
-
-          {/* 1. Zoom & Focus Note */}
-          <button
-            type="button"
-            onClick={() => {
-              if (singleNote) onNavigateToNote?.(singleNote.id);
-              else if (selectedNoteIds.length > 0) onNavigateToNote?.(selectedNoteIds[0]);
-              onClose();
-            }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
-          >
-            <Maximize2 className="w-4 h-4 text-slate-400 shrink-0" />
-            <span className="flex-1 truncate">Zoom to {isSingle ? 'Note' : 'Selection'}</span>
-            <span className="text-xs font-mono text-slate-400">{getPlatformAltKey()}+Click</span>
-          </button>
-
-          {/* 2. Edit Note (Single Selection) */}
-          {isSingle && (
-            <button
-              type="button"
+      <Menu minWidth="w-64 sm:w-68" className={isDark ? 'bg-slate-900/98 border-slate-800' : 'bg-white/98 border-slate-200'}>
+        {selectedNoteIds.length === 0 ? (
+          <>
+            <MenuGroupHeader>Canvas Actions</MenuGroupHeader>
+            <MenuItem
+              icon={ClipboardIcon}
+              label="Paste Note from Clipboard"
+              shortcut={`${getPlatformMetaKey()}+V`}
               onClick={() => {
-                if (singleNote) onEditNote?.(singleNote.id);
+                onPasteFromClipboard?.();
                 onClose();
               }}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
-            >
-              <Edit3 className="w-4 h-4 text-slate-400 shrink-0" />
-              <span className="flex-1 truncate">Edit Note</span>
-              <span className="text-xs font-mono text-slate-400">Enter</span>
-            </button>
-          )}
-
-          <div className={`my-1 h-px ${dividerClass}`} />
-
-          {/* 3. Pin / Unpin */}
-          <button
-            type="button"
-            onClick={() => {
-              onTogglePin?.(selectedNoteIds);
-              onClose();
-            }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
-          >
-            {isAllPinned ? (
-              <>
-                <PinOff className="w-4 h-4 text-slate-400 shrink-0" />
-                <span>Unpin Note{selectedNoteIds.length > 1 ? 's' : ''}</span>
-              </>
-            ) : (
-              <>
-                <Pin className="w-4 h-4 text-slate-400 shrink-0" />
-                <span>Pin Note{selectedNoteIds.length > 1 ? 's' : ''}</span>
-              </>
-            )}
-          </button>
-
-          {/* 4. Lock / Unlock */}
-          <button
-            type="button"
-            onClick={() => {
-              onLockNotes?.(selectedNoteIds);
-              onClose();
-            }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
-          >
-            {isAllLocked ? (
-              <>
-                <Unlock className="w-4 h-4 text-slate-400 shrink-0" />
-                <span>Unlock Note{selectedNoteIds.length > 1 ? 's' : ''}</span>
-              </>
-            ) : (
-              <>
-                <Lock className="w-4 h-4 text-slate-400 shrink-0" />
-                <span>Lock Access</span>
-              </>
-            )}
-          </button>
-
-          {/* 5. Group / Ungroup (Multi Selection) */}
-          {selectedNoteIds.length >= 2 && (
-            <button
-              type="button"
+            />
+            <MenuItem
+              icon={Add01Icon}
+              label="New Note Here"
+              shortcut="Dbl-Click"
               onClick={() => {
-                if (isAllGrouped) onUngroupNotes?.();
-                else onGroupNotes?.();
+                onCreateNoteHere?.();
                 onClose();
               }}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
-            >
-              <Layers className="w-4 h-4 text-slate-400 shrink-0" />
-              <span>{isAllGrouped ? 'Ungroup Notes' : 'Group Notes'}</span>
-              <span className="text-xs font-mono text-slate-400">{getPlatformMetaKey()}+G</span>
-            </button>
-          )}
-
-          {/* 6. Paper Theme Selector Submenu */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowThemePicker(!showThemePicker)}
-              className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <Palette className="w-4 h-4 text-slate-400 shrink-0" />
-                <span>Paper Theme</span>
-              </div>
-              <span className="text-xs text-slate-400">›</span>
-            </button>
-
-            {showThemePicker && (
-              <div
-                className={`p-2 my-1 rounded-sm border grid grid-cols-4 gap-1.5 ${
-                  isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
-                }`}
-              >
-                {PAPER_THEME_ITEMS.map((item) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    onClick={() => {
-                      onChangePaperTheme?.(selectedNoteIds, item.key);
-                      onClose();
-                    }}
-                    className={`w-full h-7 rounded-sm border transition-colors hover:border-blue-500 ${item.colorClass}`}
-                    title={item.label}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className={`my-1 h-px ${dividerClass}`} />
-
-          {/* 7. Backup (.json) */}
-          <button
-            type="button"
-            onClick={() => {
-              onExportNotes?.(selectedNoteIds, 'json');
-              onClose();
-            }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
-          >
-            <Download className="w-4 h-4 text-slate-400 shrink-0" />
-            <span>Backup ({isSingle ? 'Single' : 'Selected'}) (.json)</span>
-          </button>
-
-          {/* 8. Export Markdown (.md) */}
-          {isSingle && (
-            <button
-              type="button"
+            />
+            <MenuDivider />
+            <MenuItem
+              icon={CheckmarkSquare02Icon}
+              label="Select All Notes"
+              shortcut={`${getPlatformMetaKey()}+A`}
               onClick={() => {
-                onExportNotes?.(selectedNoteIds, 'md');
+                onSelectAllNotes?.();
                 onClose();
               }}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
-            >
-              <Download className="w-4 h-4 text-slate-400 shrink-0" />
-              <span>Export Markdown (.md)</span>
-            </button>
-          )}
+            />
+          </>
+        ) : (
+          <>
+            {/* Header info badge */}
+            <div className="px-2.5 py-1.5 mb-1 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                {isSingle
+                  ? singleNote?.title || 'Untitled Note'
+                  : `${selectedNoteIds.length} notes selected`}
+              </span>
+              <Badge variant="subtle" size="xs">
+                {selectedNoteIds.length}
+              </Badge>
+            </div>
 
-          {/* 9. Duplicate Note(s) */}
-          <button
-            type="button"
-            onClick={() => {
-              onDuplicateNotes?.(selectedNoteIds);
-              onClose();
-            }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${btnClass}`}
-          >
-            <Copy className="w-4 h-4 text-slate-400 shrink-0" />
-            <span>Duplicate Note{selectedNoteIds.length > 1 ? 's' : ''}</span>
-          </button>
+            {/* Actions */}
+            <MenuItem
+              icon={Maximize01Icon}
+              label={`Zoom to ${isSingle ? 'Note' : 'Selection'}`}
+              shortcut={`${getPlatformAltKey()}+Click`}
+              onClick={() => {
+                if (singleNote) onNavigateToNote?.(singleNote.id);
+                else if (selectedNoteIds.length > 0) onNavigateToNote?.(selectedNoteIds[0]);
+                onClose();
+              }}
+            />
 
-          <div className={`my-1 h-px ${dividerClass}`} />
+            {isSingle && (
+              <MenuItem
+                icon={Edit02Icon}
+                label="Edit Note"
+                shortcut="Enter"
+                onClick={() => {
+                  if (singleNote) onEditNote?.(singleNote.id);
+                  onClose();
+                }}
+              />
+            )}
 
-          {/* 10. Delete Note(s) */}
-          <button
-            type="button"
-            onClick={() => {
-              onDeleteNotes?.(selectedNoteIds);
-              onClose();
-            }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-colors text-left ${
-              isDark
-                ? 'hover:bg-rose-950/50 text-rose-400 hover:text-rose-300'
-                : 'hover:bg-rose-50 text-rose-600 hover:text-rose-700'
-            }`}
-          >
-            <Trash2 className="w-4 h-4 text-rose-500 shrink-0" />
-            <span>Delete Note{selectedNoteIds.length > 1 ? 's' : ''}</span>
-            <span className="text-xs font-mono opacity-70 ml-auto">Del</span>
-          </button>
-        </>
-      )}
+            <MenuDivider />
+
+            <MenuItem
+              icon={isAllPinned ? PinOffIcon : PinIcon}
+              label={isAllPinned ? `Unpin Note${selectedNoteIds.length > 1 ? 's' : ''}` : `Pin Note${selectedNoteIds.length > 1 ? 's' : ''}`}
+              onClick={() => {
+                onTogglePin?.(selectedNoteIds);
+                onClose();
+              }}
+            />
+
+            <MenuItem
+              icon={isAllLocked ? CircleUnlock01Icon : SecurityLockIcon}
+              label={isAllLocked ? `Unlock Note${selectedNoteIds.length > 1 ? 's' : ''}` : `Lock Access`}
+              onClick={() => {
+                onLockNotes?.(selectedNoteIds);
+                onClose();
+              }}
+            />
+
+            {selectedNoteIds.length >= 2 && (
+              <MenuItem
+                icon={Layers01Icon}
+                label={isAllGrouped ? 'Ungroup Notes' : 'Group Notes'}
+                shortcut={`${getPlatformMetaKey()}+G`}
+                onClick={() => {
+                  if (isAllGrouped) onUngroupNotes?.();
+                  else onGroupNotes?.();
+                  onClose();
+                }}
+              />
+            )}
+
+            {/* Paper Theme Submenu */}
+            <div className="relative">
+              <MenuItem
+                icon={PaintBoardIcon}
+                label="Paper Theme"
+                onClick={() => setShowThemePicker((prev) => !prev)}
+              />
+
+              {showThemePicker && (
+                <div
+                  className={`p-2 my-1 rounded-sm border grid grid-cols-4 gap-1.5 ${
+                    isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
+                  }`}
+                >
+                  {PAPER_THEME_ITEMS.map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => {
+                        onChangePaperTheme?.(selectedNoteIds, item.key);
+                        onClose();
+                      }}
+                      className={`w-full h-7 rounded-sm border transition-colors hover:border-blue-500 cursor-pointer ${item.colorClass}`}
+                      title={item.label}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <MenuDivider />
+
+            <MenuItem
+              icon={Download04Icon}
+              label={`Backup (${isSingle ? 'Single' : 'Selected'}) (.json)`}
+              onClick={() => {
+                onExportNotes?.(selectedNoteIds, 'json');
+                onClose();
+              }}
+            />
+
+            {isSingle && (
+              <MenuItem
+                icon={Download04Icon}
+                label="Export Markdown (.md)"
+                onClick={() => {
+                  onExportNotes?.(selectedNoteIds, 'md');
+                  onClose();
+                }}
+              />
+            )}
+
+            <MenuItem
+              icon={Copy01Icon}
+              label={`Duplicate Note${selectedNoteIds.length > 1 ? 's' : ''}`}
+              onClick={() => {
+                onDuplicateNotes?.(selectedNoteIds);
+                onClose();
+              }}
+            />
+
+            <MenuDivider />
+
+            <MenuItem
+              icon={Delete02Icon}
+              label={`Delete Note${selectedNoteIds.length > 1 ? 's' : ''}`}
+              danger
+              shortcut="Del"
+              onClick={() => {
+                onDeleteNotes?.(selectedNoteIds);
+                onClose();
+              }}
+            />
+          </>
+        )}
+      </Menu>
     </div>,
     document.body
   );

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Layers } from 'lucide-react';
+import { Layers01Icon } from '@hugeicons/core-free-icons';
+import { Icon, Badge } from './ui';
 import { Note, CanvasTheme } from '../types';
 import { GRID_SIZE } from '../constants/canvas';
 import { calculateGroupBounds } from '../utils/layoutUtils';
@@ -28,10 +29,18 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const currentGroupName = groupNotes[0]?.groupName || '';
   const [titleInput, setTitleInput] = useState(currentGroupName);
-  const [measuredBounds, setMeasuredBounds] = useState<{ minX: number; minY: number; maxX: number; maxY: number } | null>(null);
-  const [isDraggingGroup, setIsDraggingGroup] = useState(false);
+  const [measuredBounds, setMeasuredBounds] = useState<{
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+  } | null>(null);
 
-  const dragStartRef = useRef<{ startX: number; startY: number; notePositions: { id: string; x: number; y: number }[] } | null>(null);
+  const dragStartRef = useRef<{
+    startX: number;
+    startY: number;
+    notePositions: { id: string; x: number; y: number }[];
+  } | null>(null);
 
   useEffect(() => {
     setTitleInput(currentGroupName);
@@ -90,7 +99,6 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
     onSelectMultipleNotes?.(groupNotes.map((n) => n.id));
     onDragStateChange?.(groupNotes.map((n) => n.id));
 
-    setIsDraggingGroup(true);
     const initialFrameBounds = measuredBounds || calculateGroupBounds(groupNotes, 28, 42, 28);
     dragStartRef.current = {
       startX: e.clientX,
@@ -132,7 +140,6 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
     };
 
     const handleMouseUp = () => {
-      setIsDraggingGroup(false);
       onDragStateChange?.([]);
 
       if (pendingUpdate && onUpdateBatchNotes) {
@@ -191,14 +198,14 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
         width: `${width}px`,
         height: `${height}px`,
       }}
-      className={`absolute rounded-xl pointer-events-none transition-none ${containerBorder}`}
+      className={`absolute rounded-sm pointer-events-none transition-none ${containerBorder}`}
     >
       {/* Group Header Badge */}
       <div
         onMouseDown={handleBadgeMouseDown}
-        className={`absolute -top-3.5 left-3 px-2.5 py-1 rounded-md text-xs font-semibold tracking-wide flex items-center gap-2 pointer-events-auto select-none cursor-grab active:cursor-grabbing ${badgeStyle}`}
+        className={`absolute -top-3.5 left-3 px-2.5 py-1 rounded-sm text-xs font-semibold tracking-wide flex items-center gap-2 pointer-events-auto select-none cursor-grab active:cursor-grabbing ${badgeStyle}`}
       >
-        <Layers className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+        <Icon icon={Layers01Icon} size="xs" className="text-blue-500 shrink-0" />
         {isEditing ? (
           <input
             type="text"
@@ -212,7 +219,7 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
             }}
             autoFocus
             placeholder={`Group (${groupNotes.length} notes)`}
-            className="bg-transparent border-b border-blue-500 text-xs font-semibold focus:outline-none px-0.5 py-0 min-w-[120px] cursor-text"
+            className="bg-transparent border-b border-blue-500 text-xs font-semibold focus:outline-none px-0.5 py-0 min-w-[120px] cursor-text text-slate-900 dark:text-slate-100"
           />
         ) : (
           <button
@@ -221,15 +228,15 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
               e.stopPropagation();
               setIsEditing(true);
             }}
-            className="hover:underline flex items-center gap-1.5 font-semibold"
+            className="hover:underline flex items-center gap-1.5 font-semibold cursor-pointer"
             title="Click to rename group"
           >
             <span>{displayName}</span>
           </button>
         )}
-        <span className="text-[10px] opacity-60 font-mono px-1 rounded bg-blue-500/10 text-blue-500">
+        <Badge variant="subtle" size="xs">
           {groupNotes.length}
-        </span>
+        </Badge>
       </div>
     </div>
   );

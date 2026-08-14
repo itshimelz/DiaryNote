@@ -1,5 +1,12 @@
 import React from 'react';
-import { Sparkles, ExternalLink, X, Globe, Info, BookOpen } from 'lucide-react';
+import {
+  SparklesIcon,
+  LinkSquare02Icon,
+  Cancel01Icon,
+  InformationCircleIcon,
+  BookOpen01Icon,
+} from '@hugeicons/core-free-icons';
+import { Button, IconButton, Badge, Icon } from './ui';
 import { ReleaseInfo, dismissUpdateAlert, CURRENT_VERSION } from '../utils/updateChecker';
 import { CanvasTheme } from '../types';
 
@@ -29,7 +36,7 @@ export const UpdateAlertBanner: React.FC<UpdateAlertBannerProps> = ({
 
   return (
     <div
-      className={`fixed top-4 right-4 z-[99999] max-w-sm w-full animate-in slide-in-from-top-4 duration-200 rounded-md shadow-sm border p-4 overflow-hidden transition-opacity select-none font-sans ${
+      className={`fixed top-4 right-4 z-[99999] max-w-sm w-full animate-in slide-in-from-top-4 duration-200 rounded-sm shadow-sm border p-4 overflow-hidden transition-opacity select-none font-sans ${
         isDark
           ? 'bg-slate-900 border-slate-800 text-slate-100'
           : 'bg-white border-slate-200 text-slate-900'
@@ -43,24 +50,20 @@ export const UpdateAlertBanner: React.FC<UpdateAlertBannerProps> = ({
         }`}
       >
         <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
+          <Icon icon={SparklesIcon} size="md" className="text-amber-500 animate-pulse" />
           <h4 className="font-bold text-sm tracking-tight">New Update Available</h4>
         </div>
 
-        <button
+        <IconButton
+          size="xs"
+          variant="ghost"
+          icon={Cancel01Icon}
+          aria-label="Dismiss alert"
           onClick={handleDismiss}
-          className={`p-1 rounded-sm transition-colors ${
-            isDark
-              ? 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
-              : 'hover:bg-slate-100 text-slate-500 hover:text-slate-800'
-          }`}
-          title="Dismiss"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
+        />
       </div>
 
-      {/* Content Body - Styled 100% Identically to AboutModal Cards */}
+      {/* Content Body - Styled Identically to AboutModal Cards */}
       <div className="space-y-2.5 text-xs">
         {/* App Title & Version Badge Box */}
         <div
@@ -72,8 +75,12 @@ export const UpdateAlertBanner: React.FC<UpdateAlertBannerProps> = ({
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className={`p-1 rounded-sm ${isDark ? 'bg-slate-700 text-slate-200' : 'bg-slate-200 text-slate-800'}`}>
-                <BookOpen className="w-3.5 h-3.5" />
+              <div
+                className={`p-1 rounded-sm ${
+                  isDark ? 'bg-slate-700 text-slate-200' : 'bg-slate-200 text-slate-800'
+                }`}
+              >
+                <Icon icon={BookOpen01Icon} size="xs" />
               </div>
               <div>
                 <h5 className="font-bold text-xs leading-tight">DiaryNote</h5>
@@ -82,13 +89,13 @@ export const UpdateAlertBanner: React.FC<UpdateAlertBannerProps> = ({
                 </p>
               </div>
             </div>
-            <span className="font-mono text-xs font-bold px-2 py-0.5 rounded-sm bg-blue-500/10 text-blue-500 border border-blue-500/20">
+            <Badge variant="info" size="xs">
               {release.tagName}
-            </span>
+            </Badge>
           </div>
         </div>
 
-        {/* Update Highlight Status Box (Matching AboutModal Status Banner) */}
+        {/* Update Highlight Status Box */}
         <div
           className={`p-2.5 rounded-sm border flex items-start gap-2 animate-in fade-in transition-colors ${
             isDark
@@ -96,7 +103,7 @@ export const UpdateAlertBanner: React.FC<UpdateAlertBannerProps> = ({
               : 'bg-emerald-50 border-emerald-300 text-emerald-900'
           }`}
         >
-          <Sparkles className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+          <Icon icon={SparklesIcon} size="xs" className="text-emerald-500 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-[11px] leading-snug">
               Version {release.tagName} released on GitHub (installed v{CURRENT_VERSION})!
@@ -105,46 +112,42 @@ export const UpdateAlertBanner: React.FC<UpdateAlertBannerProps> = ({
         </div>
       </div>
 
-      {/* Footer Actions (Matching AboutModal Footer Buttons) */}
+      {/* Footer Actions */}
       <div
         className={`mt-3 pt-2.5 border-t flex items-center justify-between transition-colors ${
           isDark ? 'border-slate-800' : 'border-slate-200/80'
         }`}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {onOpenAbout && (
-            <button
+            <Button
+              size="xs"
+              variant="ghost"
+              icon={InformationCircleIcon}
               onClick={onOpenAbout}
-              className={`flex items-center gap-1 text-[11px] font-semibold hover:underline ${
-                isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
-              }`}
             >
-              <Info className="w-3 h-3" />
-              <span>About</span>
-            </button>
+              About
+            </Button>
           )}
 
-          <button
+          <Button
+            size="xs"
+            variant="ghost"
             onClick={handleDismiss}
-            className={`text-[10px] font-medium transition-colors ${
-              isDark ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-700'
-            }`}
           >
             Remind later
-          </button>
+          </Button>
         </div>
 
-        <button
+        <Button
+          size="xs"
+          variant="primary"
+          icon={LinkSquare02Icon}
+          iconPosition="right"
           onClick={handleViewRelease}
-          className={`flex items-center gap-1 px-3 py-1.5 rounded-sm font-semibold text-xs transition-colors cursor-pointer ${
-            isDark
-              ? 'bg-white text-slate-900 hover:bg-slate-100'
-              : 'bg-slate-900 text-white hover:bg-slate-800'
-          }`}
         >
-          <span>View Release</span>
-          <ExternalLink className="w-3 h-3" />
-        </button>
+          View Release
+        </Button>
       </div>
     </div>
   );

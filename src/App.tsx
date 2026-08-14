@@ -524,7 +524,7 @@ export default function App() {
       setSecurityModalMode('unlock');
       return;
     }
-    const cleanTitle = (note.title || 'Untitled_Note').trim().replace(/[^a-z0-9_\-]/gi, '_');
+    const cleanTitle = (note.title || 'Untitled_Note').trim().replace(/[^a-z0-9_-]/gi, '_');
     const dateStr = new Date().toISOString().slice(0, 10);
     const fileName = `${cleanTitle}_${dateStr}.${format}`;
 
@@ -687,41 +687,30 @@ export default function App() {
       {/* Docked Bottom Control Bar Container */}
       {!isZenMode && (
         <motion.div
+          key="bottom-dock-container"
           layout
-          initial={false}
-          animate={{
-            borderRadius: selectedNoteIds.length >= 2
-              ? '10px 10px 4px 4px'
-              : '4px 4px 10px 10px',
-          }}
           transition={{
-            layout: { duration: 0.16, ease: [0.16, 1, 0.3, 1] },
-            borderRadius: selectedNoteIds.length >= 2
-              ? { duration: 0.15, ease: 'easeOut' }
-              : { duration: 0.18, ease: 'easeOut', delay: 0.16 },
+            layout: { duration: 0.22, ease: [0.16, 1, 0.3, 1] },
           }}
-          className={`fixed ${showStatusBar ? 'bottom-10' : 'bottom-6'} left-1/2 -translate-x-1/2 z-40 flex flex-col items-center border shadow-sm select-none min-w-[320px] sm:min-w-[540px] md:min-w-[640px] w-auto max-w-[calc(100vw-24px)] transition-[bottom] duration-200 ${
-            selectedNoteIds.length >= 2 ? 'overflow-visible' : 'overflow-hidden'
-          } ${
+          className={`fixed ${showStatusBar ? 'bottom-10' : 'bottom-6'} left-1/2 -translate-x-1/2 z-40 flex flex-col items-center border shadow-sm select-none rounded-sm min-w-[320px] sm:min-w-[540px] md:min-w-[640px] w-auto max-w-[calc(100vw-24px)] transition-[bottom] duration-200 overflow-hidden backdrop-blur-md ${
             settings.themeMode === 'light'
               ? 'bg-white/95 border-slate-200 text-slate-800'
               : 'bg-slate-900/90 border-slate-800 text-slate-200'
           }`}
         >
-          {/* Batch Action Bar Header */}
+          {/* Integrated Batch Action Bar Header */}
           <AnimatePresence initial={false}>
             {selectedNoteIds.length >= 2 && (
               <motion.div
                 key="batch-menu-wrapper"
-                initial={{ height: 0, opacity: 0, y: 15 }}
-                animate={{ height: 'auto', opacity: 1, y: 0 }}
-                exit={{ height: 0, opacity: 0, y: 15 }}
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
                 transition={{
-                  height: { duration: 0.16, ease: [0.16, 1, 0.3, 1] },
-                  y: { duration: 0.16, ease: [0.16, 1, 0.3, 1] },
-                  opacity: { duration: 0.12, ease: 'linear' },
+                  height: { duration: 0.22, ease: [0.16, 1, 0.3, 1] },
+                  opacity: { duration: 0.16, ease: 'easeOut' },
                 }}
-                className="w-full relative z-10 overflow-visible origin-bottom"
+                className="w-full relative z-10 overflow-hidden"
               >
                 <BatchActionBar
                   selectedNoteIds={selectedNoteIds}
@@ -743,9 +732,7 @@ export default function App() {
           </AnimatePresence>
 
           {/* Primary Canvas Controls Row */}
-          <div className={`w-full relative z-20 rounded-b-[inherit] ${
-            settings.themeMode === 'light' ? 'bg-white/95' : 'bg-slate-900/90'
-          }`}>
+          <div className="w-full relative z-20">
             <CanvasControls
               notes={notes}
               zoom={transform.zoom}

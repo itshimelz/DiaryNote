@@ -1,18 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState } from 'react';
 import {
-  X,
-  Github,
-  Globe,
-  RefreshCw,
-  Sparkles,
-  CheckCircle2,
-  ExternalLink,
-  BookOpen,
-  Layers,
-  ShieldCheck,
-  Info,
-} from 'lucide-react';
+  InformationCircleIcon,
+  RotateLeft01Icon,
+  SparklesIcon,
+  CheckmarkCircle02Icon,
+  BookOpen01Icon,
+  Layers01Icon,
+  SecurityLockIcon,
+  Globe02Icon,
+  LinkSquare02Icon,
+  GithubIcon,
+} from '@hugeicons/core-free-icons';
 import {
   CURRENT_VERSION,
   REPO_URL,
@@ -20,6 +18,7 @@ import {
   ReleaseInfo,
 } from '../../utils/updateChecker';
 import { CanvasTheme } from '../../types';
+import { Dialog, DialogHeader, DialogBody, DialogFooter, Button, Badge, Icon } from '../ui';
 
 interface AboutModalProps {
   isOpen: boolean;
@@ -30,7 +29,7 @@ interface AboutModalProps {
 export const AboutModal: React.FC<AboutModalProps> = ({
   isOpen,
   onClose,
-  themeMode = 'dark',
+  themeMode: _themeMode,
 }) => {
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [updateResult, setUpdateResult] = useState<{
@@ -39,20 +38,6 @@ export const AboutModal: React.FC<AboutModalProps> = ({
     latestRelease?: ReleaseInfo;
     message?: string;
   }>({ checked: false, hasUpdate: false });
-
-  const isDark = themeMode !== 'light';
-
-  // Handle ESC key to close modal
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -79,234 +64,165 @@ export const AboutModal: React.FC<AboutModalProps> = ({
     }
   };
 
-  return createPortal(
-    <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-200 animate-in fade-in select-none font-sans ${
-        isDark ? 'bg-black/60 backdrop-blur-sm' : 'bg-slate-950/40 backdrop-blur-sm'
-      }`}
-      onClick={onClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className={`w-full max-w-md rounded-md shadow-sm border p-5 overflow-hidden transition-opacity duration-200 ${
-          isDark
-            ? 'bg-slate-900 border-slate-800 text-slate-100'
-            : 'bg-white border-slate-200 text-slate-900'
-        }`}
-      >
-        {/* Header */}
-        <div
-          className={`flex items-center justify-between pb-3 mb-3.5 border-b transition-colors ${
-            isDark ? 'border-slate-800' : 'border-slate-200/80'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <Info className={`w-4 h-4 ${isDark ? 'text-slate-300' : 'text-slate-700'}`} />
-            <h2 className="font-bold text-sm tracking-tight leading-none">About DiaryNote</h2>
-          </div>
+  return (
+    <Dialog isOpen={isOpen} onClose={onClose} maxWidthClass="max-w-lg">
+      <DialogHeader
+        title={
+          <span className="flex items-center gap-2">
+            <Icon icon={InformationCircleIcon} size="md" />
+            <span>About DiaryNote</span>
+          </span>
+        }
+        onClose={onClose}
+      />
 
-          <button
-            onClick={onClose}
-            className={`p-1 rounded-sm transition-colors cursor-pointer ${
-              isDark
-                ? 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
-                : 'hover:bg-slate-100 text-slate-500 hover:text-slate-800'
-            }`}
-            title="Close (Esc)"
-          >
-            <X className="w-4 h-4" />
-          </button>
+      <DialogBody className="space-y-4 text-xs pr-1">
+        {/* Main App Title Banner */}
+        <div className="p-3 rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 flex items-center justify-center">
+                <Icon icon={BookOpen01Icon} size="md" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm leading-tight text-slate-900 dark:text-slate-100">
+                  DiaryNote
+                </h3>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                  Desktop Canvas Workspace & Graph Journal
+                </p>
+              </div>
+            </div>
+            <Badge variant="default" size="sm">
+              v{CURRENT_VERSION}
+            </Badge>
+          </div>
         </div>
 
-        {/* Content Body */}
-        <div className="space-y-3 text-xs">
-          {/* Main App Title Banner */}
-          <div
-            className={`p-3 rounded-sm border transition-colors ${
-              isDark
-                ? 'bg-slate-800/40 border-slate-700/50'
-                : 'bg-slate-50 border-slate-200/90'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className={`p-1.5 rounded-sm ${isDark ? 'bg-slate-800 text-slate-200 border border-slate-700' : 'bg-white text-slate-800 border border-slate-200'}`}>
-                  <BookOpen className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm leading-tight">DiaryNote</h3>
-                  <p className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                    Desktop Canvas Workspace & Graph Journal
-                  </p>
-                </div>
-              </div>
-              <span className={`font-mono text-xs font-bold px-2 py-0.5 rounded-sm border ${
-                isDark ? 'bg-slate-800 text-slate-200 border-slate-700' : 'bg-slate-100 text-slate-800 border-slate-300'
-              }`}>
-                v{CURRENT_VERSION}
-              </span>
-            </div>
+        {/* Version & Live Update Checker Card */}
+        <div className="p-3 rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex items-center justify-between gap-3">
+          <div>
+            <span className="font-semibold block text-slate-900 dark:text-slate-100">
+              Release Channel
+            </span>
+            <p className="text-[11px] mt-0.5 text-slate-600 dark:text-slate-400">
+              v{CURRENT_VERSION} (Installed)
+            </p>
           </div>
 
-          {/* Version & Live Update Checker Card */}
+          <Button
+            size="xs"
+            variant="secondary"
+            icon={RotateLeft01Icon}
+            loading={checkingUpdate}
+            onClick={handleCheckUpdate}
+          >
+            {checkingUpdate ? 'Checking...' : 'Check Updates'}
+          </Button>
+        </div>
+
+        {/* Update Check Result Banner */}
+        {updateResult.checked && (
           <div
-            className={`p-3 rounded-sm border flex items-center justify-between gap-3 transition-colors ${
-              isDark
-                ? 'bg-slate-800/40 border-slate-700/50'
-                : 'bg-slate-50 border-slate-200/90'
+            className={`p-2.5 rounded-sm border flex items-start gap-2 animate-in fade-in transition-colors ${
+              updateResult.hasUpdate
+                ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800/60 text-amber-900 dark:text-amber-300'
+                : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-300'
             }`}
           >
-            <div>
-              <span className={`font-semibold block ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                Release Channel
-              </span>
-              <p className={`text-[11px] mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                v{CURRENT_VERSION} (Installed)
-              </p>
-            </div>
-
-            <button
-              onClick={handleCheckUpdate}
-              disabled={checkingUpdate}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm border font-semibold text-xs transition-colors cursor-pointer ${
-                isDark
-                  ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200'
-                  : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-800'
-              }`}
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${checkingUpdate ? 'animate-spin' : ''}`} />
-              <span>{checkingUpdate ? 'Checking...' : 'Check Updates'}</span>
-            </button>
-          </div>
-
-          {/* Update Check Result Banner */}
-          {updateResult.checked && (
-            <div
-              className={`p-2.5 rounded-sm border flex items-start gap-2 animate-in fade-in transition-colors ${
-                updateResult.hasUpdate
-                  ? isDark
-                    ? 'bg-amber-950/40 border-amber-800/60 text-amber-300'
-                    : 'bg-amber-50 border-amber-300 text-amber-900'
-                  : isDark
-                  ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-300'
-                  : 'bg-emerald-50 border-emerald-300 text-emerald-900'
-              }`}
-            >
-              {updateResult.hasUpdate ? (
-                <Sparkles className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
-              ) : (
-                <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-400" />
+            {updateResult.hasUpdate ? (
+              <Icon icon={SparklesIcon} size="sm" className="shrink-0 mt-0.5 text-amber-500" />
+            ) : (
+              <Icon
+                icon={CheckmarkCircle02Icon}
+                size="sm"
+                className="shrink-0 mt-0.5 text-emerald-500"
+              />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-xs">{updateResult.message}</p>
+              {updateResult.hasUpdate && updateResult.latestRelease && (
+                <a
+                  href={updateResult.latestRelease.htmlUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 mt-1 text-[11px] font-bold underline hover:opacity-80"
+                >
+                  <span>Download {updateResult.latestRelease.tagName} on GitHub</span>
+                  <Icon icon={LinkSquare02Icon} size="xs" />
+                </a>
               )}
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-xs">{updateResult.message}</p>
-                {updateResult.hasUpdate && updateResult.latestRelease && (
-                  <a
-                    href={updateResult.latestRelease.htmlUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 mt-1 text-[11px] font-bold underline hover:opacity-80"
-                  >
-                    <span>Download {updateResult.latestRelease.tagName} on GitHub</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Feature Highlights Overview */}
-          <div className="grid grid-cols-2 gap-2">
-            <div
-              className={`p-2.5 rounded-sm border transition-colors ${
-                isDark ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50 border-slate-200/90'
-              }`}
-            >
-              <div className="flex items-center gap-1.5 font-semibold mb-0.5">
-                <Layers className="w-3.5 h-3.5" />
-                <span>Infinite Canvas</span>
-              </div>
-              <p className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                Visual note placement, zoom, and spatial links.
-              </p>
-            </div>
-
-            <div
-              className={`p-2.5 rounded-sm border transition-colors ${
-                isDark ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50 border-slate-200/90'
-              }`}
-            >
-              <div className="flex items-center gap-1.5 font-semibold mb-0.5">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Local Privacy</span>
-              </div>
-              <p className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                Passcode protection & offline storage.
-              </p>
             </div>
           </div>
+        )}
 
-          {/* Repository & License Details */}
-          <div
-            className={`p-3 rounded-sm border space-y-2 transition-colors ${
-              isDark ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50 border-slate-200/90'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className={`font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                Repository
-              </span>
-              <a
-                href={REPO_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 font-mono text-xs font-semibold hover:underline"
-              >
-                <Github className="w-3.5 h-3.5" />
-                <span>itshimelz/DiaryNote</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
+        {/* Feature Highlights Overview */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="p-2.5 rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
+            <div className="flex items-center gap-1.5 font-semibold text-slate-900 dark:text-slate-200 mb-0.5">
+              <Icon icon={Layers01Icon} size="sm" />
+              <span>Infinite Canvas</span>
             </div>
+            <p className="text-[11px] text-slate-600 dark:text-slate-400">
+              Visual note placement, zoom, and spatial links.
+            </p>
+          </div>
 
-            <div className="flex items-center justify-between">
-              <span className={`font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                License & Author
-              </span>
-              <span className={`font-mono text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                MIT &copy; itshimelz
-              </span>
+          <div className="p-2.5 rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
+            <div className="flex items-center gap-1.5 font-semibold text-slate-900 dark:text-slate-200 mb-0.5">
+              <Icon icon={SecurityLockIcon} size="sm" />
+              <span>Local Privacy</span>
             </div>
+            <p className="text-[11px] text-slate-600 dark:text-slate-400">
+              Passcode protection & offline storage.
+            </p>
           </div>
         </div>
 
-        {/* Footer Actions */}
-        <div className={`mt-4 pt-3 border-t flex items-center justify-between transition-colors ${
-          isDark ? 'border-slate-800' : 'border-slate-200/80'
-        }`}>
+        {/* Repository & License Details */}
+        <div className="p-3 rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-slate-700 dark:text-slate-300">Repository</span>
+            <a
+              href={REPO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 font-mono text-xs font-semibold text-slate-800 dark:text-slate-200 hover:underline"
+            >
+              <Icon icon={GithubIcon} size="sm" />
+              <span>itshimelz/DiaryNote</span>
+              <Icon icon={LinkSquare02Icon} size="xs" />
+            </a>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-slate-700 dark:text-slate-300">
+              License & Author
+            </span>
+            <span className="font-mono text-xs text-slate-600 dark:text-slate-400">
+              MIT &copy; itshimelz
+            </span>
+          </div>
+        </div>
+      </DialogBody>
+
+      <DialogFooter>
+        <div className="w-full flex items-center justify-between">
           <a
             href={`${REPO_URL}/releases`}
             target="_blank"
             rel="noopener noreferrer"
-            className={`flex items-center gap-1 text-xs font-semibold hover:underline ${
-              isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
-            }`}
+            className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:underline"
           >
-            <Globe className="w-3.5 h-3.5" />
+            <Icon icon={Globe02Icon} size="xs" />
             <span>Releases</span>
           </a>
 
-          <button
-            onClick={onClose}
-            className={`px-3.5 py-1.5 rounded-sm font-semibold text-xs transition-colors cursor-pointer ${
-              isDark
-                ? 'bg-white text-slate-900 hover:bg-slate-100'
-                : 'bg-slate-900 text-white hover:bg-slate-800'
-            }`}
-          >
+          <Button variant="primary" size="sm" onClick={onClose}>
             Close
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>,
-    document.body
+      </DialogFooter>
+    </Dialog>
   );
 };

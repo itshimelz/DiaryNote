@@ -46,7 +46,7 @@ export const NoteSchema = z.object({
   createdTimestamp: z.number().optional(),
   updatedTimestamp: z.number().optional(),
   fontFamily: HandFontSchema.default('sans'),
-  fontSize: z.enum(['sm', 'md', 'lg', 'xl']).default('sm'),
+  fontSize: z.enum(['sm', 'md', 'lg', 'xl']).default('md'),
   paperTheme: PaperThemeSchema.default('white'),
   isPinned: z.boolean().optional().default(false),
   zIndex: z.number().default(1),

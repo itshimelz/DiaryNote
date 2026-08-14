@@ -54,6 +54,7 @@ export function useNotesManager(
       const dirtyIds = new Set(dirtyNoteIdsRef.current);
       if (dirtyIds.size > 0) {
         setIsSaving(true);
+        const startTime = Date.now();
         // Only write modified notes to DB
         const dirtyNotes = notes.filter(n => dirtyIds.has(n.id));
         const success = await saveDirtyNotesToDB(dirtyNotes);
@@ -66,6 +67,11 @@ export function useNotesManager(
           setSaveError(null);
         } else {
           setSaveError('Failed to save changes to local database');
+        }
+        // Ensure a minimum smooth 350ms display so isSaving doesn't flash on/off in 3ms
+        const elapsed = Date.now() - startTime;
+        if (elapsed < 350) {
+          await new Promise((resolve) => setTimeout(resolve, 350 - elapsed));
         }
         setIsSaving(false);
       }
@@ -134,7 +140,7 @@ export function useNotesManager(
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         fontFamily: settings.defaultFont || 'sans',
-        fontSize: 'sm',
+        fontSize: 'md',
         paperTheme: 'white',
         activeMode: 'text',
         isPinned: false,
@@ -202,7 +208,7 @@ export function useNotesManager(
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         fontFamily: settings.defaultFont || 'sans',
-        fontSize: 'sm',
+        fontSize: 'md',
         paperTheme: 'cream',
         activeMode: 'text',
         isPinned: true,

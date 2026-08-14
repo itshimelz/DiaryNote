@@ -338,6 +338,20 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
       let selectionFrame: number | null = null;
       let latestMouseEvt: MouseEvent | null = null;
 
+      // Pre-measure real dynamic card dimensions once on drag start (zero reflow during mousemove)
+      const noteBounds = notes.map((n) => {
+        const el = document.getElementById(`note-card-${n.id}`) || document.querySelector(`[data-note-id="${n.id}"]`);
+        const actualW = el instanceof HTMLElement ? el.offsetWidth : n.width || DEFAULT_NOTE_WIDTH;
+        const actualH = el instanceof HTMLElement ? el.offsetHeight : n.height || DEFAULT_NOTE_HEIGHT;
+        return {
+          id: n.id,
+          x: n.x,
+          y: n.y,
+          w: actualW,
+          h: actualH,
+        };
+      });
+
       const areArraysEqual = (a: string[], b: string[]) => {
         if (a.length !== b.length) return false;
         for (let i = 0; i < a.length; i++) {
@@ -372,12 +386,14 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
         const boxMaxY = (selBottom - transform.y) / transform.zoom;
 
         const newlyMatchedIds: string[] = [];
-        for (let i = 0; i < notes.length; i++) {
-          const n = notes[i];
-          const w = n.width || DEFAULT_NOTE_WIDTH;
-          const h = n.height || DEFAULT_NOTE_HEIGHT;
-          if (n.x + w >= boxMinX && n.x <= boxMaxX && n.y + h >= boxMinY && n.y <= boxMaxY) {
-            newlyMatchedIds.push(n.id);
+        for (let i = 0; i < noteBounds.length; i++) {
+          const nb = noteBounds[i];
+          // Check 2D Axis-Aligned Bounding Box (AABB) intersection:
+          // A note card is selected as soon as the selection box touches ANY part of the card
+          const overlapsX = nb.x + nb.w >= boxMinX && nb.x <= boxMaxX;
+          const overlapsY = nb.y + nb.h >= boxMinY && nb.y <= boxMaxY;
+          if (overlapsX && overlapsY) {
+            newlyMatchedIds.push(nb.id);
           }
         }
 

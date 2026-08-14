@@ -1,5 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Check, Plus, Trash2, ListTodo } from 'lucide-react';
+import {
+  Tick02Icon,
+  Add01Icon,
+  Delete02Icon,
+  CheckListIcon,
+} from '@hugeicons/core-free-icons';
+import { Icon, IconButton } from '../ui';
 import { Note, PaperTheme } from '../../types';
 import { SmartMarkdownText } from './SmartMarkdownText';
 import { PAPER_THEMES } from './types';
@@ -63,37 +69,37 @@ const ChecklistItemRowComponent: React.FC<ChecklistItemRowProps> = ({
         <div className={`flex-1 font-bold text-sm uppercase tracking-wider ${themeConfig.text}`}>
           {item.text}
         </div>
-        <button
-          type="button"
+        <IconButton
+          size="xs"
+          variant="danger"
+          icon={Delete02Icon}
+          aria-label="Delete section header"
           onClick={() => onDeleteItem(item.id)}
-          className={`opacity-0 group-hover:opacity-100 p-1 ${themeConfig.subtext} hover:text-rose-500 shrink-0`}
-          title="Delete section header"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
+          className="opacity-0 group-hover:opacity-100 shrink-0"
+        />
       </div>
     );
   }
 
   return (
     <div
-      className={`flex items-start gap-2.5 px-2 py-1.5 rounded-xl ${themeConfig.hoverBg} group ${
+      className={`flex items-start gap-2.5 px-2 py-1.5 rounded-sm ${themeConfig.hoverBg} group ${
         isRuled ? 'ruled-text-alignment' : ''
       }`}
     >
-      {/* Custom rounded square checkbox with 36px expanded touch target */}
+      {/* Custom rounded square checkbox with expanded touch target */}
       <button
         type="button"
         onClick={() => onToggleItem(item.id)}
         style={isRuled ? { marginTop: '2px' } : { marginTop: '-2px' }}
-        className="shrink-0 w-9 h-9 -m-2 flex items-center justify-center rounded-lg transition-colors select-none group/chk"
+        className="shrink-0 w-9 h-9 -m-2 flex items-center justify-center rounded-sm transition-colors select-none group/chk cursor-pointer"
       >
         <span
-          className={`w-4.5 h-4.5 rounded-md border-2 flex items-center justify-center transition-transform group-hover/chk:scale-105 ${
+          className={`w-4.5 h-4.5 rounded-sm border-2 flex items-center justify-center transition-transform group-hover/chk:scale-105 ${
             item.completed ? themeConfig.checkboxChecked : themeConfig.checkboxUnchecked
           }`}
         >
-          {item.completed && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+          {item.completed && <Icon icon={Tick02Icon} size="xs" className="stroke-[3]" />}
         </span>
       </button>
 
@@ -164,14 +170,14 @@ const ChecklistItemRowComponent: React.FC<ChecklistItemRowProps> = ({
       )}
 
       {/* Delete button */}
-      <button
-        type="button"
+      <IconButton
+        size="xs"
+        variant="danger"
+        icon={Delete02Icon}
+        aria-label="Delete task"
         onClick={() => onDeleteItem(item.id)}
-        className={`opacity-0 group-hover:opacity-100 p-1.5 ${themeConfig.subtext} hover:text-rose-500 rounded-md shrink-0 transition-opacity`}
-        title="Delete task"
-      >
-        <Trash2 className="w-4.5 h-4.5" />
-      </button>
+        className="opacity-0 group-hover:opacity-100 shrink-0"
+      />
     </div>
   );
 };
@@ -343,7 +349,7 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
             onClick={() => addInputRef.current?.focus()}
             className="flex-1 flex flex-col items-center justify-center p-6 text-center cursor-pointer select-none opacity-60 hover:opacity-100 transition-opacity"
           >
-            <ListTodo className="w-8 h-8 mb-2 opacity-50" />
+            <Icon icon={CheckListIcon} size="xl" className="mb-2 opacity-50" />
             <p className="text-xs font-semibold">No tasks yet</p>
             <p className="text-[11px] opacity-75 mt-0.5">Type below and press Enter to add a task.</p>
           </div>
@@ -388,19 +394,16 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
               e.currentTarget.blur();
             }
           }}
-          className={`flex-1 ${themeConfig.inputBg} border ${themeConfig.inputBorder} rounded-xl px-3 py-1.5 text-xs outline-none transition-colors`}
+          className={`flex-1 ${themeConfig.inputBg} border ${themeConfig.inputBorder} rounded-sm px-3 py-1.5 text-xs outline-none transition-colors`}
         />
-        <button
-          type="submit"
-          className={`p-2 ${
-            themeConfig.isDark
-              ? 'bg-blue-600 hover:bg-blue-500 text-white'
-              : 'bg-slate-900 hover:bg-slate-800 text-white'
-          } rounded-xl transition-colors shrink-0 shadow-2xs`}
-          title="Add task"
-        >
-          <Plus className="w-5 h-5" />
-        </button>
+        <IconButton
+          size="sm"
+          variant="primary"
+          icon={Add01Icon}
+          aria-label="Add task"
+          onClick={() => {}}
+          className="shrink-0"
+        />
       </form>
     </div>
   );

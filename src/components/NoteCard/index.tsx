@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Lock, FolderPlus } from 'lucide-react';
+import { SecurityLockIcon, FolderAddIcon } from '@hugeicons/core-free-icons';
+import { Icon } from '../ui';
 import { NoteCardProps, NoteMode, FONT_CLASSES, PAPER_THEMES } from './types';
 import { NoteHeader } from './NoteHeader';
 import { NoteToolbar } from './NoteToolbar';
@@ -23,7 +24,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
   zoom,
   isSelected,
   selectedNoteIds = [],
-  isFocused,
+  isFocused: _isFocused,
   onSelectNote,
   onNavigateToNote,
   onUpdateNote,
@@ -162,7 +163,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
     const cursorIndex = textareaRef.current.selectionStart || val.length;
     const textBeforeCursor = val.slice(0, cursorIndex);
     const textAfterCursor = val.slice(cursorIndex);
-    const newBefore = textBeforeCursor.replace(/(?:^|\s)@([a-zA-Z0-9\s\_-]*)$/, (m) => {
+    const newBefore = textBeforeCursor.replace(/(?:^|\s)@([a-zA-Z0-9\s_-]*)$/, (m) => {
       const leadingSpace = m.startsWith(' ') || m.startsWith('\n') ? m[0] : '';
       return `${leadingSpace}@[${targetNote.title || 'Untitled Note'}](${targetNote.id}) `;
     });
@@ -283,14 +284,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
     });
   };
 
-  // Add emoji to note content
-  const handleAddEmoji = (emoji: string) => {
-    onUpdateNote({
-      ...note,
-      content: `${note.content || ''}${emoji}`,
-      updatedAt: new Date().toISOString(),
-    });
-  };
+
 
 
 
@@ -401,7 +395,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         zIndex: isDragging || isCardDragging || isResizing ? DRAG_Z_INDEX : note.zIndex || 10,
         ...(isRuled && ruledLineHeight ? ({ '--ruled-line-height': ruledLineHeight } as React.CSSProperties) : {}),
       }}
-      className={`note-card absolute top-0 left-0 rounded-sm flex flex-col justify-between shadow-sm overflow-hidden ${
+      className={`note-card absolute top-0 left-0 rounded-sm flex flex-col justify-between shadow-sm overflow-visible ${
         isPanMode
           ? 'cursor-grab active:cursor-grabbing pointer-events-none'
           : isDragging || isCardDragging || isResizing
@@ -428,14 +422,14 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
                 groupName: overlappingGroup.name,
               });
             }}
-            className={`flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-semibold rounded-sm border shadow-sm backdrop-blur-md transition-colors ${
+            className={`flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-semibold rounded-sm border shadow-sm backdrop-blur-md transition-colors cursor-pointer ${
               themeConfig.isDark
                 ? 'bg-slate-900/95 border-slate-800 text-slate-200 hover:bg-slate-800'
                 : 'bg-white/95 border-slate-200/90 text-slate-800 hover:bg-slate-100'
             }`}
             title={`Add note to ${overlappingGroup.name}`}
           >
-            <FolderPlus className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+            <Icon icon={FolderAddIcon} size="xs" className="text-blue-500 shrink-0" />
             <span>Add to "{overlappingGroup.name}"</span>
           </button>
         </div>
@@ -493,12 +487,14 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         {note.isLocked ? (
           /* Locked Note Protection Screen */
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center select-none">
-            <div className={`w-12 h-12 rounded-md flex items-center justify-center mb-3 ${
-              themeConfig.isDark
-                ? 'bg-slate-800/80 text-slate-200'
-                : 'bg-slate-100 text-slate-700'
-            }`}>
-              <Lock className="w-6 h-6" />
+            <div
+              className={`w-12 h-12 rounded-sm flex items-center justify-center mb-3 ${
+                themeConfig.isDark
+                  ? 'bg-slate-800/80 text-slate-200'
+                  : 'bg-slate-100 text-slate-700'
+              }`}
+            >
+              <Icon icon={SecurityLockIcon} size="xl" />
             </div>
             <h3 className={`font-bold text-sm tracking-tight mb-1 ${themeConfig.text}`}>
               Protected Note
@@ -507,8 +503,9 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
               This note is locked with passcode protection.
             </p>
             <button
+              type="button"
               onClick={() => onRequestUnlockNote?.(note.id)}
-              className={`px-4 py-2 rounded-md font-bold uppercase tracking-wider text-[10px] transition-colors ${
+              className={`px-4 py-2 rounded-sm font-bold uppercase tracking-wider text-[10px] transition-colors cursor-pointer ${
                 themeConfig.isDark
                   ? 'bg-white text-slate-900 hover:bg-slate-100'
                   : 'bg-slate-900 text-white hover:bg-slate-800'
@@ -563,7 +560,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
                 // Detect @ mention
                 const cursorIndex = e.target.selectionStart;
                 const textBeforeCursor = val.slice(0, cursorIndex);
-                const match = textBeforeCursor.match(/(?:^|\s)@([a-zA-Z0-9\s\_-]*)$/);
+                const match = textBeforeCursor.match(/(?:^|\s)@([a-zA-Z0-9\s_-]*)$/);
                 if (match) {
                   setMentionQuery(match[1]);
                   const pos = getTextareaCursorCoordinates(e.target, cursorIndex);
@@ -798,6 +795,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       {showStylePicker && (
         <NoteStylePicker
           note={note}
+          themeConfig={themeConfig}
           onUpdateNote={onUpdateNote}
           onClose={() => setShowStylePicker(false)}
         />

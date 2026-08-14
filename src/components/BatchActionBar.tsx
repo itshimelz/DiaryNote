@@ -1,33 +1,32 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { motion } from 'motion/react';
 import { Note, PaperTheme, CanvasTheme } from '../types';
 import { PAPER_THEMES, PAPER_THEME_OPTIONS, PAPER_THEME_LABELS } from '../constants/paperThemes';
 import { exportNotesBackup } from '../lib/storage';
 import { authorizeNotes, isNoteAuthorized } from '../services/authPolicyService';
 import { sendNativeAppNotification } from '../utils';
 import {
-  CheckSquare,
-  Palette,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  ArrowUpToLine,
-  ArrowDownToLine,
-  AlignJustify,
-  LayoutGrid,
-  Pin,
-  PinOff,
-  Trash2,
-  X,
-  Layers,
-  Columns3,
-  Rows3,
-  Download,
-  Sparkles,
-  Loader2,
-} from 'lucide-react';
+  CheckmarkSquare02Icon,
+  PaintBoardIcon,
+  AlignLeftIcon,
+  AlignHorizontalCenterIcon,
+  AlignRightIcon,
+  AlignTopIcon,
+  AlignVerticalCenterIcon,
+  AlignBottomIcon,
+  AlignHorizontalDistributeCenterIcon,
+  AlignVerticalDistributeCenterIcon,
+  PinIcon,
+  PinOffIcon,
+  Delete02Icon,
+  Cancel01Icon,
+  Layers01Icon,
+  Download04Icon,
+  SparklesIcon,
+  Loading03Icon,
+  LayoutGridIcon,
+} from '@hugeicons/core-free-icons';
+import { Button, IconButton, Badge, Menu, MenuItem, MenuDivider, MenuGroupHeader } from './ui';
 
 interface BatchActionBarProps {
   selectedNoteIds: string[];
@@ -62,8 +61,14 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
   const themeBtnRef = useRef<HTMLButtonElement>(null);
   const alignBtnRef = useRef<HTMLButtonElement>(null);
 
-  const [themePopoverPos, setThemePopoverPos] = useState<{ bottom: number; left: number }>({ bottom: 0, left: 0 });
-  const [alignPopoverPos, setAlignPopoverPos] = useState<{ bottom: number; left: number }>({ bottom: 0, left: 0 });
+  const [themePopoverPos, setThemePopoverPos] = useState<{ bottom: number; left: number }>({
+    bottom: 0,
+    left: 0,
+  });
+  const [alignPopoverPos, setAlignPopoverPos] = useState<{ bottom: number; left: number }>({
+    bottom: 0,
+    left: 0,
+  });
 
   const handleToggleTheme = () => {
     if (!showThemePicker && themeBtnRef.current) {
@@ -152,23 +157,19 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
   const handleAlignLeft = () => {
     if (selectedNotes.length < 2) return;
     const minX = Math.min(...selectedNotes.map((n) => n.x));
-    const updated = selectedNotes.map((n) => ({
-      ...n,
-      x: minX,
-    }));
+    const updated = selectedNotes.map((n) => ({ ...n, x: minX }));
     onUpdateBatchNotes(updated);
     setShowAlignMenu(false);
   };
 
-  // 4. Align Center Horizontally (X center)
+  // 4. Align Center Horizontal
   const handleAlignCenterHorizontal = () => {
     if (selectedNotes.length < 2) return;
-    const avgCenterX = Math.round(
-      selectedNotes.reduce((acc, n) => acc + (n.x + getNoteWidth(n) / 2), 0) / selectedNotes.length
-    );
+    const centers = selectedNotes.map((n) => n.x + getNoteWidth(n) / 2);
+    const avgCenter = centers.reduce((a, b) => a + b, 0) / centers.length;
     const updated = selectedNotes.map((n) => ({
       ...n,
-      x: Math.round(avgCenterX - getNoteWidth(n) / 2),
+      x: Math.round(avgCenter - getNoteWidth(n) / 2),
     }));
     onUpdateBatchNotes(updated);
     setShowAlignMenu(false);
@@ -177,10 +178,11 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
   // 5. Align Right (X max)
   const handleAlignRight = () => {
     if (selectedNotes.length < 2) return;
-    const maxRight = Math.max(...selectedNotes.map((n) => n.x + getNoteWidth(n)));
+    const rightEdges = selectedNotes.map((n) => n.x + getNoteWidth(n));
+    const maxRight = Math.max(...rightEdges);
     const updated = selectedNotes.map((n) => ({
       ...n,
-      x: Math.round(maxRight - getNoteWidth(n)),
+      x: maxRight - getNoteWidth(n),
     }));
     onUpdateBatchNotes(updated);
     setShowAlignMenu(false);
@@ -190,23 +192,19 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
   const handleAlignTop = () => {
     if (selectedNotes.length < 2) return;
     const minY = Math.min(...selectedNotes.map((n) => n.y));
-    const updated = selectedNotes.map((n) => ({
-      ...n,
-      y: minY,
-    }));
+    const updated = selectedNotes.map((n) => ({ ...n, y: minY }));
     onUpdateBatchNotes(updated);
     setShowAlignMenu(false);
   };
 
-  // 7. Align Middle Vertically (Y center)
+  // 7. Align Middle Vertical
   const handleAlignCenterVertical = () => {
     if (selectedNotes.length < 2) return;
-    const avgCenterY = Math.round(
-      selectedNotes.reduce((acc, n) => acc + (n.y + getNoteHeight(n) / 2), 0) / selectedNotes.length
-    );
+    const middles = selectedNotes.map((n) => n.y + getNoteHeight(n) / 2);
+    const avgMiddle = middles.reduce((a, b) => a + b, 0) / middles.length;
     const updated = selectedNotes.map((n) => ({
       ...n,
-      y: Math.round(avgCenterY - getNoteHeight(n) / 2),
+      y: Math.round(avgMiddle - getNoteHeight(n) / 2),
     }));
     onUpdateBatchNotes(updated);
     setShowAlignMenu(false);
@@ -215,93 +213,75 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
   // 8. Align Bottom (Y max)
   const handleAlignBottom = () => {
     if (selectedNotes.length < 2) return;
-    const maxBottom = Math.max(...selectedNotes.map((n) => n.y + getNoteHeight(n)));
+    const bottomEdges = selectedNotes.map((n) => n.y + getNoteHeight(n));
+    const maxBottom = Math.max(...bottomEdges);
     const updated = selectedNotes.map((n) => ({
       ...n,
-      y: Math.round(maxBottom - getNoteHeight(n)),
+      y: maxBottom - getNoteHeight(n),
     }));
     onUpdateBatchNotes(updated);
     setShowAlignMenu(false);
   };
 
-  // 9. Distribute Horizontally (True Equal Gap Spacing)
+  // 9. Distribute Horizontally
   const handleDistributeHorizontal = () => {
-    if (selectedNotes.length < 2) return;
+    if (selectedNotes.length < 3) return;
     const sorted = [...selectedNotes].sort((a, b) => a.x - b.x);
-
-    const widths = sorted.map(getNoteWidth);
-    const firstX = sorted[0].x;
+    const minX = sorted[0].x;
     const lastNote = sorted[sorted.length - 1];
-    const lastWidth = widths[widths.length - 1];
-    const lastRight = lastNote.x + lastWidth;
+    const maxX = lastNote.x + getNoteWidth(lastNote);
 
-    const totalSpan = lastRight - firstX;
-    const totalItemWidth = widths.reduce((sum, w) => sum + w, 0);
+    const totalWidths = sorted.reduce((sum, n) => sum + getNoteWidth(n), 0);
+    const availableGap = maxX - minX - totalWidths;
+    const gap = Math.max(16, Math.round(availableGap / (sorted.length - 1)));
 
-    let gap = (totalSpan - totalItemWidth) / (sorted.length - 1);
-    if (gap < 24) gap = 24; // Ensure minimum 24px grid gap if items were overlapping
-
-    let currentX = firstX;
-    const updated = sorted.map((n, idx) => {
-      const xPos = Math.round(currentX);
-      currentX += widths[idx] + gap;
-      return {
-        ...n,
-        x: xPos,
-      };
+    let currentX = minX;
+    const updated = sorted.map((n) => {
+      const itemX = currentX;
+      currentX += getNoteWidth(n) + gap;
+      return { ...n, x: itemX };
     });
-
     onUpdateBatchNotes(updated);
     setShowAlignMenu(false);
   };
 
-  // 10. Distribute Vertically (True Equal Gap Spacing)
+  // 10. Distribute Vertically
   const handleDistributeVertical = () => {
-    if (selectedNotes.length < 2) return;
+    if (selectedNotes.length < 3) return;
     const sorted = [...selectedNotes].sort((a, b) => a.y - b.y);
-
-    const heights = sorted.map(getNoteHeight);
-    const firstY = sorted[0].y;
+    const minY = sorted[0].y;
     const lastNote = sorted[sorted.length - 1];
-    const lastHeight = heights[heights.length - 1];
-    const lastBottom = lastNote.y + lastHeight;
+    const maxY = lastNote.y + getNoteHeight(lastNote);
 
-    const totalSpan = lastBottom - firstY;
-    const totalItemHeight = heights.reduce((sum, h) => sum + h, 0);
+    const totalHeights = sorted.reduce((sum, n) => sum + getNoteHeight(n), 0);
+    const availableGap = maxY - minY - totalHeights;
+    const gap = Math.max(16, Math.round(availableGap / (sorted.length - 1)));
 
-    let gap = (totalSpan - totalItemHeight) / (sorted.length - 1);
-    if (gap < 24) gap = 24; // Ensure minimum 24px grid gap if items were overlapping
-
-    let currentY = firstY;
-    const updated = sorted.map((n, idx) => {
-      const yPos = Math.round(currentY);
-      currentY += heights[idx] + gap;
-      return {
-        ...n,
-        y: yPos,
-      };
+    let currentY = minY;
+    const updated = sorted.map((n) => {
+      const itemY = currentY;
+      currentY += getNoteHeight(n) + gap;
+      return { ...n, y: itemY };
     });
-
     onUpdateBatchNotes(updated);
     setShowAlignMenu(false);
   };
 
-  const isAllGrouped = useMemo(
-    () => selectedNotes.length >= 2 && selectedNotes.every((n) => n.groupId && n.groupId === selectedNotes[0].groupId),
-    [selectedNotes]
-  );
+  // 11. Group / Ungroup
+  const isAllGrouped =
+    selectedNotes.length >= 2 &&
+    selectedNotes.every((n) => n.groupId && n.groupId === selectedNotes[0].groupId);
 
-  // 7. Group / Ungroup Notes
   const handleGroupNotes = () => {
+    if (selectedNotes.length < 2) return;
     if (isAllGrouped) {
-      const updated = selectedNotes.map((n) => ({
-        ...n,
-        groupId: undefined,
-        groupName: undefined,
-        tags: n.tags?.filter((t) => !/^#?Group\s/i.test(t)),
-      }));
+      const updated = selectedNotes.map((n) => {
+        const copy = { ...n };
+        delete copy.groupId;
+        delete copy.groupName;
+        return copy;
+      });
       onUpdateBatchNotes(updated);
-      onClearSelection();
     } else {
       const newGroupId = `group-${crypto.randomUUID()}`;
       const groupName = `Group ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
@@ -309,77 +289,64 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
         ...n,
         groupId: newGroupId,
         groupName,
-        tags: n.tags?.filter((t) => !/^#?Group\s/i.test(t)),
       }));
       onUpdateBatchNotes(updated);
-      onClearSelection();
     }
   };
 
-  // 8. Bulk Delete
+  // 12. Batch Delete
   const handleBulkDelete = () => {
-    onDeleteNotes(selectedNoteIds);
+    if (selectedNotes.length > 0) {
+      const authResult = authorizeNotes(selectedNotes, 'delete');
+      if (!authResult.allowed) {
+        sendNativeAppNotification(
+          'Delete Guarded',
+          `${authResult.lockedNoteIds.length} locked note(s) protected from batch delete.`
+        );
+      }
+      if (authResult.authorizedNotes.length > 0) {
+        onDeleteNotes(authResult.authorizedNotes.map((n) => n.id));
+      }
+    }
   };
 
-  const btnClass = isDark
-    ? 'hover:bg-slate-800 text-slate-300 hover:text-slate-100'
-    : 'hover:bg-slate-100 text-slate-600 hover:text-slate-900';
-
-  const popoverBg = isDark
-    ? 'bg-slate-900 border-slate-800 text-slate-100'
-    : 'bg-white border-slate-200 text-slate-900';
-
-  const dividerClass = isDark ? 'bg-slate-800' : 'bg-slate-200';
+  if (selectedNoteIds.length === 0) return null;
 
   return (
-    <motion.div
-      initial={{ borderRadius: '6px' }}
-      animate={{ borderRadius: '6px 6px 2px 2px' }}
-      exit={{ borderRadius: '6px' }}
-      transition={{ duration: 0.15, ease: 'easeOut' }}
-      className={`w-full flex flex-wrap sm:flex-nowrap items-center justify-between gap-1.5 px-3 py-2 border-b select-none text-xs font-medium transition-colors overflow-x-auto ${
+    <div
+      className={`w-full px-2.5 py-1.5 flex items-center justify-between border-b transition-colors select-none font-sans text-xs ${
         isDark
-          ? 'border-slate-800/80 text-slate-200 bg-slate-800/30'
-          : 'border-slate-200/80 text-slate-800 bg-slate-100/50'
+          ? 'bg-slate-950/40 border-slate-800 text-slate-200'
+          : 'bg-slate-50/70 border-slate-200 text-slate-800'
       }`}
     >
-      <div className="flex items-center gap-1">
-        {/* Count Badge */}
-        <div
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-sm font-bold text-[11px] ${
-            isDark ? 'bg-slate-800 text-slate-100' : 'bg-slate-100 text-slate-900'
-          }`}
-        >
+      {/* Selection Counter Badge */}
+      <Badge variant="accent" size="xs" icon={CheckmarkSquare02Icon} className="mr-1">
+        {selectedNoteIds.length}
+      </Badge>
 
-          <CheckSquare className="w-3.5 h-3.5" />
-          <span>{selectedNoteIds.length} selected</span>
-        </div>
-
-        <div className={`h-4 w-px mx-0.5 ${dividerClass}`} />
-
-        {/* 1. Batch Theme Picker */}
-        <button
+      <div className="flex items-center gap-0.5">
+        {/* 1. Change Paper Theme */}
+        <Button
           ref={themeBtnRef}
-          type="button"
+          size="xs"
+          variant="ghost"
+          icon={PaintBoardIcon}
           onClick={handleToggleTheme}
-          className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors ${btnClass}`}
-          title="Batch paper theme"
         >
-          <Palette className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Theme</span>
-        </button>
+        </Button>
 
         {/* 2. Align & Distribute Menu */}
-        <button
+        <Button
           ref={alignBtnRef}
-          type="button"
+          size="xs"
+          variant="ghost"
+          icon={LayoutGridIcon}
           onClick={handleToggleAlign}
-          className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors ${btnClass}`}
-          title="Align & Distribute"
         >
-          <LayoutGrid className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Align</span>
-        </button>
+        </Button>
 
         {/* Theme Picker Portal Popover */}
         {showThemePicker &&
@@ -392,30 +359,27 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
                 left: `${themePopoverPos.left}px`,
                 zIndex: 9999,
               }}
-              className={`w-60 rounded-md border shadow-sm p-2.5 flex flex-col gap-2 animate-in fade-in zoom-in-95 duration-150 ${popoverBg}`}
             >
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                Change Paper Theme
-              </span>
-              <div className="grid grid-cols-3 gap-1">
-                {PAPER_THEME_OPTIONS.map((themeKey) => {
-                  const cfg = PAPER_THEMES[themeKey];
-                  return (
-                    <button
-                      key={themeKey}
-                      type="button"
-                      onClick={() => handleBatchThemeChange(themeKey)}
-                      className={`flex flex-col items-center gap-0.5 p-1.5 rounded-md border transition-colors text-[10px] ${cfg.bg} ${cfg.border} ${cfg.text} ${
-                        isDark ? 'hover:bg-slate-800 hover:border-slate-700' : 'hover:bg-slate-100 hover:border-slate-300'
-                      }`}
-                    >
-                      <span className="truncate w-full text-center font-medium">
-                        {PAPER_THEME_LABELS[themeKey]}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+              <Menu minWidth="w-60">
+                <MenuGroupHeader>Change Paper Theme</MenuGroupHeader>
+                <div className="grid grid-cols-3 gap-1 p-1">
+                  {PAPER_THEME_OPTIONS.map((themeKey) => {
+                    const cfg = PAPER_THEMES[themeKey];
+                    return (
+                      <button
+                        key={themeKey}
+                        type="button"
+                        onClick={() => handleBatchThemeChange(themeKey)}
+                        className={`flex flex-col items-center gap-0.5 p-1.5 rounded-sm border transition-colors text-[10px] cursor-pointer ${cfg.bg} ${cfg.border} ${cfg.text} hover:border-blue-500`}
+                      >
+                        <span className="truncate w-full text-center font-medium">
+                          {PAPER_THEME_LABELS[themeKey]}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </Menu>
             </div>,
             document.body
           )}
@@ -431,142 +395,80 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
                 left: `${alignPopoverPos.left}px`,
                 zIndex: 9999,
               }}
-              className={`w-52 rounded-md border shadow-sm p-2 flex flex-col gap-1 animate-in fade-in zoom-in-95 duration-150 ${popoverBg}`}
             >
-              {/* Horizontal Alignment */}
-              <span className="text-[10px] font-semibold uppercase tracking-wider px-1 text-slate-400">
-                Horizontal Alignment
-              </span>
-              <div className="grid grid-cols-3 gap-1">
-                <button
-                  type="button"
-                  onClick={handleAlignLeft}
-                  className={`flex flex-col items-center gap-1 p-1.5 rounded-md border text-[10px] transition-colors ${btnClass} ${
-                    isDark ? 'border-slate-800' : 'border-slate-200'
-                  }`}
-                  title="Align Left"
-                >
-                  <AlignLeft className="w-3.5 h-3.5" />
-                  <span>Left</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAlignCenterHorizontal}
-                  className={`flex flex-col items-center gap-1 p-1.5 rounded-md border text-[10px] transition-colors ${btnClass} ${
-                    isDark ? 'border-slate-800' : 'border-slate-200'
-                  }`}
-                  title="Align Center Horizontally"
-                >
-                  <AlignCenter className="w-3.5 h-3.5" />
-                  <span>Center</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAlignRight}
-                  className={`flex flex-col items-center gap-1 p-1.5 rounded-md border text-[10px] transition-colors ${btnClass} ${
-                    isDark ? 'border-slate-800' : 'border-slate-200'
-                  }`}
-                  title="Align Right"
-                >
-                  <AlignRight className="w-3.5 h-3.5" />
-                  <span>Right</span>
-                </button>
-              </div>
+              <Menu minWidth="w-56">
+                <MenuGroupHeader>Horizontal Alignment</MenuGroupHeader>
+                <div className="grid grid-cols-3 gap-1 p-1">
+                  <Button size="xs" variant="secondary" icon={AlignLeftIcon} onClick={handleAlignLeft}>
+                    Left
+                  </Button>
+                  <Button size="xs" variant="secondary" icon={AlignHorizontalCenterIcon} onClick={handleAlignCenterHorizontal}>
+                    Center
+                  </Button>
+                  <Button size="xs" variant="secondary" icon={AlignRightIcon} onClick={handleAlignRight}>
+                    Right
+                  </Button>
+                </div>
 
-              {/* Vertical Alignment */}
-              <span className="text-[10px] font-semibold uppercase tracking-wider px-1 mt-1 text-slate-400">
-                Vertical Alignment
-              </span>
-              <div className="grid grid-cols-3 gap-1">
-                <button
-                  type="button"
-                  onClick={handleAlignTop}
-                  className={`flex flex-col items-center gap-1 p-1.5 rounded-md border text-[10px] transition-colors ${btnClass} ${
-                    isDark ? 'border-slate-800' : 'border-slate-200'
-                  }`}
-                  title="Align Top"
-                >
-                  <ArrowUpToLine className="w-3.5 h-3.5" />
-                  <span>Top</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAlignCenterVertical}
-                  className={`flex flex-col items-center gap-1 p-1.5 rounded-md border text-[10px] transition-colors ${btnClass} ${
-                    isDark ? 'border-slate-800' : 'border-slate-200'
-                  }`}
-                  title="Align Middle Vertically"
-                >
-                  <AlignJustify className="w-3.5 h-3.5" />
-                  <span>Middle</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAlignBottom}
-                  className={`flex flex-col items-center gap-1 p-1.5 rounded-md border text-[10px] transition-colors ${btnClass} ${
-                    isDark ? 'border-slate-800' : 'border-slate-200'
-                  }`}
-                  title="Align Bottom"
-                >
-                  <ArrowDownToLine className="w-3.5 h-3.5" />
-                  <span>Bottom</span>
-                </button>
-              </div>
+                <MenuDivider />
 
-              {/* Distribution & Spacing */}
-              <div className={`my-1 border-t ${dividerClass}`} />
-              <span className="text-[10px] font-semibold uppercase tracking-wider px-1 text-slate-400">
-                Distribute Spacing
-              </span>
-              <div className="flex flex-col gap-0.5">
-                <button
-                  type="button"
+                <MenuGroupHeader>Vertical Alignment</MenuGroupHeader>
+                <div className="grid grid-cols-3 gap-1 p-1">
+                  <Button size="xs" variant="secondary" icon={AlignTopIcon} onClick={handleAlignTop}>
+                    Top
+                  </Button>
+                  <Button size="xs" variant="secondary" icon={AlignVerticalCenterIcon} onClick={handleAlignCenterVertical}>
+                    Mid
+                  </Button>
+                  <Button size="xs" variant="secondary" icon={AlignBottomIcon} onClick={handleAlignBottom}>
+                    Bot
+                  </Button>
+                </div>
+
+                <MenuDivider />
+
+                <MenuGroupHeader>Distribute Spacing</MenuGroupHeader>
+                <MenuItem
+                  icon={AlignHorizontalDistributeCenterIcon}
+                  label="Space Horizontally"
                   onClick={handleDistributeHorizontal}
-                  className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors ${btnClass}`}
-                >
-                  <Columns3 className="w-3.5 h-3.5" />
-                  <span>Space Horizontally</span>
-                </button>
-                <button
-                  type="button"
+                />
+                <MenuItem
+                  icon={AlignVerticalDistributeCenterIcon}
+                  label="Space Vertically"
                   onClick={handleDistributeVertical}
-                  className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors ${btnClass}`}
-                >
-                  <Rows3 className="w-3.5 h-3.5" />
-                  <span>Space Vertically</span>
-                </button>
-              </div>
+                />
+              </Menu>
             </div>,
             document.body
           )}
 
         {/* 3. Group / Ungroup Notes */}
-        <button
-          type="button"
+        <Button
+          size="xs"
+          variant="ghost"
+          icon={Layers01Icon}
           onClick={handleGroupNotes}
-          className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors ${btnClass} ${
-            isAllGrouped ? 'text-blue-400' : ''
-          }`}
-          title={isAllGrouped ? 'Ungroup selected notes' : 'Group selected notes'}
+          className={isAllGrouped ? 'text-blue-500 font-bold' : ''}
         >
-          <Layers className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">{isAllGrouped ? 'Ungroup' : 'Group'}</span>
-        </button>
+        </Button>
 
         {/* 4. Bulk Pin */}
-        <button
-          type="button"
+        <Button
+          size="xs"
+          variant="ghost"
+          icon={isAllPinned ? PinOffIcon : PinIcon}
           onClick={handleBatchTogglePin}
-          className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors ${btnClass}`}
-          title={isAllPinned ? 'Unpin selected notes' : 'Pin selected notes'}
         >
-          {isAllPinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
           <span className="hidden sm:inline">{isAllPinned ? 'Unpin' : 'Pin'}</span>
-        </button>
+        </Button>
 
         {/* 5. Backup Selected Notes (.json) */}
-        <button
-          type="button"
+        <Button
+          size="xs"
+          variant="ghost"
+          icon={Download04Icon}
           onClick={() => {
             if (selectedNotes.length > 0) {
               const authResult = authorizeNotes(selectedNotes, 'export');
@@ -578,22 +480,24 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
               }
               const exportable = authResult.authorizedNotes;
               if (exportable.length > 0) {
-                const fileName = `selected-notes-backup-${new Date().toISOString().slice(0, 10)}.json`;
+                const fileName = `selected-notes-backup-${new Date()
+                  .toISOString()
+                  .slice(0, 10)}.json`;
                 exportNotesBackup(exportable, fileName);
               }
             }
           }}
-          className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors ${btnClass}`}
-          title="Backup selected notes (.json)"
         >
-          <Download className="w-3.5 h-3.5 text-blue-500" />
           <span className="hidden sm:inline">Backup</span>
-        </button>
+        </Button>
 
         {/* AI Merge Button */}
         {enableAIServices && (
-          <button
-            type="button"
+          <Button
+            size="xs"
+            variant="ghost"
+            icon={isMergingAI ? Loading03Icon : SparklesIcon}
+            loading={isMergingAI}
             onClick={onMergeNotesAI}
             disabled={
               isMergingAI ||
@@ -602,70 +506,33 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
               selectedNotes.length > 5 ||
               selectedNotes.some((n) => n.isLocked && !isNoteAuthorized(n))
             }
-            className={`flex items-center gap-1.5 px-2 py-1 rounded-sm transition-colors ${btnClass} ${
-              isMergingAI ||
-              isAlreadyMerged ||
-              selectedNotes.length < 2 ||
-              selectedNotes.length > 5 ||
-              selectedNotes.some((n) => n.isLocked && !isNoteAuthorized(n))
-                ? 'opacity-50 cursor-not-allowed'
-                : ''
-            }`}
-            title={
-              selectedNotes.some((n) => n.isLocked && !isNoteAuthorized(n))
-                ? 'Unlock locked note(s) before AI merge'
-                : isAlreadyMerged
-                ? 'This selection of notes has already been merged'
-                : selectedNotes.length > 5
-                ? 'Select up to 5 notes for AI Merge'
-                : selectedNotes.length < 2
-                ? 'Select at least 2 notes to merge'
-                : 'Merge selected notes with AI (Shift + M)'
-            }
           >
-            {isMergingAI ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500 shrink-0" />
-            ) : (
-              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-            )}
             <span className="hidden sm:inline">Merge</span>
-          </button>
+          </Button>
         )}
       </div>
 
-
-
-
-
-      <div className="flex items-center gap-1">
-        <div className={`h-4 w-px mx-0.5 ${dividerClass}`} />
-
-        {/* 5. Bulk Delete */}
-        <button
-          type="button"
+      <div className="flex items-center gap-1 ml-1 pl-1 border-l border-slate-200 dark:border-slate-800">
+        {/* Bulk Delete */}
+        <Button
+          size="xs"
+          variant="danger"
+          icon={Delete02Icon}
           onClick={handleBulkDelete}
-          className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors ${
-            isDark
-              ? 'hover:bg-rose-500/20 text-slate-400 hover:text-rose-400'
-              : 'hover:bg-rose-50 text-slate-600 hover:text-rose-600'
-          }`}
-          title="Delete selected notes"
         >
-          <Trash2 className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Delete</span>
-        </button>
+        </Button>
 
-        {/* 6. Clear Selection */}
-        <button
-          type="button"
+        {/* Clear Selection */}
+        <IconButton
+          size="xs"
+          variant="ghost"
+          icon={Cancel01Icon}
+          aria-label="Clear selection"
           onClick={onClearSelection}
-          className={`p-1 rounded-md transition-colors ${btnClass}`}
-          title="Clear selection (Esc)"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
+        />
       </div>
-    </motion.div>
+    </div>
   );
 };
 

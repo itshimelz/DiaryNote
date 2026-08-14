@@ -37,10 +37,12 @@ export function useCanvasTransform(notes: Note[], bringToFront: (noteId: string)
 
   // Sync dark mode root class with settings
   useEffect(() => {
-    if (settings.themeMode === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
+    if (settings.themeMode === 'light') {
       document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
     }
   }, [settings.themeMode]);
 

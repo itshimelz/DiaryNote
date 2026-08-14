@@ -1,21 +1,22 @@
 import React, { useState, useRef } from 'react';
 import { GridType, CanvasTheme, Note } from '../types';
 import {
-  Plus,
-  ZoomIn,
-  ZoomOut,
-  Maximize,
-  Sun,
-  Moon,
-  List,
-  Move,
-  MousePointer,
-  Undo2,
-  Redo2,
-  Settings,
-  Calendar,
-} from 'lucide-react';
+  Add01Icon,
+  Calendar03Icon,
+  UndoIcon,
+  RedoIcon,
+  MoveIcon,
+  Cursor01Icon,
+  ZoomInAreaIcon,
+  ZoomOutAreaIcon,
+  Maximize01Icon,
+  Sun01Icon,
+  Moon01Icon,
+  Settings02Icon,
+  ListViewIcon,
+} from '@hugeicons/core-free-icons';
 import { CanvasSettingsModal } from './Modals/CanvasSettingsModal';
+import { Button, IconButton } from './ui';
 
 interface CanvasControlsProps {
   notes?: Note[];
@@ -119,62 +120,50 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
       />
 
       {/* Primary Control Bar Row inside Unified Dock */}
-      <div className="w-full flex items-center justify-between gap-1.5 p-1.5 text-xs transition-colors">
+      <div className="w-full flex items-center justify-between gap-1.5 p-1.5 text-xs transition-colors select-none font-sans">
         <div className="flex items-center gap-1.5">
           {/* Create Note CTA */}
-          <button
-            onMouseDown={(e) => e.preventDefault()}
+          <Button
+            size="sm"
+            variant="primary"
+            icon={Add01Icon}
             onClick={(e) => {
               e.currentTarget.blur();
               onAddNote();
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 font-bold tracking-wider uppercase text-[11px] rounded-md shadow transition-colors cursor-pointer ${
-              themeMode === 'light'
-                ? 'bg-slate-900 text-white hover:bg-slate-800'
-                : 'bg-white text-slate-900 hover:bg-slate-100'
-            }`}
           >
-            <Plus className="w-4 h-4" />
-            <span>New Note</span>
-          </button>
+            New Note
+          </Button>
 
           {/* Today's Journal CTA */}
           {onOpenTodayJournal && (
-            <button
-              onMouseDown={(e) => e.preventDefault()}
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={Calendar03Icon}
               onClick={(e) => {
                 e.currentTarget.blur();
                 onOpenTodayJournal();
               }}
               title="Today's Journal Entry (Ctrl+Shift+D)"
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-colors cursor-pointer ${
-                themeMode === 'light'
-                  ? 'hover:bg-slate-100 text-slate-600 hover:text-slate-900'
-                  : 'hover:bg-slate-800 text-slate-400 hover:text-slate-100'
-              }`}
             >
-              <Calendar className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Today</span>
-            </button>
+            </Button>
           )}
 
           {/* Journal Calendar CTA */}
           {onOpenJournalCalendar && (
-            <button
-              onMouseDown={(e) => e.preventDefault()}
+            <IconButton
+              size="sm"
+              variant="ghost"
+              icon={Calendar03Icon}
+              aria-label="Open journal calendar"
               onClick={(e) => {
                 e.currentTarget.blur();
                 onOpenJournalCalendar();
               }}
               title="Open Journal Calendar"
-              className={`p-1.5 rounded-md transition-colors cursor-pointer ${
-                themeMode === 'light'
-                  ? 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'
-                  : 'hover:bg-slate-800 text-slate-400 hover:text-slate-100'
-              }`}
-            >
-              <Calendar className="w-4 h-4" />
-            </button>
+            />
           )}
         </div>
 
@@ -182,92 +171,79 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
 
         {/* Undo & Redo Controls */}
         <div
-          className={`flex items-center gap-0.5 rounded-md p-0.5 border ${
-            themeMode === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-slate-800/80 border-slate-700/50'
+          className={`flex items-center gap-0.5 rounded-sm p-0.5 border ${
+            themeMode === 'light'
+              ? 'bg-slate-50 border-slate-200'
+              : 'bg-slate-800/80 border-slate-700/50'
           }`}
         >
-          <button
-            onMouseDown={(e) => e.preventDefault()}
+          <IconButton
+            size="xs"
+            variant="ghost"
+            icon={UndoIcon}
+            aria-label="Undo"
+            disabled={!canUndo}
             onClick={(e) => {
               e.currentTarget.blur();
               onUndo();
             }}
-            disabled={!canUndo}
             title="Undo (Ctrl+Z)"
-            className={`p-1.5 rounded-md transition-colors ${
-              canUndo
-                ? themeMode === 'light'
-                  ? 'hover:bg-slate-200/80 text-slate-700 cursor-pointer'
-                  : 'hover:bg-slate-700 text-slate-200 cursor-pointer'
-                : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
-            }`}
-          >
-            <Undo2 className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onMouseDown={(e) => e.preventDefault()}
+          />
+          <IconButton
+            size="xs"
+            variant="ghost"
+            icon={RedoIcon}
+            aria-label="Redo"
+            disabled={!canRedo}
             onClick={(e) => {
               e.currentTarget.blur();
               onRedo();
             }}
-            disabled={!canRedo}
             title="Redo (Ctrl+Y or Ctrl+Shift+Z)"
-            className={`p-1.5 rounded-md transition-colors ${
-              canRedo
-                ? themeMode === 'light'
-                  ? 'hover:bg-slate-200/80 text-slate-700 cursor-pointer'
-                  : 'hover:bg-slate-700 text-slate-200 cursor-pointer'
-                : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
-            }`}
-          >
-            <Redo2 className="w-3.5 h-3.5" />
-          </button>
+          />
         </div>
 
         <div className={`h-5 w-px mx-1 ${themeMode === 'light' ? 'bg-slate-200' : 'bg-slate-800'}`} />
 
         {/* Pan vs Select Mode */}
-        <button
-          onMouseDown={(e) => e.preventDefault()}
+        <IconButton
+          size="sm"
+          variant={isPanMode ? 'primary' : 'ghost'}
+          icon={isPanMode ? MoveIcon : Cursor01Icon}
+          aria-label={isPanMode ? 'Switch to select mode' : 'Switch to pan mode'}
           onClick={(e) => {
             e.currentTarget.blur();
             onTogglePanMode();
           }}
-          title={isPanMode ? 'Pan Mode (Active) - Click to switch to Select' : 'Select Mode - Click to switch to Pan'}
-          aria-label={isPanMode ? 'Switch to select mode' : 'Switch to pan mode'}
-          className={`p-1.5 rounded-md transition-colors cursor-pointer ${
+          title={
             isPanMode
-              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow'
-              : themeMode === 'light'
-              ? 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'
-              : 'hover:bg-slate-800 text-slate-400 hover:text-slate-100'
-          }`}
-        >
-          {isPanMode ? <Move className="w-4 h-4" /> : <MousePointer className="w-4 h-4" />}
-        </button>
+              ? 'Pan Mode (Active) - Click to switch to Select'
+              : 'Select Mode - Click to switch to Pan'
+          }
+        />
 
         {/* Zoom Controls */}
         <div
-          className={`flex items-center gap-0.5 rounded-md p-0.5 border ${
-            themeMode === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-slate-800/80 border-slate-700/50'
+          className={`flex items-center gap-0.5 rounded-sm p-0.5 border ${
+            themeMode === 'light'
+              ? 'bg-slate-50 border-slate-200'
+              : 'bg-slate-800/80 border-slate-700/50'
           }`}
         >
-          <button
-            onMouseDown={(e) => e.preventDefault()}
+          <IconButton
+            size="xs"
+            variant="ghost"
+            icon={ZoomOutAreaIcon}
+            aria-label="Zoom out"
             onClick={(e) => {
               e.currentTarget.blur();
               onZoomOut();
             }}
             title="Zoom Out (Ctrl -)"
-            aria-label="Zoom out"
-            className={`p-1.5 rounded-md transition-colors cursor-pointer ${
-              themeMode === 'light' ? 'hover:bg-slate-200/80 text-slate-600' : 'hover:bg-slate-700 text-slate-400'
-            }`}
-          >
-            <ZoomOut className="w-3.5 h-3.5" />
-          </button>
+          />
 
           <button
+            type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={(e) => {
               e.currentTarget.blur();
@@ -276,100 +252,81 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
             title="Click to reset zoom to 100%"
             aria-label="Reset zoom to 100 percent"
             className={`px-2 font-mono text-[11px] font-medium cursor-pointer ${
-              themeMode === 'light' ? 'text-slate-700 hover:text-slate-900' : 'text-slate-300 hover:text-white'
+              themeMode === 'light'
+                ? 'text-slate-700 hover:text-slate-900'
+                : 'text-slate-300 hover:text-white'
             }`}
           >
             {zoomPercent}%
           </button>
 
-          <button
-            onMouseDown={(e) => e.preventDefault()}
+          <IconButton
+            size="xs"
+            variant="ghost"
+            icon={ZoomInAreaIcon}
+            aria-label="Zoom in"
             onClick={(e) => {
               e.currentTarget.blur();
               onZoomIn();
             }}
             title="Zoom In (Ctrl +)"
-            aria-label="Zoom in"
-            className={`p-1.5 rounded-md transition-colors cursor-pointer ${
-              themeMode === 'light' ? 'hover:bg-slate-200/80 text-slate-600' : 'hover:bg-slate-700 text-slate-400'
-            }`}
-          >
-            <ZoomIn className="w-3.5 h-3.5" />
-          </button>
+          />
 
-          <button
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={(e) => {
-              e.currentTarget.blur();
-              onFitNotes();
-            }}
-            title="Fit All Notes on Canvas"
-            aria-label="Fit all notes on canvas"
-            className={`p-1.5 rounded-md transition-colors border-l ml-0.5 cursor-pointer ${
-              themeMode === 'light'
-                ? 'border-slate-200 hover:bg-slate-200/80 text-slate-600'
-                : 'border-slate-700/50 hover:bg-slate-700 text-slate-400'
-            }`}
-          >
-            <Maximize className="w-3.5 h-3.5" />
-          </button>
+          <div className="border-l border-slate-200 dark:border-slate-700/50 ml-0.5 pl-0.5">
+            <IconButton
+              size="xs"
+              variant="ghost"
+              icon={Maximize01Icon}
+              aria-label="Fit all notes on canvas"
+              onClick={(e) => {
+                e.currentTarget.blur();
+                onFitNotes();
+              }}
+              title="Fit All Notes on Canvas"
+            />
+          </div>
         </div>
 
         <div className={`h-5 w-px mx-1 ${themeMode === 'light' ? 'bg-slate-200' : 'bg-slate-800'}`} />
 
         {/* Monochromatic Canvas Theme Toggle */}
-        <button
-          onMouseDown={(e) => e.preventDefault()}
+        <IconButton
+          size="sm"
+          variant="ghost"
+          icon={themeMode === 'dark' ? Sun01Icon : Moon01Icon}
+          aria-label="Change canvas theme"
           onClick={(e) => {
             e.currentTarget.blur();
             onToggleTheme();
           }}
           title={`Switch to ${themeMode === 'dark' ? 'Monochrome Light' : 'Monochrome Dark'} Canvas`}
-          aria-label="Change canvas theme"
-          className={`p-1.5 rounded-md transition-colors cursor-pointer ${
-            themeMode === 'light'
-              ? 'hover:bg-slate-100 text-slate-600'
-              : 'hover:bg-slate-800 text-slate-400'
-          }`}
-        >
-          {themeMode === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
-        </button>
+        />
 
         {/* Canvas Settings Menu Modal Trigger */}
-        <button
-          onMouseDown={(e) => e.preventDefault()}
+        <IconButton
+          size="sm"
+          variant="ghost"
+          icon={Settings02Icon}
+          aria-label="Open canvas settings"
           onClick={(e) => {
             e.currentTarget.blur();
             setIsSettingsOpen(true);
           }}
           title="Open Canvas Settings"
-          aria-label="Open canvas settings"
-          className={`p-1.5 rounded-md transition-colors cursor-pointer ${
-            themeMode === 'light'
-              ? 'hover:bg-slate-100 text-slate-600'
-              : 'hover:bg-slate-800 text-slate-400'
-          }`}
-        >
-          <Settings className="w-4 h-4" />
-        </button>
+        />
 
         {/* Search & All Notes Sidebar */}
-        <button
-          onMouseDown={(e) => e.preventDefault()}
+        <IconButton
+          size="sm"
+          variant="ghost"
+          icon={ListViewIcon}
+          aria-label="Open notes list"
           onClick={(e) => {
             e.currentTarget.blur();
             onOpenNotesList();
           }}
           title="Open Notes Finder & List"
-          aria-label="Open notes list"
-          className={`p-1.5 rounded-md transition-colors flex items-center gap-1 cursor-pointer ${
-            themeMode === 'light'
-              ? 'hover:bg-slate-100 text-slate-600'
-              : 'hover:bg-slate-800 text-slate-400'
-          }`}
-        >
-          <List className="w-4 h-4" />
-        </button>
+        />
       </div>
 
       {/* Professional Desktop Preferences Modal */}

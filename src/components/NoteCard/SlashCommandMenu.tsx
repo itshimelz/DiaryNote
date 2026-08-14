@@ -1,19 +1,19 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { PaperTheme } from '../../types';
 import {
-  Heading1,
-  Heading2,
-  Heading3,
-  CheckSquare,
-  Quote,
-  Code,
-  Calendar,
-  Minus,
-  List,
-  ListOrdered,
-  Slash,
-  Sparkles,
-} from 'lucide-react';
+  Heading01Icon,
+  Heading02Icon,
+  Heading03Icon,
+  CheckmarkSquare02Icon,
+  QuoteUpIcon,
+  CodeIcon,
+  Calendar03Icon,
+  MinusSignIcon,
+  ListViewIcon,
+  LeftToRightListNumberIcon,
+  SparklesIcon,
+} from '@hugeicons/core-free-icons';
+import { Icon } from '../ui';
 import { PAPER_THEMES } from './types';
 
 export interface SlashCommand {
@@ -21,7 +21,7 @@ export interface SlashCommand {
   label: string;
   description: string;
   keywords: string[];
-  icon: React.ComponentType<{ className?: string }>;
+  icon: any;
   action: string | ((currentContent: string) => string);
 }
 
@@ -31,7 +31,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     label: 'Heading 1',
     description: 'Large section heading',
     keywords: ['h1', 'heading1', 'title', 'large'],
-    icon: Heading1,
+    icon: Heading01Icon,
     action: '# ',
   },
   {
@@ -39,7 +39,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     label: 'Heading 2',
     description: 'Medium section heading',
     keywords: ['h2', 'heading2', 'subtitle', 'medium'],
-    icon: Heading2,
+    icon: Heading02Icon,
     action: '## ',
   },
   {
@@ -47,7 +47,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     label: 'Heading 3',
     description: 'Small section heading',
     keywords: ['h3', 'heading3', 'small'],
-    icon: Heading3,
+    icon: Heading03Icon,
     action: '### ',
   },
   {
@@ -55,7 +55,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     label: 'Checklist Item',
     description: 'Track tasks with a check box',
     keywords: ['todo', 'task', 'check', 'checklist', 'checkbox'],
-    icon: CheckSquare,
+    icon: CheckmarkSquare02Icon,
     action: '- [ ] ',
   },
   {
@@ -63,7 +63,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     label: 'Bullet List',
     description: 'Create a simple bulleted list',
     keywords: ['bullet', 'list', 'unordered'],
-    icon: List,
+    icon: ListViewIcon,
     action: '- ',
   },
   {
@@ -71,7 +71,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     label: 'Numbered List',
     description: 'Create a ordered list',
     keywords: ['number', 'numbered', 'ordered', 'list'],
-    icon: ListOrdered,
+    icon: LeftToRightListNumberIcon,
     action: '1. ',
   },
   {
@@ -79,7 +79,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     label: 'Callout Quote',
     description: 'Highlight a blockquote or note',
     keywords: ['quote', 'callout', 'blockquote', 'note'],
-    icon: Quote,
+    icon: QuoteUpIcon,
     action: '> ',
   },
   {
@@ -87,7 +87,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     label: 'Code Block',
     description: 'Format a block of code',
     keywords: ['code', 'block', 'snippet', 'python', 'javascript'],
-    icon: Code,
+    icon: CodeIcon,
     action: '```\n\n```',
   },
   {
@@ -95,7 +95,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     label: 'Current Date & Time',
     description: 'Insert today timestamp',
     keywords: ['date', 'time', 'now', 'today', 'timestamp'],
-    icon: Calendar,
+    icon: Calendar03Icon,
     action: () => {
       const now = new Date();
       const dateStr = now.toLocaleDateString('en-US', {
@@ -116,7 +116,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     label: 'Horizontal Line',
     description: 'Visually divide sections',
     keywords: ['divider', 'hr', 'line', 'separator'],
-    icon: Minus,
+    icon: MinusSignIcon,
     action: '---\n',
   },
   {
@@ -124,7 +124,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     label: 'Auto Tag (AI)',
     description: 'Generate max 3 AI tags appended at end of note',
     keywords: ['auto-tag', 'autotag', 'tag', 'ai', 'tags'],
-    icon: Sparkles,
+    icon: SparklesIcon,
     action: 'autotag',
   },
 ];
@@ -222,16 +222,14 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
       <div
         className={`px-2.5 py-1 border-b text-[10px] font-semibold uppercase tracking-wider flex items-center justify-between ${themeConfig.divider} ${themeConfig.subtext}`}
       >
-        <div className="flex items-center gap-1 font-mono">
-          <Slash className="w-3 h-3 opacity-80" /> Format & Blocks
-        </div>
-        <span className="text-[9px] font-mono opacity-70">↑↓ navigate  ↵ select</span>
+        <span className="font-mono">/ Format & Blocks</span>
+        <span className="text-[9px] font-mono opacity-70">↑↓ navigate ↵ select</span>
       </div>
 
       <div className="max-h-52 overflow-y-auto px-1 py-1 space-y-0.5 scrollbar-thin">
         {filteredCommands.map((cmd, idx) => {
           const isSelected = idx === selectedIndex;
-          const Icon = cmd.icon;
+          const cmdIcon = cmd.icon;
 
           const rowClass = isSelected
             ? isDark
@@ -251,21 +249,24 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
 
           return (
             <button
+              type="button"
               key={cmd.id}
               ref={(el) => {
                 itemRefs.current[idx] = el;
               }}
               onClick={() => onSelect(cmd)}
-              className={`w-full text-left px-2 py-1.5 rounded-sm flex items-center gap-2 transition-colors ${rowClass}`}
+              className={`w-full text-left px-2 py-1.5 rounded-sm flex items-center gap-2 transition-colors cursor-pointer ${rowClass}`}
             >
               <div className={`p-1 rounded-sm border shrink-0 transition-colors ${iconClass}`}>
-                <Icon className="w-3.5 h-3.5" />
+                <Icon icon={cmdIcon} size="xs" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="font-semibold truncate leading-tight font-sans text-xs">
                   {cmd.label}
                 </div>
-                <div className={`text-[10px] truncate ${themeConfig.subtext}`}>{cmd.description}</div>
+                <div className={`text-[10px] truncate ${themeConfig.subtext}`}>
+                  {cmd.description}
+                </div>
               </div>
             </button>
           );

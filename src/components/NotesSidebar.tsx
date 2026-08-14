@@ -2,14 +2,15 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Note, CanvasTheme } from '../types';
 import { formatDate } from '../utils';
 import {
-  Search,
-  X,
-  FileText,
-  Plus,
-  Trash2,
-  AtSign,
-  Layers,
-} from 'lucide-react';
+  Search01Icon,
+  Cancel01Icon,
+  File01Icon,
+  Add01Icon,
+  Delete02Icon,
+  AtIcon,
+  Layers01Icon,
+} from '@hugeicons/core-free-icons';
+import { Icon, Button, Badge, Input, IconButton, Select } from './ui';
 
 interface NotesSidebarProps {
   isOpen: boolean;
@@ -49,8 +50,8 @@ const NotesSidebarComponent: React.FC<NotesSidebarProps> = ({
 
   // Close on Escape
   useEffect(() => {
+    if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
       if (e.key === 'Escape') {
         onClose();
       }
@@ -115,90 +116,73 @@ const NotesSidebarComponent: React.FC<NotesSidebarProps> = ({
       {/* Header */}
       <div
         className={`p-3.5 border-b flex items-center justify-between transition-colors ${
-          isDark ? 'border-slate-800 bg-slate-950/40 text-slate-100' : 'border-slate-200 bg-slate-50/80 text-slate-900'
+          isDark
+            ? 'border-slate-800 bg-slate-950/40 text-slate-100'
+            : 'border-slate-200 bg-slate-50/80 text-slate-900'
         }`}
       >
         <div className="flex items-center gap-2">
-          <FileText className={`w-4 h-4 ${isDark ? 'text-slate-300' : 'text-slate-700'}`} />
+          <Icon
+            icon={File01Icon}
+            size="md"
+            className={isDark ? 'text-slate-300' : 'text-slate-700'}
+          />
           <h2 className={`font-semibold text-xs ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
             All notes ({notes.length})
           </h2>
         </div>
-        <button
-          type="button"
+        <IconButton
+          icon={Cancel01Icon}
+          size="sm"
+          variant="ghost"
           onClick={onClose}
           aria-label="Close sidebar"
-          className={`p-1 rounded-md transition-colors cursor-pointer ${
-            isDark ? 'hover:bg-slate-800 text-slate-400 hover:text-slate-200' : 'hover:bg-slate-200 text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <X className="w-4 h-4" />
-        </button>
+        />
       </div>
 
       {/* Search and Sort Toolbar */}
-      <div className={`p-3 border-b space-y-2.5 ${isDark ? 'border-slate-800 bg-slate-900/40' : 'border-slate-200 bg-slate-50/50'}`}>
-        <div className="relative">
-          <Search className={`w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 ${isDark ? 'text-slate-400' : 'text-slate-400'}`} />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search notes..."
-            aria-label="Search notes in sidebar"
-            className={`w-full pl-8 pr-3 py-1.5 rounded-md text-xs font-sans border transition-colors outline-none focus:ring-1 focus:ring-blue-500 ${
-              isDark
-                ? 'bg-slate-950/60 border-slate-800 text-slate-100 placeholder:text-slate-400'
-                : 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 shadow-xs'
-            }`}
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              aria-label="Clear search query"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
+      <div
+        className={`p-3 border-b space-y-2.5 ${
+          isDark ? 'border-slate-800 bg-slate-900/40' : 'border-slate-200 bg-slate-50/50'
+        }`}
+      >
+        <Input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search notes..."
+          aria-label="Search notes in sidebar"
+          prefixIcon={Search01Icon}
+          clearable
+          onClear={() => setSearchQuery('')}
+        />
 
         <div className="flex items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-1.5">
-            <span className={`text-[11px] font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Sort:</span>
-            <select
+          <div className="flex items-center gap-1.5 flex-1 max-w-[200px]">
+            <Select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => setSortBy(e.target.value as 'created' | 'modified' | 'title')}
               aria-label="Sort notes by"
-              className={`text-[11px] font-medium py-1 px-2 rounded-md border outline-none cursor-pointer transition-colors ${
-                isDark
-                  ? 'bg-slate-800 border-slate-700 text-slate-200'
-                  : 'bg-white border-slate-300 text-slate-800 shadow-xs'
-              }`}
-            >
-              <option value="created">Newest Created</option>
-              <option value="modified">Recently Updated</option>
-              <option value="title">Title A-Z</option>
-            </select>
+              options={[
+                { value: 'created', label: 'Newest Created' },
+                { value: 'modified', label: 'Recently Updated' },
+                { value: 'title', label: 'Title A-Z' },
+              ]}
+              className="py-0"
+            />
           </div>
 
-          <button
-            type="button"
+          <Button
+            size="xs"
+            variant="primary"
+            icon={Add01Icon}
             onClick={() => {
               onAddNote();
               onClose();
             }}
-            aria-label="Add new note"
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold transition-colors cursor-pointer ${
-              isDark
-                ? 'bg-slate-800 text-white border border-slate-700 hover:bg-slate-700'
-                : 'bg-slate-900 text-white border border-slate-800 hover:bg-slate-800 shadow-xs'
-            }`}
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Add Note</span>
-          </button>
+            Add Note
+          </Button>
         </div>
       </div>
 
@@ -211,11 +195,18 @@ const NotesSidebarComponent: React.FC<NotesSidebarProps> = ({
         aria-label="Notes list"
       >
         {totalItems === 0 ? (
-          <div className={`text-center py-12 text-xs space-y-1 font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+          <div
+            className={`text-center py-12 text-xs space-y-1 font-mono ${
+              isDark ? 'text-slate-400' : 'text-slate-500'
+            }`}
+          >
             <p>No notes found matching “{searchQuery}”</p>
           </div>
         ) : (
-          <div style={{ paddingTop: `${topPadding}px`, paddingBottom: `${bottomPadding}px` }} className="space-y-1.5">
+          <div
+            style={{ paddingTop: `${topPadding}px`, paddingBottom: `${bottomPadding}px` }}
+            className="space-y-1.5"
+          >
             {visibleNotes.map((note) => {
               const hasMentions = note.content.includes('@');
               const plainSnippet = note.isLocked
@@ -229,15 +220,22 @@ const NotesSidebarComponent: React.FC<NotesSidebarProps> = ({
                     .trim()
                     .slice(0, 120);
               return (
-                <button
-                  type="button"
+                <div
+                  role="button"
+                  tabIndex={0}
                   key={note.id}
                   onClick={() => {
                     onSelectNote(note.id);
                     onClose();
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      onSelectNote(note.id);
+                      onClose();
+                    }
+                  }}
                   aria-label={`Open note ${note.title || 'Untitled Note'}`}
-                  className={`w-full text-left p-3 rounded-lg cursor-pointer transition-colors border group flex flex-col gap-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                  className={`w-full text-left p-3 rounded-sm cursor-pointer transition-colors border group flex flex-col gap-1.5 focus:outline-none focus:ring-1 focus:ring-slate-500 ${
                     isDark
                       ? 'border-slate-800/70 bg-slate-900/50 hover:bg-slate-800/80 text-slate-200 hover:border-slate-700'
                       : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-900 hover:border-slate-300 shadow-xs'
@@ -247,35 +245,40 @@ const NotesSidebarComponent: React.FC<NotesSidebarProps> = ({
                   <div className="flex items-start justify-between gap-2 w-full">
                     <div className="flex items-start gap-2.5 min-w-0 flex-1">
                       <div
-                        className={`p-1.5 rounded-md shrink-0 mt-0.5 ${
+                        className={`p-1.5 rounded-sm shrink-0 mt-0.5 ${
                           isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-600'
                         }`}
                       >
-                        <FileText className="w-3.5 h-3.5" />
+                        <Icon icon={File01Icon} size="xs" />
                       </div>
-                      <h4 className={`font-semibold text-xs leading-snug break-words flex-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                      <h4
+                        className={`font-semibold text-xs leading-snug break-words flex-1 ${
+                          isDark ? 'text-slate-100' : 'text-slate-900'
+                        }`}
+                      >
                         {note.isLocked ? 'Locked Note' : note.title || 'Untitled Note'}
                       </h4>
                     </div>
 
-                    <button
-                      type="button"
+                    <IconButton
+                      size="xs"
+                      variant="danger"
+                      icon={Delete02Icon}
+                      aria-label={`Delete note ${note.title || 'Untitled Note'}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         onDeleteNote(note.id);
                       }}
-                      aria-label={`Delete note ${note.title || 'Untitled Note'}`}
-                      title="Delete Note"
-                      className={`opacity-40 group-hover:opacity-100 group-focus-within:opacity-100 p-1 hover:bg-rose-500/20 rounded-sm transition-colors shrink-0 -mr-1 -mt-0.5 cursor-pointer ${
-                        isDark ? 'text-slate-400 hover:text-rose-400' : 'text-slate-500 hover:text-rose-600'
-                      }`}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                      className="opacity-40 group-hover:opacity-100 group-focus-within:opacity-100 shrink-0 -mr-1 -mt-0.5"
+                    />
                   </div>
 
                   {/* Snippet Preview */}
-                  <p className={`text-[11px] line-clamp-2 pl-8 text-left ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                  <p
+                    className={`text-[11px] line-clamp-2 pl-8 text-left ${
+                      isDark ? 'text-slate-400' : 'text-slate-600'
+                    }`}
+                  >
                     {note.isLocked ? (
                       <span className="italic">Passcode required</span>
                     ) : plainSnippet ? (
@@ -289,35 +292,28 @@ const NotesSidebarComponent: React.FC<NotesSidebarProps> = ({
                   <div className="flex items-center justify-between gap-2 pl-8 pt-0.5 text-[10px] w-full">
                     <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                       {note.groupId && (
-                        <span
-                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-sans font-medium border shrink-0 ${
-                            isDark
-                              ? 'bg-slate-800 border-slate-700 text-slate-300'
-                              : 'bg-slate-100 border-slate-200 text-slate-700'
-                          }`}
-                        >
-                          <Layers className="w-2.5 h-2.5 text-blue-500" />
-                          <span className="truncate max-w-[110px]">{note.groupName || 'Group'}</span>
-                        </span>
+                        <Badge variant="subtle" size="xs" icon={Layers01Icon}>
+                          <span className="truncate max-w-[110px]">
+                            {note.groupName || 'Group'}
+                          </span>
+                        </Badge>
                       )}
                       {hasMentions && (
-                        <span
-                          className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium border shrink-0 ${
-                            isDark
-                              ? 'bg-slate-800/80 border-slate-700 text-amber-400/90'
-                              : 'bg-amber-50 border-amber-200 text-amber-800'
-                          }`}
-                        >
-                          <AtSign className="w-2.5 h-2.5" /> Refs
-                        </span>
+                        <Badge variant="subtle" size="xs" icon={AtIcon}>
+                          Refs
+                        </Badge>
                       )}
                     </div>
 
-                    <span className={`font-mono text-[10px] shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <span
+                      className={`font-mono text-[10px] shrink-0 ${
+                        isDark ? 'text-slate-400' : 'text-slate-500'
+                      }`}
+                    >
                       {formatDate(note.createdAt)}
                     </span>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>

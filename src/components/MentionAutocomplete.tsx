@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { Note, PaperTheme } from '../types';
-import { FileText, AtSign } from 'lucide-react';
+import { File01Icon, AtIcon } from '@hugeicons/core-free-icons';
+import { Icon } from './ui';
 import { PAPER_THEMES } from './NoteCard/types';
 
 interface MentionAutocompleteProps {
@@ -109,9 +110,10 @@ export const MentionAutocomplete: React.FC<MentionAutocompleteProps> = ({
         className={`px-2.5 py-1 border-b text-[10px] font-semibold uppercase tracking-wider flex items-center justify-between ${themeConfig.divider} ${themeConfig.subtext}`}
       >
         <div className="flex items-center gap-1 font-mono">
-          <AtSign className="w-3 h-3 opacity-80" /> Link to Note
+          <Icon icon={AtIcon} size="xs" className="opacity-80" />
+          <span>Link to Note</span>
         </div>
-        <span className="text-[9px] font-mono opacity-70">↑↓ navigate  ↵ select</span>
+        <span className="text-[9px] font-mono opacity-70">↑↓ navigate ↵ select</span>
       </div>
 
       <div className="max-h-48 overflow-y-auto px-1 py-1 space-y-0.5 scrollbar-thin">
@@ -134,15 +136,18 @@ export const MentionAutocomplete: React.FC<MentionAutocompleteProps> = ({
 
           return (
             <button
+              type="button"
               key={note.id}
               ref={(el) => {
                 itemRefs.current[idx] = el;
               }}
               onClick={() => onSelect(note)}
-              className={`w-full text-left px-2 py-1.5 rounded-sm flex items-center gap-2 transition-colors ${rowClass}`}
+              className={`w-full text-left px-2 py-1.5 rounded-sm flex items-center gap-2 transition-colors cursor-pointer ${rowClass}`}
             >
-              <FileText className={`w-3.5 h-3.5 shrink-0 ${iconClass}`} />
-              <span className="truncate font-sans font-medium">{note.title || 'Untitled Note'}</span>
+              <Icon icon={File01Icon} size="xs" className={`shrink-0 ${iconClass}`} />
+              <span className="truncate font-sans font-medium">
+                {note.title || 'Untitled Note'}
+              </span>
             </button>
           );
         })}

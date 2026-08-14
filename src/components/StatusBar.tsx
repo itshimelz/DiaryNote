@@ -2,19 +2,19 @@ import React, { useMemo } from 'react';
 import { Note, CanvasTheme, GridType } from '../types';
 import { calculateJournalStreak } from '../utils';
 import {
-  Database,
-  Grid2X2,
-  CheckSquare,
-  Clock,
-  FileText,
-  Flame,
-  CheckCircle2,
-  Tag,
-  Sparkles,
-  Loader2,
-  Layers,
-  AlertCircle,
-} from 'lucide-react';
+  Database01Icon,
+  CheckmarkSquare02Icon,
+  File01Icon,
+  FireIcon,
+  CheckmarkCircle02Icon,
+  Tag01Icon,
+  SparklesIcon,
+  Loading03Icon,
+  Layers01Icon,
+  Alert02Icon,
+  Grid02Icon,
+} from '@hugeicons/core-free-icons';
+import { Icon, Badge } from './ui';
 
 /**
  * Smart relative time formatter
@@ -68,7 +68,7 @@ interface StatusBarProps {
   onOpenJournalCalendar?: () => void;
 }
 
-export const StatusBar: React.FC<StatusBarProps> = ({
+const StatusBarComponent: React.FC<StatusBarProps> = ({
   notes = [],
   themeMode = 'dark',
   selectedNoteIds = [],
@@ -110,7 +110,10 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       }
     }
 
-    const latestUpdatedTimeAgo = latestTimestamp > 0 ? formatSmartRelativeTime(new Date(latestTimestamp).toISOString()) : 'Just now';
+    const latestUpdatedTimeAgo =
+      latestTimestamp > 0
+        ? formatSmartRelativeTime(new Date(latestTimestamp).toISOString())
+        : 'Just now';
 
     return { totalWords, totalChars, pinnedCount, latestUpdatedTimeAgo };
   }, [notes]);
@@ -156,57 +159,70 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 
     const selectedNotes = notes.filter((n) => selectedNoteIds.includes(n.id));
     const tagSet = new Set<string>();
-    const tagRegex = /#([a-zA-Z0-9_\-\u0980-\u09FF]+)/g;
 
-    for (let i = 0; i < selectedNotes.length; i++) {
-      const content = selectedNotes[i].content || '';
-      let match: RegExpExecArray | null;
-      while ((match = tagRegex.exec(content)) !== null) {
-        if (match[1]) tagSet.add(match[1]);
+    selectedNotes.forEach((n) => {
+      if (n.tags && Array.isArray(n.tags)) {
+        n.tags.forEach((t) => {
+          if (t && t.trim()) tagSet.add(`#${t.replace(/^#/, '').trim()}`);
+        });
       }
-    }
+      if (n.content) {
+        const matches = n.content.match(/#[a-zA-Z0-9_\u0980-\u09FF-]+/g);
+        if (matches) {
+          matches.forEach((m) => tagSet.add(m));
+        }
+      }
+    });
 
-    const uniqueTags = Array.from(tagSet);
-    const displayTags = uniqueTags.slice(0, 3).map((t) => `#${t}`);
-    const extraCount = Math.max(0, uniqueTags.length - 3);
+    const tagsArr = Array.from(tagSet);
+    const count = tagsArr.length;
+    const displayTags = tagsArr.slice(0, 3);
+    const extraCount = Math.max(0, count - 3);
+    const firstTag = tagsArr.length > 0 ? tagsArr[0].replace(/^#/, '') : '';
 
-    return {
-      count: uniqueTags.length,
-      displayTags,
-      extraCount,
-      firstTag: uniqueTags.length > 0 ? `#${uniqueTags[0]}` : '',
-    };
+    return { count, displayTags, extraCount, firstTag };
   }, [notes, selectedNoteIds]);
 
-  const flatItemHoverClass = `transition-colors cursor-pointer opacity-80 hover:opacity-100 ${
-    isDark ? 'text-slate-300 hover:text-blue-400' : 'text-slate-700 hover:text-blue-600'
-  }`;
+  // Harmonized icon and button hover styling
+  const defaultIconClass = 'text-slate-400 dark:text-slate-500';
+  const btnHoverClass =
+    'inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-xs transition-colors cursor-pointer text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800';
 
   return (
-    <div
-      className={`fixed bottom-0 left-0 right-0 z-40 h-8 border-t backdrop-blur-md px-4 text-[11px] font-sans flex items-center justify-between transition-colors select-none ${
+    <footer
+      role="contentinfo"
+      aria-label="Workspace status and statistics bar"
+      className={`fixed bottom-0 inset-x-0 h-7 border-t z-30 px-3 flex items-center justify-between font-sans text-xs select-none transition-colors backdrop-blur-md ${
         isDark
-          ? 'bg-slate-900/95 border-slate-800 text-slate-300'
-          : 'bg-white/95 border-slate-200 text-slate-700'
+          ? 'bg-slate-950/90 border-slate-850 text-slate-400'
+          : 'bg-white/90 border-slate-200 text-slate-600'
       }`}
     >
-      {/* Left Section: Contextual Insights & Tag Summary (Flat Styling) */}
+      {/* Left Section: Note & Selection Statistics */}
       <div className="flex items-center gap-2.5 min-w-0">
         {selectedSingleNote ? (
           <div className="flex items-center gap-1.5 truncate font-sans text-[11px]">
-            <FileText className="w-3.5 h-3.5 text-blue-400 shrink-0 translate-y-[0.5px]" />
-            <span className={`font-semibold truncate max-w-[200px] ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+            <Icon icon={File01Icon} size="xs" className={defaultIconClass} />
+            <span
+              className={`font-semibold truncate max-w-[200px] ${
+                isDark ? 'text-slate-100' : 'text-slate-900'
+              }`}
+            >
               "{selectedSingleNote.title}"
             </span>
-            <span className={isDark ? 'text-slate-500' : 'text-slate-400'}>·</span>
-            <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>
+            <span className={isDark ? 'text-slate-600' : 'text-slate-300'}>·</span>
+            <span className={isDark ? 'text-slate-400' : 'text-slate-600'}>
               {selectedSingleNote.words} {selectedSingleNote.words === 1 ? 'word' : 'words'}
             </span>
           </div>
         ) : multiSelectionStats ? (
           <div className="flex items-center gap-2 font-sans text-[11px]">
-            <span className="font-bold inline-flex items-center gap-1 text-blue-400">
-              <CheckSquare className="w-3.5 h-3.5 shrink-0 translate-y-[0.5px]" />
+            <span
+              className={`font-semibold inline-flex items-center gap-1.5 ${
+                isDark ? 'text-slate-100' : 'text-slate-900'
+              }`}
+            >
+              <Icon icon={CheckmarkSquare02Icon} size="xs" className={defaultIconClass} />
               <span>{multiSelectionStats.count} notes selected</span>
             </span>
             <span className={isDark ? 'text-slate-400' : 'text-slate-600'}>
@@ -215,8 +231,12 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           </div>
         ) : (
           <div className="flex items-center gap-2 font-sans text-[11px]">
-            <span className="inline-flex items-center gap-1 font-semibold text-blue-400">
-              <FileText className="w-3.5 h-3.5 shrink-0 translate-y-[0.5px]" />
+            <span
+              className={`inline-flex items-center gap-1.5 font-semibold ${
+                isDark ? 'text-slate-100' : 'text-slate-900'
+              }`}
+            >
+              <Icon icon={File01Icon} size="xs" className={defaultIconClass} />
               <span>{notes.length} notes</span>
             </span>
             {workspaceStats.pinnedCount > 0 && (
@@ -224,26 +244,26 @@ export const StatusBar: React.FC<StatusBarProps> = ({
                 ({workspaceStats.pinnedCount} pinned)
               </span>
             )}
-            <span className={isDark ? 'text-slate-500' : 'text-slate-400'}>·</span>
+            <span className={isDark ? 'text-slate-600' : 'text-slate-300'}>·</span>
             <span className={isDark ? 'text-slate-400' : 'text-slate-600'}>
               {workspaceStats.totalWords.toLocaleString()} words total
             </span>
           </div>
         )}
 
-        {/* Task 13: Tag & Category Summary (Only visible when note(s) selected; max 3 tags + extra count) */}
+        {/* Tag & Category Summary */}
         {tagInfo.count > 0 && (
           <>
             <span className={isDark ? 'text-slate-600' : 'text-slate-300'}>·</span>
             <button
               type="button"
               onClick={() => onOpenSearchModal?.(tagInfo.firstTag)}
-              className={`inline-flex items-center gap-1 font-medium ${flatItemHoverClass}`}
+              className={btnHoverClass}
               title={`Selected tags: ${tagInfo.displayTags.join(' ')}${
                 tagInfo.extraCount > 0 ? ` +${tagInfo.extraCount} more` : ''
               }. Click to search.`}
             >
-              <Tag className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+              <Icon icon={Tag01Icon} size="xs" className={defaultIconClass} />
               <span>
                 {tagInfo.displayTags.join(' ')}
                 {tagInfo.extraCount > 0 && (
@@ -255,116 +275,130 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         )}
       </div>
 
-      {/* Middle Section: Journal Streak, AI Engine Status, & Database Engine (Flat Styling) */}
-      <div className="hidden md:flex items-center gap-3.5 font-sans text-[11px]">
+      {/* Middle Section: Dead-Center Positioned Journal Streak, AI Engine Status, & Database Engine */}
+      <div className="hidden md:flex items-center gap-3 font-sans text-[11px] absolute left-1/2 -translate-x-1/2 pointer-events-auto">
         {/* Journal Streak Button */}
         {streakStats.currentStreak > 0 && (
           <button
             type="button"
             onClick={onOpenJournalCalendar}
-            className={`inline-flex items-center gap-1 font-semibold ${flatItemHoverClass}`}
+            className={btnHoverClass}
             title="Click to view Journal Calendar"
           >
-            <Flame className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span>{streakStats.currentStreak} d streak</span>
+            <Icon icon={FireIcon} size="xs" className="text-amber-500 dark:text-amber-400 shrink-0" />
+            <span className="font-semibold text-amber-600 dark:text-amber-400">
+              {streakStats.currentStreak}d streak
+            </span>
           </button>
         )}
 
-        {/* Task 14: Dynamic AI Engine Status Indicator */}
+        {/* Dynamic AI Engine Status Indicator */}
         <div
-          className={`inline-flex items-center gap-1 font-semibold transition-colors ${
-            isMergingAI
-              ? 'text-blue-400'
-              : enableAIServices
-              ? isDark ? 'text-slate-300' : 'text-slate-700'
-              : 'opacity-50'
+          className={`inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-xs transition-colors font-medium ${
+            enableAIServices || isMergingAI
+              ? 'text-slate-600 dark:text-slate-400'
+              : 'text-slate-400 dark:text-slate-600 opacity-70'
           }`}
-          title={isMergingAI ? 'AI merging operation in progress' : enableAIServices ? 'AI Engine Service Ready' : 'AI Services Disabled'}
+          title={
+            isMergingAI
+              ? 'AI merging operation in progress'
+              : enableAIServices
+              ? 'AI Engine Service Ready'
+              : 'AI Services Disabled'
+          }
         >
           {isMergingAI ? (
-            <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin shrink-0" />
+            <Icon
+              icon={Loading03Icon}
+              size="xs"
+              className={`animate-spin ${defaultIconClass}`}
+            />
           ) : (
-            <Sparkles className={`w-3.5 h-3.5 shrink-0 ${enableAIServices ? 'text-amber-400' : 'opacity-40'}`} />
+            <Icon
+              icon={SparklesIcon}
+              size="xs"
+              className={defaultIconClass}
+            />
           )}
           <span>{isMergingAI ? 'AI Merging...' : enableAIServices ? 'AI Ready' : 'AI Off'}</span>
         </div>
 
-        {/* Task 16: Clickable Database Engine & Quick Storage Trigger */}
+        {/* Clickable Database Engine & Quick Storage Trigger */}
         <button
           type="button"
           onClick={onOpenBackupModal}
-          className={`inline-flex items-center gap-1 font-semibold ${flatItemHoverClass}`}
+          className={btnHoverClass}
           title="SQLite Local Storage Engine. Click to export full database backup."
         >
-          <Database className="w-3.5 h-3.5 text-blue-400 shrink-0 translate-y-[0.5px]" />
+          <Icon icon={Database01Icon} size="xs" className={defaultIconClass} />
           <span>SQLite Engine</span>
         </button>
       </div>
 
-      {/* Right Section: Interactive Grid & Snap Controls + Auto-Save Status (Flat Styling) */}
-      <div className="flex items-center gap-3 font-sans text-[11px]">
-        {/* Task 15: Interactive Clickable Grid Type Switcher */}
+      {/* Right Section: Interactive Grid & Snap Controls + Jitter-Free Auto-Save Status */}
+      <div className="flex items-center gap-2.5 font-sans text-[11px]">
+        {/* Interactive Clickable Grid Type Switcher */}
         <button
           type="button"
           onClick={onCycleGridType}
-          className={`capitalize font-semibold inline-flex items-center gap-1 ${flatItemHoverClass}`}
+          className={btnHoverClass}
           title={`Grid background: ${gridType}. Click to cycle type.`}
         >
-          <Grid2X2 className="w-3.5 h-3.5 opacity-70 shrink-0 translate-y-[0.5px]" />
+          <Icon icon={Grid02Icon} size="xs" className={defaultIconClass} />
           <span>Grid: {gridType}</span>
         </button>
 
-        {/* Task 15: Interactive Clickable Grid Snap Switcher */}
+        {/* Interactive Clickable Grid Snap Switcher */}
         <button
           type="button"
           onClick={onToggleSnap}
-          className={`capitalize font-semibold inline-flex items-center gap-1 ${flatItemHoverClass} ${
-            snapToGrid ? 'text-blue-400 font-bold opacity-100' : 'opacity-60'
-          }`}
-          title={snapToGrid ? 'Snap to Grid (24px Enabled). Click to toggle.' : 'Free-form Placement. Click to enable 24px Snap.'}
+          className={
+            snapToGrid
+              ? 'inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-xs transition-colors cursor-pointer text-blue-600 dark:text-blue-400 font-semibold bg-blue-500/10'
+              : btnHoverClass
+          }
+          title={
+            snapToGrid
+              ? 'Snap to Grid (24px Enabled). Click to toggle.'
+              : 'Snap to Grid (Disabled). Click to enable.'
+          }
         >
-          <Layers className="w-3.5 h-3.5 shrink-0 translate-y-[0.5px]" />
-          <span>{snapToGrid ? 'Snap 24px' : 'Freeform'}</span>
+          <Icon icon={Layers01Icon} size="xs" className={defaultIconClass} />
+          <span>Snap: {snapToGrid ? '24px' : 'Off'}</span>
         </button>
 
-        <div className={`h-3 w-px ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`} />
+        <span className={isDark ? 'text-slate-700' : 'text-slate-300'}>·</span>
 
-        {/* Smart Status / Auto-saved / Note Updated indicator */}
-        <div className="flex items-center gap-1 font-semibold">
+        {/* Reserved Width Jitter-Free Save State Indicator */}
+        <div
+          className="flex items-center justify-end w-32 min-w-[128px] shrink-0"
+          title={
+            saveError
+              ? `Save error: ${saveError}`
+              : isSaving
+              ? 'Saving changes to IndexedDB / SQLite store...'
+              : `All notes up to date (${workspaceStats.latestUpdatedTimeAgo})`
+          }
+        >
           {saveError ? (
-            <span className="inline-flex items-center gap-1 text-[11px] text-rose-400" title={saveError}>
-              <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0 translate-y-[0.5px]" />
-              <span>Save error</span>
-            </span>
+            <Badge variant="danger" size="xs" icon={Alert02Icon}>
+              Save Error
+            </Badge>
           ) : isSaving ? (
-            <span className="inline-flex items-center gap-1 text-[11px] text-amber-400" title="Saving changes to local database...">
-              <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin shrink-0 translate-y-[0.5px]" />
+            <span className="inline-flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400">
+              <Icon icon={Loading03Icon} size="xs" className="animate-spin shrink-0" />
               <span>Saving...</span>
             </span>
-          ) : selectedSingleNote ? (
-            <span className="inline-flex items-center gap-1 text-[11px]" title={`Last modified: ${selectedSingleNote.title}`}>
-              <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0 translate-y-[0.5px]" />
-              <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>
-                Updated {selectedSingleNote.updatedTimeAgo}
-              </span>
-            </span>
-          ) : multiSelectionStats ? (
-            <span className="inline-flex items-center gap-1 text-[11px]">
-              <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0 translate-y-[0.5px]" />
-              <span className={isDark ? 'text-slate-400' : 'text-slate-600'}>
-                Latest update {workspaceStats.latestUpdatedTimeAgo}
-              </span>
-            </span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-[11px]" title="All workspace notes saved to local SQLite database">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 translate-y-[0.5px]" />
-              <span className={isDark ? 'text-slate-400' : 'text-slate-600'}>
-                All changes saved
-              </span>
+            <span className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400">
+              <Icon icon={CheckmarkCircle02Icon} size="xs" className="shrink-0" />
+              <span>Saved · {workspaceStats.latestUpdatedTimeAgo}</span>
             </span>
           )}
         </div>
       </div>
-    </div>
+    </footer>
   );
 };
+
+export const StatusBar = React.memo(StatusBarComponent);

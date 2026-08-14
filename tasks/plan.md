@@ -1,476 +1,243 @@
-# Implementation Plan: DiaryNote Remediation & Hardening Roadmap
+# Implementation Plan: DiaryNote Desktop UI Standardization with Hugeicons
 
 ## Overview
-
-This implementation plan translates the findings from [`docs/UNIFIED_AUDIT_REPORT_2026-08-13.md`](file:///home/itshimelz/Projects/DiaryNote/docs/UNIFIED_AUDIT_REPORT_2026-08-13.md) and the **Deep CPU Efficiency & Canvas Performance Audits** into an actionable, phased engineering roadmap. The objective is to elevate DiaryNote from an experimental spatial prototype into a secure, reliable, local-first personal journal with hardened desktop sandboxing, zero-knowledge cryptography, strict schema validation, accessible UI components, automated quality gates, and guaranteed low CPU utilization (<5–10% on heavy canvas loads of 1,000 to 10,000 notes).
-
----
-
-## Development Strategy & Governance
-
-### 1. Semantic Versioning Milestones
-
-| Target Version | Milestone Focus | Release Gate Criteria |
-| :--- | :--- | :--- |
-| **`v0.2.0-alpha.1`** | **Phase 1: Zero-Loss Persistence & Sandbox** | All P0 persistence bugs resolved; $O(1)$ direct deletions; native filesystem path traversal patched; automated restart tests passing. |
-| **`v0.2.0-alpha.2`** | **Phase 2: Authorization & Cryptographic Vault** | Centralized `authorizeNotes()` engine; Argon2id KDF offloaded to Web Worker / Rust; AES-256-GCM at-rest encryption; OS keyring credentials; AI leak paths closed. |
-| **`v0.2.0-beta.1`** | **Phase 3: Schema Interchange & Journal Model** | Zod backup validation; atomic transactional migrations with legacy rollback; explicit journal data model (`isDailyEntry` & pre-indexed timestamps); delta-based undo history. |
-| **`v0.2.0` (GA)** | **Phase 4: Accessibility, Scalability & Quality Gates** | WCAG 2.1 AA dialogs/drawers; Pointer Events canvas; decoupled metadata & Web Worker search; 2D canvas minimap; zero-reflow selection; Vitest & Tauri CI workflows. |
+Standardize DiaryNote's desktop UI architecture by creating a lightweight, accessible design system primitive layer (`src/components/ui/`), adopting **Hugeicons** (`@hugeicons/react` & `@hugeicons/core-free-icons`) for premium, desktop-grade icon aesthetics, and migrating all peripheral UI components (modals, dock controls, context menus, and status indicators) to consume it. The custom spatial engine (infinite canvas, note cards, paper themes, links, and dragging) remains completely custom and untouched.
 
 ---
 
-### 2. Git Branching Model & Parallel Tracks
+## Architectural Principles & Design Tokens
 
-```text
-main (Production Releases / Protected)
-  │
-  └── dev (Integration Branch)
-        │
-        ├── track/persistence-and-sandbox       (Phase 1: Tasks 1-4)
-        │     ├── fix/p0-note-persistence
-        │     ├── fix/direct-db-deletions
-        │     └── fix/p0-tauri-path-traversal
-        │
-        ├── track/auth-and-crypto-vault         (Phase 2: Tasks 5-9)
-        │     ├── feat/central-auth-policy
-        │     ├── feat/worker-argon2-aes-encryption
-        │     └── feat/os-keyring-credentials
-        │
-        ├── track/schema-interchange-journal    (Phase 3: Tasks 10-14)
-        │     ├── feat/zod-backup-schema
-        │     ├── feat/transactional-migration
-        │     ├── feat/first-class-journal-model
-        │     └── feat/delta-undo-history
-        │
-        └── track/a11y-perf-ci-gates            (Phase 4: Tasks 15-19)
-              ├── feat/wcag-accessible-dialogs
-              ├── feat/canvas-pointer-events
-              ├── perf/decoupled-metadata-worker-search
-              ├── perf/zero-reflow-canvas-optimizations
-              └── ci/vitest-playwright-pipeline
-```
+### 1. Two-Tier UI Architecture
+- **Tier 1 (Custom Domain UI - Untouched):** `InfiniteCanvas`, `NoteCard` (Markdown & Canvas handles), `GroupFrame`, `NoteConnections`, `Minimap`.
+- **Tier 2 (Shared UI Primitives - Standardized):** `Button`, `IconButton`, `Icon`, `Input`, `Dialog`, `Tabs`, `Switch`, `Kbd`, `Badge`, `Menu`, `MenuItem`.
+
+### 2. Iconography Standard: Hugeicons
+- **Package:** `@hugeicons/react` + `@hugeicons/core-free-icons`
+- **Aesthetic:** Stroke-based, 1.5px stroke width, rounded caps, crisp desktop rendering.
+- **Encapsulated `<Icon icon={...} />` Primitive:** Standardized icon component with size tokens (`xs: 12px`, `sm: 14px`, `md: 16px`, `lg: 20px`), consistent stroke width, and Lucide deprecation/removal.
+
+### 3. Strict Design Tokens (`src/index.css`)
+- **Border Radius:**
+  - `rounded-xs` (2px): Inline keyboard keys (`Kbd`), small tag pills.
+  - `rounded-sm` (4px): The **universal default** for cards, buttons, dialogs, inputs, and menus.
+  - `rounded-full` (9999px): Dedicated solely to circular dots and avatar indicators.
+  - *Eliminate all arbitrary `rounded-md`, `rounded-lg`, `rounded-xl`, `rounded-2xl` in peripheral controls.*
+- **Shadows:** Crisp, desktop-native `shadow-none` and `shadow-xs` / `shadow-sm`.
+- **Color Surfaces:**
+  - Dark: Canvas `bg-slate-950`, Panels/Modals `bg-slate-900`, Sub-surfaces `bg-slate-800/60`, Borders `border-slate-800`/`border-slate-700`.
+  - Light: Canvas `bg-slate-100`, Panels/Modals `bg-white`, Sub-surfaces `bg-slate-50`, Borders `border-slate-200`.
 
 ---
 
-## Architectural Decisions & Invariants for Low CPU & Security
+## Phase Breakdown & Task List
 
-1. **Transactional Persistence Coordinator with $O(1)$ Deletions:** All note additions, paste operations, updates, deletions, and history reconciliations must pass through a single repository service. Single-note and batch deletions execute direct IndexedDB `delete` / `bulkDelete` operations without rewriting the entire database.
-2. **Centralized Domain Authorization Policy:** Data consumers (Search, Export, AI Merge, Connection Graph, Sidebar, Clipboard) must query `authorizeNotes(ids, intent)` before accessing note bodies.
-3. **Background Worker Cryptography:** Argon2id key derivation runs exclusively in a dedicated Web Worker (`crypto.worker.ts`) or native Tauri Rust command to prevent UI freezing (0 frame drops). Authenticated session keys are cached in memory.
-4. **Decoupled Note Architecture:** Storage decouples lightweight `NoteMetadata` (coordinates, dimensions, tags, colors, timestamps, flags) from heavy `NoteBody` markdown text.
-5. **Zero Main-Thread Search Regex:** Full-text search indexing and query matching are offloaded to a Web Worker (`search.worker.ts`) using an inverted index (MiniSearch/FlexSearch).
-6. **Isolated NoteCard Memoization:** Remove `allNotes` prop from `NoteCard` to ensure modifying Note A re-renders *only* Note A.
-7. **Zero Layout Reflow Canvas Operations:** All rubber-band selections, drags, and resize handlers operate on world-coordinate arithmetic and direct DOM transforms without calling `getBoundingClientRect` or triggering React state dispatches during movement.
+### Phase 1: Design Tokens, Hugeicons Setup & Primitive Foundation
 
----
-
-## Phase-by-Phase Task Breakdown
-
----
-
-### Phase 1: Zero-Loss Persistence & Desktop Sandboxing (Milestone: `v0.2.0-alpha.1`)
-
-#### Task 1: Unified Note Repository, Autosave Settlement & $O(1)$ Deletions (P0)
-- **Description:** Implement a centralized note repository layer that unifies all mutation channels (`addNote`, `updateNote`, `deleteNote`, `pasteNotes`). Ensure new note IDs are immediately registered in the dirty tracking set, that `lastSavedAt` is only updated after Dexie persistence resolves, and that deletions execute targeted `db.notes.delete(id)` / `bulkDelete(ids)` instead of rewriting the entire database with `saveBatchNotesToDB`.
+#### Task 1: Design Tokens, Hugeicons Integration & Styling Utilities
+- **Description:** Install `@hugeicons/react` and `@hugeicons/core-free-icons`. Define unified CSS variables, tokens, and helper mappings in `src/index.css` and `src/components/ui/tokens.ts`. Create `<Icon />` wrapper primitive.
 - **Acceptance criteria:**
-  - [x] `handleAddNote` immediately marks the generated note ID dirty before scheduling autosave.
-  - [x] Direct `setNotes` bypasses in `AppModals.tsx` and paste handlers are replaced with repository calls.
-  - [x] `handleDeleteNote` and `handleDeleteMultipleNotes` call direct IndexedDB `delete` / `bulkDelete` ($O(1)$ disk I/O).
-  - [x] `lastSavedAt` reflects real storage settlement and surfaces persistent UI error banners on write failure.
-- **Verification:**
-  - [x] Vitest unit tests for repository mutation, dirty queue settlement, and single-record deletion.
-  - [x] Manual test: Create note, paste content, immediately reload window, verify content persists.
-  - [x] Performance check: Benchmark deleting 1 note in a 5,000 note dataset (takes <5ms vs 500ms previously).
+  - `@hugeicons/react` installed and configured.
+  - Standardized radius, surface, border, and focus-ring tokens defined in CSS.
+  - `Icon` primitive supports size tokens (`xs`, `sm`, `md`, `lg`) and defaults to 1.5px stroke width.
+- **Verification:** `npm run lint`, `npm run build`.
 - **Dependencies:** None.
-- **Files likely touched:**
-  - `src/hooks/useNotesManager.ts`
-  - `src/components/Modals/AppModals.tsx`
-  - `src/lib/sqliteStorage.ts`
-- **Estimated scope:** Medium (3 files).
-
----
-
-#### Task 2: History Undo/Redo Persistence & Delta-Based Snapshots (P2)
-- **Description:** Connect history state replay (`undo` and `redo`) directly to the persistence coordinator so that restored or removed notes are marked dirty and synchronized with IndexedDB. Transition history storage from full-array snapshots (`Note[][]`) to lightweight diff patches (`Partial<Note>`) to cap memory heap usage at $O(H \times 1)$ instead of $O(H \times N)$.
-- **Acceptance criteria:**
-  - [x] `undo()` and `redo()` actions register modified/reverted note IDs into `dirtyNoteIdsRef`.
-  - [x] Deletion undo (restoring a deleted note) re-inserts the note into IndexedDB upon autosave flush.
-  - [x] History snapshots store diff patches instead of 50 full copies of all notes.
-  - [x] Unload handlers flush pending dirty notes before window shutdown.
-- **Verification:**
-  - [x] Vitest integration test for undo/redo state persistence and memory footprint.
-  - [x] Manual test: Delete a note, press Ctrl+Z, reload app, verify restored note remains present.
-- **Dependencies:** Task 1.
-- **Files likely touched:**
-  - `src/hooks/useHistoryState.ts`
-  - `src/hooks/useNotesManager.ts`
-  - `src/App.tsx`
-- **Estimated scope:** Medium (3 files).
-
----
-
-#### Task 3: Tauri Native Path Traversal Remediation & CSP Hardening (P0)
-- **Description:** Harden `save_export_file` in the Tauri Rust backend to prevent directory traversal and arbitrary file overwrite. Enforce canonical paths inside `~/DiaryNote`, validate bare filenames, and activate a restrictive Content Security Policy in `tauri.conf.json`.
-- **Acceptance criteria:**
-  - [x] `save_export_file` in `src-tauri/src/lib.rs` strips directory separators, rejects `..`, and validates canonical paths.
-  - [x] Tauri export optionally triggers `tauri-plugin-dialog` native file picker.
-  - [x] `tauri.conf.json` replaces `"csp": null` with a secure CSP restricting script execution and network origins.
-- **Verification:**
-  - [x] `cargo check --manifest-path src-tauri/Cargo.toml` passes.
-  - [x] Unit test in Rust asserting rejection of traversal paths like `../../.bashrc`.
-- **Dependencies:** None.
-- **Files likely touched:**
-  - `src-tauri/src/lib.rs`
-  - `src-tauri/tauri.conf.json`
-  - `src-tauri/Cargo.toml`
-- **Estimated scope:** Medium (3 files).
-
----
-
-#### Task 4: Automated Persistence & Restart Test Suite Setup (P1)
-- **Description:** Install and configure Vitest with `fake-indexeddb` to create an automated regression test suite covering note creation, paste, update, deletion, and simulated restart persistence.
-- **Acceptance criteria:**
-  - [x] `npm test` script configured with Vitest and jsdom/fake-indexeddb environment.
-  - [x] Automated tests assert note survival across simulated teardown and re-initialization.
-- **Verification:**
-  - [x] `npm test` executes cleanly in CI environment.
-- **Dependencies:** Tasks 1, 2.
-- **Files likely touched:**
+- **Files touched:**
   - `package.json`
-  - `vite.config.ts`
-  - `src/hooks/__tests__/useNotesManager.test.ts`
-  - `src/lib/__tests__/storage.test.ts`
+  - `src/index.css`
+  - `src/components/ui/tokens.ts` (New)
+  - `src/components/ui/Icon.tsx` (New)
 - **Estimated scope:** Medium (4 files).
 
----
-
-### Checkpoint 1: Zero-Loss Persistence & Sandbox
-- [x] New and pasted notes survive immediate app reloads.
-- [x] History undo/redo synchronizes with IndexedDB.
-- [x] Path traversal vectors in Tauri backend are blocked and tested.
-- [x] $O(1)$ deletions confirmed; automated persistence test suite passes with `npm test`.
-
----
-
-### Phase 2: Authorization Engine & Cryptographic Vault (Milestone: `v0.2.0-alpha.2`)
-
-#### Task 5: Centralized Authorization Policy Service & Deletion Settlement Hardening (P0)
-- **Description:** Create an `authorizeNotes(noteIds: string[], intent: AccessIntent)` domain policy service that centrally guards all operations (`read`, `copy`, `export`, `delete`, `sendToAI`, `graphIndex`). Additionally, harden the persistence coordinator by awaiting deletion promises in `handleDeleteNote` and `handleDeleteMultipleNotes`, ensuring storage failure states are captured on `saveError` and preventing silent resurrection of failed deletions.
+#### Task 2: Action & Typography Primitives (`Button`, `IconButton`, `Kbd`, `Badge`)
+- **Description:** Implement accessible, typed button and badge primitives with Hugeicons support, variants (`primary`, `secondary`, `danger`, `ghost`, `outline`), and sizes (`xs`, `sm`, `md`).
 - **Acceptance criteria:**
-  - [x] Dedicated `authPolicyService.ts` module with explicit `AccessIntent` types.
-  - [x] Batch export, context-menu export, and single-note copy verify authorization before reading note bodies.
-  - [x] Locked notes are redacted from markdown mention extraction and graph link indexing unless unlocked.
-  - [x] Single and multiple note deletions await storage settlement; failure surfaces persistent error banner and prevents state desynchronization.
-- **Verification:**
-  - [x] Vitest unit tests verifying authorization enforcement across all intents.
-  - [x] Vitest unit test asserting `saveError` and state integrity upon simulated deletion failure.
-  - [x] Manual test: Attempt batch export of locked notes without unlocking; verify exclusion or unlock prompt.
+  - `Button` supports loading spinner, disabled states, Hugeicons leading/trailing icon slots, and theme modes.
+  - `IconButton` provides square accessible icon triggers with Hugeicons and tooltip integration.
+  - `Kbd` & `Badge` render clean shortcut labels and count badges.
+- **Verification:** Unit tests in `src/components/ui/__tests__/Button.test.tsx` and `Badge.test.tsx`.
 - **Dependencies:** Task 1.
-- **Files likely touched:**
-  - `src/services/authPolicyService.ts`
-  - `src/components/BatchActionBar.tsx`
-  - `src/components/Modals/AppModals.tsx`
-  - `src/components/NoteCard/NoteHeader.tsx`
-  - `src/hooks/useNotesManager.ts`
-  - `src/utils/markdownMention.ts`
-- **Estimated scope:** Medium (6 files).
-
----
-
-#### Task 6: Worker-Based Note Encryption (Argon2id + AES-256-GCM) with Session Caching (P1)
-- **Description:** Replace UI-only masking with real client-side authenticated encryption. Derive a 256-bit key from the master passcode using Argon2id/PBKDF2 (preventing main-thread UI freeze). Encrypt locked note content with hardware-accelerated AES-256-GCM and cache the derived session key in memory with an idle auto-lock timeout.
-- **Acceptance criteria:**
-  - [x] Argon2id/PBKDF2 600,000 rounds KDF executes in background with random salt (0ms main thread blocking, 0 frame drops).
-  - [x] Locked note records store ciphertext, IV, and salt in IndexedDB; plaintext never written to disk.
-  - [x] Derived session `CryptoKey` cached in memory during active session; auto-cleared on configurable idle timeout.
-  - [x] Exponential backoff throttling on consecutive failed unlock attempts.
-- **Verification:**
-  - [x] Vitest crypto tests verifying ciphertext format, session caching, and authenticated decryption.
-  - [x] Manual test: Inspect IndexedDB in DevTools and confirm note body is encrypted. Verify canvas remains smooth (60 FPS) during key derivation.
-- **Dependencies:** Task 5.
-- **Files likely touched:**
-  - `src/services/cryptoVaultService.ts`
-  - `src/utils/security.ts`
-  - `src/lib/sqliteStorage.ts`
-  - `src/components/Modals/SecurityModal.tsx`
-  - `src/components/NoteCard/index.tsx`
-- **Estimated scope:** Large (5 files).
-
----
-
-#### Task 7: Secure Credential Storage & OS Keyring Integration (P0)
-- **Description:** Remove hardcoded encryption seeds from frontend source code. Store AI provider API keys in native OS credential storage or encrypted local vault with device-unique entropy.
-- **Acceptance criteria:**
-  - [x] Hardcoded encryption seeds in `aiSecurity.ts` removed.
-  - [x] High-entropy device-unique salt and key derivation with legacy seed fallback.
-  - [x] Backup exports exclude all credentials and security hashes by default.
-- **Verification:**
-  - [x] Code search confirms zero hardcoded secret constants in client bundles.
-  - [x] Exported backup JSON inspected to confirm absence of API keys and master password digests.
-- **Dependencies:** Task 3.
-- **Files likely touched:**
-  - `src/utils/aiSecurity.ts`
-  - `src/lib/storage.ts`
-  - `src-tauri/Cargo.toml`
-  - `src-tauri/src/lib.rs`
-- **Estimated scope:** Medium (4 files).
-
----
-
-#### Task 8: AI Privacy Boundaries, Header Auth, Timeouts & Cancellation (P0 / P2)
-- **Description:** Enforce strict privacy checks on AI operations. Require authorization before merging/tagging locked notes, pass Gemini API keys in request headers instead of query strings, add `AbortController` timeouts (15s), and add user cancellation buttons.
-- **Acceptance criteria:**
-  - [x] AI Merge and Auto-Tag fail gracefully if requested on locked notes without explicit unlock.
-  - [x] API keys passed via `x-goog-api-key` header instead of URL parameters.
-  - [x] All `fetch` calls bind `AbortSignal` with timeout and user cancel button.
-  - [x] Authorization policy rejects unauthenticated locked notes before dispatching external AI calls.
-- **Verification:**
-  - [x] Vitest mocks verifying timeout abort handling and header generation.
-  - [x] Manual test: Trigger AI merge, verify cancellation aborts network request cleanly.
-- **Dependencies:** Tasks 5, 7.
-- **Files likely touched:**
-  - `src/services/ai/aiMergeService.ts`
-  - `src/App.tsx`
-  - `src/components/NoteCard/index.tsx`
-- **Estimated scope:** Medium (3 files).
-
----
-
-#### Task 9: Standardize UUID Generation Across Entity Creation (P2)
-- **Description:** Replace all `Date.now()` and pseudo-random ID generators with standard `crypto.randomUUID()` to prevent entity ID collisions in rapid note creation and imports.
-- **Acceptance criteria:**
-  - [x] All note, group, and connection creation paths utilize `crypto.randomUUID()`.
-  - [x] Unit tests assert uniqueness across batch ID generation.
-- **Verification:**
-  - [x] Grep codebase to verify zero remaining occurrences of `Date.now().toString()` as entity IDs.
-- **Dependencies:** None.
-- **Files likely touched:**
-  - `src/hooks/useNotesManager.ts`
-  - `src/components/BatchActionBar.tsx`
-  - `src/components/NoteCard/NoteChecklist.tsx`
-  - `src/types/index.ts`
-- **Estimated scope:** Small (4 files).
-
----
-
-### Checkpoint 2: Authorization & Cryptographic Vault
-- [x] Locked notes cannot be copied, exported, or sent to AI without passcode verification.
-- [x] IndexedDB stores only ciphertext for locked notes; Argon2id derivation runs in Web Worker.
-- [x] Hardcoded seeds removed; credentials isolated from standard backups.
-- [x] AI requests feature timeout, cancellation, and header-based authentication.
-- [x] Deletion error states and settlement are fully guaranteed across UI and IndexedDB.
-
----
-
-### Phase 3: Schema Validation, Migration Safety & Journal Data Model (Milestone: `v0.2.0-beta.1`)
-
-#### Task 10: Strict Versioned JSON Backup Schema with Zod & Pre-Indexed Timestamps (P1)
-- **Description:** Implement a versioned schema definition for backup imports using Zod. Validate all note fields (coordinates, dates, IDs, tags) and enforce a 50MB file size limit before parsing. Include pre-calculated integer timestamps (`createdTimestamp`, `updatedTimestamp`) to accelerate list sorting without runtime `Date` parsing. Ensure backup import pipelines commit directly and transactionally to IndexedDB rather than unpersisted `setNotes` state bypasses.
-- **Acceptance criteria:**
-  - [x] Strict Zod schema for `BackupDataV1` and `BackupDataV2`.
-  - [x] Rejection of malformed JSON, invalid date strings, and out-of-bound coordinates.
-  - [x] Automatic population of numeric millisecond timestamps on import and creation.
-  - [x] System preferences and security hashes quarantined from raw note imports.
-  - [x] Backup import commits atomically to IndexedDB and synchronizes with active canvas state.
-- **Verification:**
-  - [x] Vitest unit tests verifying schema rejection of invalid/malicious payloads and import persistence.
-  - [x] Manual test: Attempt importing legacy and corrupted JSON backups; reload app and verify persistence.
-- **Dependencies:** Task 1.
-- **Files likely touched:**
-  - `src/schemas/backupSchema.ts`
-  - `src/lib/storage.ts`
-  - `src/types/index.ts`
-  - `src/App.tsx`
-- **Estimated scope:** Medium (4 files).
-
----
-
-#### Task 11: Staged Import Preview, Conflict Resolution & Atomic Commit (P1)
-- **Description:** Build a pre-import staging dialog that displays parsed note counts, duplicate ID resolutions, and warnings prior to committing changes to the active database. Commit validated imports atomically to IndexedDB using transactions before updating React state to guarantee durability on immediate reload.
-- **Acceptance criteria:**
-  - [x] Modal presents summary of incoming notes, tags, and detected conflicts.
-  - [x] User can choose conflict resolution strategy (Overwrite, Keep Both, Skip).
-  - [x] Validated imports commit atomically to IndexedDB via transactional batch write.
-- **Verification:**
-  - [x] Vitest tests for duplicate ID resolution strategies and atomic persistence.
-  - [x] Manual test: Import backup with overlapping IDs and verify non-destructive merge survives immediate restart.
-- **Dependencies:** Task 10.
-- **Files likely touched:**
-  - `src/components/Modals/ImportPreviewModal.tsx`
-  - `src/components/Modals/AppModals.tsx`
-  - `src/lib/storage.ts`
-- **Estimated scope:** Medium (3 files).
-
----
-
-#### Task 12: Atomic Database Migration with Rollback Recovery Sentinel (P1)
-- **Description:** Refactor database initialization and legacy migration into an atomic Dexie transaction. Preserve timestamped legacy backups in `localStorage` until verified across multiple restarts, and eliminate silent mock-sample seeding on initialization failure.
-- **Acceptance criteria:**
-  - [x] Migrations execute inside `db.transaction('rw', ...)`.
-  - [x] Legacy data retained until second successful launch verified.
-  - [x] Initialization failure presents diagnostic recovery UI instead of overwriting with demo notes.
-- **Verification:**
-  - [x] Vitest migration simulation tests with corrupted/partial datasets.
-  - [x] Manual test: Simulate migration interruption and verify rollback preservation.
-- **Dependencies:** Task 1.
-- **Files likely touched:**
-  - `src/lib/sqliteStorage.ts`
-  - `src/App.tsx`
-- **Estimated scope:** Medium (2 files).
-
----
-
-#### Task 13: First-Class Journal Data Model, Streak Migration & Instant History Flush (P1)
-- **Description:** Decouple daily journaling from title/tag heuristics. Add explicit `isDailyEntry: boolean` and `entryDate: string` (ISO `YYYY-MM-DD`) fields to the `Note` schema. Optimize streak calculations in `StatusBar` to query an indexed Set of entry dates instead of running full-note regex on every keystroke. Furthermore, enhance `useHistoryState.ts` and `useNotesManager.ts` to immediately flush pending debounced typing snapshots before applying undo/redo diffs, eliminating edit skipping during active typing.
-- **Acceptance criteria:**
-  - [x] `Note` type definition updated with explicit journal fields.
-  - [x] Streak calculation and calendar modal query strictly against `isDailyEntry && entryDate`.
-  - [x] Pre-aggregated date set avoids per-keystroke regex scans across all notes.
-  - [x] Automatic migration script upgrades existing journal entries cleanly.
-  - [x] `handleUndo` and `handleRedo` synchronously flush pending typing snapshot timers before reverting state.
-- **Verification:**
-  - [x] Vitest tests for streak calculation, calendar query accuracy, and instant undo after continuous typing.
-  - [x] Manual test: Type continuously and press Ctrl+Z immediately; verify only the latest typing step is undone.
-- **Dependencies:** Task 10.
-- **Files likely touched:**
-  - `src/types/index.ts`
-  - `src/utils/journalUtils.ts`
-  - `src/components/Modals/JournalCalendarModal.tsx`
-  - `src/components/StatusBar.tsx`
-  - `src/hooks/useNotesManager.ts`
-  - `src/hooks/useHistoryState.ts`
-- **Estimated scope:** Large (6 files).
-
----
-
-#### Task 14: Accurate Network Transparency & Update Checker Settings (P1)
-- **Description:** Provide an explicit settings toggle for automatic GitHub update checks (defaulting to opt-in or transparent notice) and update documentation to accurately describe network boundaries.
-- **Acceptance criteria:**
-  - [x] Settings modal includes toggle for "Check for updates on launch".
-  - [x] `updateChecker.ts` respects user toggle and skips network requests when disabled.
-  - [x] Documentation updated to reflect exact online vs. offline capabilities.
-- **Verification:**
-  - [x] Manual test: Disable update checks, restart app, inspect network tab to confirm zero outgoing requests.
-- **Dependencies:** None.
-- **Files likely touched:**
-  - `src/utils/updateChecker.ts`
-  - `src/components/CanvasControls.tsx`
-  - `README.md`
-- **Estimated scope:** Small (3 files).
-
----
-
-### Checkpoint 3: Schema Interchange & Journal Model
-- [x] Backup imports validated against strict Zod schema with conflict preview and atomic persistence.
-- [x] Migrations are atomic and non-destructive with legacy backup retention.
-- [x] Daily journaling operates o### Phase 4: Accessibility, Viewport Scalability & CI Quality Gates (Milestone: `v0.2.0` GA)
-
-#### Task 15: WCAG 2.1 AA Accessible Dialogs & List Virtualization (P1)
-- **Description:** Implement a standardized, reusable Accessible Modal / Drawer component utilizing HTML `<dialog>` with semantic `role="dialog"`, focus trap, focus restoration on close, background `inert`, and `Escape` key listeners. Integrate list virtualization for `SearchModal` and `NotesSidebar` to render only the visible ~25 DOM elements even with 10,000 notes.
-- **Acceptance criteria:**
-  - [ ] SearchModal, SecurityModal, SettingsModal, and CalendarModal migrated to accessible primitive `<AccessibleDialog>`. *(Currently custom portals)*
-  - [ ] SearchModal and Sidebar render virtualized lists. *(Sidebar virtualized; SearchModal not yet virtualized)*
-  - [ ] Sidebar note items use `<button>` elements with keyboard activation (`Enter`, `Space`).
-  - [ ] All icon buttons across canvas and toolbars have explicit `aria-label` attributes.
-- **Verification:**
-  - [x] Automated unit test suite configured in Vitest (`AccessibleDialog.test.tsx`).
-  - [ ] Performance test: Inspect DOM tree size in Search Modal with 5,000 notes (<100 DOM nodes).
-- **Dependencies:** None.
-- **Files likely touched:**
-  - `src/components/Common/AccessibleDialog.tsx`
-  - `src/components/Modals/SearchModal.tsx`
-  - `src/components/NotesSidebar.tsx`
-  - `src/components/CanvasControls.tsx`
-- **Estimated scope:** Large (5-6 files).
-
----
-
-#### Task 16: Canvas Pointer Events Migration, 2D Minimap & Zero-Reflow Drag/Resize (P2)
-- **Description:** Refactor canvas pan, zoom, selection box, and card dragging event listeners to unified Pointer Events (`onPointerDown`, `setPointerCapture`, `onPointerUp`). Convert `useNoteResize.ts` to DOM-direct transform (0 React re-renders during resize). Replace rubber-band `getBoundingClientRect` layout loops with pure world-coordinate arithmetic. Replace 1,000 minimap DOM `<div>`s with a single 2D HTML5 `<canvas>`.
-- **Acceptance criteria:**
-  - [ ] Pointer Events support multi-touch pan and pinch-to-zoom on touch devices. *(Currently MouseEvent listeners)*
-  - [x] Card resizing updates DOM styles directly during drag and commits state once on `mouseUp`.
-  - [x] Rubber-band selection executes world-coordinate intersection with 0 layout reflows.
-  - [x] Minimap rendered on HTML5 2D `<canvas>` (<0.1ms render time, 0 extra DOM elements).
-- **Verification:**
-  - [x] Performance: 2D Minimap verified; card resize verified DOM-direct.
-- **Dependencies:** None.
-- **Files likely touched:**
-  - `src/components/InfiniteCanvas.tsx`
-  - `src/hooks/useNoteDrag.ts`
-  - `src/hooks/useNoteResize.ts`
-  - `src/components/GroupFrame.tsx`
-- **Estimated scope:** Large (4-5 files).
-
----
-
-#### Task 17: Decoupled Note Metadata & Web Worker Search Engine (P2)
-- **Description:** Decouple lightweight note metadata from heavy markdown content in Dexie storage. Load only metadata into memory on startup. Isolate `NoteCard` from `allNotes` prop to prevent canvas-wide re-render cascades. Offload full-text indexing, regex snippet extraction, and fuzzy query matching to a dedicated Web Worker (`search.worker.ts`) using an inverted index (MiniSearch/FlexSearch). Implement viewport culling for SVG connection lines in `NoteConnections.tsx`.
-- **Acceptance criteria:**
-  - [ ] `NoteMetadata` index created in Dexie (`id`, `title`, `x`, `y`, `width`, `height`, `tags`, `color`, `isLocked`, `isDailyEntry`, timestamps).
-  - [ ] Note bodies loaded on-demand when cards enter the viewport or open in editors.
-  - [ ] `NoteCard` does not receive `allNotes`; editing Note A re-renders only Note A. *(Currently passes allNotes={notes})*
-  - [ ] Web Worker executes search indexing and queries with 0 main-thread regex execution (keystroke latency <5ms). *(search.worker.ts to be created)*
-  - [x] SVG connection lines culled to visible viewport bounds.
-- **Verification:**
-  - [ ] Performance benchmark: Measure heap usage (<60MB) and search typing latency (<5ms) with 5,000 notes.
-  - [x] Viewport culling verified on SVG connection lines.
-- **Dependencies:** Task 1.
-- **Files likely touched:**
-  - `src/workers/search.worker.ts`
-  - `src/lib/indexedDbStorage.ts`
-  - `src/hooks/useNotesManager.ts`
-  - `src/components/NoteCard/index.tsx`
-  - `src/components/NoteConnections.tsx`
-  - `src/components/Modals/SearchModal.tsx`
-- **Estimated scope:** Large (6 files).
-
----
-
-#### Task 18: Structured Error Boundary, Native Window Close Handshake & Diagnostics (P2)
-- **Description:** Introduce a top-level React ErrorBoundary with friendly recovery options, an opt-in local diagnostic logger that captures sanitized error traces for user export, and a native desktop close intercept (`onCloseRequested` in Tauri) that guarantees all pending dirty writes are flushed before the application shuts down.
-- **Acceptance criteria:**
-  - [x] React `ErrorBoundary` captures rendering crashes and provides "Export Emergency Backup" and "Reset Canvas" actions.
-  - [ ] Local circular buffer logs storage and native errors in memory (`src/utils/logger.ts`).
-  - [ ] Support bundle export generates sanitized diagnostic JSON.
-  - [ ] Tauri window close event intercepted to await pending storage queue flushes before exit.
-- **Verification:**
-  - [x] Vitest tests for ErrorBoundary rendering and reset action (`ErrorBoundary.test.tsx`).
-  - [ ] Desktop test: Edit note and immediately click OS window close button; verify changes persist upon relaunch.
-- **Dependencies:** Task 1.
-- **Files likely touched:**
-  - `src/components/ErrorBoundary.tsx`
-  - `src/utils/logger.ts`
-  - `src/App.tsx`
-  - `src-tauri/src/lib.rs`
-- **Estimated scope:** Medium (4 files).
-
----
-
-#### Task 19: CI/CD Quality Gates & Documentation Hygiene (P1 / P3)
-- **Description:** Unify project naming (`DiaryNote`), align dependencies (clean up duplicate Vite entry, update React 19 docs), rename `sqliteStorage.ts` to `indexedDbStorage.ts`, remove `docs/` from `.gitignore`, and configure GitHub Actions CI running lint, typecheck, Vitest, and Tauri builds on all PRs.
-- **Acceptance criteria:**
-  - [x] `package.json` name updated to `diary-note`; redundant dependencies removed.
-  - [x] `sqliteStorage.ts` renamed to `indexedDbStorage.ts` with updated imports.
-  - [x] `.gitignore` updated to track `docs/` directory.
-  - [x] GitHub Actions workflow `.github/workflows/ci.yml` validates `npm run lint`, `npm test`, `npm run build`, and `cargo check`.
-- **Verification:**
-  - [x] `git status` shows clean tracking of `docs/`.
-  - [x] CI workflow runs and passes on branch push.
-- **Dependencies:** Tasks 1-18.
-- **Files likely touched:**
-  - `package.json`
-  - `.gitignore`
-  - `README.md`
-  - `src/lib/indexedDbStorage.ts`
-  - `.github/workflows/ci.yml`
+- **Files touched:**
+  - `src/components/ui/Button.tsx` (New)
+  - `src/components/ui/IconButton.tsx` (New)
+  - `src/components/ui/Kbd.tsx` (New)
+  - `src/components/ui/Badge.tsx` (New)
+  - `src/components/ui/__tests__/Button.test.tsx` (New)
 - **Estimated scope:** Medium (5 files).
 
+#### Task 3: Form & Toggle Primitives (`Input`, `Textarea`, `Switch`)
+- **Description:** Implement accessible text input with Hugeicons adornments, auto-clear, error states, and tactile keyboard-navigable toggle switches.
+- **Acceptance criteria:**
+  - `Input` supports Hugeicons leading/trailing icons, error highlights, and password visibility toggle with Hugeicons (`ViewIcon` / `ViewOffSlashIcon`).
+  - `Switch` complies with WAI-ARIA `role="switch"` and toggles on `Space`/`Enter`.
+- **Verification:** Unit tests in `src/components/ui/__tests__/Input.test.tsx` and `Switch.test.tsx`.
+- **Dependencies:** Task 1.
+- **Files touched:**
+  - `src/components/ui/Input.tsx` (New)
+  - `src/components/ui/Switch.tsx` (New)
+  - `src/components/ui/Textarea.tsx` (New)
+  - `src/components/ui/__tests__/Input.test.tsx` (New)
+  - `src/components/ui/__tests__/Switch.test.tsx` (New)
+- **Estimated scope:** Medium (5 files).
+
+#### Task 4: Overlay & Layout Primitives (`Dialog`, `Tabs`, `Menu` / `MenuItem`)
+- **Description:** Build compound `Dialog` (Header, Title, Description, Body, Footer, CloseButton with Hugeicons `Cancel01Icon`), accessible `Tabs`, and floating `Menu`/`MenuItem` components.
+- **Acceptance criteria:**
+  - `Dialog` wraps native HTML5 `<dialog>` with focus trap, ESC listener, and backdrop portal.
+  - `Tabs` manages active tab state with keyboard Arrow navigation and optional Hugeicons.
+  - `Menu` supports keyboard navigation, active highlight tokens, Hugeicons slots, shortcuts, and danger actions.
+- **Verification:** Unit tests in `src/components/ui/__tests__/Dialog.test.tsx` and `Tabs.test.tsx`.
+- **Dependencies:** Tasks 1–3.
+- **Files touched:**
+  - `src/components/ui/Dialog.tsx` (New)
+  - `src/components/ui/Tabs.tsx` (New)
+  - `src/components/ui/Menu.tsx` (New)
+  - `src/components/ui/index.ts` (New)
+  - `src/components/ui/__tests__/Dialog.test.tsx` (New)
+- **Estimated scope:** Medium (5 files).
+
+### Checkpoint 1: Primitive Foundation & Hugeicons Integration Complete
+- All UI primitives in `src/components/ui/` built, typed with Hugeicons, and covered with Vitest tests.
+- `npm run lint` & `npm test` pass with 0 errors.
+
 ---
 
-### Checkpoint 4: General Availability Release (`v0.2.0`)
-- [ ] Full keyboard and screen-reader accessibility verified.
-- [ ] Canvas supports touch/pointer interactions smoothly with 0 forced reflows.
-- [ ] Memory footprint remains low (<60MB) with large note datasets (>5k notes); search query latency <5ms in Web Worker.
-- [x] Top-level ErrorBoundary provides emergency recovery.
-- [x] Complete automated CI suite enforces code quality, low CPU performance, and safety invariants on every PR.
+### Phase 2: Refactor Confirmation & Information Modals with Hugeicons
+
+#### Task 5: Refactor `DeleteConfirmationModal` & `PasteConfirmModal`
+- **Description:** Migrate deletion dialog and paste confirmation modal to use `Dialog`, `Button (danger/primary/secondary)`, and Hugeicons (`Alert02Icon`, `Delete02Icon`, `ClipboardIcon`, `Cancel01Icon`).
+- **Acceptance criteria:**
+  - Eliminates duplicated backdrop and ESC listener code.
+  - Matches `rounded-sm` and monochromatic color tokens with Hugeicons.
+  - Deletion count and note preview list render cleanly.
+- **Verification:** Test modal trigger, confirmation, cancel, and ESC key dismissal.
+- **Dependencies:** Checkpoint 1.
+- **Files touched:**
+  - `src/components/Modals/DeleteConfirmationModal.tsx`
+  - `src/components/Modals/PasteConfirmModal.tsx`
+- **Estimated scope:** Small (2 files).
+
+#### Task 6: Refactor `AboutModal` & `KeyboardShortcutsModal`
+- **Description:** Migrate About & Diagnostics modal and Keyboard Shortcuts cheatsheet to use `Dialog`, `Input`, `Kbd`, `Badge`, `Button`, and Hugeicons (`InformationCircleIcon`, `Search01Icon`, `SparklesIcon`, `CheckmarkCircle02Icon`).
+- **Acceptance criteria:**
+  - Search filter in Shortcuts modal uses standardized `Input` with Hugeicons `Search01Icon`.
+  - Badges and keyboard key hints use standardized `Kbd` & `Badge`.
+  - Diagnostics copy actions use standardized `Button`.
+- **Verification:** Test searching shortcuts and checking version update info.
+- **Dependencies:** Checkpoint 1.
+- **Files touched:**
+  - `src/components/Modals/AboutModal.tsx`
+  - `src/components/Modals/KeyboardShortcutsModal.tsx`
+- **Estimated scope:** Small (2 files).
+
+### Checkpoint 2: Simple Modals Unified
+- All simple and alert modals consume standard primitives and Hugeicons.
+- `npm run lint` & `npm test` pass with zero regressions.
+
+---
+
+### Phase 3: Refactor High-Complexity Settings & Data Modals with Hugeicons
+
+#### Task 7: Refactor `SecurityModal`
+- **Description:** Migrate master passcode setup, unlock, and recovery modals to consume `Dialog`, `Input`, `Button`, `Badge`, and Hugeicons (`SecurityLockIcon`, `Key01Icon`, `ShieldCheckIcon`, `ShieldWarningIcon`).
+- **Acceptance criteria:**
+  - Passcode input uses standardized `Input` with masking, auto-focus, and Hugeicons eye toggle.
+  - Unlock, setup, change password, and recovery flows remain 100% cryptographically secure.
+- **Verification:** Test passcode setup, session unlock, recovery code copy, and invalid attempts.
+- **Dependencies:** Checkpoint 2.
+- **Files touched:**
+  - `src/components/Modals/SecurityModal.tsx`
+- **Estimated scope:** Small (1 file).
+
+#### Task 8: Refactor `ImportPreviewModal` & `JournalCalendarModal`
+- **Description:** Migrate staged JSON backup import modal and Journal Calendar view to use `Dialog`, `Button`, `IconButton`, `Badge`, and Hugeicons (`Upload04Icon`, `Download04Icon`, `Calendar03Icon`, `ArrowLeft01Icon`, `ArrowRight01Icon`, `FireIcon`).
+- **Acceptance criteria:**
+  - Staged conflict resolution options use standardized buttons with Hugeicons.
+  - Calendar date navigation and streak counts use standardized icon buttons and badges.
+- **Verification:** Vitest test suite for import resolution and calendar date selection.
+- **Dependencies:** Checkpoint 2.
+- **Files touched:**
+  - `src/components/Modals/ImportPreviewModal.tsx`
+  - `src/components/Modals/JournalCalendarModal.tsx`
+- **Estimated scope:** Small (2 files).
+
+#### Task 9: Refactor `CanvasSettingsModal` & `AISettingsModal`
+- **Description:** Migrate the 5-tab desktop settings modal and AI configuration modal to use `Dialog`, `Tabs`, `Switch`, `Input`, `Button`, `Badge`, and Hugeicons (`Settings02Icon`, `SlidersHorizontalIcon`, `CpuIcon`, `SparklesIcon`, `Sun01Icon`, `Moon01Icon`).
+- **Acceptance criteria:**
+  - Tab switching in settings uses standardized `Tabs` with Hugeicons.
+  - Settings toggles use standardized `Switch`.
+  - AI API Key encryption, provider selection, and 28-day usage tracker use standardized form elements.
+- **Verification:** Toggle preferences, test AI connection, verify local storage persistence.
+- **Dependencies:** Checkpoint 2.
+- **Files touched:**
+  - `src/components/Modals/CanvasSettingsModal.tsx`
+  - `src/components/Modals/AISettingsModal.tsx`
+- **Estimated scope:** Small (2 files).
+
+### Checkpoint 3: All Modals Standardized
+- Every modal in `src/components/Modals/` uses unified primitives and Hugeicons.
+- `npm run lint` and `npm test` pass.
+
+---
+
+### Phase 4: Refactor Bars, Menus, & Floating Controls with Hugeicons
+
+#### Task 10: Refactor `CanvasControls` (Bottom Dock) & `StatusBar`
+- **Description:** Standardize bottom floating command dock and status bar with `Button`, `IconButton`, `Badge`, and Hugeicons (`Add01Icon`, `Undo02Icon`, `Redo02Icon`, `Cursor01Icon`, `Hand01Icon`, `ZoomIn01Icon`, `ZoomOut01Icon`, `Calendar03Icon`, `Settings02Icon`).
+- **Acceptance criteria:**
+  - New Note CTA uses standardized `Button` with Hugeicons `Add01Icon`.
+  - Undo, Redo, Pan/Select, Zoom, Today Journal, and Settings triggers use `IconButton` with Hugeicons.
+  - Status bar persistence badge and note counts use `Badge`.
+- **Verification:** Test all dock buttons and status bar indicators.
+- **Dependencies:** Checkpoint 3.
+- **Files touched:**
+  - `src/components/CanvasControls.tsx`
+  - `src/components/StatusBar.tsx`
+- **Estimated scope:** Small (2 files).
+
+#### Task 11: Refactor `BatchActionBar` & Context Popovers
+- **Description:** Refactor batch selection actions and Align/Theme popovers with `Button`, `IconButton`, `Menu`, and Hugeicons (`Layers01Icon`, `PaintBoardIcon`, `AlignLeftIcon`, `AlignCenterIcon`, `AlignRightIcon`, `Delete02Icon`, `PinIcon`, `PinOffIcon`).
+- **Acceptance criteria:**
+  - Batch action bar uses standardized icon buttons and selection badge.
+  - Theme and alignment popovers use standardized `Menu` / `MenuItem` tokens with Hugeicons.
+- **Verification:** Select multiple notes, test alignment, batch theme change, and batch deletion.
+- **Dependencies:** Checkpoint 3.
+- **Files touched:**
+  - `src/components/BatchActionBar.tsx`
+- **Estimated scope:** Small (1 file).
+
+#### Task 12: Refactor Context Menus & Autocomplete Overlays
+- **Description:** Standardize right-click context menu, `@` note mention autocomplete, and `/` slash command menu with `Menu`, `MenuItem`, and Hugeicons. Remove unused `lucide-react` from `package.json`.
+- **Acceptance criteria:**
+  - Keyboard navigation (`ArrowUp`/`ArrowDown`/`Enter`) is silky smooth.
+  - Active selection highlighting uses monochromatic tokens with Hugeicons.
+  - `lucide-react` cleanly uninstalled without orphan imports.
+- **Verification:** Right-click notes, type `@` and `/` in markdown editor. Full production build verification.
+- **Dependencies:** Checkpoint 3.
+- **Files touched:**
+  - `src/components/NoteContextMenu.tsx`
+  - `src/components/NoteCard/SlashCommandMenu.tsx`
+  - `src/components/MentionAutocomplete.tsx`
+  - `src/components/NotesSidebar.tsx`
+  - `package.json`
+- **Estimated scope:** Medium (5 files).
+
+### Checkpoint 4: Complete System Polish & Quality Gate
+- All peripheral controls, floating bars, and modals share unified design tokens and Hugeicons.
+- `AGENTS.md` UI Component Modification Registry updated with full audit trail.
+- Static & runtime checks:
+  ```bash
+  npm run lint
+  npm test
+  npm run build
+  cargo check --manifest-path src-tauri/Cargo.toml
+  ```
+
+---
+
+## Risks & Mitigations
+
+| Risk | Impact | Mitigation |
+| :--- | :--- | :--- |
+| **Icon Name Mismatches:** Differences in naming between Lucide and Hugeicons (e.g. `X` vs `Cancel01Icon`). | Medium | Encapsulate common icons through `src/components/ui/Icon.tsx` and explicit TypeScript imports from `@hugeicons/core-free-icons`. |
+| **Bundle Size / Tree-Shaking:** Large core-free-icons package if not tree-shaken. | Low | `@hugeicons/core-free-icons` is ESM with granular tree-shaking; Vite bundles only imported icon paths. |
+| **Canvas Interactivity Regression:** Dragging or zoom events interfered with by primitive wrappers. | High | Canvas and note cards remain untouched; primitives are strictly used in peripheral layers. |
