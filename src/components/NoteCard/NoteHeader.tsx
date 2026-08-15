@@ -335,11 +335,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                     <div
                       onMouseDown={(e) => e.stopPropagation()}
                       onClick={(e) => e.stopPropagation()}
-                      className={`absolute top-9 right-0 z-50 flex items-center gap-1 p-1.5 rounded-sm border shadow-sm animate-in fade-in zoom-in-95 duration-100 ${
-                        isDarkCard
-                          ? 'bg-slate-900/95 border-slate-700/80 text-slate-100'
-                          : 'bg-white/95 border-slate-200/90 text-slate-800'
-                      }`}
+                      className="absolute top-9 right-0 z-50 flex items-center gap-1 p-1.5 rounded-sm border shadow-xl animate-in fade-in zoom-in-95 duration-100 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100"
                     >
                       <button
                         type="button"
@@ -347,13 +343,9 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                           onUpdateMood('happy');
                           setIsMoodPickerOpen(false);
                         }}
-                        className={`p-1.5 rounded-sm transition-colors cursor-pointer ${
-                          isDarkCard ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
-                        } ${
+                        className={`p-1.5 rounded-sm transition-colors cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 ${
                           note.mood === 'happy'
-                            ? isDarkCard
-                              ? 'bg-slate-800 ring-1 ring-amber-500'
-                              : 'bg-slate-100 ring-1 ring-amber-500'
+                            ? 'bg-slate-100 dark:bg-slate-800 ring-1 ring-amber-500'
                             : ''
                         }`}
                         title="Happy"
@@ -366,13 +358,9 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                           onUpdateMood('calm');
                           setIsMoodPickerOpen(false);
                         }}
-                        className={`p-1.5 rounded-sm transition-colors cursor-pointer ${
-                          isDarkCard ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
-                        } ${
+                        className={`p-1.5 rounded-sm transition-colors cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 ${
                           note.mood === 'calm'
-                            ? isDarkCard
-                              ? 'bg-slate-800 ring-1 ring-emerald-500'
-                              : 'bg-slate-100 ring-1 ring-emerald-500'
+                            ? 'bg-slate-100 dark:bg-slate-800 ring-1 ring-emerald-500'
                             : ''
                         }`}
                         title="Calm"
@@ -385,13 +373,9 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                           onUpdateMood('focused');
                           setIsMoodPickerOpen(false);
                         }}
-                        className={`p-1.5 rounded-sm transition-colors cursor-pointer ${
-                          isDarkCard ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
-                        } ${
+                        className={`p-1.5 rounded-sm transition-colors cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 ${
                           note.mood === 'focused'
-                            ? isDarkCard
-                              ? 'bg-slate-800 ring-1 ring-indigo-500'
-                              : 'bg-slate-100 ring-1 ring-indigo-500'
+                            ? 'bg-slate-100 dark:bg-slate-800 ring-1 ring-indigo-500'
                             : ''
                         }`}
                         title="Focused"
@@ -404,13 +388,9 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                           onUpdateMood('reflective');
                           setIsMoodPickerOpen(false);
                         }}
-                        className={`p-1.5 rounded-sm transition-colors cursor-pointer ${
-                          isDarkCard ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
-                        } ${
+                        className={`p-1.5 rounded-sm transition-colors cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 ${
                           note.mood === 'reflective'
-                            ? isDarkCard
-                              ? 'bg-slate-800 ring-1 ring-purple-500'
-                              : 'bg-slate-100 ring-1 ring-purple-500'
+                            ? 'bg-slate-100 dark:bg-slate-800 ring-1 ring-purple-500'
                             : ''
                         }`}
                         title="Reflective"
@@ -423,13 +403,9 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                           onUpdateMood('low');
                           setIsMoodPickerOpen(false);
                         }}
-                        className={`p-1.5 rounded-sm transition-colors cursor-pointer ${
-                          isDarkCard ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
-                        } ${
+                        className={`p-1.5 rounded-sm transition-colors cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 ${
                           note.mood === 'low'
-                            ? isDarkCard
-                              ? 'bg-slate-800 ring-1 ring-sky-500'
-                              : 'bg-slate-100 ring-1 ring-sky-500'
+                            ? 'bg-slate-100 dark:bg-slate-800 ring-1 ring-sky-500'
                             : ''
                         }`}
                         title="Low Energy"

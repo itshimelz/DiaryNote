@@ -38,12 +38,10 @@ const PAPER_THEME_LABELS: Record<PaperTheme, string> = {
 
 export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
   note,
-  themeConfig,
   onUpdateNote,
   onClose,
 }) => {
   const pickerRef = useRef<HTMLDivElement>(null);
-  const isDarkCard = themeConfig?.isDark ?? false;
 
   // Click outside and Escape handler
   useEffect(() => {
@@ -69,15 +67,11 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
     <div
       ref={pickerRef}
       onMouseDown={(e) => e.stopPropagation()}
-      className={`absolute bottom-14 left-1/2 -translate-x-1/2 z-50 w-76 sm:w-84 rounded-sm shadow-sm border p-4 flex flex-col gap-3.5 text-sm animate-in fade-in zoom-in-95 duration-150 select-none ${
-        isDarkCard
-          ? 'bg-slate-900/98 border-slate-800 text-slate-100'
-          : 'bg-white/98 border-slate-200 text-slate-900'
-      }`}
+      className="absolute bottom-14 left-1/2 -translate-x-1/2 z-50 w-76 sm:w-84 rounded-sm shadow-xl border p-4 flex flex-col gap-3.5 text-sm animate-in fade-in zoom-in-95 duration-150 select-none bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100"
     >
       {/* Header */}
-      <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-        <div className="flex items-center gap-2 font-bold text-sm text-slate-800 dark:text-slate-100">
+      <div className="flex items-center justify-between pb-2 border-b border-slate-150 dark:border-slate-800">
+        <div className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-slate-100">
           <Icon icon={PaintBoardIcon} size="md" className="text-blue-500" />
           <span>Card Style & Typography</span>
         </div>
@@ -92,7 +86,7 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
 
       {/* 1. Paper Theme Picker */}
       <div className="flex flex-col gap-1.5">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           Paper Theme
         </span>
         <div className="grid grid-cols-4 gap-1.5">
@@ -110,12 +104,12 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
                     updatedAt: new Date().toISOString(),
                   })
                 }
-                className={`h-8 px-1 rounded-sm border transition-colors flex items-center justify-center font-medium text-[11px] cursor-pointer truncate ${
+                className={`h-8 px-1 rounded-sm border transition-all flex items-center justify-center font-medium text-[11px] cursor-pointer truncate shadow-2xs ${
                   theme.bg
                 } ${theme.text} ${
                   isSelected
                     ? 'ring-2 ring-blue-500 border-blue-500 font-bold'
-                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-400'
+                    : 'border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500'
                 }`}
                 title={PAPER_THEME_LABELS[themeKey]}
               >
@@ -128,7 +122,7 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
 
       {/* 2. Handwriting & Font Selector */}
       <div className="flex flex-col gap-1.5">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           Handwriting & Font
         </span>
         <Select
@@ -149,7 +143,7 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
 
       {/* 3. Text Size Segmented Control */}
       <div className="flex flex-col gap-1.5">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           Text Size
         </span>
         <SegmentedControl
