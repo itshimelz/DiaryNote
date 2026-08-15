@@ -202,7 +202,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                 }
               }}
               autoFocus
-              className={`w-full bg-transparent font-bold text-sm sm:text-base outline-none border-b border-blue-500/80 px-0 py-0.5 ${textColor}`}
+              className={`w-full bg-transparent font-bold text-base sm:text-lg tracking-tight outline-none border-b border-blue-500/80 px-0 py-0.5 ${textColor}`}
               placeholder="Untitled Note"
             />
           ) : (
@@ -211,7 +211,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                 e.stopPropagation();
                 setIsEditingTitleLocal(true);
               }}
-              className={`font-bold text-sm sm:text-base truncate cursor-text hover:opacity-80 transition-opacity ${textColor}`}
+              className={`font-bold text-base sm:text-lg tracking-tight truncate cursor-text hover:opacity-80 transition-opacity ${textColor}`}
               title={note.title || 'Untitled Note'}
             >
               {note.title || 'Untitled Note'}
@@ -529,7 +529,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
       </div>
 
       {/* Date & Note Info Subheader */}
-      <div className="flex items-center gap-1.5 text-[10px] font-sans">
+      <div className="flex items-center gap-1.5 text-xs font-sans mt-0.5">
         <span className={subtextColor}>
           Last Updated: {formatLastUpdated(note.updatedAt || note.createdAt || '')}
         </span>

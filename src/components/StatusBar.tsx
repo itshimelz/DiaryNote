@@ -285,8 +285,8 @@ const StatusBarComponent: React.FC<StatusBarProps> = ({
             className={btnHoverClass}
             title="Click to view Journal Calendar"
           >
-            <Icon icon={FireIcon} size="xs" className="text-amber-500 dark:text-amber-400 shrink-0" />
-            <span className="font-semibold text-amber-600 dark:text-amber-400">
+            <Icon icon={FireIcon} size="xs" className={`${defaultIconClass} shrink-0`} />
+            <span className="font-semibold">
               {streakStats.currentStreak}d streak
             </span>
           </button>
@@ -328,10 +328,10 @@ const StatusBarComponent: React.FC<StatusBarProps> = ({
           type="button"
           onClick={onOpenBackupModal}
           className={btnHoverClass}
-          title="SQLite Local Storage Engine. Click to export full database backup."
+          title="IndexedDB Local Storage Engine. Click to export full database backup."
         >
           <Icon icon={Database01Icon} size="xs" className={defaultIconClass} />
-          <span>SQLite Engine</span>
+          <span>IndexedDB Engine</span>
         </button>
       </div>
 
@@ -376,7 +376,7 @@ const StatusBarComponent: React.FC<StatusBarProps> = ({
             saveError
               ? `Save error: ${saveError}`
               : isSaving
-              ? 'Saving changes to IndexedDB / SQLite store...'
+              ? 'Saving changes to IndexedDB store...'
               : `All notes up to date (${workspaceStats.latestUpdatedTimeAgo})`
           }
         >

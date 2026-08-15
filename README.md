@@ -4,13 +4,13 @@
 
 # DiaryNote
 
-An Infinite Spatial Canvas Note-Taking & Journaling Application built with React 18, TypeScript, Vite, TailwindCSS, SQLite/Dexie, and Tauri v2.
+An Infinite Spatial Canvas Note-Taking & Journaling Application built with React 19, TypeScript, Vite, TailwindCSS, IndexedDB (Dexie.js), and Tauri v2.
 
 [![Release](https://img.shields.io/github/v/release/itshimelz/DiaryNote?color=blue&logo=github)](https://github.com/itshimelz/DiaryNote/releases/latest)
 [![Tauri](https://img.shields.io/badge/Tauri-v2.0-orange.svg?logo=tauri)](https://tauri.app)
-[![React](https://img.shields.io/badge/React-18.3-61DAFB.svg?logo=react)](https://react.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6.svg?logo=typescript)](https://www.typescriptlang.org)
-[![SQLite](https://img.shields.io/badge/SQLite-Dexie-003B57.svg?logo=sqlite)](https://dexie.org)
+[![React](https://img.shields.io/badge/React-19.0-61DAFB.svg?logo=react)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6.svg?logo=typescript)](https://www.typescriptlang.org)
+[![IndexedDB](https://img.shields.io/badge/IndexedDB-Dexie.js-003B57.svg?logo=indexeddb)](https://dexie.org)
 [![Platforms](https://img.shields.io/badge/Platforms-Linux%20%7C%20macOS%20%7C%20Windows-brightgreen)](#system-requirements)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](#license)
 

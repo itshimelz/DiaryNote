@@ -6,7 +6,7 @@ import {
   saveDirtyNotesToDB,
   deleteNoteFromDB,
   deleteMultipleNotesFromDB,
-} from '../lib/sqliteStorage';
+} from '../lib/indexedDbStorage';
 import { getUniqueTitleForDay, getLocalDateString } from '../utils';
 import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../constants/canvas';
 
@@ -47,7 +47,7 @@ export function useNotesManager(
     });
   }, [resetHistory]);
 
-  // Debounced autosave to SQLite DB (only after DB hydration to prevent initial jumps or state overwrites)
+  // Debounced autosave to IndexedDB (only after DB hydration to prevent initial jumps or state overwrites)
   useEffect(() => {
     if (!isDbLoadedRef.current) return;
     const timeout = window.setTimeout(async () => {

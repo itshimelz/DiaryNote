@@ -6,7 +6,7 @@ import {
   Loading03Icon,
 } from '@hugeicons/core-free-icons';
 import { Button, Icon } from './ui';
-import { loadNotesFromDB } from '../lib/sqliteStorage';
+import { loadNotesFromDB } from '../lib/indexedDbStorage';
 
 interface Props {
   children: ReactNode;

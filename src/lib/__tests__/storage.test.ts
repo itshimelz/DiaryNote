@@ -13,7 +13,7 @@ import {
   saveSettingsToDB,
   saveImportedNotesToDB,
   getDailyEntryByDate,
-} from '../sqliteStorage';
+} from '../indexedDbStorage';
 import { Note } from '../../types';
 import { DEFAULT_SETTINGS, exportBackup, exportNotesBackup } from '../storage';
 import {
@@ -42,7 +42,7 @@ function createTestNote(overrides: Partial<Note> = {}): Note {
   };
 }
 
-describe('IndexedDB Storage Engine (sqliteStorage.ts)', () => {
+describe('IndexedDB Storage Engine (indexedDbStorage.ts)', () => {
   beforeEach(async () => {
     localStorage.clear();
     await db.notes.clear();

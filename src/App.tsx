@@ -23,7 +23,7 @@ import {
 import { AppModals } from './components/Modals/AppModals';
 import { sendNativeAppNotification } from './utils';
 import { checkForAppUpdates } from './utils/updateChecker';
-import { saveSettingsToDB, saveImportedNotesToDB } from './lib/sqliteStorage';
+import { saveSettingsToDB, saveImportedNotesToDB } from './lib/indexedDbStorage';
 import { mergeNotesWithAI } from './services/ai/aiMergeService';
 import { getSessionAuthState } from './services/authPolicyService';
 import { AppSettings } from './lib/storage';
@@ -115,7 +115,7 @@ export default function App() {
     handleNavigateToNote,
   } = useCanvasTransform(notes, bringToFront);
 
-  // Initialize SQLite Database on mount and restore persisted canvas transform & settings
+  // Initialize IndexedDB Database on mount and restore persisted canvas transform & settings
   useEffect(() => {
     initAppDatabase(({ transform: dbTransform, settings: dbSettings }) => {
       if (dbTransform) {

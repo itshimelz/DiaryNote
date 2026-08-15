@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useNotesManager } from '../useNotesManager';
 import { useHistoryState } from '../useHistoryState';
-import { db } from '../../lib/sqliteStorage';
+import { db } from '../../lib/indexedDbStorage';
 import { DEFAULT_SETTINGS, INITIAL_TRANSFORM } from '../../lib/storage';
 
 describe('useNotesManager Hook & Persistence Lifecycle', () => {
