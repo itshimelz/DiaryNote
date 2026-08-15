@@ -13,7 +13,6 @@ import {
   Layers01Icon,
   PaintBoardIcon,
   Download04Icon,
-  Download01Icon,
   Copy01Icon,
   Delete02Icon,
   CheckmarkSquare02Icon,
@@ -86,6 +85,8 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
   const singleNote = isSingle ? selectedNotes[0] : null;
   const isAllPinned = selectedNotes.length > 0 && selectedNotes.every((n) => n.isPinned);
   const isAllLocked = selectedNotes.length > 0 && selectedNotes.every((n) => n.isLocked);
+  const isAllImageNotes =
+    selectedNotes.length > 0 && selectedNotes.every((n) => Boolean(n.imageUrl));
   const isAllGrouped =
     selectedNotes.length >= 2 &&
     selectedNotes.every((n) => n.groupId && n.groupId === selectedNotes[0].groupId);
@@ -198,7 +199,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
             <div className="px-2.5 py-1.5 mb-1 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
               <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
                 {isSingle
-                  ? singleNote?.title || 'Untitled Note'
+                  ? singleNote?.title || (singleNote?.imageUrl ? 'Photo Note' : 'Untitled Note')
                   : `${selectedNoteIds.length} notes selected`}
               </span>
               <Badge variant="subtle" size="xs">
@@ -209,7 +210,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
             {/* Actions */}
             <MenuItem
               icon={Maximize01Icon}
-              label={`Zoom to ${isSingle ? 'Note' : 'Selection'}`}
+              label={`Zoom to ${isSingle ? (singleNote?.imageUrl ? 'Photo' : 'Note') : 'Selection'}`}
               shortcut={`${getPlatformAltKey()}+Click`}
               onClick={() => {
                 if (singleNote) onNavigateToNote?.(singleNote.id);
@@ -221,7 +222,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
             {isSingle && (
               <MenuItem
                 icon={Edit02Icon}
-                label="Edit Note"
+                label={singleNote?.imageUrl ? 'Edit Caption' : 'Edit Note'}
                 shortcut="Enter"
                 onClick={() => {
                   if (singleNote) onEditNote?.(singleNote.id);
@@ -234,7 +235,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
 
             <MenuItem
               icon={isAllPinned ? PinOffIcon : PinIcon}
-              label={isAllPinned ? `Unpin Note${selectedNoteIds.length > 1 ? 's' : ''}` : `Pin Note${selectedNoteIds.length > 1 ? 's' : ''}`}
+              label={isAllPinned ? `Unpin ${isAllImageNotes ? 'Photo' : 'Note'}${selectedNoteIds.length > 1 ? 's' : ''}` : `Pin ${isAllImageNotes ? 'Photo' : 'Note'}${selectedNoteIds.length > 1 ? 's' : ''}`}
               onClick={() => {
                 onTogglePin?.(selectedNoteIds);
                 onClose();
@@ -243,7 +244,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
 
             <MenuItem
               icon={isAllLocked ? CircleUnlock01Icon : SecurityLockIcon}
-              label={isAllLocked ? `Unlock Note${selectedNoteIds.length > 1 ? 's' : ''}` : `Lock Access`}
+              label={isAllLocked ? `Unlock ${isAllImageNotes ? 'Photo' : 'Note'}${selectedNoteIds.length > 1 ? 's' : ''}` : `Lock Access`}
               onClick={() => {
                 onLockNotes?.(selectedNoteIds);
                 onClose();
@@ -263,35 +264,37 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
               />
             )}
 
-            {/* Paper Theme Submenu */}
-            <div className="relative">
-              <MenuItem
-                icon={PaintBoardIcon}
-                label="Paper Theme"
-                onClick={() => setShowThemePicker((prev) => !prev)}
-              />
+            {/* Paper Theme Submenu (Text Notes Only) */}
+            {!isAllImageNotes && (
+              <div className="relative">
+                <MenuItem
+                  icon={PaintBoardIcon}
+                  label="Paper Theme"
+                  onClick={() => setShowThemePicker((prev) => !prev)}
+                />
 
-              {showThemePicker && (
-                <div
-                  className={`p-2 my-1 rounded-sm border grid grid-cols-4 gap-1.5 ${
-                    isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
-                  }`}
-                >
-                  {PAPER_THEME_ITEMS.map((item) => (
-                    <button
-                      key={item.key}
-                      type="button"
-                      onClick={() => {
-                        onChangePaperTheme?.(selectedNoteIds, item.key);
-                        onClose();
-                      }}
-                      className={`w-full h-7 rounded-sm border transition-colors hover:border-blue-500 cursor-pointer ${item.colorClass}`}
-                      title={item.label}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+                {showThemePicker && (
+                  <div
+                    className={`p-2 my-1 rounded-sm border grid grid-cols-4 gap-1.5 ${
+                      isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
+                    }`}
+                  >
+                    {PAPER_THEME_ITEMS.map((item) => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => {
+                          onChangePaperTheme?.(selectedNoteIds, item.key);
+                          onClose();
+                        }}
+                        className={`w-full h-7 rounded-sm border transition-colors hover:border-blue-500 cursor-pointer ${item.colorClass}`}
+                        title={item.label}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <MenuDivider />
 
@@ -310,22 +313,6 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
                 label="Export Markdown (.md)"
                 onClick={() => {
                   onExportNotes?.(selectedNoteIds, 'md');
-                  onClose();
-                }}
-              />
-            )}
-
-            {isSingle && singleNote?.imageUrl && (
-              <MenuItem
-                icon={Download01Icon}
-                label="Download Photo (.png)"
-                onClick={() => {
-                  const a = document.createElement('a');
-                  a.href = singleNote.imageUrl!;
-                  a.download = `${(singleNote.title || 'photo').replace(/[^a-z0-9]/gi, '_').toLowerCase()}.png`;
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
                   onClose();
                 }}
               />

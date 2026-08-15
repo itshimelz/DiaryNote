@@ -381,6 +381,13 @@ export default function App() {
     }
 
     const notesToMerge = notes.filter((n) => selectedNoteIds.includes(n.id));
+    if (notesToMerge.some((n) => Boolean(n.imageUrl))) {
+      sendNativeAppNotification(
+        'Cannot Merge Photos',
+        'AI Note Merging is currently only supported for text and markdown notes.'
+      );
+      return;
+    }
     if (notesToMerge.length < 2 || notesToMerge.length > 5) {
       alert('Please select between 2 and 5 notes to merge.');
       return;

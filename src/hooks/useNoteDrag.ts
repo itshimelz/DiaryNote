@@ -205,7 +205,8 @@ export function useNoteDrag({
             }
             const el = document.getElementById(`note-card-${n.id}`);
             if (el) {
-              el.style.transform = `translate3d(${Math.round(rawX)}px, ${Math.round(rawY)}px, 0)`;
+              const rot = n.rotation || 0;
+              el.style.transform = `translate3d(${Math.round(rawX)}px, ${Math.round(rawY)}px, 0)${rot ? ` rotate(${rot}deg)` : ''}`;
             }
             updatedMap.set(n.id, { x: rawX, y: rawY });
             return { ...n, x: rawX, y: rawY };
@@ -221,7 +222,8 @@ export function useNoteDrag({
         currentPosRef.current = { x: newX, y: newY };
         const el = document.getElementById(`note-card-${noteRef.current.id}`);
         if (el) {
-          el.style.transform = `translate3d(${Math.round(newX)}px, ${Math.round(newY)}px, 0)`;
+          const rot = noteRef.current.rotation || 0;
+          el.style.transform = `translate3d(${Math.round(newX)}px, ${Math.round(newY)}px, 0)${rot ? ` rotate(${rot}deg)` : ''}`;
         }
         updatedMap.set(noteRef.current.id, { x: newX, y: newY });
       }

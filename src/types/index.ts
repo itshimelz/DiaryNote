@@ -24,7 +24,7 @@ export type GridType = 'dots' | 'grid' | 'ruled' | 'blank';
 
 export type CanvasTheme = 'dark' | 'light' | 'gradient' | 'cork';
 
-export type FrameStyle = 'polaroid' | 'photo' | 'frameless' | 'standard';
+export type FrameStyle = 'polaroid' | 'photo' | 'frameless';
 
 export type PinStyle = 
   | 'none'

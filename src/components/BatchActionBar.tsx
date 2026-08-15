@@ -491,8 +491,8 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
           <span className="hidden sm:inline">Backup</span>
         </Button>
 
-        {/* AI Merge Button */}
-        {enableAIServices && (
+        {/* AI Merge Button (Text/Markdown notes only, hidden if image notes are selected) */}
+        {enableAIServices && !selectedNotes.some((n) => Boolean(n.imageUrl)) && (
           <Button
             size="xs"
             variant="ghost"
@@ -504,6 +504,7 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
               isAlreadyMerged ||
               selectedNotes.length < 2 ||
               selectedNotes.length > 5 ||
+              selectedNotes.some((n) => Boolean(n.imageUrl)) ||
               selectedNotes.some((n) => n.isLocked && !isNoteAuthorized(n))
             }
           >

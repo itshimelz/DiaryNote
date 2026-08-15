@@ -3,10 +3,19 @@ import { PinStyle } from '../../types';
 
 interface NoteDecorationsProps {
   pinStyle?: PinStyle;
+  allowedTypes?: 'all' | 'tape-only';
 }
 
-export const NoteDecorations: React.FC<NoteDecorationsProps> = ({ pinStyle = 'none' }) => {
+export const NoteDecorations: React.FC<NoteDecorationsProps> = ({
+  pinStyle = 'none',
+  allowedTypes = 'all',
+}) => {
   if (!pinStyle || pinStyle === 'none') {
+    return null;
+  }
+
+  // If text note only allows tape, ignore pushpins
+  if (allowedTypes === 'tape-only' && !pinStyle.startsWith('tape-')) {
     return null;
   }
 

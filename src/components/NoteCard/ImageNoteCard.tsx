@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   ZoomInAreaIcon,
-  Download01Icon,
   Upload04Icon,
   PaintBoardIcon,
   Delete02Icon,
@@ -9,6 +8,8 @@ import {
   PinOffIcon,
   FolderAddIcon,
   Cancel01Icon,
+  SecurityLockIcon,
+  CircleUnlock01Icon,
 } from '@hugeicons/core-free-icons';
 import { IconButton, Icon } from '../ui';
 import { Note, FrameStyle } from '../../types';
@@ -18,7 +19,7 @@ import { ImageLightboxModal } from '../Modals/ImageLightboxModal';
 import { useNoteDrag } from '../../hooks/useNoteDrag';
 import { useNoteResize } from '../../hooks/useNoteResize';
 import { DEFAULT_NOTE_WIDTH, DRAG_Z_INDEX } from '../../constants/canvas';
-import { FONT_CLASSES, PAPER_THEMES } from './types';
+import { FONT_CLASSES } from './types';
 
 export interface ImageNoteCardProps {
   note: Note;
@@ -60,6 +61,8 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
   snapToGrid = false,
   isPanMode = false,
   shouldStartEditing = false,
+  onRequestLockNote,
+  onRequestUnlockNote,
   onExportNote: _onExportNote,
   isCardDragging = false,
   onDragStateChange,
@@ -103,21 +106,11 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
     }
   }, [shouldStartEditing]);
 
-  const frameStyle: FrameStyle = note.frameStyle || 'polaroid';
+  const frameStyle: FrameStyle =
+    note.frameStyle === 'photo' || note.frameStyle === 'frameless'
+      ? note.frameStyle
+      : 'polaroid';
   const fontClass = FONT_CLASSES[note.fontFamily || 'sans'] || FONT_CLASSES.sans;
-  const paperTheme = note.paperTheme || 'white';
-  const themeConfig = PAPER_THEMES[paperTheme] || PAPER_THEMES.white;
-
-  const handleDownloadImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!note.imageUrl) return;
-    const a = document.createElement('a');
-    a.href = note.imageUrl;
-    a.download = `${(note.title || 'photo').replace(/[^a-z0-9]/gi, '_').toLowerCase()}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
 
   const handleReplaceImage = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -168,12 +161,14 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
   return (
     <>
       <div
+        id={`note-card-${note.id}`}
         ref={cardRef}
+        data-note-id={note.id}
         onMouseDown={handleMouseDown}
         onContextMenu={(e) => {
-          if (onContextMenu) {
-            onContextMenu(e, note.id);
-          }
+          e.preventDefault();
+          e.stopPropagation();
+          onContextMenu?.(e, note.id);
         }}
         role="article"
         tabIndex={0}
@@ -189,9 +184,7 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
             ? 'polaroid-frame'
             : frameStyle === 'photo'
             ? 'photo-frame'
-            : frameStyle === 'frameless'
-            ? 'bg-transparent shadow-none'
-            : `${themeConfig.bg} ${themeConfig.text}`
+            : 'bg-transparent shadow-none'
         } ${
           isPanMode
             ? 'cursor-grab active:cursor-grabbing pointer-events-none'
@@ -229,63 +222,74 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
 
         {/* Floating Top Quick Controls on Hover or Selection */}
         <div
-          className={`absolute top-2 right-2 z-30 flex items-center gap-1 transition-opacity duration-150 p-1 rounded-sm border shadow-sm backdrop-blur-md bg-white/90 dark:bg-slate-900/90 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 ${
+          className={`absolute top-2.5 right-2.5 z-30 flex items-center gap-1.5 transition-opacity duration-150 p-1.5 rounded-sm border shadow-sm backdrop-blur-md bg-white/95 dark:bg-slate-900/95 border-slate-200/90 dark:border-slate-800 text-slate-700 dark:text-slate-200 ${
             isSelected ? 'opacity-100 pointer-events-auto' : 'opacity-0 group-hover/image:opacity-100 pointer-events-auto'
           }`}
           onMouseDown={(e) => e.stopPropagation()}
         >
+          {!note.isLocked && (
+            <>
+              <IconButton
+                icon={ZoomInAreaIcon}
+                size="sm"
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsLightboxOpen(true);
+                }}
+                aria-label="Zoom photo"
+                title="Expand Photo Preview"
+              />
+              <IconButton
+                icon={PaintBoardIcon}
+                size="sm"
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowStylePicker((prev) => !prev);
+                }}
+                aria-label="Framing & Style"
+                title="Framing & Pin Style"
+              />
+              <IconButton
+                icon={Upload04Icon}
+                size="sm"
+                variant="ghost"
+                onClick={handleReplaceImage}
+                aria-label="Replace photo"
+                title="Replace Photo"
+              />
+              <IconButton
+                icon={note.isPinned ? PinOffIcon : PinIcon}
+                size="sm"
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUpdateNote({ ...note, isPinned: !note.isPinned });
+                }}
+                aria-label={note.isPinned ? 'Unpin' : 'Pin'}
+                title={note.isPinned ? 'Unpin Note' : 'Pin Note'}
+              />
+            </>
+          )}
           <IconButton
-            icon={ZoomInAreaIcon}
-            size="xs"
+            icon={note.isLocked ? CircleUnlock01Icon : SecurityLockIcon}
+            size="sm"
             variant="ghost"
             onClick={(e) => {
               e.stopPropagation();
-              setIsLightboxOpen(true);
+              if (note.isLocked) {
+                onRequestUnlockNote?.(note.id);
+              } else {
+                onRequestLockNote?.(note.id);
+              }
             }}
-            aria-label="Zoom photo"
-            title="Expand Photo Preview"
-          />
-          <IconButton
-            icon={PaintBoardIcon}
-            size="xs"
-            variant="ghost"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowStylePicker((prev) => !prev);
-            }}
-            aria-label="Framing & Style"
-            title="Framing & Pin Style"
-          />
-          <IconButton
-            icon={Upload04Icon}
-            size="xs"
-            variant="ghost"
-            onClick={handleReplaceImage}
-            aria-label="Replace photo"
-            title="Replace Photo"
-          />
-          <IconButton
-            icon={Download01Icon}
-            size="xs"
-            variant="ghost"
-            onClick={handleDownloadImage}
-            aria-label="Download photo"
-            title="Download Original"
-          />
-          <IconButton
-            icon={note.isPinned ? PinOffIcon : PinIcon}
-            size="xs"
-            variant="ghost"
-            onClick={(e) => {
-              e.stopPropagation();
-              onUpdateNote({ ...note, isPinned: !note.isPinned });
-            }}
-            aria-label={note.isPinned ? 'Unpin' : 'Pin'}
-            title={note.isPinned ? 'Unpin Note' : 'Pin Note'}
+            aria-label={note.isLocked ? 'Unlock photo' : 'Lock photo'}
+            title={note.isLocked ? 'Unlock Photo Access' : 'Lock Photo Access'}
           />
           <IconButton
             icon={Delete02Icon}
-            size="xs"
+            size="sm"
             variant="ghost"
             className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
             onClick={(e) => {
@@ -306,8 +310,36 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
           onChange={handleFileChange}
         />
 
-        {/* Image Card Body based on Frame Style */}
-        {frameStyle === 'polaroid' ? (
+        {/* Image Card Body based on Lock State & Frame Style */}
+        {note.isLocked ? (
+          <div
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              onRequestUnlockNote?.(note.id);
+            }}
+            className="relative w-full flex-1 min-h-[240px] flex flex-col items-center justify-center p-6 text-center select-none bg-slate-900/95 dark:bg-slate-950/95 text-slate-100 rounded-sm"
+          >
+            <div className="w-12 h-12 rounded-sm flex items-center justify-center mb-3 bg-slate-800 text-slate-200 shadow-xs">
+              <Icon icon={SecurityLockIcon} size="xl" />
+            </div>
+            <h3 className="font-bold text-sm tracking-tight mb-1 text-slate-100">
+              Protected Photo
+            </h3>
+            <p className="text-xs mb-4 max-w-[200px] text-slate-400">
+              This photo card is locked with passcode protection.
+            </p>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRequestUnlockNote?.(note.id);
+              }}
+              className="px-4 py-2 rounded-sm font-bold uppercase tracking-wider text-[10px] transition-colors cursor-pointer bg-white text-slate-900 hover:bg-slate-100 shadow-sm"
+            >
+              Unlock Photo
+            </button>
+          </div>
+        ) : frameStyle === 'polaroid' ? (
           <div className="relative w-full flex-1 flex flex-col p-3.5 pb-2">
             {/* Image Surface */}
             <div
@@ -320,6 +352,7 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
               <img
                 src={note.imageUrl}
                 alt={note.title || 'Polaroid photo'}
+                draggable={false}
                 className="w-full h-full object-cover select-none pointer-events-none"
                 loading="lazy"
               />
@@ -386,6 +419,7 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
               <img
                 src={note.imageUrl}
                 alt={note.title || 'Photo'}
+                draggable={false}
                 className="w-full h-full object-cover select-none pointer-events-none"
                 loading="lazy"
               />
@@ -408,6 +442,7 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
             <img
               src={note.imageUrl}
               alt={note.title || 'Frameless photo'}
+              draggable={false}
               className="w-full h-full object-cover rounded-sm select-none pointer-events-none"
               loading="lazy"
             />

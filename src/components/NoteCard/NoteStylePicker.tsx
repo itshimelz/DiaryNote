@@ -37,7 +37,15 @@ const PAPER_THEME_LABELS: Record<PaperTheme, string> = {
   transparent: 'Transparent',
 };
 
-const PIN_STYLE_OPTIONS: { value: PinStyle; label: string; renderIcon: () => React.ReactNode }[] = [
+const TAPE_STYLE_OPTIONS: { value: PinStyle; label: string; renderIcon: () => React.ReactNode }[] = [
+  { value: 'none', label: 'None', renderIcon: () => <span className="text-slate-400 text-xs">∅</span> },
+  { value: 'tape-teal', label: 'Teal Tape', renderIcon: () => <span className="w-3.5 h-2 rounded-xs bg-teal-400/80 border border-teal-500/50 inline-block" /> },
+  { value: 'tape-pink', label: 'Pink Tape', renderIcon: () => <span className="w-3.5 h-2 rounded-xs bg-pink-400/80 border border-pink-500/50 inline-block" /> },
+  { value: 'tape-beige', label: 'Beige Tape', renderIcon: () => <span className="w-3.5 h-2 rounded-xs bg-[#d6c4a8] border border-[#b8a486]/50 inline-block" /> },
+  { value: 'tape-yellow', label: 'Yellow Tape', renderIcon: () => <span className="w-3.5 h-2 rounded-xs bg-amber-300/80 border border-amber-400/50 inline-block" /> },
+];
+
+const ALL_PIN_STYLE_OPTIONS: { value: PinStyle; label: string; renderIcon: () => React.ReactNode }[] = [
   { value: 'none', label: 'None', renderIcon: () => <span className="text-slate-400 text-xs">∅</span> },
   { value: 'pushpin-red', label: 'Red Pin', renderIcon: () => <span className="w-2.5 h-2.5 rounded-full bg-red-500 ring-1 ring-red-600/50 shadow-xs inline-block" /> },
   { value: 'pushpin-blue', label: 'Blue Pin', renderIcon: () => <span className="w-2.5 h-2.5 rounded-full bg-blue-500 ring-1 ring-blue-600/50 shadow-xs inline-block" /> },
@@ -46,6 +54,7 @@ const PIN_STYLE_OPTIONS: { value: PinStyle; label: string; renderIcon: () => Rea
   { value: 'tape-teal', label: 'Teal Tape', renderIcon: () => <span className="w-3.5 h-2 rounded-xs bg-teal-400/80 border border-teal-500/50 inline-block" /> },
   { value: 'tape-pink', label: 'Pink Tape', renderIcon: () => <span className="w-3.5 h-2 rounded-xs bg-pink-400/80 border border-pink-500/50 inline-block" /> },
   { value: 'tape-beige', label: 'Beige Tape', renderIcon: () => <span className="w-3.5 h-2 rounded-xs bg-[#d6c4a8] border border-[#b8a486]/50 inline-block" /> },
+  { value: 'tape-yellow', label: 'Yellow Tape', renderIcon: () => <span className="w-3.5 h-2 rounded-xs bg-amber-300/80 border border-amber-400/50 inline-block" /> },
 ];
 
 export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
@@ -76,6 +85,7 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
   }, [onClose]);
 
   const isImageCard = Boolean(note.imageUrl);
+  const decorationOptions = isImageCard ? ALL_PIN_STYLE_OPTIONS : TAPE_STYLE_OPTIONS;
 
   return (
     <div
@@ -87,7 +97,7 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
       <div className="flex items-center justify-between pb-2 border-b border-slate-150 dark:border-slate-800">
         <div className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-slate-100">
           <Icon icon={PaintBoardIcon} size="md" className="text-blue-500" />
-          <span>Card Style & Framing</span>
+          <span>{isImageCard ? 'Photo Style & Framing' : 'Card Style & Typography'}</span>
         </div>
         <IconButton
           size="sm"
@@ -98,7 +108,7 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
         />
       </div>
 
-      {/* 1. Frame Style (For Image or Photo Cards) */}
+      {/* 1. Frame Style (Only for Image/Photo Cards) */}
       {isImageCard && (
         <div className="flex flex-col gap-1.5">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -118,19 +128,18 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
               { value: 'polaroid', label: 'Polaroid' },
               { value: 'photo', label: 'Photo Print' },
               { value: 'frameless', label: 'Frameless' },
-              { value: 'standard', label: 'Standard' },
             ]}
           />
         </div>
       )}
 
-      {/* 2. Pin & Tape Decoration */}
+      {/* 2. Tape Decoration (for Text Notes) OR Pin & Tape Decoration (for Image Cards) */}
       <div className="flex flex-col gap-1.5">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          Pin & Tape Decoration
+          {isImageCard ? 'Pin & Tape Decoration' : 'Washi Tape Decoration'}
         </span>
-        <div className="grid grid-cols-4 gap-1.5">
-          {PIN_STYLE_OPTIONS.map((pin) => {
+        <div className={`grid ${isImageCard ? 'grid-cols-3 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-5'} gap-1.5`}>
+          {decorationOptions.map((pin) => {
             const isSelected = (note.pinStyle || 'none') === pin.value;
             return (
               <button
@@ -158,54 +167,56 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
         </div>
       </div>
 
-      {/* 3. Tilt / Rotation */}
-      <div className="flex flex-col gap-1.5">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Bulletin Tilt ({note.rotation || 0}°)
-          </span>
-          <button
-            type="button"
-            onClick={() => {
-              const randomTilt = parseFloat(((Math.random() * 6 - 3)).toFixed(1));
-              onUpdateNote({
-                ...note,
-                rotation: randomTilt,
-                updatedAt: new Date().toISOString(),
-              });
-            }}
-            className="text-[11px] text-blue-500 hover:underline flex items-center gap-1 cursor-pointer"
-          >
-            <Icon icon={SparklesIcon} size="xs" />
-            <span>Randomize</span>
-          </button>
-        </div>
-        <div className="flex items-center gap-1">
-          {[-3, -1.5, 0, 1.5, 3].map((angle) => (
+      {/* 3. Tilt / Rotation (ONLY for Image Cards) */}
+      {isImageCard && (
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Bulletin Tilt ({note.rotation || 0}°)
+            </span>
             <button
-              key={angle}
               type="button"
-              onClick={() =>
+              onClick={() => {
+                const randomTilt = parseFloat((Math.random() * 6 - 3).toFixed(1));
                 onUpdateNote({
                   ...note,
-                  rotation: angle,
+                  rotation: randomTilt,
                   updatedAt: new Date().toISOString(),
-                })
-              }
-              className={`flex-1 py-1 rounded-sm border text-[11px] font-medium transition-all cursor-pointer ${
-                (note.rotation || 0) === angle
-                  ? 'bg-blue-50 dark:bg-blue-900/40 border-blue-500 text-blue-600 dark:text-blue-300 font-bold'
-                  : 'bg-slate-50/80 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-400'
-              }`}
+                });
+              }}
+              className="text-[11px] text-blue-500 hover:underline flex items-center gap-1 cursor-pointer"
             >
-              {angle === 0 ? 'Flat' : `${angle > 0 ? '+' : ''}${angle}°`}
+              <Icon icon={SparklesIcon} size="xs" />
+              <span>Randomize</span>
             </button>
-          ))}
+          </div>
+          <div className="flex items-center gap-1">
+            {[-3, -1.5, 0, 1.5, 3].map((angle) => (
+              <button
+                key={angle}
+                type="button"
+                onClick={() =>
+                  onUpdateNote({
+                    ...note,
+                    rotation: angle,
+                    updatedAt: new Date().toISOString(),
+                  })
+                }
+                className={`flex-1 py-1 rounded-sm border text-[11px] font-medium transition-all cursor-pointer ${
+                  (note.rotation || 0) === angle
+                    ? 'bg-blue-50 dark:bg-blue-900/40 border-blue-500 text-blue-600 dark:text-blue-300 font-bold'
+                    : 'bg-slate-50/80 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-400'
+                }`}
+              >
+                {angle === 0 ? 'Flat' : `${angle > 0 ? '+' : ''}${angle}°`}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* 4. Paper Theme Picker (If not Polaroid/Frameless) */}
-      {(!isImageCard || note.frameStyle === 'standard') && (
+      {/* 4. Paper Theme Picker (For Text Notes Only) */}
+      {!isImageCard && (
         <div className="flex flex-col gap-1.5">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             Paper Theme

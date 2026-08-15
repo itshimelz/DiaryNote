@@ -43,4 +43,16 @@ describe('NoteDecorations component', () => {
     const { container: yellow } = render(<NoteDecorations pinStyle="tape-yellow" />);
     expect(yellow.querySelector('[title="Taped"]')).toBeTruthy();
   });
+
+  it('respects allowedTypes="tape-only" by suppressing pushpins and rendering tape', () => {
+    const { container: pin } = render(
+      <NoteDecorations pinStyle="pushpin-red" allowedTypes="tape-only" />
+    );
+    expect(pin.firstChild).toBeNull();
+
+    const { container: tape } = render(
+      <NoteDecorations pinStyle="tape-teal" allowedTypes="tape-only" />
+    );
+    expect(tape.querySelector('[title="Taped"]')).toBeTruthy();
+  });
 });

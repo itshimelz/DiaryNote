@@ -390,7 +390,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       tabIndex={0}
       aria-label={`Note: ${note.title || 'Untitled Note'}`}
       style={{
-        transform: `translate3d(${Math.round(note.x)}px, ${Math.round(note.y)}px, 0) rotate(${note.rotation || 0}deg)`,
+        transform: `translate3d(${Math.round(note.x)}px, ${Math.round(note.y)}px, 0)`,
         width: `${note.width || DEFAULT_NOTE_WIDTH}px`,
         minHeight: `${note.height || DEFAULT_NOTE_HEIGHT}px`,
         zIndex: isDragging || isCardDragging || isResizing ? DRAG_Z_INDEX : note.zIndex || 10,
@@ -408,8 +408,8 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         isSelected ? 'ring-2 ring-blue-500' : ''
       }`}
     >
-      {/* Bulletin Board 3D Pushpins and Washi Tape */}
-      <NoteDecorations pinStyle={note.pinStyle} />
+      {/* Washi Tape Decoration for Text Notes */}
+      <NoteDecorations pinStyle={note.pinStyle} allowedTypes="tape-only" />
 
       {/* Smart Quick-Action Pill: Add to Overlapping Group */}
       {isSelected && overlappingGroup && (

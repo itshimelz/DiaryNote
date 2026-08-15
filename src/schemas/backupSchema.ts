@@ -30,7 +30,7 @@ export const PaperThemeSchema: z.ZodType<PaperTheme> = z.enum([
 
 export const GridTypeSchema: z.ZodType<GridType> = z.enum(['dots', 'grid', 'ruled', 'blank']);
 export const CanvasThemeSchema: z.ZodType<CanvasTheme> = z.enum(['dark', 'light', 'gradient', 'cork']);
-export const FrameStyleSchema: z.ZodType<FrameStyle> = z.enum(['polaroid', 'photo', 'frameless', 'standard']);
+export const FrameStyleSchema: z.ZodType<FrameStyle> = z.enum(['polaroid', 'photo', 'frameless']);
 export const PinStyleSchema: z.ZodType<PinStyle> = z.enum([
   'none',
   'pushpin-red',

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   Cancel01Icon,
-  Download01Icon,
   Copy01Icon,
   RotateRight01Icon,
   ZoomInAreaIcon,
@@ -38,15 +37,6 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
 
   const handleZoomOut = () => {
     setScale((prev) => Math.max(prev - 0.25, 0.5));
-  };
-
-  const handleDownload = () => {
-    const a = document.createElement('a');
-    a.href = imageUrl;
-    a.download = `${(title || 'image').replace(/[^a-z0-9]/gi, '_').toLowerCase()}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
   };
 
   const handleCopy = async () => {
@@ -111,15 +101,6 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
               onClick={handleCopy}
               aria-label="Copy image"
               title={copied ? 'Copied!' : 'Copy to Clipboard'}
-              className="text-slate-200 hover:text-white hover:bg-slate-800"
-            />
-            <IconButton
-              icon={Download01Icon}
-              size="sm"
-              variant="ghost"
-              onClick={handleDownload}
-              aria-label="Download image"
-              title="Download Image"
               className="text-slate-200 hover:text-white hover:bg-slate-800"
             />
             <IconButton
