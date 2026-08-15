@@ -32,6 +32,7 @@ export interface CanvasSettingsModalProps {
   onClose: () => void;
   themeMode: CanvasTheme;
   onToggleTheme: () => void;
+  onChangeThemeMode?: (mode: CanvasTheme) => void;
   gridType: GridType;
   onChangeGridType: (type: GridType) => void;
   snapToGrid: boolean;
@@ -57,6 +58,7 @@ export const CanvasSettingsModal: React.FC<CanvasSettingsModalProps> = ({
   onClose,
   themeMode = 'dark',
   onToggleTheme,
+  onChangeThemeMode,
   gridType,
   onChangeGridType,
   snapToGrid,
@@ -255,36 +257,66 @@ export const CanvasSettingsModal: React.FC<CanvasSettingsModalProps> = ({
                 {/* Theme Mode Selector */}
                 <div className="p-3 rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 space-y-2">
                   <span className="font-semibold block text-slate-800 dark:text-slate-200">
-                    Workspace Theme
+                    Workspace Canvas Theme
                   </span>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <button
                       type="button"
                       onClick={() => {
-                        if (themeMode === 'dark') onToggleTheme();
+                        if (onChangeThemeMode) onChangeThemeMode('dark');
+                        else if (themeMode === 'light') onToggleTheme();
                       }}
-                      className={`flex items-center justify-center gap-2 p-2.5 rounded-sm border font-semibold text-xs transition-colors cursor-pointer ${
-                        themeMode === 'light'
-                          ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                          : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                      className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-sm border font-semibold text-xs transition-colors cursor-pointer ${
+                        themeMode === 'dark'
+                          ? 'bg-slate-900 text-white border-blue-500 ring-1 ring-blue-500 shadow-xs'
+                          : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-400'
                       }`}
                     >
-                      <Icon icon={Sun01Icon} size="xs" />
-                      <span>Light Theme</span>
+                      <Icon icon={Moon01Icon} size="xs" />
+                      <span>Dark</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => {
-                        if (themeMode === 'light') onToggleTheme();
+                        if (onChangeThemeMode) onChangeThemeMode('light');
+                        else if (themeMode === 'dark') onToggleTheme();
                       }}
-                      className={`flex items-center justify-center gap-2 p-2.5 rounded-sm border font-semibold text-xs transition-colors cursor-pointer ${
-                        themeMode === 'dark'
-                          ? 'bg-white text-slate-900 border-white shadow-xs'
-                          : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                      className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-sm border font-semibold text-xs transition-colors cursor-pointer ${
+                        themeMode === 'light'
+                          ? 'bg-slate-900 text-white border-blue-500 ring-1 ring-blue-500 shadow-xs'
+                          : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-400'
                       }`}
                     >
-                      <Icon icon={Moon01Icon} size="xs" />
-                      <span>Dark Theme</span>
+                      <Icon icon={Sun01Icon} size="xs" />
+                      <span>Light</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onChangeThemeMode) onChangeThemeMode('cork');
+                      }}
+                      className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-sm border font-semibold text-xs transition-colors cursor-pointer ${
+                        themeMode === 'cork'
+                          ? 'bg-[#b78a58] text-white border-amber-500 ring-1 ring-amber-500 shadow-xs font-bold'
+                          : 'bg-[#faf6ee] dark:bg-slate-800/80 border-amber-200 dark:border-slate-700 text-amber-900 dark:text-amber-200 hover:border-amber-400'
+                      }`}
+                    >
+                      <span className="text-sm">📌</span>
+                      <span>Cork Board</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onChangeThemeMode) onChangeThemeMode('gradient');
+                      }}
+                      className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-sm border font-semibold text-xs transition-colors cursor-pointer ${
+                        themeMode === 'gradient'
+                          ? 'bg-blue-600 text-white border-blue-500 ring-1 ring-blue-500 shadow-xs'
+                          : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-400'
+                      }`}
+                    >
+                      <Icon icon={PaintBoardIcon} size="xs" />
+                      <span>Gradient</span>
                     </button>
                   </div>
                 </div>

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Note, CanvasTransform, HandFont, PaperTheme, GridType, CanvasTheme, JournalMood, AIProvider } from '../types';
+import { Note, CanvasTransform, HandFont, PaperTheme, GridType, CanvasTheme, JournalMood, AIProvider, FrameStyle, PinStyle } from '../types';
 import { AppSettings } from '../lib/storage';
 
 export const MAX_BACKUP_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
@@ -29,7 +29,19 @@ export const PaperThemeSchema: z.ZodType<PaperTheme> = z.enum([
 ]);
 
 export const GridTypeSchema: z.ZodType<GridType> = z.enum(['dots', 'grid', 'ruled', 'blank']);
-export const CanvasThemeSchema: z.ZodType<CanvasTheme> = z.enum(['dark', 'light', 'gradient']);
+export const CanvasThemeSchema: z.ZodType<CanvasTheme> = z.enum(['dark', 'light', 'gradient', 'cork']);
+export const FrameStyleSchema: z.ZodType<FrameStyle> = z.enum(['polaroid', 'photo', 'frameless', 'standard']);
+export const PinStyleSchema: z.ZodType<PinStyle> = z.enum([
+  'none',
+  'pushpin-red',
+  'pushpin-blue',
+  'pushpin-yellow',
+  'pushpin-green',
+  'tape-teal',
+  'tape-pink',
+  'tape-beige',
+  'tape-yellow',
+]);
 export const JournalMoodSchema: z.ZodType<JournalMood | undefined> = z.enum(['happy', 'calm', 'focused', 'reflective', 'low']).optional();
 export const AIProviderSchema: z.ZodType<AIProvider> = z.enum(['gemini', 'openai', 'openrouter', 'custom']);
 
@@ -59,6 +71,12 @@ export const NoteSchema = z.object({
   entryDate: z.string().optional(),
   isDailyEntry: z.boolean().optional(),
   mood: JournalMoodSchema,
+  imageUrl: z.string().optional(),
+  imageType: z.string().optional(),
+  imageAspectRatio: z.number().optional(),
+  frameStyle: FrameStyleSchema.optional(),
+  pinStyle: PinStyleSchema.optional(),
+  rotation: z.number().optional(),
 }).transform((rawNote): Note => {
   const cTime = rawNote.createdTimestamp || (rawNote.createdAt ? new Date(rawNote.createdAt).getTime() : Date.now());
   const uTime = rawNote.updatedTimestamp || (rawNote.updatedAt ? new Date(rawNote.updatedAt).getTime() : cTime);

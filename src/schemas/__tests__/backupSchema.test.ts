@@ -134,4 +134,48 @@ describe('backupSchema validation service', () => {
     expect(parsed.settings?.masterPasswordHash).toBe('');
     expect(parsed.settings?.encryptedApiKey).toBe('');
   });
+
+  it('successfully parses image notes with polaroid frame, pin style, and rotation', () => {
+    const backupWithImageNote = JSON.stringify({
+      version: 2,
+      notes: [
+        {
+          id: 'note-polaroid-1',
+          title: 'Vacation Photo',
+          content: 'Summer 2026',
+          imageUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+          imageType: 'image/png',
+          imageAspectRatio: 1.33,
+          frameStyle: 'polaroid',
+          pinStyle: 'pushpin-red',
+          rotation: -2,
+          x: 120,
+          y: 240,
+          width: 320,
+          height: 380,
+          createdAt: '2026-08-14T00:00:00.000Z',
+          updatedAt: '2026-08-14T00:00:00.000Z',
+          fontFamily: 'sans',
+          fontSize: 'md',
+          paperTheme: 'white',
+          zIndex: 1,
+        },
+      ],
+      settings: {
+        gridType: 'dots',
+        themeMode: 'cork',
+        defaultFont: 'sans',
+        snapToGrid: false,
+        showConnections: true,
+        showMinimap: true,
+      },
+    });
+
+    const parsed = validateAndParseBackupContent(backupWithImageNote);
+    expect(parsed.notes[0].frameStyle).toBe('polaroid');
+    expect(parsed.notes[0].pinStyle).toBe('pushpin-red');
+    expect(parsed.notes[0].rotation).toBe(-2);
+    expect(parsed.notes[0].imageUrl).toContain('data:image/png;base64');
+    expect(parsed.settings?.themeMode).toBe('cork');
+  });
 });

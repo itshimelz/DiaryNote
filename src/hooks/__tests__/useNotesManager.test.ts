@@ -286,4 +286,53 @@ describe('useNotesManager Hook & Persistence Lifecycle', () => {
     const note1InDb = await db.notes.get(note1Id);
     expect(note1InDb?.zIndex).toBe(note1After?.zIndex);
   });
+
+  it('creates image notes with polaroid style, pin decoration, and rotation persisted to db', async () => {
+    const { result: historyResult } = renderHook(() => useHistoryState());
+    const { result: notesResult } = renderHook(() =>
+      useNotesManager(historyResult.current.pushHistorySnapshot, historyResult.current.resetHistory)
+    );
+
+    await act(async () => {
+      await new Promise<void>((resolve) => {
+        notesResult.current.initAppDatabase(() => resolve());
+      });
+    });
+
+    let imageNoteId = '';
+    act(() => {
+      imageNoteId = notesResult.current.handleAddImageNote(
+        INITIAL_TRANSFORM,
+        DEFAULT_SETTINGS,
+        'data:image/png;base64,test-image-data',
+        'image/png',
+        250,
+        350,
+        'Trip to Tokyo',
+        'Memories from 2026',
+        'polaroid',
+        'pushpin-red',
+        1.25
+      );
+    });
+
+    expect(imageNoteId).toBeTruthy();
+    const createdNote = notesResult.current.notes.find((n) => n.id === imageNoteId);
+    expect(createdNote).toBeDefined();
+    expect(createdNote?.imageUrl).toBe('data:image/png;base64,test-image-data');
+    expect(createdNote?.frameStyle).toBe('polaroid');
+    expect(createdNote?.pinStyle).toBe('pushpin-red');
+    expect(createdNote?.imageAspectRatio).toBe(1.25);
+    expect(createdNote?.rotation).toBeDefined();
+
+    // Wait for autosave
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 600));
+    });
+
+    const noteInDb = await db.notes.get(imageNoteId);
+    expect(noteInDb?.imageUrl).toBe('data:image/png;base64,test-image-data');
+    expect(noteInDb?.frameStyle).toBe('polaroid');
+    expect(noteInDb?.pinStyle).toBe('pushpin-red');
+  });
 });

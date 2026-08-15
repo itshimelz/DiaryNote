@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { Image01Icon } from '@hugeicons/core-free-icons';
+import { Icon } from './ui';
 import { Note, CanvasTransform, GridType, CanvasTheme } from '../types';
 import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../constants/canvas';
 import { NoteCard } from './NoteCard';
@@ -23,6 +25,7 @@ interface InfiniteCanvasProps {
   onDeleteNote: (noteId: string) => void;
   onBringToFront: (noteId: string) => void;
   onDoubleClickCanvas: (screenX: number, screenY: number) => void;
+  onDropImageFiles?: (files: File[], clientX: number, clientY: number) => void;
   isPanMode: boolean;
   snapToGrid?: boolean;
   editingNoteId?: string | null;
@@ -71,9 +74,14 @@ const MinimapCanvas: React.FC<{
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    const isCork = themeMode === 'cork';
     const isLight = themeMode === 'light';
-    const noteFill = isLight ? 'rgba(148, 163, 184, 0.75)' : 'rgba(100, 116, 139, 0.75)';
-    const selectedFill = '#3b82f6';
+    const noteFill = isCork
+      ? 'rgba(254, 243, 199, 0.85)'
+      : isLight
+      ? 'rgba(148, 163, 184, 0.75)'
+      : 'rgba(100, 116, 139, 0.75)';
+    const selectedFill = isCork ? '#d97706' : '#3b82f6';
 
     // Draw all notes in a single batch
     for (let i = 0; i < notes.length; i++) {
@@ -93,9 +101,9 @@ const MinimapCanvas: React.FC<{
     const vpW = (viewportWidth / transform.zoom) * minimapScale;
     const vpH = (viewportHeight / transform.zoom) * minimapScale;
 
-    ctx.fillStyle = 'rgba(59, 130, 246, 0.15)';
+    ctx.fillStyle = isCork ? 'rgba(217, 119, 6, 0.2)' : 'rgba(59, 130, 246, 0.15)';
     ctx.fillRect(vpX, vpY, vpW, vpH);
-    ctx.strokeStyle = '#3b82f6';
+    ctx.strokeStyle = isCork ? '#d97706' : '#3b82f6';
     ctx.lineWidth = 1.5;
     ctx.strokeRect(vpX, vpY, vpW, vpH);
   }, [notes, transform, minX, minY, minimapScale, viewportWidth, viewportHeight, selectedNoteId, themeMode]);
@@ -128,6 +136,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
   onDeleteNote,
   onBringToFront,
   onDoubleClickCanvas,
+  onDropImageFiles,
   isPanMode,
   snapToGrid = false,
   editingNoteId,
@@ -145,6 +154,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
   const gridBgRef = useRef<HTMLDivElement>(null);
   const [isPanning, setIsPanning] = useState(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
+  const [isDragOverCanvas, setIsDragOverCanvas] = useState(false);
   const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
   const [draggingNoteIds, setDraggingNoteIds] = useState<string[]>([]);
   const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight });
@@ -466,6 +476,12 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
   };
 
   const getBackgroundClass = () => {
+    if (themeMode === 'cork') {
+      if (gridType === 'dots') return 'canvas-theme-cork bg-canvas-dots-cork';
+      if (gridType === 'grid') return 'canvas-theme-cork bg-canvas-grid-cork';
+      if (gridType === 'ruled') return 'canvas-theme-cork bg-canvas-ruled-cork';
+      return 'canvas-theme-cork';
+    }
     if (themeMode === 'gradient') return 'bg-gradient-to-br from-[#1d4ed8] to-[#3b82f6]';
     if (gridType === 'blank') return themeMode === 'dark' ? 'bg-slate-950' : 'bg-[#f8fafc]';
     const isDark = themeMode === 'dark';
@@ -558,6 +574,27 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
         const target = e.target as HTMLElement;
         if (!target.closest('.note-card')) {
           onContextMenuCanvas?.(e);
+        }
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        if (!isDragOverCanvas) setIsDragOverCanvas(true);
+      }}
+      onDragLeave={(e) => {
+        if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget as Node)) {
+          setIsDragOverCanvas(false);
+        }
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setIsDragOverCanvas(false);
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) {
+          const imageFiles = Array.from(files).filter((f) => f.type.startsWith('image/'));
+          if (imageFiles.length > 0) {
+            onDropImageFiles?.(imageFiles, e.clientX, e.clientY);
+          }
         }
       }}
       className={`relative w-full h-full overflow-hidden select-none touch-none ${
@@ -698,6 +735,18 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Drag & Drop Visual Indicator Overlay */}
+      {isDragOverCanvas && (
+        <div className="absolute inset-4 z-50 pointer-events-none rounded-lg border-2 border-dashed border-blue-500/80 bg-blue-500/10 backdrop-blur-xs flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 gap-2 animate-in fade-in zoom-in-95 duration-150 select-none">
+          <div className="p-3.5 rounded-full bg-blue-500 text-white shadow-lg">
+            <Icon icon={Image01Icon} size="xl" />
+          </div>
+          <span className="font-semibold text-sm tracking-wide bg-white/95 dark:bg-slate-900/95 px-3 py-1 rounded-sm shadow-sm">
+            Drop images to pin onto canvas
+          </span>
+        </div>
+      )}
     </div>
   );
 };

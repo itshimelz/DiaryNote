@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Note, CanvasTransform } from '../types';
+import { Note, CanvasTransform, FrameStyle, PinStyle } from '../types';
 import { AppSettings } from '../lib/storage';
 import {
   initDatabase,
@@ -146,6 +146,93 @@ export function useNotesManager(
         isPinned: false,
         zIndex: 1,
         tags: [],
+      };
+
+      setNotes((prevNotes) => {
+        const maxZ = prevNotes.length > 0 ? Math.max(...prevNotes.map((n) => n.zIndex || 1)) : 1;
+        const noteWithZ = { ...newNote, zIndex: maxZ + 1 };
+        const updated = [...prevNotes, noteWithZ];
+        pushHistorySnapshot(updated);
+        return updated;
+      });
+
+      dirtyNoteIdsRef.current.add(newId);
+      return newId;
+    },
+    [notes, pushHistorySnapshot]
+  );
+
+  // Add new image note handler
+  const handleAddImageNote = useCallback(
+    (
+      transform: CanvasTransform,
+      settings: AppSettings,
+      imageUrl: string,
+      imageType?: string,
+      customX?: number,
+      customY?: number,
+      initialTitle?: string,
+      initialCaption?: string,
+      frameStyle?: FrameStyle,
+      pinStyle?: PinStyle,
+      aspectRatio?: number
+    ): string => {
+      const newId = `image-note-${crypto.randomUUID()}`;
+      const cardWidth = 340;
+      const cardHeight = 360;
+
+      let viewportX =
+        typeof customX === 'number' && !isNaN(customX)
+          ? customX
+          : Math.round((window.innerWidth / 2 - transform.x) / transform.zoom - cardWidth / 2);
+      let viewportY =
+        typeof customY === 'number' && !isNaN(customY)
+          ? customY
+          : Math.round((window.innerHeight / 2 - transform.y) / transform.zoom - cardHeight / 2);
+
+      if (settings.snapToGrid) {
+        viewportX = Math.round(viewportX / 24) * 24;
+        viewportY = Math.round(viewportY / 24) * 24;
+      }
+
+      const noteTitle = initialTitle || getUniqueTitleForDay('Photo Note', newId, notes);
+
+      // Randomize slight organic tilt between -2.5° and +2.5° and random pushpin/tape
+      const pinOptions: PinStyle[] = [
+        'pushpin-red',
+        'pushpin-blue',
+        'pushpin-yellow',
+        'pushpin-green',
+        'tape-teal',
+        'tape-pink',
+        'tape-beige',
+      ];
+      const chosenPin: PinStyle = pinStyle || pinOptions[Math.floor(Math.random() * pinOptions.length)];
+      const randomTilt = parseFloat((Math.random() * 5 - 2.5).toFixed(1));
+
+      const newNote: Note = {
+        id: newId,
+        title: noteTitle,
+        content: initialCaption || '',
+        imageUrl,
+        imageType: imageType || 'image/png',
+        imageAspectRatio: aspectRatio || 1,
+        frameStyle: frameStyle || 'polaroid',
+        pinStyle: chosenPin,
+        rotation: randomTilt,
+        x: viewportX,
+        y: viewportY,
+        width: cardWidth,
+        height: cardHeight,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        fontFamily: 'caveat',
+        fontSize: 'md',
+        paperTheme: 'white',
+        activeMode: 'text',
+        isPinned: false,
+        zIndex: 1,
+        tags: ['photo'],
       };
 
       setNotes((prevNotes) => {
@@ -387,6 +474,7 @@ export function useNotesManager(
     saveError,
     initAppDatabase,
     handleAddNote,
+    handleAddImageNote,
     handleCreateOrFocusDailyEntry,
     handleUpdateNote,
     handleUpdateBatchNotes,

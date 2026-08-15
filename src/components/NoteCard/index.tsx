@@ -7,6 +7,8 @@ import { NoteToolbar } from './NoteToolbar';
 import { NoteChecklist } from './NoteChecklist';
 import { NoteMarkdownView } from './NoteMarkdownView';
 import { NoteStylePicker } from './NoteStylePicker';
+import { NoteDecorations } from './NoteDecorations';
+import { NoteImageView } from './NoteImageView';
 import { MentionAutocomplete } from '../MentionAutocomplete';
 import { SlashCommandMenu, SlashCommand, SLASH_COMMANDS } from './SlashCommandMenu';
 import { getUniqueTitleForDay, normalizeNoteText, resizeNoteEditor, applyMarkdownFormatting, handleSmartEnterList, sendNativeAppNotification, FormattingType, getTextareaCursorCoordinates } from '../../utils';
@@ -389,13 +391,17 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       tabIndex={0}
       aria-label={`Note: ${note.title || 'Untitled Note'}`}
       style={{
-        transform: `translate3d(${Math.round(note.x)}px, ${Math.round(note.y)}px, 0)`,
+        transform: `translate3d(${Math.round(note.x)}px, ${Math.round(note.y)}px, 0) rotate(${note.rotation || 0}deg)`,
         width: `${note.width || DEFAULT_NOTE_WIDTH}px`,
         minHeight: `${note.height || DEFAULT_NOTE_HEIGHT}px`,
         zIndex: isDragging || isCardDragging || isResizing ? DRAG_Z_INDEX : note.zIndex || 10,
         ...(isRuled && ruledLineHeight ? ({ '--ruled-line-height': ruledLineHeight } as React.CSSProperties) : {}),
       }}
       className={`note-card absolute top-0 left-0 rounded-sm flex flex-col justify-between shadow-sm overflow-visible ${
+        note.imageUrl && (note.frameStyle === 'polaroid' || !note.frameStyle) ? 'polaroid-frame' : ''
+      } ${
+        note.imageUrl && note.frameStyle === 'photo' ? 'photo-frame' : ''
+      } ${
         isPanMode
           ? 'cursor-grab active:cursor-grabbing pointer-events-none'
           : isDragging || isCardDragging || isResizing
@@ -407,6 +413,9 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         isSelected ? 'ring-2 ring-blue-500' : ''
       }`}
     >
+      {/* Bulletin Board 3D Pushpins and Washi Tape */}
+      <NoteDecorations pinStyle={note.pinStyle} />
+
       {/* Smart Quick-Action Pill: Add to Overlapping Group */}
       {isSelected && overlappingGroup && (
         <div className="absolute -top-7 left-2 z-50 pointer-events-auto select-none">
@@ -475,7 +484,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         }}
       />
 
-      {/* 2. Main Body Content Area - Ruled lines background applied ONLY here */}
+      {/* 2. Main Body Content Area */}
       <div
         onDoubleClick={(e) => {
           if (isPanMode || (e.target as HTMLElement).closest('button, input, textarea, a, .no-drag')) return;
@@ -514,6 +523,14 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
               Unlock Note
             </button>
           </div>
+        ) : note.imageUrl && (note.frameStyle === 'polaroid' || note.frameStyle === 'photo' || note.frameStyle === 'frameless' || !note.frameStyle) ? (
+          /* Dedicated Image / Polaroid View */
+          <NoteImageView
+            note={note}
+            isEditing={isEditing}
+            onUpdateNote={onUpdateNote}
+            fontClass={fontClass}
+          />
         ) : activeMode === 'checklist' ? (
           <NoteChecklist
             content={note.content}

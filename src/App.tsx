@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Note, CanvasTransform } from './types';
 import { exportBackup, exportNotesBackup, importBackup, saveFileWithNotification } from './lib/storage';
@@ -91,6 +91,7 @@ export default function App() {
     saveError,
     initAppDatabase,
     handleAddNote,
+    handleAddImageNote,
     handleCreateOrFocusDailyEntry,
     handleUpdateNote,
     handleUpdateBatchNotes,
@@ -100,6 +101,9 @@ export default function App() {
     bringToFront,
     flushPendingHistory,
   } = useNotesManager(pushHistorySnapshot, resetHistory);
+
+  const imagePickerCoordRef = useRef<{ x?: number; y?: number } | null>(null);
+  const globalImageInputRef = useRef<HTMLInputElement>(null);
 
   // 3. Canvas Transform Hook
   const {
@@ -308,6 +312,64 @@ export default function App() {
     () => setIsShortcutsModalOpen((prev) => !prev),
     () => handleMergeNotesAI()
   );
+
+  const handleAddImageFiles = useCallback(
+    (files: File[], customClientX?: number, customClientY?: number) => {
+      if (!files || files.length === 0) return;
+
+      files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const dataUrl = e.target?.result as string;
+          if (!dataUrl) return;
+
+          const img = new Image();
+          img.onload = () => {
+            const aspectRatio = img.naturalWidth / Math.max(1, img.naturalHeight);
+
+            let worldX: number | undefined;
+            let worldY: number | undefined;
+
+            if (typeof customClientX === 'number' && typeof customClientY === 'number') {
+              worldX = Math.round((customClientX - transform.x) / transform.zoom - 170 + index * 24);
+              worldY = Math.round((customClientY - transform.y) / transform.zoom - 180 + index * 24);
+            } else {
+              worldX = Math.round((window.innerWidth / 2 - transform.x) / transform.zoom - 170 + index * 30);
+              worldY = Math.round((window.innerHeight / 2 - transform.y) / transform.zoom - 180 + index * 30);
+            }
+
+            const rawTitle = file.name.replace(/\.[^/.]+$/, '');
+            const newId = handleAddImageNote(
+              transform,
+              settings,
+              dataUrl,
+              file.type,
+              worldX,
+              worldY,
+              rawTitle,
+              '',
+              'polaroid',
+              undefined,
+              aspectRatio
+            );
+            setSelectedNoteIds([newId]);
+            sendNativeAppNotification(
+              'Photo Pinned',
+              `Pinned photo "${rawTitle}" to canvas`
+            );
+          };
+          img.src = dataUrl;
+        };
+        reader.readAsDataURL(file);
+      });
+    },
+    [transform, settings, handleAddImageNote, setSelectedNoteIds]
+  );
+
+  const handleTriggerImagePicker = useCallback((clientX?: number, clientY?: number) => {
+    imagePickerCoordRef.current = { x: clientX, y: clientY };
+    globalImageInputRef.current?.click();
+  }, []);
 
   const currentSelectionKey = selectedNoteIds.slice().sort().join(',');
   const isCurrentSelectionMerged = mergedSelectionKeys.has(currentSelectionKey);
@@ -586,7 +648,13 @@ export default function App() {
   }, [handleOpenOrCreateTodayJournal, setPasteModalState]);
 
   return (
-    <div className={`relative w-screen h-screen overflow-hidden ${settings.themeMode === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
+    <div className={`relative w-screen h-screen overflow-hidden ${
+      settings.themeMode === 'dark'
+        ? 'bg-slate-950 text-slate-100'
+        : settings.themeMode === 'cork'
+        ? 'bg-[#b78a58] text-amber-950'
+        : 'bg-slate-100 text-slate-900'
+    }`}>
       {/* Zen Mode Exit Badge */}
       {isZenMode && (
         <button
@@ -619,6 +687,7 @@ export default function App() {
         onDeleteNote={handleDeleteProtectedNote}
         onBringToFront={bringToFront}
         onDoubleClickCanvas={handleCreateNote}
+        onDropImageFiles={(files, clientX, clientY) => handleAddImageFiles(files, clientX, clientY)}
         onRequestLockNote={(id) => {
           if (settings.masterPasswordHash) {
             const note = notes.find((n) => n.id === id);
@@ -747,6 +816,7 @@ export default function App() {
               canUndo={canUndo}
               canRedo={canRedo}
               onAddNote={() => handleCreateNote()}
+              onAddImageFiles={(files) => handleAddImageFiles(files)}
               onOpenTodayJournal={() => handleOpenOrCreateTodayJournal()}
               onOpenJournalCalendar={() => setIsJournalCalendarOpen(true)}
               onTogglePanMode={handleTogglePanMode}
@@ -756,6 +826,7 @@ export default function App() {
               onFitNotes={handleFitNotes}
               onChangeGridType={(gridType) => setSettings((prev) => ({ ...prev, gridType }))}
               onToggleTheme={handleToggleTheme}
+              onChangeThemeMode={(themeMode) => setSettings((prev) => ({ ...prev, themeMode }))}
               onToggleSnapToGrid={handleToggleSnapToGrid}
               onToggleConnections={handleToggleConnections}
               onUndo={handleUndo}
@@ -779,6 +850,25 @@ export default function App() {
           </div>
         </motion.div>
       )}
+
+      {/* Hidden File Input for Image Drag/Drop & Context Menu triggers */}
+      <input
+        type="file"
+        ref={globalImageInputRef}
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          const files = e.target.files;
+          if (files && files.length > 0) {
+            const imageFiles = Array.from(files).filter((f) => f.type.startsWith('image/'));
+            if (imageFiles.length > 0) {
+              handleAddImageFiles(imageFiles, imagePickerCoordRef.current?.x, imagePickerCoordRef.current?.y);
+            }
+            e.target.value = '';
+          }
+        }}
+      />
 
       {/* Sidebar Drawer */}
       <NotesSidebar
@@ -841,6 +931,8 @@ export default function App() {
         handleExportNote={handleExportNote}
         requestDeleteNotes={requestDeleteNotes}
         handleSaveAISettings={handleSaveAISettings}
+        onAddImageFiles={handleAddImageFiles}
+        onTriggerImagePicker={handleTriggerImagePicker}
         setNotes={setNotes}
       />
 

@@ -90,6 +90,8 @@ interface AppModalsProps {
   handleExportNote: (note: Note, format: 'md' | 'txt' | 'json') => void;
   requestDeleteNotes: (ids: string[]) => void;
   handleSaveAISettings: (newSettings: Partial<AppSettings>) => void;
+  onAddImageFiles?: (files: File[], customClientX?: number, customClientY?: number) => void;
+  onTriggerImagePicker?: (clientX?: number, clientY?: number) => void;
   setNotes?: React.Dispatch<React.SetStateAction<Note[]>>;
 }
 
@@ -142,6 +144,8 @@ export const AppModals: React.FC<AppModalsProps> = ({
   handleExportNote,
   requestDeleteNotes,
   handleSaveAISettings,
+  onAddImageFiles,
+  onTriggerImagePicker,
   setNotes: _setNotes,
 }) => {
   return (
@@ -371,6 +375,7 @@ export const AppModals: React.FC<AppModalsProps> = ({
           setPasteModalState({ isOpen: true, text: '' });
         }}
         onCreateNoteHere={() => handleCreateNote(contextMenuState.x, contextMenuState.y)}
+        onAddImageHere={() => onTriggerImagePicker?.(contextMenuState.x, contextMenuState.y)}
         onSelectAllNotes={() => setSelectedNoteIds(notes.map((n) => n.id))}
       />
 
@@ -394,6 +399,7 @@ export const AppModals: React.FC<AppModalsProps> = ({
         {/* Hidden Native Clipboard Paste Listener */}
         <HiddenClipboardListener
           onPasteText={(text) => setPasteModalState({ isOpen: true, text })}
+          onPasteImage={(file) => onAddImageFiles?.([file])}
         />
 
         {/* About Application Modal */}

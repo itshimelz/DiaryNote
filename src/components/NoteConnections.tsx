@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Note } from '../types';
+import { Note, CanvasTheme } from '../types';
 import { extractNoteConnections } from '../utils';
 import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../constants/canvas';
 
@@ -7,7 +7,7 @@ interface NoteConnectionsProps {
   notes: Note[];
   selectedNoteId: string | null;
   onSelectNote: (noteId: string) => void;
-  themeMode?: 'dark' | 'light' | 'gradient';
+  themeMode?: CanvasTheme;
   viewportBounds?: { minX: number; maxX: number; minY: number; maxY: number };
 }
 

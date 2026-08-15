@@ -13,11 +13,13 @@ import {
   Layers01Icon,
   PaintBoardIcon,
   Download04Icon,
+  Download01Icon,
   Copy01Icon,
   Delete02Icon,
   CheckmarkSquare02Icon,
   ClipboardIcon,
   Add01Icon,
+  Image01Icon,
 } from '@hugeicons/core-free-icons';
 import { Menu, MenuItem, MenuDivider, MenuGroupHeader, Badge } from './ui';
 
@@ -42,6 +44,7 @@ interface NoteContextMenuProps {
   onChangePaperTheme?: (ids: string[], theme: PaperTheme) => void;
   onPasteFromClipboard?: () => void;
   onCreateNoteHere?: () => void;
+  onAddImageHere?: () => void;
   onSelectAllNotes?: () => void;
 }
 
@@ -66,6 +69,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
   onChangePaperTheme,
   onPasteFromClipboard,
   onCreateNoteHere,
+  onAddImageHere,
   onSelectAllNotes,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -166,6 +170,14 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
               shortcut="Dbl-Click"
               onClick={() => {
                 onCreateNoteHere?.();
+                onClose();
+              }}
+            />
+            <MenuItem
+              icon={Image01Icon}
+              label="Add Image / Photo Here"
+              onClick={() => {
+                onAddImageHere?.();
                 onClose();
               }}
             />
@@ -298,6 +310,22 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
                 label="Export Markdown (.md)"
                 onClick={() => {
                   onExportNotes?.(selectedNoteIds, 'md');
+                  onClose();
+                }}
+              />
+            )}
+
+            {isSingle && singleNote?.imageUrl && (
+              <MenuItem
+                icon={Download01Icon}
+                label="Download Photo (.png)"
+                onClick={() => {
+                  const a = document.createElement('a');
+                  a.href = singleNote.imageUrl!;
+                  a.download = `${(singleNote.title || 'photo').replace(/[^a-z0-9]/gi, '_').toLowerCase()}.png`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
                   onClose();
                 }}
               />

@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { GridType, CanvasTheme, Note } from '../types';
 import {
   Add01Icon,
+  Image01Icon,
   Calendar03Icon,
   UndoIcon,
   RedoIcon,
@@ -29,6 +30,7 @@ interface CanvasControlsProps {
   enableAIServices?: boolean;
   onOpenAISettings?: () => void;
   onAddNote: () => void;
+  onAddImageFiles?: (files: File[]) => void;
   onOpenTodayJournal?: () => void;
   onOpenJournalCalendar?: () => void;
   onZoomIn: () => void;
@@ -37,6 +39,7 @@ interface CanvasControlsProps {
   onFitNotes: () => void;
   onChangeGridType: (grid: GridType) => void;
   onToggleTheme: () => void;
+  onChangeThemeMode?: (mode: CanvasTheme) => void;
   onToggleSnapToGrid: () => void;
   onToggleConnections: () => void;
   onOpenNotesList: () => void;
@@ -66,6 +69,7 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
   showConnections,
   hasBatchBar: _hasBatchBar,
   onAddNote,
+  onAddImageFiles,
   onOpenTodayJournal,
   onOpenJournalCalendar,
   onZoomIn,
@@ -74,6 +78,7 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
   onFitNotes,
   onChangeGridType,
   onToggleTheme,
+  onChangeThemeMode,
   onToggleSnapToGrid,
   onToggleConnections,
   onOpenNotesList,
@@ -96,6 +101,7 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
   onOpenAISettings,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -103,6 +109,17 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
     if (file) {
       setIsSettingsOpen(false);
       onImportBackup(file);
+      e.target.value = '';
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const imageFiles = Array.from(files).filter((f) => f.type.startsWith('image/'));
+      if (imageFiles.length > 0) {
+        onAddImageFiles?.(imageFiles);
+      }
       e.target.value = '';
     }
   };
@@ -116,6 +133,14 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
         ref={fileInputRef}
         onChange={handleFileChange}
         accept=".json"
+        className="hidden"
+      />
+      <input
+        type="file"
+        ref={imageInputRef}
+        onChange={handleImageChange}
+        accept="image/*"
+        multiple
         className="hidden"
       />
 
@@ -134,6 +159,22 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
           >
             New Note
           </Button>
+
+          {/* Add Image CTA */}
+          {onAddImageFiles && (
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={Image01Icon}
+              onClick={(e) => {
+                e.currentTarget.blur();
+                imageInputRef.current?.click();
+              }}
+              title="Add Image or Polaroid Card"
+            >
+              <span className="hidden sm:inline">Add Image</span>
+            </Button>
+          )}
 
           {/* Today's Journal CTA */}
           {onOpenTodayJournal && (
@@ -335,6 +376,7 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
         onClose={() => setIsSettingsOpen(false)}
         themeMode={themeMode}
         onToggleTheme={onToggleTheme}
+        onChangeThemeMode={onChangeThemeMode}
         gridType={gridType}
         onChangeGridType={onChangeGridType}
         snapToGrid={snapToGrid}

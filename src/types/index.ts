@@ -22,7 +22,20 @@ export type PaperTheme =
 
 export type GridType = 'dots' | 'grid' | 'ruled' | 'blank';
 
-export type CanvasTheme = 'dark' | 'light' | 'gradient';
+export type CanvasTheme = 'dark' | 'light' | 'gradient' | 'cork';
+
+export type FrameStyle = 'polaroid' | 'photo' | 'frameless' | 'standard';
+
+export type PinStyle = 
+  | 'none'
+  | 'pushpin-red'
+  | 'pushpin-blue'
+  | 'pushpin-yellow'
+  | 'pushpin-green'
+  | 'tape-teal'
+  | 'tape-pink'
+  | 'tape-beige'
+  | 'tape-yellow';
 
 export type JournalMood = 'happy' | 'calm' | 'focused' | 'reflective' | 'low';
 
@@ -55,6 +68,12 @@ export interface Note {
   entryDate?: string;
   isDailyEntry?: boolean;
   mood?: JournalMood;
+  imageUrl?: string;
+  imageType?: string;
+  imageAspectRatio?: number;
+  frameStyle?: FrameStyle;
+  pinStyle?: PinStyle;
+  rotation?: number;
 }
 
 export interface CanvasTransform {
