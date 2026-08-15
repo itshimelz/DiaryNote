@@ -2,6 +2,7 @@ export { InfiniteCanvas } from './InfiniteCanvas';
 export { CanvasControls } from './CanvasControls';
 export { NotesSidebar } from './NotesSidebar';
 export { NoteCard } from './NoteCard';
+export { ImageNoteCard } from './NoteCard/ImageNoteCard';
 export { MentionAutocomplete } from './MentionAutocomplete';
 export { BatchActionBar } from './BatchActionBar';
 export { NoteContextMenu } from './NoteContextMenu';

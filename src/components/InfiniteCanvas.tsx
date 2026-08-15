@@ -4,6 +4,7 @@ import { Icon } from './ui';
 import { Note, CanvasTransform, GridType, CanvasTheme } from '../types';
 import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../constants/canvas';
 import { NoteCard } from './NoteCard';
+import { ImageNoteCard } from './NoteCard/ImageNoteCard';
 import { NoteConnections } from './NoteConnections';
 import { GroupFrame } from './GroupFrame';
 
@@ -647,32 +648,59 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
         )}
 
         {/* Note Cards */}
-        {visibleNotes.map((note) => (
-          <NoteCard
-            key={note.id}
-            note={note}
-            allNotes={notes}
-            zoom={transform.zoom}
-            isSelected={selectedNoteId === note.id || selectedNoteIds.includes(note.id)}
-            selectedNoteIds={selectedNoteIds}
-            isFocused={focusedNoteId === note.id}
-            isCardDragging={draggingNoteIds.includes(note.id)}
-            onDragStateChange={handleDragStateChange}
-            shouldStartEditing={editingNoteId === note.id}
-            onSelectNote={handleSelectNoteStable}
-            onNavigateToNote={onNavigateToNote}
-            onUpdateNote={onUpdateNote}
-            onUpdateBatchNotes={onUpdateBatchNotes}
-            onDeleteNote={onDeleteNote}
-            onBringToFront={onBringToFront}
-            isPanMode={isPanMode || isSpacePressed}
-            snapToGrid={snapToGrid}
-            onRequestLockNote={onRequestLockNote}
-            onRequestUnlockNote={onRequestUnlockNote}
-            onExportNote={onExportNote}
-            onContextMenu={onContextMenuNote}
-          />
-        ))}
+        {visibleNotes.map((note) =>
+          note.imageUrl ? (
+            <ImageNoteCard
+              key={note.id}
+              note={note}
+              allNotes={notes}
+              zoom={transform.zoom}
+              isSelected={selectedNoteId === note.id || selectedNoteIds.includes(note.id)}
+              selectedNoteIds={selectedNoteIds}
+              isFocused={focusedNoteId === note.id}
+              isCardDragging={draggingNoteIds.includes(note.id)}
+              onDragStateChange={handleDragStateChange}
+              shouldStartEditing={editingNoteId === note.id}
+              onSelectNote={handleSelectNoteStable}
+              onNavigateToNote={onNavigateToNote}
+              onUpdateNote={onUpdateNote}
+              onUpdateBatchNotes={onUpdateBatchNotes}
+              onDeleteNote={onDeleteNote}
+              onBringToFront={onBringToFront}
+              isPanMode={isPanMode || isSpacePressed}
+              snapToGrid={snapToGrid}
+              onRequestLockNote={onRequestLockNote}
+              onRequestUnlockNote={onRequestUnlockNote}
+              onExportNote={onExportNote}
+              onContextMenu={onContextMenuNote}
+            />
+          ) : (
+            <NoteCard
+              key={note.id}
+              note={note}
+              allNotes={notes}
+              zoom={transform.zoom}
+              isSelected={selectedNoteId === note.id || selectedNoteIds.includes(note.id)}
+              selectedNoteIds={selectedNoteIds}
+              isFocused={focusedNoteId === note.id}
+              isCardDragging={draggingNoteIds.includes(note.id)}
+              onDragStateChange={handleDragStateChange}
+              shouldStartEditing={editingNoteId === note.id}
+              onSelectNote={handleSelectNoteStable}
+              onNavigateToNote={onNavigateToNote}
+              onUpdateNote={onUpdateNote}
+              onUpdateBatchNotes={onUpdateBatchNotes}
+              onDeleteNote={onDeleteNote}
+              onBringToFront={onBringToFront}
+              isPanMode={isPanMode || isSpacePressed}
+              snapToGrid={snapToGrid}
+              onRequestLockNote={onRequestLockNote}
+              onRequestUnlockNote={onRequestUnlockNote}
+              onExportNote={onExportNote}
+              onContextMenu={onContextMenuNote}
+            />
+          )
+        )}
       </div>
 
       {/* Selection Box overlay */}
@@ -739,7 +767,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
       {/* Drag & Drop Visual Indicator Overlay */}
       {isDragOverCanvas && (
         <div className="absolute inset-4 z-50 pointer-events-none rounded-lg border-2 border-dashed border-blue-500/80 bg-blue-500/10 backdrop-blur-xs flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 gap-2 animate-in fade-in zoom-in-95 duration-150 select-none">
-          <div className="p-3.5 rounded-full bg-blue-500 text-white shadow-lg">
+          <div className="p-3.5 rounded-full bg-blue-500 text-white shadow-sm">
             <Icon icon={Image01Icon} size="xl" />
           </div>
           <span className="font-semibold text-sm tracking-wide bg-white/95 dark:bg-slate-900/95 px-3 py-1 rounded-sm shadow-sm">

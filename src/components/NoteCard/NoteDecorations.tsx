@@ -39,7 +39,7 @@ export const NoteDecorations: React.FC<NoteDecorationsProps> = ({ pinStyle = 'no
 
     return (
       <div
-        className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-30 pointer-events-none select-none transition-transform hover:scale-105"
+        className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-30 pointer-events-none select-none"
         title="Pinned"
       >
         <svg
@@ -48,7 +48,7 @@ export const NoteDecorations: React.FC<NoteDecorationsProps> = ({ pinStyle = 'no
           viewBox="0 0 28 32"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="drop-shadow-md"
+          className="drop-shadow-xs"
         >
           {/* Cast shadow under pin */}
           <ellipse cx="14" cy="28" rx="7" ry="2.5" fill="rgba(0,0,0,0.3)" />

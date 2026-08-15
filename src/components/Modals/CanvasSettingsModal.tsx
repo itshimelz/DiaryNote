@@ -11,6 +11,7 @@ import {
   Upload04Icon,
   Download04Icon,
   KeyboardIcon,
+  PinIcon,
 } from '@hugeicons/core-free-icons';
 import { CanvasTheme, GridType, Note } from '../../types';
 import { CURRENT_VERSION } from '../../utils/updateChecker';
@@ -301,7 +302,7 @@ export const CanvasSettingsModal: React.FC<CanvasSettingsModalProps> = ({
                           : 'bg-[#faf6ee] dark:bg-slate-800/80 border-amber-200 dark:border-slate-700 text-amber-900 dark:text-amber-200 hover:border-amber-400'
                       }`}
                     >
-                      <span className="text-sm">📌</span>
+                      <Icon icon={PinIcon} size="xs" />
                       <span>Cork Board</span>
                     </button>
                     <button

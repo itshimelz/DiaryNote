@@ -76,7 +76,7 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
       <DialogBody className="p-0">
         <div className="relative flex flex-col items-center justify-center min-h-[400px] max-h-[75vh] bg-slate-950/90 rounded-b-sm overflow-hidden select-none">
           {/* Floating Controls Toolbar */}
-          <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5 p-1 bg-slate-900/80 backdrop-blur-md rounded-sm border border-slate-700/80 text-white shadow-md">
+          <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5 p-1 bg-slate-900/80 backdrop-blur-md rounded-sm border border-slate-700/80 text-white shadow-sm">
             <IconButton
               icon={ZoomInAreaIcon}
               size="sm"
@@ -142,7 +142,7 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
                 transform: `scale(${scale}) rotate(${rotation}deg)`,
                 transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
               }}
-              className="max-w-full max-h-[62vh] object-contain rounded-xs shadow-2xl"
+              className="max-w-full max-h-[62vh] object-contain rounded-xs shadow-sm"
             />
           </div>
 

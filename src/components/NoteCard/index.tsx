@@ -8,7 +8,6 @@ import { NoteChecklist } from './NoteChecklist';
 import { NoteMarkdownView } from './NoteMarkdownView';
 import { NoteStylePicker } from './NoteStylePicker';
 import { NoteDecorations } from './NoteDecorations';
-import { NoteImageView } from './NoteImageView';
 import { MentionAutocomplete } from '../MentionAutocomplete';
 import { SlashCommandMenu, SlashCommand, SLASH_COMMANDS } from './SlashCommandMenu';
 import { getUniqueTitleForDay, normalizeNoteText, resizeNoteEditor, applyMarkdownFormatting, handleSmartEnterList, sendNativeAppNotification, FormattingType, getTextareaCursorCoordinates } from '../../utils';
@@ -398,10 +397,6 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         ...(isRuled && ruledLineHeight ? ({ '--ruled-line-height': ruledLineHeight } as React.CSSProperties) : {}),
       }}
       className={`note-card absolute top-0 left-0 rounded-sm flex flex-col justify-between shadow-sm overflow-visible ${
-        note.imageUrl && (note.frameStyle === 'polaroid' || !note.frameStyle) ? 'polaroid-frame' : ''
-      } ${
-        note.imageUrl && note.frameStyle === 'photo' ? 'photo-frame' : ''
-      } ${
         isPanMode
           ? 'cursor-grab active:cursor-grabbing pointer-events-none'
           : isDragging || isCardDragging || isResizing
@@ -523,14 +518,6 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
               Unlock Note
             </button>
           </div>
-        ) : note.imageUrl && (note.frameStyle === 'polaroid' || note.frameStyle === 'photo' || note.frameStyle === 'frameless' || !note.frameStyle) ? (
-          /* Dedicated Image / Polaroid View */
-          <NoteImageView
-            note={note}
-            isEditing={isEditing}
-            onUpdateNote={onUpdateNote}
-            fontClass={fontClass}
-          />
         ) : activeMode === 'checklist' ? (
           <NoteChecklist
             content={note.content}

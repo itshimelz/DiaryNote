@@ -335,7 +335,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                     <div
                       onMouseDown={(e) => e.stopPropagation()}
                       onClick={(e) => e.stopPropagation()}
-                      className="absolute top-9 right-0 z-50 flex items-center gap-1 p-1.5 rounded-sm border shadow-xl animate-in fade-in zoom-in-95 duration-100 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100"
+                      className="absolute top-9 right-0 z-50 flex items-center gap-1 p-1.5 rounded-sm border shadow-sm animate-in fade-in zoom-in-95 duration-100 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100"
                     >
                       <button
                         type="button"
