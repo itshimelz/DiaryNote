@@ -42,7 +42,9 @@ interface InfiniteCanvasProps {
 
 /**
  * 2D HTML5 Canvas Minimap component.
- * Renders all notes and active viewport box in a single GPU draw call with 0 extra DOM elements.
+ * Decoupled into two hardware-composited canvas layers:
+ * 1. Background notes layer: cached and redrawn only when notes/theme change.
+ * 2. Foreground viewport layer: draws active viewport rectangle in O(1) time on pan/zoom.
  */
 const MinimapCanvas: React.FC<{
   notes: Note[];
@@ -65,10 +67,12 @@ const MinimapCanvas: React.FC<{
   selectedNoteId,
   themeMode = 'dark',
 }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const bgCanvasRef = useRef<HTMLCanvasElement>(null);
+  const fgCanvasRef = useRef<HTMLCanvasElement>(null);
 
+  // Pass 1: Draw background notes layer only when notes, spatial bounds, selection, or canvas theme changes
   useEffect(() => {
-    const canvas = canvasRef.current;
+    const canvas = bgCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -84,19 +88,28 @@ const MinimapCanvas: React.FC<{
       : 'rgba(100, 116, 139, 0.75)';
     const selectedFill = isCork ? '#d97706' : '#3b82f6';
 
-    // Draw all notes in a single batch
     for (let i = 0; i < notes.length; i++) {
       const n = notes[i];
       const mx = (n.x - minX) * minimapScale;
       const my = (n.y - minY) * minimapScale;
-      const mw = Math.max(3, (n.width || 340) * minimapScale);
-      const mh = Math.max(3, (n.height || 300) * minimapScale);
+      const mw = Math.max(3, (n.width || DEFAULT_NOTE_WIDTH) * minimapScale);
+      const mh = Math.max(3, (n.height || DEFAULT_NOTE_HEIGHT) * minimapScale);
 
       ctx.fillStyle = n.id === selectedNoteId ? selectedFill : noteFill;
       ctx.fillRect(mx, my, mw, mh);
     }
+  }, [notes, minX, minY, minimapScale, selectedNoteId, themeMode]);
 
-    // Draw active viewport box
+  // Pass 2: Draw foreground active viewport box on pan/zoom (O(1) operation, 0 note iterations)
+  useEffect(() => {
+    const canvas = fgCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const isCork = themeMode === 'cork';
     const vpX = (-transform.x / transform.zoom - minX) * minimapScale;
     const vpY = (-transform.y / transform.zoom - minY) * minimapScale;
     const vpW = (viewportWidth / transform.zoom) * minimapScale;
@@ -107,15 +120,23 @@ const MinimapCanvas: React.FC<{
     ctx.strokeStyle = isCork ? '#d97706' : '#3b82f6';
     ctx.lineWidth = 1.5;
     ctx.strokeRect(vpX, vpY, vpW, vpH);
-  }, [notes, transform, minX, minY, minimapScale, viewportWidth, viewportHeight, selectedNoteId, themeMode]);
+  }, [transform, minX, minY, minimapScale, viewportWidth, viewportHeight, themeMode]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={170}
-      height={110}
-      className="w-full h-full pointer-events-none rounded-xs"
-    />
+    <div className="relative w-full h-full">
+      <canvas
+        ref={bgCanvasRef}
+        width={170}
+        height={110}
+        className="absolute inset-0 w-full h-full pointer-events-none rounded-xs"
+      />
+      <canvas
+        ref={fgCanvasRef}
+        width={170}
+        height={110}
+        className="absolute inset-0 w-full h-full pointer-events-none rounded-xs"
+      />
+    </div>
   );
 };
 
@@ -444,22 +465,38 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
     e.preventDefault();
     setIsPanning(true);
     panStartRef.current = { x: e.clientX, y: e.clientY, transformX: transform.x, transformY: transform.y };
-    let nextPosition = { x: transform.x, y: transform.y };
+    
+    let panFrame: number | null = null;
+    let pendingTransform: CanvasTransform | null = null;
+
     const handleMouseMove = (moveEvt: MouseEvent) => {
       const dx = moveEvt.clientX - panStartRef.current.x;
       const dy = moveEvt.clientY - panStartRef.current.y;
-      nextPosition = {
+      pendingTransform = {
+        ...transform,
         x: Math.round(panStartRef.current.transformX + dx),
         y: Math.round(panStartRef.current.transformY + dy),
       };
-      onTransformChange({
-        ...transform,
-        x: nextPosition.x,
-        y: nextPosition.y,
-      });
+
+      if (panFrame === null) {
+        panFrame = requestAnimationFrame(() => {
+          if (pendingTransform) {
+            onTransformChange(pendingTransform);
+          }
+          panFrame = null;
+        });
+      }
     };
 
     const handleMouseUp = () => {
+      if (panFrame !== null) {
+        cancelAnimationFrame(panFrame);
+        panFrame = null;
+      }
+      if (pendingTransform) {
+        onTransformChange(pendingTransform);
+        pendingTransform = null;
+      }
       setIsPanning(false);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);

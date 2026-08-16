@@ -17,6 +17,7 @@ import { Icon, Menu, MenuItem, MenuDivider } from '../ui';
 import { Note, JournalMood } from '../../types';
 import { getUniqueTitleForDay, sendNativeAppNotification } from '../../utils';
 import { isNoteAuthorized } from '../../services/authPolicyService';
+import { DEFAULT_NOTE_WIDTH } from '../../constants/canvas';
 import { PaperThemeConfig } from './types';
 
 interface NoteHeaderProps {
@@ -52,23 +53,10 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
   const [isCopied, setIsCopied] = useState(false);
   const [isMoodPickerOpen, setIsMoodPickerOpen] = useState(false);
   const [isOverflowMenuOpen, setIsOverflowMenuOpen] = useState(false);
-  const [isCompact, setIsCompact] = useState(false);
-  const headerRef = useRef<HTMLDivElement>(null);
+  const isCompact = (note.width || DEFAULT_NOTE_WIDTH) < 285;
   const moodRef = useRef<HTMLDivElement>(null);
   const overflowRef = useRef<HTMLDivElement>(null);
   const skipBlurSaveRef = useRef(false);
-
-  useEffect(() => {
-    const el = headerRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setIsCompact(entry.contentRect.width < 280);
-      }
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     setTitle(note.title || 'Untitled Note');
@@ -172,7 +160,6 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
 
   return (
     <div
-      ref={headerRef}
       {...headerDragProps}
       className={`relative px-3.5 py-2.5 border-b ${divider} ${headerBg} backdrop-blur-xs select-none rounded-t-sm`}
     >
