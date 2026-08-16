@@ -197,6 +197,7 @@ export const AppModals: React.FC<AppModalsProps> = ({
         <DeleteConfirmationModal
           isOpen={isDeleteModalOpen}
           count={notesToDelete.length}
+          noteTitles={notes.filter((n) => notesToDelete.includes(n.id)).map((n) => n.title || 'Untitled Note')}
           themeMode={settings.themeMode}
           onConfirm={handleConfirmDelete}
           onClose={() => setIsDeleteModalOpen(false)}

@@ -148,7 +148,7 @@ describe('useNoteSelection Hook & Shortcuts', () => {
     expect(onPasteRelocateNotes).toHaveBeenCalledTimes(1);
   });
 
-  it('triggers onCancelCutNotes and clears selection on Escape', () => {
+  it('triggers onCancelCutNotes and clears selection on Escape when hasCutNotes is true', () => {
     const handleUndo = vi.fn();
     const handleRedo = vi.fn();
     const requestDeleteNotes = vi.fn();
@@ -180,7 +180,8 @@ describe('useNoteSelection Hook & Shortcuts', () => {
         undefined,
         onCutNotes,
         onPasteRelocateNotes,
-        onCancelCutNotes
+        onCancelCutNotes,
+        true
       )
     );
 
@@ -198,6 +199,60 @@ describe('useNoteSelection Hook & Shortcuts', () => {
     });
 
     expect(onCancelCutNotes).toHaveBeenCalledTimes(1);
+    expect(result.current.selectedNoteIds).toEqual([]);
+  });
+
+  it('does not trigger onCancelCutNotes on Escape when hasCutNotes is false', () => {
+    const handleUndo = vi.fn();
+    const handleRedo = vi.fn();
+    const requestDeleteNotes = vi.fn();
+    const setIsSearchOpen = vi.fn();
+    const onCutNotes = vi.fn();
+    const onPasteRelocateNotes = vi.fn();
+    const onCancelCutNotes = vi.fn();
+
+    const { result } = renderHook(() =>
+      useNoteSelection(
+        dummyNotes,
+        handleUndo,
+        handleRedo,
+        requestDeleteNotes,
+        setIsSearchOpen,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        onCutNotes,
+        onPasteRelocateNotes,
+        onCancelCutNotes,
+        false
+      )
+    );
+
+    act(() => {
+      result.current.handleSelectNote('note-1');
+    });
+    expect(result.current.selectedNoteIds).toEqual(['note-1']);
+
+    act(() => {
+      const event = new KeyboardEvent('keydown', {
+        key: 'Escape',
+        bubbles: true,
+      });
+      window.dispatchEvent(event);
+    });
+
+    expect(onCancelCutNotes).not.toHaveBeenCalled();
     expect(result.current.selectedNoteIds).toEqual([]);
   });
 });

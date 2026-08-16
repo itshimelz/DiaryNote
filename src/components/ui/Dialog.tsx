@@ -77,15 +77,34 @@ export const Dialog: React.FC<DialogProps> = ({
       ref={dialogRef}
       className={`fixed inset-0 m-auto p-0 bg-transparent backdrop:bg-black/60 backdrop:backdrop-blur-xs z-50 overflow-visible focus:outline-none ${maxWidthClass} w-full`}
       onClick={(e) => {
+        e.stopPropagation();
         // Close when clicking directly on the backdrop outside the dialog box
         if (e.target === dialogRef.current) {
           onClose();
         }
       }}
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseUp={(e) => e.stopPropagation()}
+      onMouseMove={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => e.stopPropagation()}
+      onWheel={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerMove={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
+      onContextMenu={(e) => e.stopPropagation()}
     >
       <div
         className={`w-full ${RADIUS.sm} shadow-sm border p-6 sm:p-7 flex flex-col gap-4.5 animate-in fade-in zoom-in-95 duration-150 select-none bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 ${className}`}
         onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
+        onMouseMove={(e) => e.stopPropagation()}
+        onDoubleClick={(e) => e.stopPropagation()}
+        onWheel={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+        onPointerMove={(e) => e.stopPropagation()}
+        onPointerUp={(e) => e.stopPropagation()}
+        onContextMenu={(e) => e.stopPropagation()}
       >
         {children}
       </div>

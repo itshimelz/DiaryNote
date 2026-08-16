@@ -152,9 +152,11 @@ export function useNoteSelection(
             target.tagName === 'TEXTAREA' ||
             target.isContentEditable));
 
-      // Universal Escape handler: cancels cut state, closes editing, blurs focused inputs, and clears selection
+      // Universal Escape handler: cancels cut state (if active), closes editing, blurs focused inputs, and clears selection
       if (e.key === 'Escape') {
-        onCancelCutNotesRef.current?.();
+        if (hasCutNotesRef.current) {
+          onCancelCutNotesRef.current?.();
+        }
         if (curSelectedNoteIds.length > 0 || isEditingText) {
           e.preventDefault();
           setSelectedNoteIds([]);

@@ -354,6 +354,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0 && e.button !== 1) return;
     const target = e.target as HTMLElement;
+    if (target.closest('dialog') || target.closest('[role="dialog"]') || target.closest('.modal-portal')) return;
 
     const shouldPan = e.button === 1 || isSpacePressed || isPanMode;
     if (document.activeElement && 'blur' in document.activeElement) {
@@ -514,7 +515,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (!containerRef.current) return;
     const target = e.target as HTMLElement;
-    if (target.closest('.note-card')) return;
+    if (target.closest('.note-card') || target.closest('dialog') || target.closest('[role="dialog"]') || target.closest('.modal-portal')) return;
     onDoubleClickCanvas(e.clientX, e.clientY);
   };
 

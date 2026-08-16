@@ -97,7 +97,7 @@ export default function App() {
     handleCreateOrFocusDailyEntry,
     handleUpdateNote,
     handleUpdateBatchNotes,
-    handleDeleteNote,
+    handleDeleteNote: _handleDeleteNote,
     handleDeleteMultipleNotes,
     handleRestoreNotes,
     bringToFront,
@@ -391,8 +391,10 @@ export default function App() {
   }, [notes, transform, handleUpdateBatchNotes]);
 
   const handleCancelCutNotes = useCallback(() => {
-    setCutNoteIds([]);
-    sendNativeAppNotification('Cut Cancelled', 'Note relocation cancelled.');
+    if (cutNoteIdsRef.current.length > 0) {
+      setCutNoteIds([]);
+      sendNativeAppNotification('Cut Cancelled', 'Note relocation cancelled.');
+    }
   }, []);
 
   // 4. Note Selection & Keyboard Shortcuts Hook
@@ -678,21 +680,9 @@ export default function App() {
 
   const handleDeleteProtectedNote = useCallback(
     (noteId: string) => {
-      const target = notes.find((n) => n.id === noteId);
-      if (target?.isLocked) {
-        setSecurityModalNoteId(noteId);
-        setSecurityModalMode('unlock');
-        setNotesToDelete([noteId]);
-      } else {
-        handleDeleteNote(noteId);
-        setSelectedNoteIds((prev) => prev.filter((id) => id !== noteId));
-        sendNativeAppNotification(
-          'Note Deleted',
-          `Deleted note "${target?.title || 'Untitled Note'}"`
-        );
-      }
+      requestDeleteNotes([noteId]);
     },
-    [notes, handleDeleteNote, setSelectedNoteIds, setSecurityModalNoteId, setSecurityModalMode, setNotesToDelete]
+    [requestDeleteNotes]
   );
 
   const handleCreateNote = useCallback(
