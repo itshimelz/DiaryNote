@@ -1,0 +1,18 @@
+<svg width="270" height="44" viewBox="-2 -2 274 48" xmlns="http://www.w3.org/2000/svg">
+<title>Coral washi tape with hearts and horizontal lines</title>
+<defs>
+<path id="dk" d="M7,0 L0,7 L7,15 L0,22 L7,29 L0,37 L7,44 L263,44 L270,37 L263,29 L270,22 L263,15 L270,7 L263,0 Z"/>
+<clipPath id="dkc"><use href="#dk"/></clipPath>
+</defs>
+<g clip-path="url(#dkc)">
+<rect width="270" height="44" fill="#F3A79C"/>
+<line x1="-10" y1="14" x2="280" y2="14" stroke="#fff" stroke-width="1" opacity="0.5"/>
+<line x1="-10" y1="30" x2="280" y2="30" stroke="#fff" stroke-width="1" opacity="0.5"/>
+<path d="M25,25 C24,22 21,21 21,19 C21,17 23,16 25,18 C27,16 29,17 29,19 C29,21 26,22 25,25 Z" fill="#fff" opacity="0.65"/>
+<path d="M75,25 C74,22 71,21 71,19 C71,17 73,16 75,18 C77,16 79,17 79,19 C79,21 76,22 75,25 Z" fill="#fff" opacity="0.65"/>
+<path d="M125,25 C124,22 121,21 121,19 C121,17 123,16 125,18 C127,16 129,17 129,19 C129,21 126,22 125,25 Z" fill="#fff" opacity="0.65"/>
+<path d="M175,25 C174,22 171,21 171,19 C171,17 173,16 175,18 C177,16 179,17 179,19 C179,21 176,22 175,25 Z" fill="#fff" opacity="0.65"/>
+<path d="M225,25 C224,22 221,21 221,19 C221,17 223,16 225,18 C227,16 229,17 229,19 C229,21 226,22 225,25 Z" fill="#fff" opacity="0.65"/>
+</g>
+<use href="#dk" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+</svg>

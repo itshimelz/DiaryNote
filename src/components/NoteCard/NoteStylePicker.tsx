@@ -8,6 +8,12 @@ import {
 } from '@hugeicons/core-free-icons';
 import { Icon, IconButton, Select, SegmentedControl } from '../ui';
 
+import {
+  WASHI_TAPES,
+  PUSHPIN_OPTIONS,
+  getWashiTapeById,
+} from '../../constants/washiTapes';
+
 interface NoteStylePickerProps {
   note: Note;
   themeConfig?: PaperThemeConfig;
@@ -37,25 +43,46 @@ const PAPER_THEME_LABELS: Record<PaperTheme, string> = {
   transparent: 'Transparent',
 };
 
-const TAPE_STYLE_OPTIONS: { value: PinStyle; label: string; renderIcon: () => React.ReactNode }[] = [
-  { value: 'none', label: 'None', renderIcon: () => <span className="text-slate-400 text-xs">∅</span> },
-  { value: 'tape-teal', label: 'Teal Tape', renderIcon: () => <span className="w-3.5 h-2 rounded-xs bg-teal-400/80 border border-teal-500/50 inline-block" /> },
-  { value: 'tape-pink', label: 'Pink Tape', renderIcon: () => <span className="w-3.5 h-2 rounded-xs bg-pink-400/80 border border-pink-500/50 inline-block" /> },
-  { value: 'tape-beige', label: 'Beige Tape', renderIcon: () => <span className="w-3.5 h-2 rounded-xs bg-[#d6c4a8] border border-[#b8a486]/50 inline-block" /> },
-  { value: 'tape-yellow', label: 'Yellow Tape', renderIcon: () => <span className="w-3.5 h-2 rounded-xs bg-amber-300/80 border border-amber-400/50 inline-block" /> },
-];
+interface DecorationOption {
+  value: PinStyle;
+  label: string;
+  shortLabel: string;
+  renderIcon: () => React.ReactNode;
+}
 
-const ALL_PIN_STYLE_OPTIONS: { value: PinStyle; label: string; renderIcon: () => React.ReactNode }[] = [
-  { value: 'none', label: 'None', renderIcon: () => <span className="text-slate-400 text-xs">∅</span> },
-  { value: 'pushpin-red', label: 'Red Pin', renderIcon: () => <span className="w-2.5 h-2.5 rounded-full bg-red-500 ring-1 ring-red-600/50 shadow-xs inline-block" /> },
-  { value: 'pushpin-blue', label: 'Blue Pin', renderIcon: () => <span className="w-2.5 h-2.5 rounded-full bg-blue-500 ring-1 ring-blue-600/50 shadow-xs inline-block" /> },
-  { value: 'pushpin-yellow', label: 'Yellow Pin', renderIcon: () => <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 ring-1 ring-yellow-500/50 shadow-xs inline-block" /> },
-  { value: 'pushpin-green', label: 'Green Pin', renderIcon: () => <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-1 ring-emerald-600/50 shadow-xs inline-block" /> },
-  { value: 'tape-teal', label: 'Teal Tape', renderIcon: () => <span className="w-3.5 h-2 rounded-xs bg-teal-400/80 border border-teal-500/50 inline-block" /> },
-  { value: 'tape-pink', label: 'Pink Tape', renderIcon: () => <span className="w-3.5 h-2 rounded-xs bg-pink-400/80 border border-pink-500/50 inline-block" /> },
-  { value: 'tape-beige', label: 'Beige Tape', renderIcon: () => <span className="w-3.5 h-2 rounded-xs bg-[#d6c4a8] border border-[#b8a486]/50 inline-block" /> },
-  { value: 'tape-yellow', label: 'Yellow Tape', renderIcon: () => <span className="w-3.5 h-2 rounded-xs bg-amber-300/80 border border-amber-400/50 inline-block" /> },
-];
+const NONE_OPTION: DecorationOption = {
+  value: 'none',
+  label: 'None',
+  shortLabel: 'None',
+  renderIcon: () => <span className="text-slate-400 text-xs">∅</span>,
+};
+
+const TAPE_OPTIONS: DecorationOption[] = WASHI_TAPES.map((tape) => ({
+  value: tape.id,
+  label: tape.label,
+  shortLabel: tape.shortLabel,
+  renderIcon: () => (
+    <span
+      className="w-3.5 h-2 rounded-xs border border-black/15 dark:border-white/20 inline-block shrink-0 shadow-2xs"
+      style={{ backgroundColor: tape.color }}
+    />
+  ),
+}));
+
+const PIN_OPTIONS: DecorationOption[] = PUSHPIN_OPTIONS.map((pin) => ({
+  value: pin.id,
+  label: pin.label,
+  shortLabel: pin.shortLabel,
+  renderIcon: () => (
+    <span
+      className="w-2.5 h-2.5 rounded-full ring-1 ring-black/20 dark:ring-white/20 shadow-xs inline-block shrink-0"
+      style={{ backgroundColor: pin.color }}
+    />
+  ),
+}));
+
+const TAPE_STYLE_OPTIONS: DecorationOption[] = [NONE_OPTION, ...TAPE_OPTIONS];
+const ALL_PIN_STYLE_OPTIONS: DecorationOption[] = [NONE_OPTION, ...PIN_OPTIONS, ...TAPE_OPTIONS];
 
 export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
   note,
@@ -138,9 +165,11 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
         <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           {isImageCard ? 'Pin & Tape Decoration' : 'Washi Tape Decoration'}
         </span>
-        <div className={`grid ${isImageCard ? 'grid-cols-3 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-5'} gap-1.5`}>
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
           {decorationOptions.map((pin) => {
-            const isSelected = (note.pinStyle || 'none') === pin.value;
+            const isSelected =
+              (note.pinStyle || 'none') === pin.value ||
+              (Boolean(note.pinStyle) && getWashiTapeById(note.pinStyle)?.id === pin.value);
             return (
               <button
                 key={pin.value}
@@ -160,7 +189,7 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
                 title={pin.label}
               >
                 {pin.renderIcon()}
-                <span className="truncate text-[10px]">{pin.label.replace(' Pin', '').replace(' Tape', '')}</span>
+                <span className="truncate text-[10px]">{pin.shortLabel}</span>
               </button>
             );
           })}

@@ -371,7 +371,7 @@ const StatusBarComponent: React.FC<StatusBarProps> = ({
 
         {/* Reserved Width Jitter-Free Save State Indicator */}
         <div
-          className="flex items-center justify-end w-32 min-w-[128px] shrink-0"
+          className="flex items-center justify-end w-36 min-w-[144px] shrink-0"
           title={
             saveError
               ? `Save error: ${saveError}`
@@ -385,12 +385,12 @@ const StatusBarComponent: React.FC<StatusBarProps> = ({
               Save Error
             </Badge>
           ) : isSaving ? (
-            <span className="inline-flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400">
+            <span className="inline-flex items-center gap-1.5 font-medium text-xs text-slate-500 dark:text-slate-400">
               <Icon icon={Loading03Icon} size="xs" className="animate-spin shrink-0" />
               <span>Saving...</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400">
+            <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
               <Icon icon={CheckmarkCircle02Icon} size="xs" className="shrink-0" />
               <span>Saved · {workspaceStats.latestUpdatedTimeAgo}</span>
             </span>

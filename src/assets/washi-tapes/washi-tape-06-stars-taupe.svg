@@ -1,0 +1,18 @@
+<svg width="270" height="44" viewBox="-2 -2 274 48" xmlns="http://www.w3.org/2000/svg">
+<title>Taupe washi tape with stars and a wavy line</title>
+<defs>
+<path id="dk" d="M7,0 L0,7 L7,15 L0,22 L7,29 L0,37 L7,44 L263,44 L270,37 L263,29 L270,22 L263,15 L270,7 L263,0 Z"/>
+<clipPath id="dkc"><use href="#dk"/></clipPath>
+</defs>
+<g clip-path="url(#dkc)">
+<rect width="270" height="44" fill="#A39C93"/>
+<path d="M-10,22 Q5,16 20,22 T50,22 T80,22 T110,22 T140,22 T170,22 T200,22 T230,22 T260,22 T290,22" stroke="#fff" stroke-width="1" fill="none" opacity="0.4"/>
+<path d="M25,8 L26.5,12.5 L31,14 L26.5,15.5 L25,20 L23.5,15.5 L19,14 L23.5,12.5 Z" fill="#fff" opacity="0.6"/>
+<path d="M70,24 L71.5,28.5 L76,30 L71.5,31.5 L70,36 L68.5,31.5 L64,30 L68.5,28.5 Z" fill="#fff" opacity="0.6"/>
+<path d="M115,8 L116.5,12.5 L121,14 L116.5,15.5 L115,20 L113.5,15.5 L109,14 L113.5,12.5 Z" fill="#fff" opacity="0.6"/>
+<path d="M160,24 L161.5,28.5 L166,30 L161.5,31.5 L160,36 L158.5,31.5 L154,30 L158.5,28.5 Z" fill="#fff" opacity="0.6"/>
+<path d="M205,8 L206.5,12.5 L211,14 L206.5,15.5 L205,20 L203.5,15.5 L199,14 L203.5,12.5 Z" fill="#fff" opacity="0.6"/>
+<path d="M250,24 L251.5,28.5 L256,30 L251.5,31.5 L250,36 L248.5,31.5 L244,30 L248.5,28.5 Z" fill="#fff" opacity="0.6"/>
+</g>
+<use href="#dk" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+</svg>

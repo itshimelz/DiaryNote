@@ -42,6 +42,14 @@ describe('NoteDecorations component', () => {
 
     const { container: yellow } = render(<NoteDecorations pinStyle="tape-yellow" />);
     expect(yellow.querySelector('[title="Taped"]')).toBeTruthy();
+
+    const { container: hearts } = render(<NoteDecorations pinStyle="tape-01-hearts-coral" />);
+    expect(hearts.querySelector('[title="Taped"]')).toBeTruthy();
+    expect(hearts.querySelector('img')).toBeTruthy();
+
+    const { container: glossy } = render(<NoteDecorations pinStyle="tape-15-glossy-tan" />);
+    expect(glossy.querySelector('[title="Taped"]')).toBeTruthy();
+    expect(glossy.querySelector('img')).toBeTruthy();
   });
 
   it('respects allowedTypes="tape-only" by suppressing pushpins and rendering tape', () => {

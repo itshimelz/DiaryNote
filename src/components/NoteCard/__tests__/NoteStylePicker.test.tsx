@@ -42,10 +42,14 @@ describe('NoteStylePicker component', () => {
     );
 
     expect(screen.getByText('Washi Tape Decoration')).toBeTruthy();
-    expect(screen.getByTitle('Teal Tape')).toBeTruthy();
-    expect(screen.getByTitle('Pink Tape')).toBeTruthy();
-    expect(screen.getByTitle('Beige Tape')).toBeTruthy();
-    expect(screen.getByTitle('Yellow Tape')).toBeTruthy();
+    expect(screen.getByTitle('Classic Teal')).toBeTruthy();
+    expect(screen.getByTitle('Classic Pink')).toBeTruthy();
+    expect(screen.getByTitle('Classic Beige')).toBeTruthy();
+    expect(screen.getByTitle('Coral Hearts')).toBeTruthy();
+    expect(screen.getByTitle('Pink Waves')).toBeTruthy();
+    expect(screen.getByTitle('Peach Gingham')).toBeTruthy();
+    expect(screen.getByTitle('Teal Waves')).toBeTruthy();
+    expect(screen.getByTitle('Glossy Tan')).toBeTruthy();
 
     // Must NOT contain pushpins
     expect(screen.queryByTitle('Red Pin')).toBeNull();
@@ -81,7 +85,8 @@ describe('NoteStylePicker component', () => {
     expect(screen.getByText('Pin & Tape Decoration')).toBeTruthy();
     expect(screen.getByTitle('Red Pin')).toBeTruthy();
     expect(screen.getByTitle('Blue Pin')).toBeTruthy();
-    expect(screen.getByTitle('Teal Tape')).toBeTruthy();
+    expect(screen.getByTitle('Coral Hearts')).toBeTruthy();
+    expect(screen.getByTitle('Teal Waves')).toBeTruthy();
 
     // Must contain tilt section and randomize
     expect(screen.getByText(/Bulletin Tilt/i)).toBeTruthy();

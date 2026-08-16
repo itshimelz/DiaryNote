@@ -1,0 +1,13 @@
+<svg width="270" height="44" viewBox="-2 -2 274 48" xmlns="http://www.w3.org/2000/svg">
+<title>Teal washi tape with abstract swirl lines</title>
+<defs>
+<path id="dk" d="M7,0 L0,7 L7,15 L0,22 L7,29 L0,37 L7,44 L263,44 L270,37 L263,29 L270,22 L263,15 L270,7 L263,0 Z"/>
+<clipPath id="dkc"><use href="#dk"/></clipPath>
+</defs>
+<g clip-path="url(#dkc)">
+<rect width="270" height="44" fill="#3FA7B8"/>
+<path d="M-10,22 C60,-15 90,55 160,15 C210,-10 240,50 280,20" stroke="#fff" stroke-width="2" fill="none" opacity="0.4"/>
+<path d="M-10,10 C50,35 110,-5 170,25 C220,45 250,5 280,20" stroke="#fff" stroke-width="1.6" fill="none" opacity="0.3"/>
+</g>
+<use href="#dk" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+</svg>

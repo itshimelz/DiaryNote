@@ -1,0 +1,18 @@
+<svg width="270" height="44" viewBox="-2 -2 274 48" xmlns="http://www.w3.org/2000/svg">
+<title>Pink washi tape with diagonal wavy lines</title>
+<defs>
+<path id="dk" d="M7,0 L0,7 L7,15 L0,22 L7,29 L0,37 L7,44 L263,44 L270,37 L263,29 L270,22 L263,15 L270,7 L263,0 Z"/>
+<clipPath id="dkc"><use href="#dk"/></clipPath>
+</defs>
+<g clip-path="url(#dkc)">
+<rect width="270" height="44" fill="#F3BEDD"/>
+<path d="M-20,50 Q-5,22 15,-6" stroke="#fff" stroke-width="1.4" fill="none" opacity="0.55"/>
+<path d="M25,50 Q40,22 60,-6" stroke="#fff" stroke-width="1.4" fill="none" opacity="0.55"/>
+<path d="M70,50 Q85,22 105,-6" stroke="#fff" stroke-width="1.4" fill="none" opacity="0.55"/>
+<path d="M115,50 Q130,22 150,-6" stroke="#fff" stroke-width="1.4" fill="none" opacity="0.55"/>
+<path d="M160,50 Q175,22 195,-6" stroke="#fff" stroke-width="1.4" fill="none" opacity="0.55"/>
+<path d="M205,50 Q220,22 240,-6" stroke="#fff" stroke-width="1.4" fill="none" opacity="0.55"/>
+<path d="M250,50 Q265,22 285,-6" stroke="#fff" stroke-width="1.4" fill="none" opacity="0.55"/>
+</g>
+<use href="#dk" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+</svg>

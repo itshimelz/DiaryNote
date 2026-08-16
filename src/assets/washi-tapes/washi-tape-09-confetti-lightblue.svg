@@ -1,0 +1,20 @@
+<svg width="270" height="44" viewBox="-2 -2 274 48" xmlns="http://www.w3.org/2000/svg">
+<title>Light blue washi tape with dash confetti pattern</title>
+<defs>
+<path id="dk" d="M7,0 L0,7 L7,15 L0,22 L7,29 L0,37 L7,44 L263,44 L270,37 L263,29 L270,22 L263,15 L270,7 L263,0 Z"/>
+<clipPath id="dkc"><use href="#dk"/></clipPath>
+</defs>
+<g clip-path="url(#dkc)">
+<rect width="270" height="44" fill="#C9EFFB"/>
+<rect x="-3" y="-1" width="6" height="2" rx="1" fill="#4a9fb5" opacity="0.55" transform="translate(20,12) rotate(0)"/>
+<rect x="-3" y="-1" width="6" height="2" rx="1" fill="#4a9fb5" opacity="0.55" transform="translate(50,28) rotate(30)"/>
+<rect x="-3" y="-1" width="6" height="2" rx="1" fill="#4a9fb5" opacity="0.55" transform="translate(80,16) rotate(-20)"/>
+<rect x="-3" y="-1" width="6" height="2" rx="1" fill="#4a9fb5" opacity="0.55" transform="translate(110,32) rotate(15)"/>
+<rect x="-3" y="-1" width="6" height="2" rx="1" fill="#4a9fb5" opacity="0.55" transform="translate(140,10) rotate(45)"/>
+<rect x="-3" y="-1" width="6" height="2" rx="1" fill="#4a9fb5" opacity="0.55" transform="translate(170,26) rotate(-10)"/>
+<rect x="-3" y="-1" width="6" height="2" rx="1" fill="#4a9fb5" opacity="0.55" transform="translate(200,14) rotate(20)"/>
+<rect x="-3" y="-1" width="6" height="2" rx="1" fill="#4a9fb5" opacity="0.55" transform="translate(230,30) rotate(-30)"/>
+<rect x="-3" y="-1" width="6" height="2" rx="1" fill="#4a9fb5" opacity="0.55" transform="translate(255,18) rotate(10)"/>
+</g>
+<use href="#dk" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+</svg>

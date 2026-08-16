@@ -1,0 +1,13 @@
+<svg width="288" height="64" viewBox="-4 -4 288 64" xmlns="http://www.w3.org/2000/svg">
+<title>Flat glossy tan washi tape strip with fine torn edges</title>
+<defs>
+<path id="s1" d="M8,0 L0,9.3 L8,18.7 L0,28 L8,37.3 L0,46.7 L8,56 L272,56 L280,46.7 L272,37.3 L280,28 L272,18.7 L280,9.3 L272,0 Z"/>
+<clipPath id="s1c"><use href="#s1"/></clipPath>
+</defs>
+<g clip-path="url(#s1c)">
+<rect width="280" height="56" fill="#EAC98B" fill-opacity="0.85"/>
+<polygon points="40,-4 70,-4 20,60 -10,60" fill="#fff" opacity="0.28"/>
+<polygon points="120,-4 135,-4 95,60 80,60" fill="#fff" opacity="0.16"/>
+</g>
+<use href="#s1" fill="none" stroke="#C9A05E" stroke-opacity="0.35" stroke-width="1"/>
+</svg>

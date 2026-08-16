@@ -32,10 +32,26 @@ export type PinStyle =
   | 'pushpin-blue'
   | 'pushpin-yellow'
   | 'pushpin-green'
+  | 'tape-01-hearts-coral'
+  | 'tape-02-diagonal-wave-pink'
+  | 'tape-03-gingham-peach'
+  | 'tape-04-butterflies-lavender'
+  | 'tape-05-waves-dots-mint'
+  | 'tape-06-stars-taupe'
+  | 'tape-07-vertical-waves-blue'
+  | 'tape-08-swirl-pink'
+  | 'tape-09-confetti-lightblue'
+  | 'tape-10-grid-stars-lavender'
+  | 'tape-11-leaves-pink'
+  | 'tape-12-swirl-teal'
+  | 'tape-13-floral-yellow'
+  | 'tape-14-sparkle-mauve'
+  | 'tape-15-glossy-tan'
   | 'tape-teal'
   | 'tape-pink'
   | 'tape-beige'
-  | 'tape-yellow';
+  | 'tape-yellow'
+  | (string & {});
 
 export type JournalMood = 'happy' | 'calm' | 'focused' | 'reflective' | 'low';
 

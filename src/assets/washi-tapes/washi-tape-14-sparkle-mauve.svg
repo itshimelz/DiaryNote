@@ -1,0 +1,19 @@
+<svg width="270" height="44" viewBox="-2 -2 274 48" xmlns="http://www.w3.org/2000/svg">
+<title>Dusty mauve washi tape with sparkle stars</title>
+<defs>
+<path id="dk" d="M7,0 L0,7 L7,15 L0,22 L7,29 L0,37 L7,44 L263,44 L270,37 L263,29 L270,22 L263,15 L270,7 L263,0 Z"/>
+<clipPath id="dkc"><use href="#dk"/></clipPath>
+</defs>
+<g clip-path="url(#dkc)">
+<rect width="270" height="44" fill="#D6BEC0"/>
+<path d="M25,9 L26.25,11.75 L30,14 L26.25,16.25 L25,19 L23.75,16.25 L20,14 L23.75,11.75 Z" fill="#fff" opacity="0.65"/>
+<path d="M60,23 L61.75,26.25 L67,30 L61.75,33.75 L60,37 L58.25,33.75 L53,30 L58.25,26.25 Z" fill="#fff" opacity="0.65"/>
+<path d="M95,12 L96,14 L99,16 L96,18 L95,20 L94,18 L91,16 L94,14 Z" fill="#fff" opacity="0.65"/>
+<path d="M130,20 L132,26 L138,28 L132,30 L130,36 L128,30 L122,28 L128,26 Z" fill="#fff" opacity="0.65"/>
+<path d="M165,7 L166.25,10.75 L170,12 L166.25,13.25 L165,17 L163.75,13.25 L160,12 L163.75,10.75 Z" fill="#fff" opacity="0.65"/>
+<path d="M200,26 L201.5,30.5 L206,32 L201.5,33.5 L200,38 L198.5,33.5 L194,32 L198.5,30.5 Z" fill="#fff" opacity="0.65"/>
+<path d="M235,14 L236,17 L239,18 L236,19 L235,22 L234,19 L231,18 L234,17 Z" fill="#fff" opacity="0.65"/>
+<path d="M255,19 L256.75,24.25 L262,26 L256.75,27.75 L255,33 L253.25,27.75 L248,26 L253.25,24.25 Z" fill="#fff" opacity="0.65"/>
+</g>
+<use href="#dk" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+</svg>

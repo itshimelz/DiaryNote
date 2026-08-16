@@ -31,17 +31,7 @@ export const PaperThemeSchema: z.ZodType<PaperTheme> = z.enum([
 export const GridTypeSchema: z.ZodType<GridType> = z.enum(['dots', 'grid', 'ruled', 'blank']);
 export const CanvasThemeSchema: z.ZodType<CanvasTheme> = z.enum(['dark', 'light', 'gradient', 'cork']);
 export const FrameStyleSchema: z.ZodType<FrameStyle> = z.enum(['polaroid', 'photo', 'frameless']);
-export const PinStyleSchema: z.ZodType<PinStyle> = z.enum([
-  'none',
-  'pushpin-red',
-  'pushpin-blue',
-  'pushpin-yellow',
-  'pushpin-green',
-  'tape-teal',
-  'tape-pink',
-  'tape-beige',
-  'tape-yellow',
-]);
+export const PinStyleSchema: z.ZodType<PinStyle> = z.string() as z.ZodType<PinStyle>;
 export const JournalMoodSchema: z.ZodType<JournalMood | undefined> = z.enum(['happy', 'calm', 'focused', 'reflective', 'low']).optional();
 export const AIProviderSchema: z.ZodType<AIProvider> = z.enum(['gemini', 'openai', 'openrouter', 'custom']);
 

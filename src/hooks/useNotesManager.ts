@@ -9,6 +9,7 @@ import {
 } from '../lib/indexedDbStorage';
 import { getUniqueTitleForDay, getLocalDateString } from '../utils';
 import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../constants/canvas';
+import { WASHI_TAPES, PUSHPIN_OPTIONS } from '../constants/washiTapes';
 
 export function useNotesManager(
   pushHistorySnapshot: (notes: Note[]) => void,
@@ -199,13 +200,8 @@ export function useNotesManager(
 
       // Randomize slight organic tilt between -2.5° and +2.5° and random pushpin/tape
       const pinOptions: PinStyle[] = [
-        'pushpin-red',
-        'pushpin-blue',
-        'pushpin-yellow',
-        'pushpin-green',
-        'tape-teal',
-        'tape-pink',
-        'tape-beige',
+        ...PUSHPIN_OPTIONS.map((p) => p.id),
+        ...WASHI_TAPES.map((t) => t.id),
       ];
       const chosenPin: PinStyle = pinStyle || pinOptions[Math.floor(Math.random() * pinOptions.length)];
       const randomTilt = parseFloat((Math.random() * 5 - 2.5).toFixed(1));

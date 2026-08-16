@@ -1,0 +1,17 @@
+<svg width="270" height="44" viewBox="-2 -2 274 48" xmlns="http://www.w3.org/2000/svg">
+<title>Peach washi tape with gingham grid pattern</title>
+<defs>
+<path id="dk" d="M7,0 L0,7 L7,15 L0,22 L7,29 L0,37 L7,44 L263,44 L270,37 L263,29 L270,22 L263,15 L270,7 L263,0 Z"/>
+<clipPath id="dkc"><use href="#dk"/></clipPath>
+</defs>
+<g clip-path="url(#dkc)">
+<rect width="270" height="44" fill="#F6C39A"/>
+<g stroke="#fff" stroke-width="1" opacity="0.4">
+<line x1="20" y1="-5" x2="20" y2="49"/><line x1="50" y1="-5" x2="50" y2="49"/><line x1="80" y1="-5" x2="80" y2="49"/>
+<line x1="110" y1="-5" x2="110" y2="49"/><line x1="140" y1="-5" x2="140" y2="49"/><line x1="170" y1="-5" x2="170" y2="49"/>
+<line x1="200" y1="-5" x2="200" y2="49"/><line x1="230" y1="-5" x2="230" y2="49"/><line x1="260" y1="-5" x2="260" y2="49"/>
+<line x1="-5" y1="11" x2="275" y2="11"/><line x1="-5" y1="22" x2="275" y2="22"/><line x1="-5" y1="33" x2="275" y2="33"/>
+</g>
+</g>
+<use href="#dk" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+</svg>
