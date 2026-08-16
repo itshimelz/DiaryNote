@@ -20,7 +20,11 @@ export function useNoteSelection(
   onGroupNotes?: () => void,
   onUngroupNotes?: () => void,
   onToggleShortcutsModal?: () => void,
-  onMergeNotesAI?: () => void
+  onMergeNotesAI?: () => void,
+  onCutNotes?: (ids?: string[]) => void,
+  onPasteRelocateNotes?: () => void,
+  onCancelCutNotes?: () => void,
+  hasCutNotes?: boolean
 ) {
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -41,8 +45,10 @@ export function useNoteSelection(
   const onUngroupNotesRef = useRef(onUngroupNotes);
   const onToggleShortcutsModalRef = useRef(onToggleShortcutsModal);
   const onMergeNotesAIRef = useRef(onMergeNotesAI);
-
-
+  const onCutNotesRef = useRef(onCutNotes);
+  const onPasteRelocateNotesRef = useRef(onPasteRelocateNotes);
+  const onCancelCutNotesRef = useRef(onCancelCutNotes);
+  const hasCutNotesRef = useRef(hasCutNotes);
 
   const editTimerRef = useRef<number>(0);
   const stateRef = useRef({
@@ -80,6 +86,10 @@ export function useNoteSelection(
     onUngroupNotesRef.current = onUngroupNotes;
     onToggleShortcutsModalRef.current = onToggleShortcutsModal;
     onMergeNotesAIRef.current = onMergeNotesAI;
+    onCutNotesRef.current = onCutNotes;
+    onPasteRelocateNotesRef.current = onPasteRelocateNotes;
+    onCancelCutNotesRef.current = onCancelCutNotes;
+    hasCutNotesRef.current = hasCutNotes;
   }, [
     onCreateNote,
     onFitNotes,
@@ -95,6 +105,10 @@ export function useNoteSelection(
     onUngroupNotes,
     onToggleShortcutsModal,
     onMergeNotesAI,
+    onCutNotes,
+    onPasteRelocateNotes,
+    onCancelCutNotes,
+    hasCutNotes,
   ]);
 
 
@@ -137,6 +151,20 @@ export function useNoteSelection(
           (target.tagName === 'INPUT' ||
             target.tagName === 'TEXTAREA' ||
             target.isContentEditable));
+
+      // Universal Escape handler: cancels cut state, closes editing, blurs focused inputs, and clears selection
+      if (e.key === 'Escape') {
+        onCancelCutNotesRef.current?.();
+        if (curSelectedNoteIds.length > 0 || isEditingText) {
+          e.preventDefault();
+          setSelectedNoteIds([]);
+          setEditingNoteId(null);
+          if (document.activeElement && 'blur' in document.activeElement) {
+            (document.activeElement as HTMLElement).blur();
+          }
+        }
+        return;
+      }
 
       // If user is currently editing text inside an input or textarea, bypass canvas single-key shortcuts
       if (isEditingText) return;
@@ -279,6 +307,27 @@ export function useNoteSelection(
 
 
 
+      // Cut Selected Note(s) (Ctrl+X / Cmd+X)
+      if ((e.ctrlKey || e.metaKey) && key === 'x' && !isEditingText) {
+        if (curSelectedNoteIds.length > 0) {
+          e.preventDefault();
+          const idsToCut = [...curSelectedNoteIds];
+          setSelectedNoteIds([]);
+          onCutNotesRef.current?.(idsToCut);
+        }
+        return;
+      }
+
+      // Paste / Relocate Cut Note(s) (Ctrl+Shift+V or Ctrl+V only when cut notes are pending)
+      if ((e.ctrlKey || e.metaKey) && key === 'v' && !isEditingText) {
+        if (hasCutNotesRef.current) {
+          e.preventDefault();
+          e.stopPropagation();
+          onPasteRelocateNotesRef.current?.();
+          return;
+        }
+      }
+
       // Enter key opens edit mode on selected note
       if (e.key === 'Enter' && curSelectedNoteId) {
         e.preventDefault();
@@ -293,17 +342,6 @@ export function useNoteSelection(
         if (curSelectedNoteIds.length > 0) {
           e.preventDefault();
           curDelete([...curSelectedNoteIds]);
-        }
-      }
-
-      // Escape key deselects all active notes
-      if (e.key === 'Escape') {
-        if (curSelectedNoteIds.length > 0) {
-          e.preventDefault();
-          setSelectedNoteIds([]);
-          if (document.activeElement && 'blur' in document.activeElement) {
-            (document.activeElement as HTMLElement).blur();
-          }
         }
       }
     };

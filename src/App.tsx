@@ -9,7 +9,8 @@ import { useNotesManager } from './hooks/useNotesManager';
 import { useCanvasTransform, screenToWorld } from './hooks/useCanvasTransform';
 import { useNoteSelection } from './hooks/useNoteSelection';
 import { useAppUIState } from './hooks/useAppUIState';
-import { useNativeFileDrop, DroppedImageData } from './hooks/useNativeFileDrop';
+import { useNativeFileDrop, DroppedImageData, isTauriEnvironment } from './hooks/useNativeFileDrop';
+import { invoke } from '@tauri-apps/api/core';
 
 // Modular Components
 import {
@@ -258,6 +259,142 @@ export default function App() {
     [setSettings]
   );
 
+  // 3.5 Note Cut & Spatial Relocation State
+  const [cutNoteIds, setCutNoteIds] = useState<string[]>([]);
+  const cutNoteIdsRef = useRef<string[]>([]);
+  const lastRelocatedAtRef = useRef<number>(0);
+  useEffect(() => {
+    cutNoteIdsRef.current = cutNoteIds;
+  }, [cutNoteIds]);
+
+  const mouseCoordRef = useRef<{ clientX: number; clientY: number }>({
+    clientX: window.innerWidth / 2,
+    clientY: window.innerHeight / 2,
+  });
+
+  const selectedNoteIdsRef = useRef<string[]>([]);
+  const setSelectedNoteIdsRef = useRef<(ids: string[]) => void>(() => {});
+
+  const handleCutSelectedNotes = useCallback(
+    (explicitIds?: string[]) => {
+      const targetIds =
+        explicitIds && explicitIds.length > 0 ? explicitIds : selectedNoteIdsRef.current;
+      if (targetIds.length === 0) return;
+
+      const targetedNotes = notes.filter((n) => targetIds.includes(n.id));
+
+      // SMART GROUP GUARD: Prevent cutting notes that belong to a group
+      const groupedNotes = targetedNotes.filter((n) => Boolean(n.groupId));
+      if (groupedNotes.length > 0) {
+        sendNativeAppNotification(
+          'Cannot Cut Grouped Note(s)',
+          groupedNotes.length === 1
+            ? `"${groupedNotes[0].title || 'Note'}" belongs to a group. Ungroup first (Ctrl+Shift+G) to relocate.`
+            : `${groupedNotes.length} notes belong to a group. Ungroup first (Ctrl+Shift+G) to relocate.`
+        );
+        return;
+      }
+
+      setCutNoteIds([...targetIds]);
+      // Instantly deselect so the semi-transparent cut ghost styling appears immediately
+      setSelectedNoteIdsRef.current([]);
+      const count = targetIds.length;
+      const titleText = targetedNotes.map((n) => n.title || 'Untitled Note').join(', ');
+      sendNativeAppNotification(
+        'Note(s) Cut',
+        count === 1
+          ? `Cut "${titleText}". Move cursor and press Ctrl+Shift+V or Ctrl+V to place.`
+          : `Cut ${count} notes. Move cursor and press Ctrl+Shift+V or Ctrl+V to place.`
+      );
+    },
+    [notes]
+  );
+
+  const handlePasteRelocateNotes = useCallback(async () => {
+    lastRelocatedAtRef.current = Date.now();
+    const activeCutIds = cutNoteIdsRef.current;
+    if (activeCutIds.length === 0) {
+      return;
+    }
+
+    const targetClientX = mouseCoordRef.current.clientX;
+    const targetClientY = mouseCoordRef.current.clientY;
+    const targetWorldX = Math.round((targetClientX - transform.x) / transform.zoom);
+    const targetWorldY = Math.round((targetClientY - transform.y) / transform.zoom);
+
+    const targetedNotes = notes.filter((n) => activeCutIds.includes(n.id));
+    if (targetedNotes.length === 0) {
+      setCutNoteIds([]);
+      return;
+    }
+
+    let newPositions: { id: string; x: number; y: number }[] = [];
+
+    // Try native Rust relocate_notes command first
+    if (isTauriEnvironment()) {
+      try {
+        const notePositions = targetedNotes.map((n) => ({ id: n.id, x: n.x, y: n.y }));
+        const res = await invoke<{ id: string; x: number; y: number }[]>('relocate_notes', {
+          notePositions,
+          targetX: targetWorldX,
+          targetY: targetWorldY,
+        });
+        if (res && res.length > 0) {
+          newPositions = res;
+        }
+      } catch (err) {
+        console.warn('Native relocate_notes fallback:', err);
+      }
+    }
+
+    // Fallback in-memory spatial calculation
+    if (newPositions.length === 0) {
+      if (targetedNotes.length === 1) {
+        newPositions = [
+          {
+            id: targetedNotes[0].id,
+            x: targetWorldX - (targetedNotes[0].width || 340) / 2,
+            y: targetWorldY - (targetedNotes[0].height || 340) / 2,
+          },
+        ];
+      } else {
+        const minX = Math.min(...targetedNotes.map((n) => n.x));
+        const maxX = Math.max(...targetedNotes.map((n) => n.x + (n.width || 340)));
+        const minY = Math.min(...targetedNotes.map((n) => n.y));
+        const maxY = Math.max(...targetedNotes.map((n) => n.y + (n.height || 340)));
+        const clusterCenterX = (minX + maxX) / 2;
+        const clusterCenterY = (minY + maxY) / 2;
+        const deltaX = targetWorldX - clusterCenterX;
+        const deltaY = targetWorldY - clusterCenterY;
+        newPositions = targetedNotes.map((n) => ({
+          id: n.id,
+          x: Math.round(n.x + deltaX),
+          y: Math.round(n.y + deltaY),
+        }));
+      }
+    }
+
+    const posMap = new Map(newPositions.map((p) => [p.id, p]));
+    const updated = targetedNotes.map((n) => {
+      const pos = posMap.get(n.id);
+      return pos ? { ...n, x: pos.x, y: pos.y } : n;
+    });
+
+    handleUpdateBatchNotes(updated);
+    const movedIds = [...activeCutIds];
+    setCutNoteIds([]);
+    setSelectedNoteIdsRef.current(movedIds);
+    sendNativeAppNotification(
+      'Note(s) Placed',
+      `Relocated ${updated.length} note(s) to new canvas position.`
+    );
+  }, [notes, transform, handleUpdateBatchNotes]);
+
+  const handleCancelCutNotes = useCallback(() => {
+    setCutNoteIds([]);
+    sendNativeAppNotification('Cut Cancelled', 'Note relocation cancelled.');
+  }, []);
+
   // 4. Note Selection & Keyboard Shortcuts Hook
   const {
     selectedNoteIds,
@@ -311,8 +448,17 @@ export default function App() {
       setSelectedNoteIds([]);
     },
     () => setIsShortcutsModalOpen((prev) => !prev),
-    () => handleMergeNotesAI()
+    () => handleMergeNotesAI(),
+    (ids?: string[]) => handleCutSelectedNotes(ids),
+    () => handlePasteRelocateNotes(),
+    () => handleCancelCutNotes(),
+    cutNoteIds.length > 0
   );
+
+  useEffect(() => {
+    selectedNoteIdsRef.current = selectedNoteIds;
+    setSelectedNoteIdsRef.current = setSelectedNoteIds;
+  }, [selectedNoteIds, setSelectedNoteIds]);
 
   // Native OS File Drag-and-Drop Image Creation Handler via Rust
   const handleAddDroppedImages = useCallback(
@@ -661,29 +807,8 @@ export default function App() {
     }
   }, [setSecurityModalNoteId, setSecurityModalMode]);
 
-  // Global native paste event handler to create note from external clipboard
+  // Global shortcut listeners (e.g. today's journal entry)
   useEffect(() => {
-    const handleGlobalPaste = (e: ClipboardEvent) => {
-      const activeEl = document.activeElement;
-      if (
-        activeEl &&
-        (activeEl.tagName === 'INPUT' ||
-          (activeEl.tagName === 'TEXTAREA' && !activeEl.getAttribute('aria-hidden')) ||
-          activeEl.getAttribute('contenteditable') === 'true')
-      ) {
-        return;
-      }
-
-      const pastedText = e.clipboardData?.getData('text/plain');
-      if (pastedText && pastedText.trim().length > 0) {
-        e.preventDefault();
-        setPasteModalState({
-          isOpen: true,
-          text: pastedText.trim(),
-        });
-      }
-    };
-
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       const activeEl = document.activeElement;
       if (
@@ -701,13 +826,11 @@ export default function App() {
       }
     };
 
-    window.addEventListener('paste', handleGlobalPaste);
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => {
-      window.removeEventListener('paste', handleGlobalPaste);
       window.removeEventListener('keydown', handleGlobalKeyDown);
     };
-  }, [handleOpenOrCreateTodayJournal, setPasteModalState]);
+  }, [handleOpenOrCreateTodayJournal]);
 
   return (
     <div className={`relative w-screen h-screen overflow-hidden ${
@@ -812,6 +935,10 @@ export default function App() {
             x: e.clientX,
             y: e.clientY,
           });
+        }}
+        cutNoteIds={cutNoteIds}
+        onMouseMoveCoord={(clientX, clientY) => {
+          mouseCoordRef.current = { clientX, clientY };
         }}
       />
 
@@ -996,6 +1123,10 @@ export default function App() {
         onAddImageFiles={handleAddImageFiles}
         onTriggerImagePicker={handleTriggerImagePicker}
         setNotes={setNotes}
+        hasCutNotes={cutNoteIds.length > 0}
+        onCutNotes={handleCutSelectedNotes}
+        onPasteRelocateNotes={handlePasteRelocateNotes}
+        onCancelCutNotes={handleCancelCutNotes}
       />
 
       {/* First-Time Release Update Alert Banner */}
@@ -1017,6 +1148,7 @@ export default function App() {
           notes={notes}
           themeMode={settings.themeMode}
           selectedNoteIds={selectedNoteIds}
+          cutNoteIds={cutNoteIds}
           snapToGrid={settings.snapToGrid}
           gridType={settings.gridType}
           enableAIServices={settings.enableAIServices}
@@ -1024,6 +1156,7 @@ export default function App() {
           isSaving={isSaving}
           saveError={saveError}
           lastSavedAt={lastSavedAt}
+          onCancelCut={handleCancelCutNotes}
           onToggleSnap={handleToggleSnapToGrid}
           onCycleGridType={() =>
             setSettings((prev) => ({

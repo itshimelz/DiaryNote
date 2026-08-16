@@ -93,6 +93,10 @@ interface AppModalsProps {
   onAddImageFiles?: (files: File[], customClientX?: number, customClientY?: number) => void;
   onTriggerImagePicker?: (clientX?: number, clientY?: number) => void;
   setNotes?: React.Dispatch<React.SetStateAction<Note[]>>;
+  hasCutNotes?: boolean;
+  onCutNotes?: (ids: string[]) => void;
+  onPasteRelocateNotes?: () => void;
+  onCancelCutNotes?: () => void;
 }
 
 export const AppModals: React.FC<AppModalsProps> = ({
@@ -147,6 +151,10 @@ export const AppModals: React.FC<AppModalsProps> = ({
   onAddImageFiles,
   onTriggerImagePicker,
   setNotes: _setNotes,
+  hasCutNotes = false,
+  onCutNotes,
+  onPasteRelocateNotes,
+  onCancelCutNotes,
 }) => {
   return (
     <>
@@ -374,6 +382,9 @@ export const AppModals: React.FC<AppModalsProps> = ({
         onPasteFromClipboard={() => {
           setPasteModalState({ isOpen: true, text: '' });
         }}
+        hasCutNotes={hasCutNotes}
+        onCutNotes={onCutNotes}
+        onPasteRelocateNotes={onPasteRelocateNotes}
         onCreateNoteHere={() => handleCreateNote(contextMenuState.x, contextMenuState.y)}
         onAddImageHere={() => onTriggerImagePicker?.(contextMenuState.x, contextMenuState.y)}
         onSelectAllNotes={() => setSelectedNoteIds(notes.map((n) => n.id))}
@@ -398,6 +409,9 @@ export const AppModals: React.FC<AppModalsProps> = ({
 
         {/* Hidden Native Clipboard Paste Listener */}
         <HiddenClipboardListener
+          hasCutNotes={hasCutNotes}
+          onPasteRelocateNotes={onPasteRelocateNotes}
+          onCancelCutNotes={onCancelCutNotes}
           onPasteText={(text) => setPasteModalState({ isOpen: true, text })}
           onPasteImage={(file) => onAddImageFiles?.([file])}
         />

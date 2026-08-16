@@ -2,7 +2,7 @@ pub mod commands;
 pub mod models;
 pub mod utils;
 
-use commands::{read_image_files, save_export_file};
+use commands::{read_image_files, relocate_notes, save_export_file};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -10,7 +10,8 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             save_export_file,
-            read_image_files
+            read_image_files,
+            relocate_notes
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {

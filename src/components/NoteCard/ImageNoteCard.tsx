@@ -41,6 +41,7 @@ export interface ImageNoteCardProps {
   onRequestUnlockNote?: (id: string) => void;
   onExportNote?: (note: Note, format: 'md' | 'txt' | 'json') => void;
   isCardDragging?: boolean;
+  isCut?: boolean;
   onDragStateChange?: (draggingIds: string[]) => void;
   onContextMenu?: (e: React.MouseEvent, noteId: string) => void;
 }
@@ -65,6 +66,7 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
   onRequestUnlockNote,
   onExportNote: _onExportNote,
   isCardDragging = false,
+  isCut = false,
   onDragStateChange,
   onContextMenu,
 }) => {
@@ -191,7 +193,13 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
             : isDragging || isCardDragging || isResizing
             ? 'transition-none scale-100 cursor-grabbing'
             : 'transition-[box-shadow,opacity] duration-150 ease-out scale-100 cursor-grab'
-        } ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
+        } ${
+          isCut
+            ? 'opacity-40 ring-2 ring-indigo-500 ring-offset-2 border-2 border-dashed border-indigo-500 scale-[0.99]'
+            : isSelected
+            ? 'ring-2 ring-blue-500'
+            : ''
+        }`}
       >
         {/* Bulletin Board 3D Pushpins and Washi Tape */}
         <NoteDecorations pinStyle={note.pinStyle} />

@@ -1,21 +1,34 @@
 import React, { useEffect, useRef } from 'react';
 
 /**
- * Hidden off-screen listener that captures external (OS/desktop) Ctrl+V text and image pastes.
+ * Hidden off-screen listener that captures external (OS/desktop) Ctrl+V text and image pastes
+ * or executes note relocation when notes are in cut clipboard state.
  */
 interface HiddenClipboardListenerProps {
   /** Called with the pasted text to create a note. */
   onPasteText: (text: string) => void;
   /** Called with the pasted image file to create a polaroid/image card. */
   onPasteImage?: (imageFile: File) => void;
+  /** True when notes are currently in cut clipboard state waiting for spatial relocation */
+  hasCutNotes?: boolean;
+  /** Relocate cut notes to mouse cursor */
+  onPasteRelocateNotes?: () => void;
+  /** Cancel cut state and restore notes */
+  onCancelCutNotes?: () => void;
 }
 
 export const HiddenClipboardListener: React.FC<HiddenClipboardListenerProps> = ({
   onPasteText,
   onPasteImage,
+  hasCutNotes = false,
+  onPasteRelocateNotes,
+  onCancelCutNotes,
 }) => {
   const onPasteTextRef = useRef(onPasteText);
   const onPasteImageRef = useRef(onPasteImage);
+  const hasCutNotesRef = useRef(hasCutNotes);
+  const onPasteRelocateNotesRef = useRef(onPasteRelocateNotes);
+  const onCancelCutNotesRef = useRef(onCancelCutNotes);
 
   useEffect(() => {
     onPasteTextRef.current = onPasteText;
@@ -26,7 +39,26 @@ export const HiddenClipboardListener: React.FC<HiddenClipboardListenerProps> = (
   }, [onPasteImage]);
 
   useEffect(() => {
+    hasCutNotesRef.current = hasCutNotes;
+  }, [hasCutNotes]);
+
+  useEffect(() => {
+    onPasteRelocateNotesRef.current = onPasteRelocateNotes;
+  }, [onPasteRelocateNotes]);
+
+  useEffect(() => {
+    onCancelCutNotesRef.current = onCancelCutNotes;
+  }, [onCancelCutNotes]);
+
+  useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
+      // If Escape is pressed while notes are in cut state, cancel cut state immediately
+      if (e.key === 'Escape' && hasCutNotesRef.current) {
+        e.preventDefault();
+        onCancelCutNotesRef.current?.();
+        return;
+      }
+
       // Don't intercept if user is typing in a real input/textarea/contenteditable
       const activeEl = document.activeElement;
       if (
@@ -40,6 +72,14 @@ export const HiddenClipboardListener: React.FC<HiddenClipboardListenerProps> = (
       }
 
       if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'v' || e.code === 'KeyV')) {
+        // If notes are in cut state, relocate them instantly and never open clipboard modal!
+        if (hasCutNotesRef.current) {
+          e.preventDefault();
+          e.stopPropagation();
+          onPasteRelocateNotesRef.current?.();
+          return;
+        }
+
         // Attempt async clipboard read on first keydown if available
         if (navigator.clipboard && typeof navigator.clipboard.read === 'function') {
           try {
@@ -82,6 +122,13 @@ export const HiddenClipboardListener: React.FC<HiddenClipboardListenerProps> = (
           (activeEl as HTMLElement).isContentEditable ||
           activeEl.getAttribute('contenteditable') === 'true')
       ) {
+        return;
+      }
+
+      if (hasCutNotesRef.current) {
+        e.preventDefault();
+        e.stopPropagation();
+        onPasteRelocateNotesRef.current?.();
         return;
       }
 

@@ -19,6 +19,7 @@ import {
   ClipboardIcon,
   Add01Icon,
   Image01Icon,
+  ArrowAllDirectionIcon,
 } from '@hugeicons/core-free-icons';
 import { Menu, MenuItem, MenuDivider, MenuGroupHeader, Badge } from './ui';
 
@@ -30,6 +31,7 @@ interface NoteContextMenuProps {
   notes: Note[];
   themeMode?: CanvasTheme;
   zoom?: number;
+  hasCutNotes?: boolean;
   onClose: () => void;
   onNavigateToNote?: (id: string) => void;
   onEditNote?: (id: string) => void;
@@ -38,10 +40,12 @@ interface NoteContextMenuProps {
   onGroupNotes?: () => void;
   onUngroupNotes?: () => void;
   onDuplicateNotes?: (ids: string[]) => void;
+  onCutNotes?: (ids: string[]) => void;
   onExportNotes?: (ids: string[], format: 'json' | 'md') => void;
   onDeleteNotes?: (ids: string[]) => void;
   onChangePaperTheme?: (ids: string[], theme: PaperTheme) => void;
   onPasteFromClipboard?: () => void;
+  onPasteRelocateNotes?: () => void;
   onCreateNoteHere?: () => void;
   onAddImageHere?: () => void;
   onSelectAllNotes?: () => void;
@@ -55,6 +59,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
   notes,
   themeMode = 'dark',
   zoom = 1,
+  hasCutNotes = false,
   onClose,
   onNavigateToNote,
   onEditNote,
@@ -63,10 +68,12 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
   onGroupNotes,
   onUngroupNotes,
   onDuplicateNotes,
+  onCutNotes,
   onExportNotes,
   onDeleteNotes,
   onChangePaperTheme,
   onPasteFromClipboard,
+  onPasteRelocateNotes,
   onCreateNoteHere,
   onAddImageHere,
   onSelectAllNotes,
@@ -90,6 +97,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
   const isAllGrouped =
     selectedNotes.length >= 2 &&
     selectedNotes.every((n) => n.groupId && n.groupId === selectedNotes[0].groupId);
+  const isAnyGrouped = selectedNotes.some((n) => Boolean(n.groupId));
 
   // Visual scaling factor based on canvas zoom
   const visualScale = useMemo(() => {
@@ -156,6 +164,17 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
         {selectedNoteIds.length === 0 ? (
           <>
             <MenuGroupHeader>Canvas Actions</MenuGroupHeader>
+            {hasCutNotes && (
+              <MenuItem
+                icon={ClipboardIcon}
+                label="Paste / Relocate Cut Note(s) Here"
+                shortcut={`${getPlatformMetaKey()}+Shift+V`}
+                onClick={() => {
+                  onPasteRelocateNotes?.();
+                  onClose();
+                }}
+              />
+            )}
             <MenuItem
               icon={ClipboardIcon}
               label="Paste Note from Clipboard"
@@ -317,6 +336,22 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
                 }}
               />
             )}
+
+            <MenuItem
+              icon={ArrowAllDirectionIcon}
+              label={
+                isAnyGrouped
+                  ? `Cut Note${selectedNoteIds.length > 1 ? 's' : ''} (Ungroup first)`
+                  : `Cut Note${selectedNoteIds.length > 1 ? 's' : ''} (Move / Relocate)`
+              }
+              shortcut={isAnyGrouped ? undefined : `${getPlatformMetaKey()}+X`}
+              disabled={isAnyGrouped}
+              onClick={() => {
+                if (isAnyGrouped) return;
+                onCutNotes?.(selectedNoteIds);
+                onClose();
+              }}
+            />
 
             <MenuItem
               icon={Copy01Icon}

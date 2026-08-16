@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Layers01Icon } from '@hugeicons/core-free-icons';
-import { Icon, Badge } from './ui';
+import { Icon, Badge, Input } from './ui';
 import { Note, CanvasTheme } from '../types';
 import { GRID_SIZE } from '../constants/canvas';
 import { calculateGroupBounds } from '../utils/layoutUtils';
@@ -87,7 +87,7 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
   const handleBadgeMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;
-    if (target.tagName === 'INPUT' || isEditing) {
+    if (target.tagName === 'INPUT' || isEditing || target.closest('input')) {
       e.stopPropagation();
       return;
     }
@@ -170,8 +170,8 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
     : 'border-2 border-dashed border-blue-500/40 bg-blue-500/[0.04] backdrop-blur-[0.5px]';
 
   const badgeStyle = isLight
-    ? 'bg-white/95 border border-slate-200/90 text-slate-800 shadow-sm backdrop-blur-md hover:border-blue-400'
-    : 'bg-slate-900/95 border border-slate-800/90 text-slate-200 shadow-sm backdrop-blur-md hover:border-blue-500';
+    ? 'bg-white/95 border border-slate-200/90 text-slate-900 shadow-sm backdrop-blur-md hover:border-slate-300'
+    : 'bg-slate-900/95 border border-slate-800/90 text-slate-100 shadow-sm backdrop-blur-md hover:border-slate-700';
 
   const handleSaveTitle = () => {
     if (isSavingRef.current) return;
@@ -203,24 +203,32 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
       {/* Group Header Badge */}
       <div
         onMouseDown={handleBadgeMouseDown}
-        className={`absolute -top-3.5 left-3 px-2.5 py-1 rounded-sm text-xs font-semibold tracking-wide flex items-center gap-2 pointer-events-auto select-none cursor-grab active:cursor-grabbing ${badgeStyle}`}
+        className={`absolute -top-4 left-3 px-3 py-1.5 rounded-sm text-sm font-semibold tracking-tight flex items-center gap-2.5 pointer-events-auto select-none cursor-grab active:cursor-grabbing ${badgeStyle}`}
       >
-        <Icon icon={Layers01Icon} size="xs" className="text-blue-500 shrink-0" />
+        <Icon icon={Layers01Icon} size="sm" className="text-blue-500 dark:text-blue-400 shrink-0" />
         {isEditing ? (
-          <input
-            type="text"
-            value={titleInput}
-            onChange={(e) => setTitleInput(e.target.value)}
+          <div
+            className="flex items-center min-w-[160px] max-w-[260px]"
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
-            onBlur={handleSaveTitle}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSaveTitle();
-            }}
-            autoFocus
-            placeholder={`Group (${groupNotes.length} notes)`}
-            className="bg-transparent border-b border-blue-500 text-xs font-semibold focus:outline-none px-0.5 py-0 min-w-[120px] cursor-text text-slate-900 dark:text-slate-100"
-          />
+          >
+            <Input
+              size="sm"
+              value={titleInput}
+              onChange={(e) => setTitleInput(e.target.value)}
+              onBlur={handleSaveTitle}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveTitle();
+                if (e.key === 'Escape') {
+                  setTitleInput(currentGroupName);
+                  setIsEditing(false);
+                }
+              }}
+              autoFocus
+              placeholder={`Group (${groupNotes.length} notes)`}
+              className="!h-7 !py-0 !text-xs sm:!text-sm font-semibold"
+            />
+          </div>
         ) : (
           <button
             type="button"
@@ -228,13 +236,13 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
               e.stopPropagation();
               setIsEditing(true);
             }}
-            className="hover:underline flex items-center gap-1.5 font-semibold cursor-pointer"
+            className="hover:text-blue-600 dark:hover:text-blue-400 hover:underline flex items-center gap-1.5 font-semibold text-slate-900 dark:text-slate-100 cursor-pointer transition-colors"
             title="Click to rename group"
           >
             <span>{displayName}</span>
           </button>
         )}
-        <Badge variant="subtle" size="xs">
+        <Badge variant="subtle" size="sm">
           {groupNotes.length}
         </Badge>
       </div>

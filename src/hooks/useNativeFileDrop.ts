@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
-import { listen, UnlistenFn } from '@tauri-apps/api/event';
+import { UnlistenFn } from '@tauri-apps/api/event';
 
 export interface DroppedImageData {
   file_path: string;
@@ -27,6 +27,7 @@ export function isTauriEnvironment(): boolean {
 /**
  * Native Tauri OS drag-and-drop listener hook.
  * Captures files dragged from the OS desktop/file manager and processes them natively via Rust.
+ * Includes fingerprint deduplication to prevent double-drop firing.
  */
 export function useNativeFileDrop({
   onDropImages,
@@ -38,17 +39,30 @@ export function useNativeFileDrop({
   const onDragStateChangeRef = useRef(onDragStateChange);
   onDragStateChangeRef.current = onDragStateChange;
 
+  const lastDropRef = useRef<{ fingerprint: string; time: number }>({ fingerprint: '', time: 0 });
+
   useEffect(() => {
     if (!isTauriEnvironment()) {
       return;
     }
 
     let unlistenWebview: UnlistenFn | undefined;
-    let unlistenEvent: UnlistenFn | undefined;
     let isCancelled = false;
 
     const handleProcessPaths = async (paths: string[], clientX: number, clientY: number) => {
       if (!paths || paths.length === 0) return;
+
+      // Deduplication guard: ignore duplicate drop events within 800ms
+      const fingerprint = `${paths.join('|')}@${Math.round(clientX)},${Math.round(clientY)}`;
+      const now = Date.now();
+      if (
+        lastDropRef.current.fingerprint === fingerprint &&
+        now - lastDropRef.current.time < 800
+      ) {
+        return;
+      }
+      lastDropRef.current = { fingerprint, time: now };
+
       try {
         const images = await invoke<DroppedImageData[]>('read_image_files', { paths });
         if (images && images.length > 0 && !isCancelled) {
@@ -61,7 +75,6 @@ export function useNativeFileDrop({
 
     const setupListeners = async () => {
       try {
-        // 1. Primary Tauri v2 Webview Drag-and-Drop listener
         const webview = getCurrentWebview();
         unlistenWebview = await webview.onDragDropEvent((event) => {
           if (isCancelled) return;
@@ -77,19 +90,6 @@ export function useNativeFileDrop({
             handleProcessPaths(payload.paths, pos.x, pos.y);
           }
         });
-
-        // 2. Secondary fallback event listener for tauri://drag-drop
-        unlistenEvent = await listen<{ paths: string[]; position: { x: number; y: number } }>(
-          'tauri://drag-drop',
-          (event) => {
-            if (isCancelled) return;
-            onDragStateChangeRef.current?.(false);
-            const pos = event.payload?.position || { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-            if (event.payload?.paths) {
-              handleProcessPaths(event.payload.paths, pos.x, pos.y);
-            }
-          }
-        );
       } catch (e) {
         console.warn('Tauri native drag drop listener setup skipped or not supported:', e);
       }
@@ -100,7 +100,6 @@ export function useNativeFileDrop({
     return () => {
       isCancelled = true;
       if (unlistenWebview) unlistenWebview();
-      if (unlistenEvent) unlistenEvent();
     };
   }, []);
 }

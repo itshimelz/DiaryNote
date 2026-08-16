@@ -39,6 +39,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
   onRequestUnlockNote,
   onExportNote,
   isCardDragging = false,
+  isCut = false,
   onDragStateChange,
   onContextMenu,
 }) => {
@@ -401,11 +402,15 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
           ? 'cursor-grab active:cursor-grabbing pointer-events-none'
           : isDragging || isCardDragging || isResizing
           ? 'transition-none scale-100 cursor-grabbing'
-          : `transition-[box-shadow,opacity] duration-150 ease-out scale-100 ${
+          : `transition-[box-shadow,opacity] duration-150 ease-out ${
               !isEditing ? 'cursor-grab' : ''
             }`
       } ${themeConfig.headerBg} ${themeConfig.text} ${
-        isSelected ? 'ring-2 ring-blue-500' : ''
+        isCut
+          ? 'opacity-40 ring-2 ring-indigo-500 ring-offset-2 border-2 border-dashed border-indigo-500 scale-[0.99]'
+          : isSelected
+          ? 'ring-2 ring-blue-500'
+          : ''
       }`}
     >
       {/* Washi Tape Decoration for Text Notes */}
@@ -871,6 +876,7 @@ export const NoteCard = React.memo(NoteCardComponent, (prevProps, nextProps) => 
 
   return (
     prevProps.isCardDragging === nextProps.isCardDragging &&
+    prevProps.isCut === nextProps.isCut &&
     prevProps.isSelected === nextProps.isSelected &&
     prevProps.isFocused === nextProps.isFocused &&
     prevProps.shouldStartEditing === nextProps.shouldStartEditing &&

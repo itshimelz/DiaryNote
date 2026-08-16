@@ -20,6 +20,7 @@ export interface NoteCardProps {
   onRequestUnlockNote?: (noteId: string) => void;
   onExportNote?: (note: Note, format: 'md' | 'txt' | 'json') => void;
   isCardDragging?: boolean;
+  isCut?: boolean;
   onDragStateChange?: (draggingIds: string[]) => void;
   onContextMenu?: (e: React.MouseEvent, noteId: string) => void;
 }

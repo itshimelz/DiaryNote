@@ -13,6 +13,7 @@ import {
   Layers01Icon,
   Alert02Icon,
   Grid02Icon,
+  ClipboardIcon,
 } from '@hugeicons/core-free-icons';
 import { Icon, Badge } from './ui';
 
@@ -54,6 +55,7 @@ interface StatusBarProps {
   notes?: Note[];
   themeMode?: CanvasTheme;
   selectedNoteIds?: string[];
+  cutNoteIds?: string[];
   snapToGrid?: boolean;
   gridType?: GridType;
   enableAIServices?: boolean;
@@ -61,6 +63,7 @@ interface StatusBarProps {
   isSaving?: boolean;
   saveError?: string | null;
   lastSavedAt?: Date | null;
+  onCancelCut?: () => void;
   onToggleSnap?: () => void;
   onCycleGridType?: () => void;
   onOpenBackupModal?: () => void;
@@ -72,6 +75,7 @@ const StatusBarComponent: React.FC<StatusBarProps> = ({
   notes = [],
   themeMode = 'dark',
   selectedNoteIds = [],
+  cutNoteIds = [],
   snapToGrid = false,
   gridType = 'dots',
   enableAIServices = false,
@@ -79,6 +83,7 @@ const StatusBarComponent: React.FC<StatusBarProps> = ({
   isSaving = false,
   saveError = null,
   lastSavedAt: _lastSavedAt = null,
+  onCancelCut,
   onToggleSnap,
   onCycleGridType,
   onOpenBackupModal,
@@ -271,6 +276,29 @@ const StatusBarComponent: React.FC<StatusBarProps> = ({
                 )}
               </span>
             </button>
+          </>
+        )}
+
+        {/* Live Active Cut & Relocate Status Indicator */}
+        {cutNoteIds && cutNoteIds.length > 0 && (
+          <>
+            <span className={isDark ? 'text-slate-600' : 'text-slate-300'}>·</span>
+            <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 font-sans text-[11px]">
+              <Icon icon={ClipboardIcon} size="xs" className={defaultIconClass} />
+              <span>
+                {cutNoteIds.length === 1 ? '1 note cut' : `${cutNoteIds.length} notes cut`} (Press Ctrl+V to place)
+              </span>
+              {onCancelCut && (
+                <button
+                  type="button"
+                  onClick={onCancelCut}
+                  className="inline-flex items-center px-1 py-0.5 rounded-xs text-[10px] uppercase font-semibold text-slate-500 hover:text-slate-900 hover:bg-slate-200/70 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  title="Cancel Cut (Esc)"
+                >
+                  Esc
+                </button>
+              )}
+            </div>
           </>
         )}
       </div>

@@ -7,6 +7,7 @@ import { NoteCard } from './NoteCard';
 import { ImageNoteCard } from './NoteCard/ImageNoteCard';
 import { NoteConnections } from './NoteConnections';
 import { GroupFrame } from './GroupFrame';
+import { isTauriEnvironment } from '../hooks/useNativeFileDrop';
 
 interface InfiniteCanvasProps {
   notes: Note[];
@@ -38,6 +39,8 @@ interface InfiniteCanvasProps {
   onExportNote?: (note: Note, format: 'md' | 'txt' | 'json') => void;
   onContextMenuNote?: (e: React.MouseEvent, noteId: string) => void;
   onContextMenuCanvas?: (e: React.MouseEvent) => void;
+  cutNoteIds?: string[];
+  onMouseMoveCoord?: (clientX: number, clientY: number) => void;
 }
 
 /**
@@ -170,6 +173,8 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
   onExportNote,
   onContextMenuNote,
   onContextMenuCanvas,
+  cutNoteIds = [],
+  onMouseMoveCoord,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const worldLayerRef = useRef<HTMLDivElement>(null);
@@ -607,6 +612,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
     <div
       ref={containerRef}
       onMouseDown={handleMouseDown}
+      onPointerMove={(e) => onMouseMoveCoord?.(e.clientX, e.clientY)}
       onDoubleClick={handleDoubleClick}
       onContextMenu={(e) => {
         const target = e.target as HTMLElement;
@@ -627,6 +633,10 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
       onDrop={(e) => {
         e.preventDefault();
         setIsDragOverCanvas(false);
+        // In Tauri desktop environment, native OS drag-drop is handled exclusively by useNativeFileDrop
+        if (isTauriEnvironment()) {
+          return;
+        }
         const files = e.dataTransfer.files;
         if (files && files.length > 0) {
           const imageFiles = Array.from(files).filter((f) => f.type.startsWith('image/'));
@@ -696,6 +706,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
               selectedNoteIds={selectedNoteIds}
               isFocused={focusedNoteId === note.id}
               isCardDragging={draggingNoteIds.includes(note.id)}
+              isCut={cutNoteIds.includes(note.id)}
               onDragStateChange={handleDragStateChange}
               shouldStartEditing={editingNoteId === note.id}
               onSelectNote={handleSelectNoteStable}
@@ -721,6 +732,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
               selectedNoteIds={selectedNoteIds}
               isFocused={focusedNoteId === note.id}
               isCardDragging={draggingNoteIds.includes(note.id)}
+              isCut={cutNoteIds.includes(note.id)}
               onDragStateChange={handleDragStateChange}
               shouldStartEditing={editingNoteId === note.id}
               onSelectNote={handleSelectNoteStable}
