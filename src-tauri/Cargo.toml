@@ -1,14 +1,10 @@
 [package]
 name = "app"
 version = "0.2.0-beta.1"
-description = "A Tauri App"
-authors = ["you"]
-license = ""
-repository = ""
+description = "DiaryNote Desktop Application"
+authors = ["DiaryNote Team"]
 edition = "2021"
 rust-version = "1.77.2"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
 name = "app_lib"
@@ -24,3 +20,4 @@ log = "0.4"
 tauri = { version = "2.11.3", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-notification = "2.3.3"
+base64 = "0.22"

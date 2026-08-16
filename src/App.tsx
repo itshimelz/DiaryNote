@@ -9,6 +9,7 @@ import { useNotesManager } from './hooks/useNotesManager';
 import { useCanvasTransform, screenToWorld } from './hooks/useCanvasTransform';
 import { useNoteSelection } from './hooks/useNoteSelection';
 import { useAppUIState } from './hooks/useAppUIState';
+import { useNativeFileDrop, DroppedImageData } from './hooks/useNativeFileDrop';
 
 // Modular Components
 import {
@@ -312,6 +313,60 @@ export default function App() {
     () => setIsShortcutsModalOpen((prev) => !prev),
     () => handleMergeNotesAI()
   );
+
+  // Native OS File Drag-and-Drop Image Creation Handler via Rust
+  const handleAddDroppedImages = useCallback(
+    (images: DroppedImageData[], customClientX?: number, customClientY?: number) => {
+      if (!images || images.length === 0) return;
+
+      images.forEach((imgData, index) => {
+        const img = new Image();
+        img.onload = () => {
+          const aspectRatio = img.naturalWidth / Math.max(1, img.naturalHeight);
+
+          let worldX: number | undefined;
+          let worldY: number | undefined;
+
+          if (typeof customClientX === 'number' && typeof customClientY === 'number') {
+            worldX = Math.round((customClientX - transform.x) / transform.zoom - 170 + index * 24);
+            worldY = Math.round((customClientY - transform.y) / transform.zoom - 180 + index * 24);
+          } else {
+            worldX = Math.round((window.innerWidth / 2 - transform.x) / transform.zoom - 170 + index * 30);
+            worldY = Math.round((window.innerHeight / 2 - transform.y) / transform.zoom - 180 + index * 30);
+          }
+
+          const rawTitle = imgData.title || imgData.filename.replace(/\.[^/.]+$/, '') || 'Photo Note';
+          const newId = handleAddImageNote(
+            transform,
+            settings,
+            imgData.data_url,
+            imgData.mime_type,
+            worldX,
+            worldY,
+            rawTitle,
+            '',
+            'polaroid',
+            undefined,
+            aspectRatio
+          );
+          setSelectedNoteIds([newId]);
+          sendNativeAppNotification(
+            'Photo Pinned',
+            `Pinned photo "${rawTitle}" to canvas`
+          );
+        };
+        img.src = imgData.data_url;
+      });
+    },
+    [transform, settings, handleAddImageNote, setSelectedNoteIds]
+  );
+
+  // Subscribe to Tauri Native OS Drag-Drop Events
+  useNativeFileDrop({
+    onDropImages: (images, clientX, clientY) => {
+      handleAddDroppedImages(images, clientX, clientY);
+    },
+  });
 
   const handleAddImageFiles = useCallback(
     (files: File[], customClientX?: number, customClientY?: number) => {
