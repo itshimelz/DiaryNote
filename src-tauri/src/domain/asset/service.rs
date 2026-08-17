@@ -1,6 +1,6 @@
 use std::path::Path;
 use std::sync::{Arc, Mutex};
-use rusqlite::{params, Connection};
+use rusqlite::Connection;
 
 use crate::domain::asset::{Asset, AssetInfo};
 use crate::infrastructure::filesystem::{AssetError, AssetStore};
@@ -29,7 +29,7 @@ impl AssetService {
     pub fn save_asset_from_path(&self, path: &Path) -> Result<AssetInfo, AssetError> {
         let data = std::fs::read(path).map_err(AssetError::Io)?;
         let filename = path.file_name().and_then(|n| n.to_str());
-        self.save_asset_from_bytes(&data, filename)
+        self.save_asset_from_bytes(data.as_slice(), filename)
     }
 
     pub fn get_asset_info(&self, hash: &str) -> Result<AssetInfo, AssetError> {
@@ -52,13 +52,14 @@ impl AssetService {
     }
 
     pub fn delete_asset(&self, hash: &str) -> Result<(), AssetError> {
-        AssetStore::validate_hash(hash)?;
         self.store.delete_asset(hash)?;
 
         if let Some(conn_mutex) = &self.db_conn {
             if let Ok(conn) = conn_mutex.lock() {
-                let _ = conn.execute("DELETE FROM note_assets WHERE asset_hash = ?1", params![hash]);
-                let _ = conn.execute("DELETE FROM assets WHERE hash = ?1", params![hash]);
+                let _ = conn.execute(
+                    "DELETE FROM assets WHERE hash = ?1",
+                    (hash,),
+                );
             }
         }
 
@@ -72,20 +73,17 @@ impl AssetService {
     fn record_asset_in_db(&self, asset: &Asset) -> Result<(), AssetError> {
         if let Some(conn_mutex) = &self.db_conn {
             let conn = conn_mutex.lock().map_err(|e| {
-                AssetError::Io(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!("Database lock error: {}", e),
-                ))
+                AssetError::Io(std::io::Error::other(format!("Database lock error: {}", e)))
             })?;
 
             let _ = conn.execute(
                 "INSERT OR IGNORE INTO assets (hash, mime_type, size_bytes, created_at) VALUES (?1, ?2, ?3, ?4)",
-                params![
+                (
                     &asset.hash,
                     &asset.mime_type,
                     asset.size_bytes as i64,
-                    &asset.created_at
-                ],
+                    &asset.created_at,
+                ),
             );
         }
         Ok(())
@@ -110,7 +108,7 @@ mod tests {
         let test_bytes = b"testing-asset-service-123456";
 
         let info = service
-            .save_asset_from_bytes(test_bytes, Some("test.png"))
+            .save_asset_from_bytes(test_bytes.as_slice(), Some("test.png"))
             .expect("Failed to save bytes");
 
         assert_eq!(info.size_bytes, test_bytes.len() as u64);

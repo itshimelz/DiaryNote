@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { isTauriEnvironment as isTauriAvailable } from './rustStorage';
 
 export interface AssetInfo {
   hash: string;
@@ -13,12 +14,6 @@ export interface AssetInfo {
   thumbnailUri?: string;
 }
 
-export function isTauriAvailable(): boolean {
-  return (
-    typeof window !== 'undefined' &&
-    ('__TAURI_INTERNALS__' in window || '__TAURI__' in window)
-  );
-}
 
 /**
  * Validates that a string is a 64-character hexadecimal SHA-256 hash.

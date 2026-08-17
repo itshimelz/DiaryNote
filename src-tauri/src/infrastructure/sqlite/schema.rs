@@ -66,4 +66,39 @@ CREATE TABLE IF NOT EXISTS canvas_transform (
 CREATE INDEX IF NOT EXISTS idx_notes_updated_timestamp ON notes(updated_timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_notes_daily ON notes(is_daily_entry, entry_date);
 CREATE INDEX IF NOT EXISTS idx_note_tags_tag ON note_tags(tag);
+
+-- Persistent FTS5 Full-Text Search Virtual Table (Trigram for multi-language substring matching)
+CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
+    id UNINDEXED,
+    title,
+    content,
+    tags,
+    tokenize = 'trigram'
+);
+
+-- Triggers for automatic sync between notes and notes_fts (sanitizes locked notes to empty content)
+CREATE TRIGGER IF NOT EXISTS notes_ai AFTER INSERT ON notes BEGIN
+    INSERT INTO notes_fts(id, title, content, tags) 
+    VALUES (
+        new.id, 
+        new.title, 
+        CASE WHEN new.is_locked = 1 THEN '' ELSE new.content END, 
+        ''
+    );
+END;
+
+CREATE TRIGGER IF NOT EXISTS notes_ad AFTER DELETE ON notes BEGIN
+    DELETE FROM notes_fts WHERE id = old.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS notes_au AFTER UPDATE ON notes BEGIN
+    DELETE FROM notes_fts WHERE id = old.id;
+    INSERT INTO notes_fts(id, title, content, tags) 
+    VALUES (
+        new.id, 
+        new.title, 
+        CASE WHEN new.is_locked = 1 THEN '' ELSE new.content END, 
+        ''
+    );
+END;
 "#;

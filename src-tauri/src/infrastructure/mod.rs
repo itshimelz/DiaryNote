@@ -1,7 +1,12 @@
+pub mod crypto;
 pub mod filesystem;
 pub mod os;
 pub mod sqlite;
 
+pub use crypto::{
+    decrypt_note_envelope, encrypt_note_envelope, hash_security_input, is_encrypted_envelope,
+    verify_security_input, CryptoError,
+};
 pub use filesystem::{AssetError, AssetStore};
 pub use os::AppPaths;
 pub use sqlite::{init_sqlite_connection, SqliteNoteRepository};

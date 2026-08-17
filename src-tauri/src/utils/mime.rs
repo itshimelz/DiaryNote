@@ -9,7 +9,7 @@ pub fn detect_image_mime_type(path: &Path, header: &[u8]) -> Option<&'static str
     if header.starts_with(&[0xFF, 0xD8, 0xFF]) {
         return Some("image/jpeg");
     }
-    if header.starts_with(b"RIFF") && header.len() >= 12 && &header[8..12] == b"WEBP" {
+    if header.starts_with(b"RIFF") && header.get(8..12) == Some(b"WEBP") {
         return Some("image/webp");
     }
     if header.starts_with(b"GIF87a") || header.starts_with(b"GIF89a") {

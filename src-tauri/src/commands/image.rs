@@ -42,7 +42,7 @@ pub fn read_image_files(paths: Vec<String>) -> Result<Vec<DroppedImageData>, Str
         };
 
         // Determine image MIME type
-        let header_sample = &bytes[..std::cmp::min(64, bytes.len())];
+        let header_sample = bytes.get(..64).unwrap_or(bytes.as_slice());
         let mime = match detect_image_mime_type(&path, header_sample) {
             Some(m) => m,
             None => continue,

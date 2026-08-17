@@ -1,18 +1,22 @@
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use rusqlite::{params, Connection, OptionalExtension};
 use crate::domain::note::error::StorageError;
 use crate::domain::note::repository::NoteRepository;
 use crate::models::{AppSettings, CanvasTransform, LoadedAppState, Note};
 
 pub struct SqliteNoteRepository {
-    conn: Mutex<Connection>,
+    conn: Arc<Mutex<Connection>>,
 }
 
 impl SqliteNoteRepository {
     pub fn new(conn: Connection) -> Self {
         Self {
-            conn: Mutex::new(conn),
+            conn: Arc::new(Mutex::new(conn)),
         }
+    }
+
+    pub fn from_arc(conn: Arc<Mutex<Connection>>) -> Self {
+        Self { conn }
     }
 }
 
@@ -135,7 +139,7 @@ impl NoteRepository for SqliteNoteRepository {
                 rotation,
             ) = row?;
 
-            let tags_iter = tag_stmt.query_map(params![&id], |t_row| t_row.get::<_, String>(0))?;
+            let tags_iter = tag_stmt.query_map((&id,), |t_row| t_row.get::<_, String>(0))?;
             let mut tags = Vec::new();
             for t in tags_iter {
                 tags.push(t?);
@@ -180,9 +184,9 @@ impl NoteRepository for SqliteNoteRepository {
         let transform_row = conn
             .query_row("SELECT x, y, zoom FROM canvas_transform WHERE id = 'default'", [], |row| {
                 Ok(CanvasTransform {
-                    x: row.get(0)?,
-                    y: row.get(1)?,
-                    zoom: row.get(2)?,
+                    x: row.get::<_, f64>(0)?,
+                    y: row.get::<_, f64>(1)?,
+                    zoom: row.get::<_, f64>(2)?,
                 })
             })
             .optional()?;
@@ -191,10 +195,14 @@ impl NoteRepository for SqliteNoteRepository {
 
         // 3. Load App Settings
         let settings_raw: Option<String> = conn
-            .query_row("SELECT value FROM app_settings WHERE key = 'app_settings'", [], |row| row.get(0))
+            .query_row(
+                "SELECT value FROM app_settings WHERE key = 'app_settings'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
             .optional()?;
 
-        let settings = match settings_raw {
+        let settings: AppSettings = match settings_raw {
             Some(raw) => serde_json::from_str(&raw).unwrap_or_default(),
             None => AppSettings::default(),
         };
@@ -297,10 +305,10 @@ impl NoteRepository for SqliteNoteRepository {
                 ])?;
 
                 // Re-create tags
-                delete_tags_stmt.execute(params![&note.id])?;
+                delete_tags_stmt.execute((&note.id,))?;
                 if let Some(ref tags) = note.tags {
                     for tag in tags {
-                        insert_tag_stmt.execute(params![&note.id, tag])?;
+                        insert_tag_stmt.execute((&note.id, tag))?;
                     }
                 }
             }
@@ -318,7 +326,7 @@ impl NoteRepository for SqliteNoteRepository {
         {
             let mut stmt = tx.prepare("DELETE FROM notes WHERE id = ?1")?;
             for id in ids {
-                let affected = stmt.execute(params![id])?;
+                let affected = stmt.execute((id,))?;
                 deleted_count += affected;
             }
         }
@@ -338,7 +346,7 @@ impl NoteRepository for SqliteNoteRepository {
                 y = excluded.y,
                 zoom = excluded.zoom
             "#,
-            params![transform.x, transform.y, transform.zoom],
+            (transform.x, transform.y, transform.zoom),
         )?;
         Ok(())
     }
@@ -353,14 +361,14 @@ impl NoteRepository for SqliteNoteRepository {
             ON CONFLICT(key) DO UPDATE SET
                 value = excluded.value
             "#,
-            params![json_val],
+            (json_val,),
         )?;
         Ok(())
     }
 
     fn check_integrity(&self) -> Result<bool, StorageError> {
         let conn = self.conn.lock().map_err(|e| StorageError::Database(e.to_string()))?;
-        let integrity: String = conn.query_row("PRAGMA quick_check", [], |row| row.get(0))?;
+        let integrity: String = conn.query_row("PRAGMA quick_check", [], |row| row.get::<_, String>(0))?;
         Ok(integrity == "ok")
     }
 }
@@ -414,7 +422,7 @@ mod tests {
         };
 
         // 1. Save Batch
-        let saved = repo.save_batch(&[note.clone()]).expect("Failed to save batch");
+        let saved = repo.save_batch(std::slice::from_ref(&note)).expect("Failed to save batch");
         assert_eq!(saved, 1);
 
         // 2. Load All
@@ -428,8 +436,10 @@ mod tests {
         let transform = CanvasTransform { x: 1000.0, y: 500.0, zoom: 1.5 };
         repo.save_canvas_transform(&transform).expect("Failed to save transform");
 
-        let mut settings = AppSettings::default();
-        settings.grid_type = "ruled".to_string();
+        let settings = AppSettings {
+            grid_type: "ruled".to_string(),
+            ..Default::default()
+        };
         repo.save_app_settings(&settings).expect("Failed to save settings");
 
         let reloaded = repo.load_all().expect("Failed to reload state");
@@ -437,7 +447,8 @@ mod tests {
         assert_eq!(reloaded.settings.grid_type, "ruled");
 
         // 4. Delete Batch
-        let deleted = repo.delete_batch(&["n-100".to_string()]).expect("Failed to delete");
+        let delete_id = "n-100".to_string();
+        let deleted = repo.delete_batch(std::slice::from_ref(&delete_id)).expect("Failed to delete");
         assert_eq!(deleted, 1);
 
         let empty_state = repo.load_all().expect("Failed to load");

@@ -129,14 +129,15 @@ mod tests {
             rotation: None,
         };
 
-        let saved = repo.save_batch(&[note1.clone()][..]).expect("save batch failed");
+        let saved = repo.save_batch(std::slice::from_ref(&note1)).expect("save batch failed");
         assert_eq!(saved, 1);
 
         let state = repo.load_all().expect("load failed");
         assert_eq!(state.notes.len(), 1);
         assert_eq!(state.notes[0].id, "n1");
 
-        let deleted = repo.delete_batch(&["n1".to_string()][..]).expect("delete failed");
+        let del_id = "n1".to_string();
+        let deleted = repo.delete_batch(std::slice::from_ref(&del_id)).expect("delete failed");
         assert_eq!(deleted, 1);
 
         let state_after = repo.load_all().expect("load failed");

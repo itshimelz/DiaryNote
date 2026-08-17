@@ -280,7 +280,7 @@ mod tests {
     #[test]
     fn test_save_and_deduplicate_asset() {
         let (store, root) = create_test_store();
-        let test_data: &[u8] = b"fake-image-png-content-12345";
+        let test_data = b"fake-image-png-content-12345".as_slice();
 
         let asset1 = store.save_asset(test_data, Some("photo.png")).expect("Failed to save asset");
         assert_eq!(asset1.size_bytes, test_data.len() as u64);

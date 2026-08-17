@@ -87,14 +87,15 @@ mod tests {
             rotation: None,
         };
 
-        let count = service.save_notes_batch(&[note]).expect("save failed");
+        let count = service.save_notes_batch(std::slice::from_ref(&note)).expect("save failed");
         assert_eq!(count, 1);
 
         let state = service.load_app_state().expect("load failed");
         assert_eq!(state.notes.len(), 1);
         assert_eq!(state.notes[0].title, "Service Test");
 
-        let deleted = service.delete_notes(&["test-note".to_string()]).expect("delete failed");
+        let delete_id = "test-note".to_string();
+        let deleted = service.delete_notes(std::slice::from_ref(&delete_id)).expect("delete failed");
         assert_eq!(deleted, 1);
 
         let state_after = service.load_app_state().expect("load failed");

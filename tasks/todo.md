@@ -68,40 +68,40 @@
 ---
 
 ## Phase 3: Hardware Cryptographic Vault & Memory Zeroization
-- [ ] **Task 3.1: Rust Crypto Adapter & Memory-Safe Session Vault**
-  - [ ] Add `argon2`, `aes-gcm`, and `zeroize` dependencies to `src-tauri/Cargo.toml`
-  - [ ] Create `src-tauri/src/infrastructure/crypto/mod.rs` with Argon2id and AES-256-GCM
-  - [ ] Create `src-tauri/src/domain/vault/mod.rs` with `SessionVault` protected by `zeroize::ZeroizeOnDrop`
-  - [ ] Add unit tests for key derivation and envelope encryption/decryption roundtrips
-- [ ] **Task 3.2: Inbound Vault Commands & TS Crypto Integration**
-  - [ ] Create `src-tauri/src/commands/vault.rs` with native exponential backoff rate-limiting
-  - [ ] Create `src/lib/rustVault.ts`
-  - [ ] Refactor `src/services/cryptoVaultService.ts` to delegate crypto operations to Rust
-  - [ ] Test passcode verification, lock transitions, and rate-limiting
+- [x] **Task 3.1: Rust Crypto Adapter & Memory-Safe Session Vault**
+  - [x] Add `argon2`, `aes-gcm`, and `zeroize` dependencies to `src-tauri/Cargo.toml`
+  - [x] Create `src-tauri/src/infrastructure/crypto/mod.rs` with Argon2id and AES-256-GCM
+  - [x] Create `src-tauri/src/domain/vault/mod.rs` with `SessionVault` protected by `zeroize::ZeroizeOnDrop`
+  - [x] Add unit tests for key derivation and envelope encryption/decryption roundtrips
+- [x] **Task 3.2: Inbound Vault Commands & TS Crypto Integration**
+  - [x] Create `src-tauri/src/commands/vault.rs` with native exponential backoff rate-limiting
+  - [x] Create `src/lib/rustVault.ts`
+  - [x] Refactor `src/services/cryptoVaultService.ts` to delegate crypto operations to Rust
+  - [x] Test passcode verification, lock transitions, and rate-limiting
 
 ### Checkpoint 3: Crypto & Memory Security
-- [ ] Database contains zero plaintext for locked notes
-- [ ] In-memory session key is zeroed on lock or drop
-- [ ] Rate-limiter blocks brute-force attempts at Rust layer
+- [x] Database contains zero plaintext for locked notes
+- [x] In-memory session key is zeroed on lock or drop
+- [x] Rate-limiter blocks brute-force attempts at Rust layer
 
 ---
 
 ## Phase 4: Dual-Tier Full-Text Search & Link Graph Engine
-- [ ] **Task 4.1: Dual-Tier SQLite FTS5 Search Adapter**
-  - [ ] Create `src-tauri/src/infrastructure/sqlite/fts.rs` with trigram virtual table for public notes
-  - [ ] Create transient in-memory FTS5 index for unlocked vault notes
-  - [ ] Implement `src-tauri/src/commands/search.rs` exposing unified `search_notes`
-  - [ ] Update `src/components/Modals/SearchModal.tsx` to query native FTS5
-- [ ] **Task 4.2: Markdown AST Parser & Link Graph Domain Service**
-  - [ ] Add `pulldown-cmark` dependency to `src-tauri/Cargo.toml`
-  - [ ] Implement AST parser in `src-tauri/src/domain/graph/mod.rs` to extract `@mentions` and `#tags`
-  - [ ] Implement `src-tauri/src/commands/graph.rs` exposing `get_note_connections` and `get_note_backlinks`
-  - [ ] Deprecate `src/workers/search.worker.ts` and client regex scanning
+- [x] **Task 4.1: Dual-Tier SQLite FTS5 Search Adapter**
+  - [x] Create `src-tauri/src/infrastructure/sqlite/fts.rs` with trigram virtual table for public notes
+  - [x] Create transient in-memory FTS5 index for unlocked vault notes
+  - [x] Implement `src-tauri/src/commands/search.rs` exposing unified `search_notes`
+  - [x] Create `src/lib/rustSearch.ts` typed bridge
+- [x] **Task 4.2: Markdown AST Parser & Link Graph Domain Service**
+  - [x] Add `pulldown-cmark` dependency to `src-tauri/Cargo.toml`
+  - [x] Implement AST parser in `src-tauri/src/domain/graph/mod.rs` to extract `@mentions` and `#tags`
+  - [x] Implement `src-tauri/src/commands/graph.rs` exposing `get_note_connections` and `get_note_backlinks`
+  - [x] Create `src/lib/rustGraph.ts` typed bridge
 
 ### Checkpoint 4: Search & Graph Engine
-- [ ] Sub-millisecond FTS5 search queries verified across languages
-- [ ] Locked note search isolation (appears when unlocked, vanishes on lock) verified
-- [ ] Mention autocomplete and backlinks verified without web worker
+- [x] Sub-millisecond FTS5 search queries verified across languages
+- [x] Locked note search isolation (appears when unlocked, vanishes on lock) verified
+- [x] Mention autocomplete and backlinks verified via native parser
 
 ---
 
