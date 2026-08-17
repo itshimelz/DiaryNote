@@ -1,10 +1,12 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use rusqlite::Connection;
 use tauri::State;
 use crate::domain::asset::AssetService;
 use crate::domain::graph::GraphService;
 use crate::domain::note::NoteService;
 use crate::domain::search::SearchService;
 use crate::domain::vault::VaultService;
+use crate::infrastructure::os::AppPaths;
 use crate::models::{AppSettings, CanvasTransform, LoadedAppState, Note};
 
 pub struct AppState {
@@ -13,6 +15,8 @@ pub struct AppState {
     pub vault_service: VaultService,
     pub search_service: SearchService,
     pub graph_service: GraphService,
+    pub db_conn: Arc<Mutex<Connection>>,
+    pub app_paths: AppPaths,
 }
 
 impl AppState {
@@ -22,6 +26,8 @@ impl AppState {
         vault_service: VaultService,
         search_service: SearchService,
         graph_service: GraphService,
+        db_conn: Arc<Mutex<Connection>>,
+        app_paths: AppPaths,
     ) -> Self {
         Self {
             note_service,
@@ -29,6 +35,8 @@ impl AppState {
             vault_service,
             search_service,
             graph_service,
+            db_conn,
+            app_paths,
         }
     }
 }

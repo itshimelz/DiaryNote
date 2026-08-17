@@ -298,8 +298,8 @@ This plan executes the migration of DiaryNote to a **Hybrid MVVM (Frontend) + He
 ---
 
 ### Checkpoint 4: Search & Graph Verification Gate
-- [ ] Sub-millisecond FTS5 search queries verified across languages.
-- [ ] Locked note search isolation (appears when unlocked, vanishes on lock) verified.
+- [x] Sub-millisecond FTS5 search queries verified across languages.
+- [x] Locked note search isolation (appears when unlocked, vanishes on lock) verified.
 
 ---
 
@@ -309,12 +309,12 @@ This plan executes the migration of DiaryNote to a **Hybrid MVVM (Frontend) + He
 **Description:** Implement `infrastructure/filesystem/backup.rs` using `rusqlite::backup::Backup` and `zip-rs` to export complete `.diarynote` archive bundles containing checkpointed database state, manifest, and image assets.
 
 **Acceptance criteria:**
-- [ ] Uses SQLite Online Backup API to create consistent snapshots during concurrent writes.
-- [ ] Bundles database and referenced assets into a compressed archive.
-- [ ] Staged import preview modal inspects archive with duplicate resolution options.
+- [x] Uses SQLite Online Backup API to create consistent snapshots during concurrent writes.
+- [x] Bundles database and referenced assets into a compressed archive.
+- [x] Staged import preview modal inspects archive with duplicate resolution options.
 
 **Verification:**
-- [ ] `cargo test --lib infrastructure::filesystem::backup` passes roundtrip archive tests.
+- [x] `cargo test --lib infrastructure::filesystem::backup` passes roundtrip archive tests.
 
 **Dependencies:** Checkpoint 4  
 **Files likely touched:**
@@ -327,8 +327,8 @@ This plan executes the migration of DiaryNote to a **Hybrid MVVM (Frontend) + He
 ---
 
 ### Checkpoint 5: Backup Engine Verification Gate
-- [ ] Export during active writing produces 100% valid backup.
-- [ ] Full vault restore verified with zero data corruption.
+- [x] Export during active writing produces 100% valid backup.
+- [x] Full vault restore verified with zero data corruption.
 
 ---
 
@@ -338,13 +338,13 @@ This plan executes the migration of DiaryNote to a **Hybrid MVVM (Frontend) + He
 **Description:** Implement `infrastructure/network/ai_client.rs` using `reqwest` for streaming LLM requests (Gemini, OpenAI, OpenRouter). Store credentials in backend and stream tokens over Tauri event channel `ai:stream-chunk`.
 
 **Acceptance criteria:**
-- [ ] API keys never exposed in WebView memory or network devtools.
-- [ ] Token streaming emits smooth chunks to UI for note synthesis.
-- [ ] Replaces browser fetch in `src/services/ai/aiMergeService.ts`.
+- [x] API keys never exposed in WebView memory or network devtools.
+- [x] Token streaming emits smooth chunks to UI for note synthesis.
+- [x] Replaces browser fetch in `src/services/ai/aiMergeService.ts`.
 
 **Verification:**
-- [ ] `cargo test --lib infrastructure::network` passes.
-- [ ] AI Settings and synthesis work end-to-end with real-time streaming.
+- [x] `cargo test --lib infrastructure::network` passes.
+- [x] AI Settings and synthesis work end-to-end with real-time streaming.
 
 **Dependencies:** Checkpoint 4  
 **Files likely touched:**
@@ -358,8 +358,8 @@ This plan executes the migration of DiaryNote to a **Hybrid MVVM (Frontend) + He
 ---
 
 ### Checkpoint 6: AI Gateway Verification Gate
-- [ ] Token streaming verified without UI blocking.
-- [ ] DevTools network tab reveals zero API credentials.
+- [x] Token streaming verified without UI blocking.
+- [x] DevTools network tab reveals zero API credentials.
 
 ---
 
@@ -369,14 +369,14 @@ This plan executes the migration of DiaryNote to a **Hybrid MVVM (Frontend) + He
 **Description:** Remove legacy fallback code, run comprehensive static analysis, update documentation and UI component registry, and perform end-to-end release builds.
 
 **Acceptance criteria:**
-- [ ] `cargo test --all` passes 100%.
-- [ ] `cargo check` outputs 0 warnings.
-- [ ] `npm run lint` (`oxlint && tsc --noEmit`) outputs 0 errors.
-- [ ] `npm test` passes all suites.
-- [ ] `AGENTS.md` UI registry updated.
+- [x] `cargo test --all` passes 100%.
+- [x] `cargo check` outputs 0 warnings.
+- [x] `npm run lint` (`oxlint && tsc --noEmit`) outputs 0 errors.
+- [x] `npm test` passes all suites.
+- [x] `AGENTS.md` UI registry updated.
 
 **Verification:**
-- [ ] `npm run build` succeeds cleanly.
+- [x] `npm run build` succeeds cleanly.
 
 **Dependencies:** Tasks 0.1–6.1  
 **Files likely touched:**
@@ -389,5 +389,6 @@ This plan executes the migration of DiaryNote to a **Hybrid MVVM (Frontend) + He
 ---
 
 ### Checkpoint 7: Complete Desktop Release Verification
-- [ ] All milestone gates cleared.
-- [ ] Desktop app verified resilient against crashes, disk-full, and power-loss edge cases.
+- [x] All milestone gates cleared.
+- [x] Desktop app verified resilient against crashes, disk-full, and power-loss edge cases.
+

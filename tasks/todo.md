@@ -106,39 +106,40 @@
 ---
 
 ## Phase 5: WAL-Safe Online Backup & Archive Engine
-- [ ] **Task 5.1: SQLite Online Backup API & Streaming ZIP Exporter**
-  - [ ] Add `zip` crate to `src-tauri/Cargo.toml`
-  - [ ] Create `src-tauri/src/infrastructure/filesystem/backup.rs` with `rusqlite::backup::Backup`
-  - [ ] Implement `src-tauri/src/commands/backup.rs` exposing `export_vault_archive` and `import_vault_archive`
-  - [ ] Connect `ImportPreviewModal.tsx` and settings export buttons to Rust commands
+- [x] **Task 5.1: SQLite Online Backup API & Streaming ZIP Exporter**
+  - [x] Add `zip` crate to `src-tauri/Cargo.toml`
+  - [x] Create `src-tauri/src/infrastructure/filesystem/backup.rs` with `rusqlite::backup::Backup`
+  - [x] Implement `src-tauri/src/commands/backup.rs` exposing `export_vault_archive` and `import_vault_archive`
+  - [x] Connect `ImportPreviewModal.tsx` and settings export buttons to Rust commands
 
 ### Checkpoint 5: Online Backup Engine
-- [ ] Export during active writing produces 100% valid backup
-- [ ] Full vault restore verified with duplicate ID resolution
+- [x] Export during active writing produces 100% valid backup
+- [x] Full vault restore verified with duplicate ID resolution
 
 ---
 
 ## Phase 6: Secure Streaming AI Gateway
-- [ ] **Task 6.1: Reqwest Streaming AI Client & Credential Protection**
-  - [ ] Add `reqwest` (with `json`, `stream`) to `src-tauri/Cargo.toml`
-  - [ ] Create `src-tauri/src/infrastructure/network/ai_client.rs`
-  - [ ] Create `src-tauri/src/domain/ai/mod.rs` and `src-tauri/src/commands/ai.rs`
-  - [ ] Implement token streaming via Tauri event channels (`ai:stream-chunk`)
-  - [ ] Refactor `src/services/ai/aiMergeService.ts` to consume native streams
+- [x] **Task 6.1: Reqwest Streaming AI Client & Credential Protection**
+  - [x] Add `reqwest` (with `json`, `stream`) to `src-tauri/Cargo.toml`
+  - [x] Create `src-tauri/src/infrastructure/network/ai_client.rs`
+  - [x] Create `src-tauri/src/domain/ai/mod.rs` and `src-tauri/src/commands/ai.rs`
+  - [x] Implement token streaming via Tauri event channels (`ai:stream-chunk`)
+  - [x] Refactor `src/services/ai/aiMergeService.ts` to consume native streams
 
 ### Checkpoint 6: Streaming AI Gateway
-- [ ] Token streaming verified without UI blocking
-- [ ] DevTools network tab reveals zero API credentials
+- [x] Token streaming verified without UI blocking
+- [x] DevTools network tab reveals zero API credentials
 
 ---
 
 ## Phase 7: Cross-Platform Hardening & Release Polish
-- [ ] **Task 7.1: Final Cleanup, Deprecation Removal & Static Analysis**
-  - [ ] Update `AGENTS.md` UI Component Modification Registry
-  - [ ] Verify `npm run lint` (0 errors)
-  - [ ] Verify `npm test` (all test suites pass)
-  - [ ] Verify `cargo check` and `cargo test --all` clean
+- [x] **Task 7.1: Final Cleanup, Deprecation Removal & Static Analysis**
+  - [x] Update `AGENTS.md` UI Component Modification Registry
+  - [x] Verify `npm run lint` (0 errors)
+  - [x] Verify `npm test` (all test suites pass)
+  - [x] Verify `cargo check` and `cargo test --all` clean
 
 ### Checkpoint 7: Complete Desktop Release Verification
-- [ ] All milestone gates cleared
-- [ ] Production build verification (`npm run build` + `cargo check`)
+- [x] All milestone gates cleared
+- [x] Production build verification (`npm run build` + `cargo check`)
+

@@ -296,6 +296,17 @@ function triggerBrowserDownload(filename: string, content: string, contentType: 
 }
 
 export async function exportBackup(notes: Note[], transform: CanvasTransform, settings: AppSettings): Promise<string> {
+  const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+  if (isTauri) {
+    try {
+      const summary = await invoke<{ filePath: string; fileName: string }>('export_vault_archive');
+      sendNativeAppNotification('Backup Created', `Full vault snapshot saved: ${summary.fileName}`);
+      return summary.filePath;
+    } catch (err) {
+      console.warn('Native archive export fallback to JSON:', err);
+    }
+  }
+
   const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const filename = `DiaryNote-Backup-${dateStr}.json`;
 
@@ -316,6 +327,7 @@ export async function exportBackup(notes: Note[], transform: CanvasTransform, se
       `${authResult.lockedNoteIds.length} locked note(s) were redacted in this backup. Unlock notes to export full plaintext.`
     );
   }
+
 
   const exportNotes = authResult.redactedNotes;
 

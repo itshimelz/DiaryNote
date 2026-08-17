@@ -1,3 +1,5 @@
+import { invoke } from '@tauri-apps/api/core';
+import { isTauriEnvironment } from '../../lib/rustStorage';
 import { Note, AIProvider } from '../../types';
 import { decryptApiKey } from '../../utils/aiSecurity';
 import { recordAIRequest } from '../../utils/aiUsageTracker';
@@ -23,6 +25,7 @@ export interface MergeNotesResult {
   title: string;
   content: string;
 }
+
 
 const DEFAULT_TIMEOUT_MS = 15000;
 
@@ -102,6 +105,24 @@ export async function testAIConnection(
   }
 
   const modelName = getModelName(config);
+
+  if (isTauriEnvironment()) {
+    try {
+      const res = await invoke<{ success: boolean; message: string }>('ai_test_connection', {
+        config: {
+          provider: config.aiProvider,
+          apiKey,
+          modelName,
+          customBaseUrl: config.customBaseUrl,
+          userPrompt: 'ping',
+        },
+      });
+      return res;
+    } catch (err: any) {
+      return { success: false, message: err?.message || String(err) };
+    }
+  }
+
   const signal = createTimeoutSignal(externalSignal, 10000);
 
   try {
@@ -167,7 +188,7 @@ export async function mergeNotesWithAI(
   }
 
   // Security & Privacy Policy Guard: Redact or reject unauthorized locked notes
-  const authResult = authorizeNotes(notesToMerge, 'sendToAI');
+  const authResult =  authorizeNotes(notesToMerge, 'sendToAI');
   if (!authResult.allowed) {
     throw new Error('Cannot send locked notes to external AI service without authentication.');
   }
@@ -177,8 +198,6 @@ export async function mergeNotesWithAI(
     throw new Error('API key is missing or could not be decrypted. Please check AI settings.');
   }
 
-  const signal = createTimeoutSignal(externalSignal, DEFAULT_TIMEOUT_MS);
-
   // Construct source notes block
   const notesText = notesToMerge
     .map((n, i) => `[NOTE ${i + 1}: "${n.title || 'Untitled'}"]\n${n.content}\n`)
@@ -186,9 +205,41 @@ export async function mergeNotesWithAI(
 
   const systemPrompt = getNoteSynthesisSystemPrompt(notesToMerge.length);
   const userPrompt = getNoteSynthesisUserPrompt(notesToMerge.length, notesText);
-
-  let rawOutput = '';
   const modelName = getModelName(config);
+
+  if (isTauriEnvironment()) {
+    try {
+      const requestId = `ai-merge-${crypto.randomUUID()}`;
+      const res = await invoke<{ title: string; content: string }>('ai_stream_synthesis', {
+        config: {
+          provider: config.aiProvider,
+          apiKey,
+          modelName,
+          customBaseUrl: config.customBaseUrl,
+          systemPrompt,
+          userPrompt,
+          temperature: 0.3,
+        },
+        requestId,
+      });
+
+      let content = res.content;
+      const mentionsList = notesToMerge
+        .map((n) => `@[${(n.title || 'Untitled Note').replace(/[\][]/g, '')}](${n.id})`)
+        .join(', ');
+
+      const referencesSection = `\n\n---\n**Merged from:** ${mentionsList}`;
+      content = content + referencesSection;
+
+      recordAIRequest();
+      return { title: res.title, content };
+    } catch (err: any) {
+      throw new Error(err?.message || String(err));
+    }
+  }
+
+  const signal = createTimeoutSignal(externalSignal, DEFAULT_TIMEOUT_MS);
+  let rawOutput = '';
 
   if (config.aiProvider === 'gemini') {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
@@ -287,10 +338,31 @@ export async function generateAutoTagsWithAI(
     throw new Error('API key is missing or invalid. Please configure AI settings.');
   }
 
+  const modelName = getModelName(config);
+
+  if (isTauriEnvironment()) {
+    try {
+      const tags = await invoke<string[]>('ai_generate_tags', {
+        config: {
+          provider: config.aiProvider,
+          apiKey,
+          modelName,
+          customBaseUrl: config.customBaseUrl,
+          userPrompt: '',
+        },
+        title,
+        content,
+      });
+      recordAIRequest();
+      return tags.slice(0, 3);
+    } catch (err: any) {
+      throw new Error(err?.message || String(err));
+    }
+  }
+
   const signal = createTimeoutSignal(externalSignal, DEFAULT_TIMEOUT_MS);
   const systemPrompt = AUTO_TAGGING_SYSTEM_PROMPT;
   const userPrompt = getAutoTaggingUserPrompt(title, content);
-  const modelName = getModelName(config);
   let rawOutput = '';
 
   if (config.aiProvider === 'gemini') {
@@ -356,3 +428,4 @@ export async function generateAutoTagsWithAI(
 
   return tags.slice(0, 3);
 }
+

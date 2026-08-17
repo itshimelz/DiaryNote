@@ -6,13 +6,14 @@ pub mod utils;
 
 use std::sync::{Arc, Mutex};
 use commands::{
-    check_database_integrity, clear_vault_fts_index, delete_asset, delete_notes,
-    get_asset_info, get_note_backlinks, get_note_graph_connections, index_vault_notes,
-    load_app_state, parse_note_markdown_links, read_image_files, relocate_notes,
-    save_app_settings, save_asset_from_bytes, save_asset_from_path, save_canvas_transform,
-    save_export_file, save_notes_batch, search_notes, vault_decrypt_note, vault_encrypt_note,
-    vault_get_status, vault_hash_security_input, vault_is_unlocked, vault_lock, vault_unlock,
-    vault_verify_security_input, AppState,
+    ai_generate_tags, ai_stream_synthesis, ai_test_connection, check_database_integrity,
+    clear_vault_fts_index, delete_asset, delete_notes, export_vault_archive, get_asset_info,
+    get_note_backlinks, get_note_graph_connections, import_vault_archive, index_vault_notes,
+    inspect_vault_archive, load_app_state, parse_note_markdown_links, read_image_files,
+    relocate_notes, save_app_settings, save_asset_from_bytes, save_asset_from_path,
+    save_canvas_transform, save_export_file, save_notes_batch, search_notes,
+    vault_decrypt_note, vault_encrypt_note, vault_get_status, vault_hash_security_input,
+    vault_is_unlocked, vault_lock, vault_unlock, vault_verify_security_input, AppState,
 };
 use domain::asset::AssetService;
 use domain::graph::GraphService;
@@ -124,6 +125,12 @@ pub fn run() {
             parse_note_markdown_links,
             get_note_graph_connections,
             get_note_backlinks,
+            export_vault_archive,
+            inspect_vault_archive,
+            import_vault_archive,
+            ai_test_connection,
+            ai_stream_synthesis,
+            ai_generate_tags,
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {
@@ -144,7 +151,7 @@ pub fn run() {
             let repo = Arc::new(SqliteNoteRepository::from_arc(Arc::clone(&conn_arc)));
             let note_service = NoteService::new(repo);
 
-            let asset_store = Arc::new(AssetStore::new(app_paths));
+            let asset_store = Arc::new(AssetStore::new(app_paths.clone()));
             let asset_service = AssetService::new(asset_store, Some(Arc::clone(&conn_arc)));
 
             let vault_service = VaultService::new();
@@ -157,6 +164,8 @@ pub fn run() {
                 vault_service,
                 search_service,
                 graph_service,
+                Arc::clone(&conn_arc),
+                app_paths,
             ));
 
             app.manage(app_state);
