@@ -1,103 +1,393 @@
-# Implementation Plan: Native Rust Core & SQLite Persistence (Point 5)
+# Implementation Plan: Rust Native Desktop Migration (Production Milestone Edition v4)
 
 ## Overview
-Transform DiaryNote from a WebView-bound IndexedDB application into a true desktop-native application powered by a compiled Rust application core with SQLite, FTS5 full-text indexing, R*Tree spatial indexing, and atomic persistence over Tauri IPC, while maintaining web/test fallback via a typed repository pattern and seamless automatic migration from legacy IndexedDB.
+This plan executes the migration of DiaryNote to a **Hybrid MVVM (Frontend) + Hexagonal (Rust Core)** architecture across 8 checkpoint milestones (Phase 0 to Phase 7). The architecture enforces a **Hybrid Canvas Model** (HTML5 DOM for editable cards + Canvas for grid/connections), **Client-Side In-Memory R-Tree Spatial Virtualization** (mounting ~50–200 DOM cards with zero IPC on pan/zoom), **Platform-Aware AppData SQLite WAL persistence**, **Hardware Argon2id/AES-256-GCM Cryptography**, and **Dual-Tier FTS5 Full-Text Search**.
+
+## Architecture & Subsystem Decisions
+- **Hybrid Canvas Model:** DOM for NoteCard text editing, Bangla/IME input, and selection UI; HTML5 Canvas for background grid and connection lines.
+- **Client In-Memory Spatial Virtualization:** In-memory R-Tree on the frontend queries visible notes within the camera viewport + 500px overscan buffer.
+- **Clean SQLite Indexing:** Primary key on `id`, B-tree index on `updated_timestamp`, composite index on `[is_daily_entry, entry_date]`, and FTS5 for text search.
+- **OS-Aware AppData Layout:** Dynamic resolution via `app.path().app_data_dir()` for Linux, macOS, and Windows.
+- **Single-Instance Mutex:** Focuses existing window on duplicate launches to eliminate lock contention.
+- **Zero-Loss Durability:** 500ms normal debounce backed by immediate flushes on window close, blur, and manual save.
+- **Hexagonal Domain Contracts:** `NoteRepository` trait in `domain/` decouples business logic from SQLite infrastructure.
+- **Dual-Tier Search Architecture:** On-disk FTS5 for public notes + transient in-memory FTS5 for unlocked vault notes with `zeroize` memory cleanup on lock.
+- **WAL-Safe Backups:** Native SQLite Online Backup API (`rusqlite::backup`) preventing detached WAL corruption.
 
 ---
 
-## Architectural Decisions
+## Phased Task Breakdown
 
-### 1. Unified Repository Interface (`IStorageRepository`)
-- **Decision:** Define a platform-agnostic TypeScript repository interface (`IStorageRepository`).
-- **Rationale:** Ensures clean separation of concerns. DiaryNote can run natively on desktop via `TauriSqliteRepository` (Tauri IPC), while seamlessly falling back to `IndexedDbRepository` during Vitest testing, CI benchmarks, or web development previews.
+### Phase 0: OS Foundation, Repository Contracts & Lifecycle
 
-### 2. Rust Core Storage Engine (`rusqlite` with `bundled`, `fts5`, and `rtree`)
-- **Decision:** Use `rusqlite` with bundled SQLite3 and FTS5 in `src-tauri`.
-- **Rationale:** Bundled SQLite ensures 100% deterministic cross-platform behavior across Linux, macOS, and Windows with zero external system dependency requirements.
-- **Features:**
-  - WAL (Write-Ahead Logging) mode for concurrent high-speed reads and writes.
-  - Foreign key enforcement and synchronous NORMAL mode for optimal 60 FPS desktop write performance.
-  - FTS5 virtual table (`notes_fts`) with unicode61 tokenizer for sub-millisecond BM25 ranked full-text search.
-  - R*Tree virtual table (`notes_spatial_rtree`) for database-level spatial bounding box queries.
+#### Task 0.1: Tauri Platform-Aware Path Resolver & Single-Instance Mutex
+**Description:** Configure `tauri-plugin-single-instance` in `Cargo.toml`. Create `infrastructure/os/paths.rs` to dynamically resolve canonical AppData paths across Linux, macOS, and Windows. Configure single-instance focus handling in `lib.rs`.
 
-### 3. File System Location & Single-File Portability
-- **Decision:** Store the database at standard OS data directories:
-  - Linux: `~/.local/share/diarynote/diarynote.db`
-  - macOS: `~/Library/Application Support/diarynote/diarynote.db`
-  - Windows: `%APPDATA%\diarynote\diarynote.db`
-- **Rationale:** Gives users a single, robust, portable SQLite file that survives WebView cache purges and can be backed up directly.
+**Acceptance criteria:**
+- [ ] Resolves AppData directory via `app.path().app_data_dir()`, ensuring `assets/`, `backups/`, and `temp/` directories exist.
+- [ ] Single-instance plugin focuses existing window and passes args on second launch.
+- [ ] Zero hardcoded Linux `$HOME/.local/share` paths in the codebase.
 
-### 4. Zero-Loss Automated Migration Pipeline
-- **Decision:** Implement automatic one-time migration from IndexedDB to SQLite on first native boot.
-- **Rationale:** When `TauriSqliteRepository` boots, if `diarynote.db` is empty but the WebView holds legacy notes in IndexedDB (`DiaryNoteSQLiteDB`), the frontend sends an import payload to Rust, commits it in a single transaction, and records a migration sentinel.
+**Verification:**
+- [ ] `cargo test --lib infrastructure::os` passes.
+
+**Dependencies:** None  
+**Files likely touched:**
+- `src-tauri/Cargo.toml`
+- `src-tauri/src/infrastructure/os/paths.rs`
+- `src-tauri/src/lib.rs`
+
+**Estimated scope:** S (3 files)
 
 ---
 
-## Dependency Graph
+#### Task 0.2: Hexagonal Domain Contracts & Storage Error Types
+**Description:** Define abstract `NoteRepository` trait and typed `StorageError` enum in `domain/note/repository.rs`. Implement in-memory mock repository for fast unit testing.
 
-```text
-src-tauri/Cargo.toml (rusqlite + fts5 + serde)
-       │
-       ▼
-src-tauri/src/db.rs (Schema, Connection, WAL, CRUD, FTS5, RTree)
-       │
-       ▼
-src-tauri/src/lib.rs (Tauri IPC Commands: db_init, db_save_notes, etc.)
-       │
-       ▼
-src/lib/repository/IStorageRepository.ts (TypeScript Storage Contract)
-       │
-       ├── src/lib/repository/TauriSqliteRepository.ts (Desktop IPC)
-       └── src/lib/repository/IndexedDbRepository.ts (Web/Test Fallback)
-       │
-       ▼
-src/lib/repository/index.ts (Repository Factory & Auto-Detection)
-       │
-       ▼
-src/hooks/useNotesManager.ts & src/App.tsx (UI & State Integration)
-```
+**Acceptance criteria:**
+- [ ] `NoteRepository` trait defines `load_all`, `save_batch`, `delete_batch`, `get_app_state`, `save_app_state`, `check_integrity`.
+- [ ] `StorageError` encapsulates `DiskFull`, `PermissionDenied`, `Database`, `Io`, and `Corruption`.
+- [ ] Domain logic interacts exclusively with `Arc<dyn NoteRepository>`.
+
+**Verification:**
+- [ ] `cargo test --lib domain::note` passes in-memory contract tests.
+
+**Dependencies:** Task 0.1  
+**Files likely touched:**
+- `src-tauri/src/domain/note/repository.rs`
+- `src-tauri/src/domain/note/error.rs`
+- `src-tauri/src/models/note.rs`
+- `src-tauri/src/models/app_state.rs`
+
+**Estimated scope:** S (4 files)
 
 ---
 
-## Task Breakdown
-
-### Phase 1: Rust Core Persistence Layer
-- [ ] **Task 1.1: Configure Rust Dependencies in `Cargo.toml`**
-  - Add `rusqlite = { version = "0.32", features = ["bundled", "fts5"] }` and `directories` crate for OS path resolution.
-- [ ] **Task 1.2: Implement SQLite Schema & Engine (`src-tauri/src/db.rs`)**
-  - Implement tables: `notes`, `settings`, `transform`, `notes_fts` (FTS5), `notes_spatial_rtree` (R*Tree).
-  - Implement WAL mode, foreign keys, and atomic batch transactions.
-- [ ] **Task 1.3: Implement Rust Tauri Commands (`src-tauri/src/lib.rs`)**
-  - Expose commands: `db_init`, `db_save_dirty_notes`, `db_delete_notes`, `db_save_settings`, `db_save_transform`, `db_search_fts`, `db_query_spatial_bounds`.
-  - Add Rust unit tests in `src-tauri/src/db.rs`.
-
-### Phase 2: Frontend Repository Abstraction & IPC Bridge
-- [ ] **Task 2.1: Define `IStorageRepository` Interface (`src/lib/repository/IStorageRepository.ts`)**
-  - Specify unified async methods matching application requirements.
-- [ ] **Task 2.2: Implement `TauriSqliteRepository` (`src/lib/repository/TauriSqliteRepository.ts`)**
-  - Connect TypeScript calls to `@tauri-apps/api/core` `invoke`.
-- [ ] **Task 2.3: Wrap `IndexedDbStorage` into `IndexedDbRepository`**
-  - Conform existing Dexie logic into `IStorageRepository` contract.
-- [ ] **Task 2.4: Implement Repository Factory & Detection (`src/lib/repository/index.ts`)**
-  - Detect runtime (`window.__TAURI_INTERNALS__`) and instantiate appropriate repository.
-
-### Phase 3: Migration & Search Integration
-- [ ] **Task 3.1: Automated One-Time IndexedDB -> SQLite Migration**
-  - Detect legacy IndexedDB data upon first Tauri boot and import into SQLite.
-- [ ] **Task 3.2: Wire FTS5 Search into `SearchModal.tsx` & Vector Extension Groundwork**
-  - Delegate global search to Rust FTS5 when running natively for sub-millisecond multi-thousand note queries.
+### Checkpoint 0: Foundation Verification Gate
+- [ ] Single-instance and platform path resolution verified.
+- [ ] Abstract repository trait compile-checks clean.
 
 ---
 
-## Risks and Mitigations
+### Phase 1: Native SQLite Storage Engine & Client Spatial Virtualizer
 
-| Risk | Impact | Mitigation |
-| :--- | :--- | :--- |
-| **Existing User Data Loss** | Critical | Dual-check migration logic: inspect IndexedDB before initializing empty SQLite database. |
-| **Test Environment Divergence** | Medium | Vitest runs in JSDOM / Node without Tauri IPC; `IndexedDbRepository` remains active for all unit test suites. |
-| **IPC Serialization Latency on Rapid Edits** | Low | In-memory React state handles 60 FPS typing/dragging; writes to Rust are debounced using the existing dirty-ID tracking queue. |
+#### Task 1.1: rusqlite WAL Connection Pool & Versioned Migrations
+**Description:** Add `rusqlite` with `bundled` and `bundled-fts5` features. Implement `infrastructure/sqlite/connection.rs` with WAL journal mode, `PRAGMA synchronous = NORMAL;`, and migration runner executing `001_initial_schema.sql` and `002_asset_tables.sql` tracked via `PRAGMA user_version`.
+
+**Acceptance criteria:**
+- [ ] SQLite initializes with WAL mode and creates all tables and B-Tree indexes idempotently.
+- [ ] `PRAGMA user_version` upgrades schema safely across versions.
+- [ ] Startup runs `PRAGMA quick_check;` to verify database integrity.
+
+**Verification:**
+- [ ] `cargo test --lib infrastructure::sqlite` passes.
+
+**Dependencies:** Checkpoint 0  
+**Files likely touched:**
+- `src-tauri/src/infrastructure/sqlite/connection.rs`
+- `src-tauri/src/infrastructure/sqlite/schema.rs`
+- `src-tauri/src/infrastructure/sqlite/migrations.rs`
+
+**Estimated scope:** M (4 files)
 
 ---
 
-## Open Questions
-- None. The architecture provides backward compatibility and zero downtime transition.
+#### Task 1.2: SqliteNoteRepository Implementation & Inbound Command Port
+**Description:** Implement `SqliteNoteRepository` fulfilling `NoteRepository` with atomic `save_batch` transactions. Create `commands/storage.rs` exposing `load_notes`, `save_notes_batch`, `delete_notes`, `load_app_state`, and `save_app_state`.
+
+**Acceptance criteria:**
+- [ ] `save_notes_batch` wraps writes in an atomic transaction; errors trigger clean rollbacks.
+- [ ] Inbound commands registered in Tauri invoke handler.
+- [ ] Zero partial state commits on write failures.
+
+**Verification:**
+- [ ] `cargo test --lib infrastructure::sqlite::repository` and `cargo test --lib commands::storage` pass.
+
+**Dependencies:** Task 1.1  
+**Files likely touched:**
+- `src-tauri/src/infrastructure/sqlite/repository.rs`
+- `src-tauri/src/domain/note/service.rs`
+- `src-tauri/src/commands/storage.rs`
+- `src-tauri/src/lib.rs`
+
+**Estimated scope:** M (4 files)
+
+---
+
+#### Task 1.3: Client Spatial Virtualizer (In-Memory R-Tree) & Frontend Bridge
+**Description:** Implement `src/utils/spatialIndex.ts` using a fast 2D R-Tree (`rbush`). Connect `InfiniteCanvas.tsx` to mount only visible NoteCards within the viewport + 500px overscan buffer. Implement `src/lib/rustStorage.ts` with Tauri IPC invocations and IndexedDB fallback. Connect `src/hooks/useNotesManager.ts` ViewModel to load on mount, debounced autosave, and wire immediate flushes on window close / blur.
+
+**Acceptance criteria:**
+- [ ] `useNotesManager.ts` loads notes from SQLite on startup.
+- [ ] Client R-Tree performs frustum culling: with 1,000 notes, only ~50-150 cards are mounted in the DOM.
+- [ ] Immediate flush triggers on `WindowEvent::CloseRequested` and window blur.
+- [ ] One-time auto-migration moves existing IndexedDB notes to SQLite on first launch.
+- [ ] Status bar displays "Native SQLite Engine".
+
+**Verification:**
+- [ ] `npm test` passes all storage, spatial index, and hook test suites.
+- [ ] `npm run lint` reports 0 errors.
+
+**Dependencies:** Task 1.2  
+**Files likely touched:**
+- `src/utils/spatialIndex.ts`
+- `src/components/InfiniteCanvas.tsx`
+- `src/lib/rustStorage.ts`
+- `src/hooks/useNotesManager.ts`
+- `src/components/StatusBar.tsx`
+
+**Estimated scope:** M (5 files)
+
+---
+
+### Checkpoint 1: Storage Engine & Spatial Virtualization Gate
+- [ ] `cargo test` passes all storage infrastructure and domain tests.
+- [ ] 10,000 note spatial culling verified: DOM contains $< 200$ nodes during pan/zoom.
+- [ ] Rapid window close after edit preserves latest note edits ($100\%$ durability).
+- [ ] IndexedDB legacy notes migrate seamlessly into SQLite.
+
+---
+
+### Phase 2: Content-Addressable Asset Store & Custom Protocol
+
+#### Task 2.1: SHA-256 Content-Addressable Asset Store & Staging Pipeline
+**Description:** Implement `infrastructure/filesystem/asset_store.rs` to write images to `temp/`, hash via SHA-256, atomic-rename to `assets/originals/<hash>.<ext>`, generate WebP thumbnails via `image` crate, and handle disk-full (`ENOSPC`) errors gracefully.
+
+**Acceptance criteria:**
+- [ ] Images deduplicated by SHA-256 hash.
+- [ ] Atomic staging ensures partial/corrupt files are never linked to notes.
+- [ ] Disk-full errors abort cleanly with user-friendly alerts.
+
+**Verification:**
+- [ ] `cargo test --lib infrastructure::filesystem::asset_store` passes.
+
+**Dependencies:** Checkpoint 1  
+**Files likely touched:**
+- `src-tauri/src/infrastructure/filesystem/asset_store.rs`
+- `src-tauri/src/domain/asset/service.rs`
+- `src-tauri/src/commands/assets.rs`
+
+**Estimated scope:** M (4 files)
+
+---
+
+#### Task 2.2: Secure Custom URI Protocol (`diarynote-asset://`)
+**Description:** Register asynchronous custom URI handler `diarynote-asset://` in Tauri setup with strict hash regex validation (`^[a-f0-9]{64}$`), path canonicalization, and magic byte MIME verification to block path traversal attacks.
+
+**Acceptance criteria:**
+- [ ] Rejects any path traversal attempts (`..`, backslashes) with `400 Bad Request`.
+- [ ] Serves binary image streams directly to canvas cards.
+- [ ] Updates `useNativeFileDrop.ts` to reference asset URIs instead of Base64 blobs.
+
+**Verification:**
+- [ ] `cargo test --lib commands::assets` passes.
+- [ ] Dropped 10MB photo renders instantly with $< 2\text{KB}$ note JSON size.
+
+**Dependencies:** Task 2.1  
+**Files likely touched:**
+- `src-tauri/src/lib.rs`
+- `src/hooks/useNativeFileDrop.ts`
+- `src/lib/rustAssets.ts`
+
+**Estimated scope:** M (3 files)
+
+---
+
+### Checkpoint 2: Asset Engine Verification Gate
+- [ ] Path traversal security drill passes.
+- [ ] Canvas renders image assets with zero Base64 memory bloat.
+
+---
+
+### Phase 3: Hardware Cryptographic Vault & Memory Zeroization
+
+#### Task 3.1: Rust Crypto Adapter & Memory-Safe Session Vault
+**Description:** Implement `infrastructure/crypto/` with Argon2id key derivation and AES-256-GCM authenticated encryption. Implement `domain/vault/` with `SessionVault` implementing `zeroize::ZeroizeOnDrop` for automatic key erasure.
+
+**Acceptance criteria:**
+- [ ] Supports Argon2id and backward-compatible PBKDF2-SHA256 formats.
+- [ ] In-memory session key is overwritten with zeros upon lock or timeout.
+- [ ] Plaintext never committed to database or persisted disk files.
+
+**Verification:**
+- [ ] `cargo test --lib infrastructure::crypto` and `cargo test --lib domain::vault` pass.
+
+**Dependencies:** Checkpoint 2  
+**Files likely touched:**
+- `src-tauri/Cargo.toml`
+- `src-tauri/src/infrastructure/crypto/mod.rs`
+- `src-tauri/src/domain/vault/mod.rs`
+
+**Estimated scope:** M (3 files)
+
+---
+
+#### Task 3.2: Inbound Vault Commands & TS Crypto Integration
+**Description:** Expose Tauri commands (`vault_set_passcode`, `vault_verify_passcode`, `vault_encrypt_note`, `vault_decrypt_note`, `vault_lock`) with native exponential backoff rate-limiting. Refactor `src/services/cryptoVaultService.ts` to delegate to Rust.
+
+**Acceptance criteria:**
+- [ ] Rate-limiting blocks brute-force attempts in Rust backend.
+- [ ] Frontend `SecurityModal` and lock badges adapt seamlessly.
+
+**Verification:**
+- [ ] `cargo test` passes.
+- [ ] `npm test` passes all crypto and security test suites.
+
+**Dependencies:** Task 3.1  
+**Files likely touched:**
+- `src-tauri/src/commands/vault.rs`
+- `src-tauri/src/lib.rs`
+- `src/services/cryptoVaultService.ts`
+- `src/lib/rustVault.ts`
+
+**Estimated scope:** M (4 files)
+
+---
+
+### Checkpoint 3: Crypto Verification Gate
+- [ ] Zero plaintext discovered in SQLite file for locked notes.
+- [ ] Memory zeroing on lock verified.
+
+---
+
+### Phase 4: Dual-Tier Full-Text Search & Link Graph Engine
+
+#### Task 4.1: Dual-Tier SQLite FTS5 Search Adapter
+**Description:** Create persistent `notes_fts` table with trigram tokenizer for public notes, and a transient in-memory FTS index for unlocked vault notes. Implement `commands/search.rs` to query both tiers seamlessly.
+
+**Acceptance criteria:**
+- [ ] Public notes indexed on disk in FTS5 virtual table.
+- [ ] Unlocked vault notes indexed into transient in-memory FTS table; dropped on lock.
+- [ ] Search queries return BM25-ranked note IDs in $< 2\text{ms}$.
+
+**Verification:**
+- [ ] `cargo test --lib infrastructure::sqlite::fts` and `cargo test --lib commands::search` pass.
+
+**Dependencies:** Checkpoint 3  
+**Files likely touched:**
+- `src-tauri/src/infrastructure/sqlite/fts.rs`
+- `src-tauri/src/domain/search/mod.rs`
+- `src-tauri/src/commands/search.rs`
+- `src/components/Modals/SearchModal.tsx`
+
+**Estimated scope:** M (4 files)
+
+---
+
+#### Task 4.2: Markdown AST Parser & Link Graph Domain Service
+**Description:** Implement `domain/graph/` using `pulldown-cmark` to parse markdown AST, extract `@[Title](id)` mentions and `#tags`, and manage bi-directional graph topology.
+
+**Acceptance criteria:**
+- [ ] AST parser extracts mentions and tags in microseconds without regex thrashing.
+- [ ] `get_note_connections` and `get_note_backlinks` commands return accurate graph links.
+- [ ] Replaces `src/workers/search.worker.ts` and `src/utils/markdownMention.ts`.
+
+**Verification:**
+- [ ] `cargo test --lib domain::graph` passes.
+- [ ] `npm test` passes all mention and search tests.
+
+**Dependencies:** Task 4.1  
+**Files likely touched:**
+- `src-tauri/Cargo.toml`
+- `src-tauri/src/domain/graph/mod.rs`
+- `src-tauri/src/commands/graph.rs`
+- `src/lib/rustSearch.ts`
+
+**Estimated scope:** M (4 files)
+
+---
+
+### Checkpoint 4: Search & Graph Verification Gate
+- [ ] Sub-millisecond FTS5 search queries verified across languages.
+- [ ] Locked note search isolation (appears when unlocked, vanishes on lock) verified.
+
+---
+
+### Phase 5: WAL-Safe Online Backup & Archive Engine
+
+#### Task 5.1: SQLite Online Backup API & Streaming ZIP Exporter
+**Description:** Implement `infrastructure/filesystem/backup.rs` using `rusqlite::backup::Backup` and `zip-rs` to export complete `.diarynote` archive bundles containing checkpointed database state, manifest, and image assets.
+
+**Acceptance criteria:**
+- [ ] Uses SQLite Online Backup API to create consistent snapshots during concurrent writes.
+- [ ] Bundles database and referenced assets into a compressed archive.
+- [ ] Staged import preview modal inspects archive with duplicate resolution options.
+
+**Verification:**
+- [ ] `cargo test --lib infrastructure::filesystem::backup` passes roundtrip archive tests.
+
+**Dependencies:** Checkpoint 4  
+**Files likely touched:**
+- `src-tauri/src/infrastructure/filesystem/backup.rs`
+- `src-tauri/src/commands/backup.rs`
+- `src/components/Modals/ImportPreviewModal.tsx`
+
+**Estimated scope:** M (3 files)
+
+---
+
+### Checkpoint 5: Backup Engine Verification Gate
+- [ ] Export during active writing produces 100% valid backup.
+- [ ] Full vault restore verified with zero data corruption.
+
+---
+
+### Phase 6: Secure Streaming AI Gateway
+
+#### Task 6.1: Reqwest Streaming AI Client & Credential Protection
+**Description:** Implement `infrastructure/network/ai_client.rs` using `reqwest` for streaming LLM requests (Gemini, OpenAI, OpenRouter). Store credentials in backend and stream tokens over Tauri event channel `ai:stream-chunk`.
+
+**Acceptance criteria:**
+- [ ] API keys never exposed in WebView memory or network devtools.
+- [ ] Token streaming emits smooth chunks to UI for note synthesis.
+- [ ] Replaces browser fetch in `src/services/ai/aiMergeService.ts`.
+
+**Verification:**
+- [ ] `cargo test --lib infrastructure::network` passes.
+- [ ] AI Settings and synthesis work end-to-end with real-time streaming.
+
+**Dependencies:** Checkpoint 4  
+**Files likely touched:**
+- `src-tauri/src/infrastructure/network/ai_client.rs`
+- `src-tauri/src/domain/ai/mod.rs`
+- `src-tauri/src/commands/ai.rs`
+- `src/services/ai/aiMergeService.ts`
+
+**Estimated scope:** M (4 files)
+
+---
+
+### Checkpoint 6: AI Gateway Verification Gate
+- [ ] Token streaming verified without UI blocking.
+- [ ] DevTools network tab reveals zero API credentials.
+
+---
+
+### Phase 7: Cross-Platform Hardening & Release Polish
+
+#### Task 7.1: Final Cleanup, Deprecation Removal & Static Analysis
+**Description:** Remove legacy fallback code, run comprehensive static analysis, update documentation and UI component registry, and perform end-to-end release builds.
+
+**Acceptance criteria:**
+- [ ] `cargo test --all` passes 100%.
+- [ ] `cargo check` outputs 0 warnings.
+- [ ] `npm run lint` (`oxlint && tsc --noEmit`) outputs 0 errors.
+- [ ] `npm test` passes all suites.
+- [ ] `AGENTS.md` UI registry updated.
+
+**Verification:**
+- [ ] `npm run build` succeeds cleanly.
+
+**Dependencies:** Tasks 0.1–6.1  
+**Files likely touched:**
+- `AGENTS.md`
+- `README.md`
+- `src/lib/storage.ts`
+
+**Estimated scope:** S (3 files)
+
+---
+
+### Checkpoint 7: Complete Desktop Release Verification
+- [ ] All milestone gates cleared.
+- [ ] Desktop app verified resilient against crashes, disk-full, and power-loss edge cases.

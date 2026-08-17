@@ -8,6 +8,7 @@ import { ImageNoteCard } from './NoteCard/ImageNoteCard';
 import { NoteConnections } from './NoteConnections';
 import { GroupFrame } from './GroupFrame';
 import { isTauriEnvironment } from '../hooks/useNativeFileDrop';
+import { SpatialIndex, getVisibleWorldFrustum } from '../canvas';
 
 interface InfiniteCanvasProps {
   notes: Note[];
@@ -535,29 +536,41 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
     return isDark ? 'bg-slate-950' : 'bg-[#f8fafc]';
   };
 
-  // Viewport Culling for high performance
-  const viewportWidth = viewport.width;
-  const viewportHeight = viewport.height;
-  const renderBuffer = 600 / transform.zoom;
+  // Viewport Culling & R-Tree Spatial Virtualization
+  const spatialIndex = useMemo(() => {
+    const index = new SpatialIndex();
+    for (let i = 0; i < notes.length; i++) {
+      const n = notes[i];
+      const w = n.width || DEFAULT_NOTE_WIDTH;
+      const h = n.height || DEFAULT_NOTE_HEIGHT;
+      index.insert({
+        id: n.id,
+        minX: n.x,
+        minY: n.y,
+        maxX: n.x + w,
+        maxY: n.y + h,
+      });
+    }
+    return index;
+  }, [notes]);
 
-  const visibleMinX = -transform.x / transform.zoom - renderBuffer;
-  const visibleMaxX = (viewportWidth - transform.x) / transform.zoom + renderBuffer;
-  const visibleMinY = -transform.y / transform.zoom - renderBuffer;
-  const visibleMaxY = (viewportHeight - transform.y) / transform.zoom + renderBuffer;
+  const worldFrustum = useMemo(() => {
+    return getVisibleWorldFrustum(viewport.width, viewport.height, transform);
+  }, [viewport.width, viewport.height, transform]);
 
   const visibleNotes = useMemo(() => {
+    const visibleIds = spatialIndex.searchIds(worldFrustum);
+    const selectedSet = new Set(selectedNoteIds);
+
     return notes.filter(
       (n) =>
         n.id === selectedNoteId ||
-        selectedNoteIds.includes(n.id) ||
+        selectedSet.has(n.id) ||
         n.id === focusedNoteId ||
         n.isPinned ||
-        (n.x + (n.width || DEFAULT_NOTE_WIDTH) >= visibleMinX &&
-          n.x <= visibleMaxX &&
-          n.y + (n.height || DEFAULT_NOTE_HEIGHT) >= visibleMinY &&
-          n.y <= visibleMaxY)
+        visibleIds.has(n.id)
     );
-  }, [notes, selectedNoteId, selectedNoteIds, focusedNoteId, visibleMinX, visibleMaxX, visibleMinY, visibleMaxY]);
+  }, [notes, spatialIndex, worldFrustum, selectedNoteId, selectedNoteIds, focusedNoteId]);
 
   // Minimap scale and bounds in a single memoized calculation
   const { minX, minY, minimapScale } = useMemo(() => {
@@ -687,10 +700,10 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
             onSelectNote={onNavigateToNote}
             themeMode={themeMode}
             viewportBounds={{
-              minX: visibleMinX,
-              maxX: visibleMaxX,
-              minY: visibleMinY,
-              maxY: visibleMaxY,
+              minX: worldFrustum.minX,
+              maxX: worldFrustum.maxX,
+              minY: worldFrustum.minY,
+              maxY: worldFrustum.maxY,
             }}
           />
         )}
@@ -792,8 +805,8 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
 
               const nextTransform = {
                 ...transform,
-                x: Math.round(viewportWidth / 2 - targetWorldX * transform.zoom),
-                y: Math.round(viewportHeight / 2 - targetWorldY * transform.zoom),
+                x: Math.round(viewport.width / 2 - targetWorldX * transform.zoom),
+                y: Math.round(viewport.height / 2 - targetWorldY * transform.zoom),
               };
               if (onAnimateTransform) onAnimateTransform(nextTransform);
               else onTransformChange(nextTransform);
@@ -805,8 +818,8 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
               minX={minX}
               minY={minY}
               minimapScale={minimapScale}
-              viewportWidth={viewportWidth}
-              viewportHeight={viewportHeight}
+              viewportWidth={viewport.width}
+              viewportHeight={viewport.height}
               selectedNoteId={selectedNoteId}
               themeMode={themeMode}
             />

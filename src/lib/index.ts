@@ -1,2 +1,3 @@
 export * from './storage';
-export * from './indexedDbStorage';
+export * as indexedDb from './indexedDbStorage';
+export * from './rustStorage';

@@ -6,7 +6,7 @@ import {
   saveDirtyNotesToDB,
   deleteNoteFromDB,
   deleteMultipleNotesFromDB,
-} from '../lib/indexedDbStorage';
+} from '../lib/rustStorage';
 import { getUniqueTitleForDay, getLocalDateString } from '../utils';
 import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../constants/canvas';
 import { WASHI_TAPES, PUSHPIN_OPTIONS } from '../constants/washiTapes';
@@ -48,7 +48,7 @@ export function useNotesManager(
     });
   }, [resetHistory]);
 
-  // Debounced autosave to IndexedDB (only after DB hydration to prevent initial jumps or state overwrites)
+  // Debounced autosave to SQLite (only after DB hydration to prevent initial jumps or state overwrites)
   useEffect(() => {
     if (!isDbLoadedRef.current) return;
     const timeout = window.setTimeout(async () => {
@@ -87,9 +87,9 @@ export function useNotesManager(
     };
   }, []);
 
-  // Flush dirty notes before window shutdown/unload
+  // Flush dirty notes before window shutdown/unload or window blur
   useEffect(() => {
-    const handleBeforeUnload = () => {
+    const handleImmediateFlush = () => {
       const dirtyIds = dirtyNoteIdsRef.current;
       if (dirtyIds.size > 0) {
         const dirtyNotes = notes.filter((n) => dirtyIds.has(n.id));
@@ -98,8 +98,12 @@ export function useNotesManager(
         }
       }
     };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('beforeunload', handleImmediateFlush);
+    window.addEventListener('blur', handleImmediateFlush);
+    return () => {
+      window.removeEventListener('beforeunload', handleImmediateFlush);
+      window.removeEventListener('blur', handleImmediateFlush);
+    };
   }, [notes]);
 
   // Add new note handler

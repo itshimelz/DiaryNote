@@ -356,10 +356,10 @@ const StatusBarComponent: React.FC<StatusBarProps> = ({
           type="button"
           onClick={onOpenBackupModal}
           className={btnHoverClass}
-          title="IndexedDB Local Storage Engine. Click to export full database backup."
+          title="Native SQLite Storage Engine. Click to export full database backup."
         >
           <Icon icon={Database01Icon} size="xs" className={defaultIconClass} />
-          <span>IndexedDB Engine</span>
+          <span>Native SQLite</span>
         </button>
       </div>
 
