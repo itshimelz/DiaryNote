@@ -58,6 +58,7 @@ interface CanvasControlsProps {
   onToggleStatusBar?: () => void;
   checkForUpdatesOnLaunch?: boolean;
   onToggleCheckForUpdates?: () => void;
+  onOpenDatabaseOperations?: () => void;
 }
 
 const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
@@ -97,6 +98,7 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
   onToggleStatusBar,
   checkForUpdatesOnLaunch = true,
   onToggleCheckForUpdates,
+  onOpenDatabaseOperations,
   enableAIServices = false,
   onOpenAISettings,
 }) => {
@@ -397,6 +399,7 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
         onOpenAbout={onOpenAbout}
         onOpenAISettings={onOpenAISettings}
         onOpenShortcutsModal={onOpenShortcutsModal}
+        onOpenDatabaseOperations={onOpenDatabaseOperations}
         enableAIServices={enableAIServices}
       />
     </>

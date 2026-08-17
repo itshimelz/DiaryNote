@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { isTauriEnvironment } from '../../lib/rustStorage';
 import { Note, AIProvider } from '../../types';
 import { decryptApiKey } from '../../utils/aiSecurity';
@@ -24,6 +25,19 @@ export interface AIServiceConfig {
 export interface MergeNotesResult {
   title: string;
   content: string;
+}
+
+export interface StreamProgress {
+  chunk: string;
+  accumulated: string;
+  isDone: boolean;
+}
+
+interface AiStreamChunkEvent {
+  requestId: string;
+  chunk: string;
+  isDone: boolean;
+  error?: string | null;
 }
 
 
@@ -181,6 +195,7 @@ export async function testAIConnection(
 export async function mergeNotesWithAI(
   notesToMerge: Note[],
   config: AIServiceConfig,
+  onProgress?: (progress: StreamProgress) => void,
   externalSignal?: AbortSignal
 ): Promise<MergeNotesResult> {
   if (!notesToMerge || notesToMerge.length === 0) {
@@ -208,8 +223,26 @@ export async function mergeNotesWithAI(
   const modelName = getModelName(config);
 
   if (isTauriEnvironment()) {
+    let unlisten: UnlistenFn | null = null;
+    let accumulatedText = '';
+    const requestId = `ai-merge-${crypto.randomUUID()}`;
+
     try {
-      const requestId = `ai-merge-${crypto.randomUUID()}`;
+      if (onProgress) {
+        unlisten = await listen<AiStreamChunkEvent>('ai:stream-chunk', (event) => {
+          if (event.payload.requestId === requestId) {
+            if (event.payload.chunk) {
+              accumulatedText += event.payload.chunk;
+              onProgress({
+                chunk: event.payload.chunk,
+                accumulated: accumulatedText,
+                isDone: event.payload.isDone,
+              });
+            }
+          }
+        });
+      }
+
       const res = await invoke<{ title: string; content: string }>('ai_stream_synthesis', {
         config: {
           provider: config.aiProvider,
@@ -235,6 +268,10 @@ export async function mergeNotesWithAI(
       return { title: res.title, content };
     } catch (err: any) {
       throw new Error(err?.message || String(err));
+    } finally {
+      if (unlisten) {
+        unlisten();
+      }
     }
   }
 

@@ -10,6 +10,7 @@ import {
   Cancel01Icon,
   SecurityLockIcon,
   CircleUnlock01Icon,
+  Image01Icon,
 } from '@hugeicons/core-free-icons';
 import { IconButton, Icon } from '../ui';
 import { Note, FrameStyle } from '../../types';
@@ -20,6 +21,7 @@ import { useNoteDrag } from '../../hooks/useNoteDrag';
 import { useNoteResize } from '../../hooks/useNoteResize';
 import { DEFAULT_NOTE_WIDTH, DRAG_Z_INDEX } from '../../constants/canvas';
 import { FONT_CLASSES } from './types';
+import { sendNativeAppNotification } from '../../utils';
 
 export interface ImageNoteCardProps {
   note: Note;
@@ -73,9 +75,16 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
   const [isEditingCaption, setIsEditingCaption] = useState(false);
   const [showStylePicker, setShowStylePicker] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const captionInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setImageError(false);
+    setImageLoaded(false);
+  }, [note.imageUrl]);
 
   const { isDragging, handleMouseDown } = useNoteDrag({
     note,
@@ -273,7 +282,12 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
                 variant="ghost"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onUpdateNote({ ...note, isPinned: !note.isPinned });
+                  const targetState = !note.isPinned;
+                  onUpdateNote({ ...note, isPinned: targetState });
+                  sendNativeAppNotification(
+                    targetState ? 'Photo Pinned' : 'Photo Unpinned',
+                    `"${note.title || 'Photo'}" ${targetState ? 'pinned to top layer' : 'unpinned'}`
+                  );
                 }}
                 aria-label={note.isPinned ? 'Unpin' : 'Pin'}
                 title={note.isPinned ? 'Unpin Note' : 'Pin Note'}
@@ -357,13 +371,25 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
               }}
               className="relative w-full flex-1 min-h-[220px] bg-slate-950/80 overflow-hidden rounded-xs border border-black/10 dark:border-white/10 flex items-center justify-center cursor-pointer"
             >
-              <img
-                src={note.imageUrl}
-                alt={note.title || 'Polaroid photo'}
-                draggable={false}
-                className="w-full h-full object-cover select-none pointer-events-none"
-                loading="lazy"
-              />
+              {imageError ? (
+                <div className="flex flex-col items-center justify-center p-4 text-center text-slate-400 dark:text-slate-500 select-none">
+                  <Icon icon={Image01Icon} size="lg" className="mb-1 text-slate-400 opacity-60" />
+                  <span className="text-xs font-medium">{note.title || 'Photo'}</span>
+                </div>
+              ) : (
+                <img
+                  src={note.imageUrl}
+                  alt={note.title || 'Polaroid photo'}
+                  draggable={false}
+                  className={`w-full h-full object-cover select-none pointer-events-none transition-opacity duration-150 ${
+                    imageLoaded ? 'opacity-100' : 'opacity-90'
+                  }`}
+                  loading="eager"
+                  decoding="async"
+                  onLoad={() => setImageLoaded(true)}
+                  onError={() => setImageError(true)}
+                />
+              )}
             </div>
 
             {/* Polaroid Handwritten Caption Margin */}
@@ -424,13 +450,25 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
               }}
               className="relative w-full flex-1 min-h-[240px] bg-slate-950 overflow-hidden rounded-xs border border-black/10 dark:border-white/10 flex items-center justify-center cursor-pointer"
             >
-              <img
-                src={note.imageUrl}
-                alt={note.title || 'Photo'}
-                draggable={false}
-                className="w-full h-full object-cover select-none pointer-events-none"
-                loading="lazy"
-              />
+              {imageError ? (
+                <div className="flex flex-col items-center justify-center p-4 text-center text-slate-400 dark:text-slate-500 select-none">
+                  <Icon icon={Image01Icon} size="lg" className="mb-1 text-slate-400 opacity-60" />
+                  <span className="text-xs font-medium">{note.title || 'Photo'}</span>
+                </div>
+              ) : (
+                <img
+                  src={note.imageUrl}
+                  alt={note.title || 'Photo'}
+                  draggable={false}
+                  className={`w-full h-full object-cover select-none pointer-events-none transition-opacity duration-150 ${
+                    imageLoaded ? 'opacity-100' : 'opacity-90'
+                  }`}
+                  loading="eager"
+                  decoding="async"
+                  onLoad={() => setImageLoaded(true)}
+                  onError={() => setImageError(true)}
+                />
+              )}
             </div>
             {note.content && (
               <div className="mt-1 px-1 py-0.5 text-center text-xs text-slate-600 dark:text-slate-400 truncate">
@@ -447,13 +485,25 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
             }}
             className="relative w-full flex-1 h-full min-h-[240px] overflow-hidden rounded-sm flex items-center justify-center cursor-pointer"
           >
-            <img
-              src={note.imageUrl}
-              alt={note.title || 'Frameless photo'}
-              draggable={false}
-              className="w-full h-full object-cover rounded-sm select-none pointer-events-none"
-              loading="lazy"
-            />
+            {imageError ? (
+              <div className="flex flex-col items-center justify-center p-4 text-center text-slate-400 dark:text-slate-500 select-none">
+                <Icon icon={Image01Icon} size="lg" className="mb-1 text-slate-400 opacity-60" />
+                <span className="text-xs font-medium">{note.title || 'Photo'}</span>
+              </div>
+            ) : (
+              <img
+                src={note.imageUrl}
+                alt={note.title || 'Frameless photo'}
+                draggable={false}
+                className={`w-full h-full object-cover rounded-sm select-none pointer-events-none transition-opacity duration-150 ${
+                  imageLoaded ? 'opacity-100' : 'opacity-90'
+                }`}
+                loading="eager"
+                decoding="async"
+                onLoad={() => setImageLoaded(true)}
+                onError={() => setImageError(true)}
+              />
+            )}
           </div>
         )}
 

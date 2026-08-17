@@ -298,7 +298,7 @@ export function useNotesManager(
         fontSize: 'md',
         paperTheme: 'cream',
         activeMode: 'text',
-        isPinned: true,
+        isPinned: false,
         zIndex: (notes.length > 0 ? Math.max(...notes.map((n) => n.zIndex || 1)) : 1) + 1,
         tags: ['journal', 'daily'],
         isDailyEntry: true,

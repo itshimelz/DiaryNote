@@ -5,6 +5,9 @@ import {
   deleteMultipleNotesFromDB,
   saveCanvasTransformToDB,
   saveAppSettingsToDB,
+  getDatabaseStats,
+  vacuumDatabase,
+  checkDatabaseIntegrity,
   isTauriEnvironment,
 } from '../rustStorage';
 import { Note } from '../../types';
@@ -57,5 +60,19 @@ describe('rustStorage bridge', () => {
 
     const settingsSaved = await saveAppSettingsToDB(DEFAULT_SETTINGS);
     expect(settingsSaved).toBe(true);
+  });
+
+  it('retrieves database stats, defragments, and checks integrity in fallback environment', async () => {
+    const stats = await getDatabaseStats();
+    expect(stats).toBeDefined();
+    expect(stats.isIntegrityOk).toBe(true);
+    expect(stats.dbPath).toContain('diarynote.db');
+
+    const vacuumStats = await vacuumDatabase();
+    expect(vacuumStats).toBeDefined();
+    expect(vacuumStats.isIntegrityOk).toBe(true);
+
+    const integrityOk = await checkDatabaseIntegrity();
+    expect(integrityOk).toBe(true);
   });
 });

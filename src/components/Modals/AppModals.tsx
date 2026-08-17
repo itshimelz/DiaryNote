@@ -35,6 +35,9 @@ const AISettingsModal = lazy(() =>
 const ImportPreviewModal = lazy(() =>
   import('./ImportPreviewModal').then((m) => ({ default: m.ImportPreviewModal }))
 );
+const DatabaseOperationsModal = lazy(() =>
+  import('./DatabaseOperationsModal').then((m) => ({ default: m.DatabaseOperationsModal }))
+);
 
 interface AppModalsProps {
   notes: Note[];
@@ -66,6 +69,9 @@ interface AppModalsProps {
   setIsAboutModalOpen: (open: boolean) => void;
   isAISettingsOpen: boolean;
   setIsAISettingsOpen: (open: boolean) => void;
+  isDatabaseModalOpen?: boolean;
+  setIsDatabaseModalOpen?: (open: boolean) => void;
+  onTriggerImportFile?: () => void;
   stagedImportData: { isOpen: boolean; notes: Note[]; transform?: CanvasTransform; settings?: AppSettings };
   setStagedImportData: React.Dispatch<React.SetStateAction<{ isOpen: boolean; notes: Note[]; transform?: CanvasTransform; settings?: AppSettings }>>;
   handleCommitImport: (resolvedNotes: Note[], transform?: CanvasTransform, settings?: AppSettings) => void;
@@ -131,6 +137,9 @@ export const AppModals: React.FC<AppModalsProps> = ({
   setIsAboutModalOpen,
   isAISettingsOpen,
   setIsAISettingsOpen,
+  isDatabaseModalOpen = false,
+  setIsDatabaseModalOpen,
+  onTriggerImportFile,
   stagedImportData,
   setStagedImportData,
   handleCommitImport,
@@ -298,6 +307,19 @@ export const AppModals: React.FC<AppModalsProps> = ({
           onSelectOrCreateDate={(dateStr) => handleOpenOrCreateTodayJournal(dateStr)}
           themeMode={settings.themeMode}
         />
+
+        {/* Database & Storage Operations Modal */}
+        <DatabaseOperationsModal
+          isOpen={isDatabaseModalOpen}
+          onClose={() => setIsDatabaseModalOpen?.(false)}
+          notes={notes}
+          transform={transform}
+          settings={settings}
+          onTriggerImportFile={() => {
+            setIsDatabaseModalOpen?.(false);
+            onTriggerImportFile?.();
+          }}
+        />
       </Suspense>
 
       {/* Right-Click Context Menu for Selected Note(s) */}
@@ -320,6 +342,10 @@ export const AppModals: React.FC<AppModalsProps> = ({
           const allPinned = targets.every((n) => n.isPinned);
           const updated = targets.map((n) => ({ ...n, isPinned: !allPinned }));
           handleUpdateBatchNotes(updated);
+          sendNativeAppNotification(
+            allPinned ? 'Notes Unpinned' : 'Notes Pinned',
+            `${targets.length} notes ${allPinned ? 'unpinned' : 'pinned to top layer'}`
+          );
         }}
         onLockNotes={(ids) => handleLockSelectedNotes(ids)}
         onGroupNotes={() => {
@@ -333,6 +359,10 @@ export const AppModals: React.FC<AppModalsProps> = ({
             groupName,
           }));
           handleUpdateBatchNotes(updated);
+          sendNativeAppNotification(
+            'Notes Grouped',
+            `Grouped ${targets.length} notes into "${groupName}"`
+          );
         }}
         onUngroupNotes={() => {
           const targets = notes.filter((n) => selectedNoteIds.includes(n.id) && n.groupId);
@@ -342,6 +372,10 @@ export const AppModals: React.FC<AppModalsProps> = ({
             groupName: undefined,
           }));
           handleUpdateBatchNotes(updated);
+          sendNativeAppNotification(
+            'Notes Ungrouped',
+            `Removed ${targets.length} notes from their groups`
+          );
         }}
         onDuplicateNotes={(ids) => {
           const newDuplicates: Note[] = [];
@@ -367,6 +401,10 @@ export const AppModals: React.FC<AppModalsProps> = ({
           if (newDuplicates.length > 0) {
             newDuplicates.forEach((n) => handleUpdateNote(n));
             setSelectedNoteIds(newIds);
+            sendNativeAppNotification(
+              'Notes Duplicated',
+              `Duplicated ${newDuplicates.length} note(s)`
+            );
           }
         }}
         onExportNotes={(ids, format) => {

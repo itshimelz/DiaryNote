@@ -67,6 +67,7 @@ interface StatusBarProps {
   onToggleSnap?: () => void;
   onCycleGridType?: () => void;
   onOpenBackupModal?: () => void;
+  onOpenDatabaseModal?: () => void;
   onOpenSearchModal?: (query?: string) => void;
   onOpenJournalCalendar?: () => void;
 }
@@ -87,6 +88,7 @@ const StatusBarComponent: React.FC<StatusBarProps> = ({
   onToggleSnap,
   onCycleGridType,
   onOpenBackupModal,
+  onOpenDatabaseModal,
   onOpenSearchModal,
   onOpenJournalCalendar,
 }) => {
@@ -354,9 +356,9 @@ const StatusBarComponent: React.FC<StatusBarProps> = ({
         {/* Clickable Database Engine & Quick Storage Trigger */}
         <button
           type="button"
-          onClick={onOpenBackupModal}
+          onClick={onOpenDatabaseModal || onOpenBackupModal}
           className={btnHoverClass}
-          title="Native SQLite Storage Engine. Click to export full database backup."
+          title="Native SQLite Storage Engine. Click to manage database and create backups."
         >
           <Icon icon={Database01Icon} size="xs" className={defaultIconClass} />
           <span>Native SQLite</span>

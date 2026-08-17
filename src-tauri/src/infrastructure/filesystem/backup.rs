@@ -2,7 +2,6 @@ use std::fs::{self, File};
 use std::io::{Read, Seek, Write};
 use std::path::Path;
 use rusqlite::Connection;
-use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use zip::write::SimpleFileOptions;
 use zip::{ZipArchive, ZipWriter};
@@ -13,23 +12,9 @@ use crate::infrastructure::os::AppPaths;
 use crate::infrastructure::sqlite::init_sqlite_connection;
 use crate::infrastructure::sqlite::SqliteNoteRepository;
 use crate::models::{
-    AppSettings, BackupManifest, CanvasTransform, ConflictResolutionMode, Note,
+    BackupManifest, ConflictResolutionMode,
     VaultArchiveInspection, VaultExportSummary, VaultImportSummary,
 };
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-struct LegacyBackup {
-    #[serde(default)]
-    version: Option<u32>,
-    #[serde(default)]
-    notes: Vec<Note>,
-    #[serde(default)]
-    transform: Option<CanvasTransform>,
-    #[serde(default)]
-    settings: Option<AppSettings>,
-    #[serde(default)]
-    exported_at: Option<String>,
-}
 
 #[derive(Debug, Error)]
 pub enum BackupError {
@@ -270,29 +255,9 @@ pub fn inspect_vault_archive<P: AsRef<Path>>(
             asset_count,
         })
     } else {
-        // Handle legacy JSON backup format
-        let mut json_str = String::new();
-        let mut f = File::open(archive_path)?;
-        f.read_to_string(&mut json_str)?;
-
-        let legacy: LegacyBackup = serde_json::from_str(&json_str)?;
-        let manifest = BackupManifest {
-            format_version: "legacy-json".to_string(),
-            app_version: "0.2.0".to_string(),
-            schema_version: legacy.version.unwrap_or(1),
-            created_at: legacy.exported_at.unwrap_or_else(|| chrono::Utc::now().to_rfc3339()),
-            note_count: legacy.notes.len(),
-            asset_hashes: Vec::new(),
-            metadata: None,
-        };
-
-        Ok(VaultArchiveInspection {
-            manifest,
-            notes: legacy.notes,
-            transform: legacy.transform,
-            settings: legacy.settings,
-            asset_count: 0,
-        })
+        Err(BackupError::InvalidArchive(
+            "Specified file is not a valid .diarynote archive container".to_string(),
+        ))
     }
 }
 
@@ -421,6 +386,7 @@ fn uuid_v4_simple() -> String {
 mod tests {
     use super::*;
     use std::path::PathBuf;
+    use crate::models::Note;
 
     fn create_test_env() -> (AppPaths, PathBuf) {
         let temp_root = std::env::temp_dir().join(format!("diarynote_backup_test_{}", std::process::id()));

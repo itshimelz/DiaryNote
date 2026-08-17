@@ -51,6 +51,7 @@ export interface CanvasSettingsModalProps {
   onOpenAbout?: () => void;
   onOpenAISettings?: () => void;
   onOpenShortcutsModal?: () => void;
+  onOpenDatabaseOperations?: () => void;
   enableAIServices?: boolean;
 }
 
@@ -77,6 +78,7 @@ export const CanvasSettingsModal: React.FC<CanvasSettingsModalProps> = ({
   onOpenAbout,
   onOpenAISettings,
   onOpenShortcutsModal,
+  onOpenDatabaseOperations,
   enableAIServices = false,
 }) => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('canvas');
@@ -391,9 +393,23 @@ export const CanvasSettingsModal: React.FC<CanvasSettingsModalProps> = ({
                 {/* Backup Actions */}
                 <div className="p-3 rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 space-y-2.5">
                   <span className="font-semibold block text-slate-800 dark:text-slate-200">
-                    Backup Actions
+                    Backup & Storage Actions
                   </span>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    {onOpenDatabaseOperations && (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        icon={Database01Icon}
+                        onClick={() => {
+                          onClose();
+                          setTimeout(() => onOpenDatabaseOperations(), 50);
+                        }}
+                      >
+                        Manage Database & Storage
+                      </Button>
+                    )}
+
                     <Button
                       variant="secondary"
                       size="sm"

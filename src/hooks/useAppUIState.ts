@@ -8,6 +8,7 @@ export function useAppUIState() {
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [isAISettingsOpen, setIsAISettingsOpen] = useState(false);
+  const [isDatabaseModalOpen, setIsDatabaseModalOpen] = useState(false);
   const [isMergingAI, setIsMergingAI] = useState(false);
   const [mergedSelectionKeys, setMergedSelectionKeys] = useState<Set<string>>(new Set());
   const [updateReleaseAlert, setUpdateReleaseAlert] = useState<ReleaseInfo | null>(null);
@@ -69,6 +70,8 @@ export function useAppUIState() {
     setIsAboutModalOpen,
     isAISettingsOpen,
     setIsAISettingsOpen,
+    isDatabaseModalOpen,
+    setIsDatabaseModalOpen,
     isMergingAI,
     setIsMergingAI,
     mergedSelectionKeys,

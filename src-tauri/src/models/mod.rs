@@ -4,7 +4,7 @@ pub mod clipboard;
 pub mod image;
 pub mod note;
 
-pub use app_state::{AppSettings, CanvasTransform, LoadedAppState};
+pub use app_state::{AppSettings, CanvasTransform, DatabaseStats, LoadedAppState};
 pub use backup::{
     BackupManifest, ConflictResolutionMode, VaultArchiveInspection, VaultExportSummary,
     VaultImportSummary,

@@ -105,3 +105,15 @@ pub struct LoadedAppState {
     pub transform: CanvasTransform,
     pub settings: AppSettings,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct DatabaseStats {
+    pub db_path: String,
+    pub db_size_bytes: u64,
+    pub wal_size_bytes: u64,
+    pub total_notes: usize,
+    pub total_assets: usize,
+    pub total_assets_size_bytes: u64,
+    pub is_integrity_ok: bool,
+}

@@ -9,8 +9,9 @@ import { useNotesManager } from './hooks/useNotesManager';
 import { useCanvasTransform, screenToWorld } from './hooks/useCanvasTransform';
 import { useNoteSelection } from './hooks/useNoteSelection';
 import { useAppUIState } from './hooks/useAppUIState';
-import { useNativeFileDrop, DroppedImageData, isTauriEnvironment } from './hooks/useNativeFileDrop';
-import { saveAssetFromPath } from './lib/rustAssets';
+import { useNativeFileDrop, DroppedImageData } from './hooks/useNativeFileDrop';
+import { saveAssetFromPath, saveAssetFromBytes } from './lib/rustAssets';
+import { isTauriEnvironment } from './lib/rustStorage';
 import { invoke } from '@tauri-apps/api/core';
 
 
@@ -46,6 +47,8 @@ export default function App() {
     setIsAboutModalOpen,
     isAISettingsOpen,
     setIsAISettingsOpen,
+    isDatabaseModalOpen,
+    setIsDatabaseModalOpen,
     isMergingAI,
     setIsMergingAI,
     mergedSelectionKeys,
@@ -108,6 +111,7 @@ export default function App() {
 
   const imagePickerCoordRef = useRef<{ x?: number; y?: number } | null>(null);
   const globalImageInputRef = useRef<HTMLInputElement>(null);
+  const globalBackupInputRef = useRef<HTMLInputElement>(null);
 
   // 3. Canvas Transform Hook
   const {
@@ -516,8 +520,8 @@ export default function App() {
           );
           setSelectedNoteIds([newId]);
           sendNativeAppNotification(
-            'Photo Pinned',
-            `Pinned photo "${rawTitle}" to canvas`
+            'Photo Note Created',
+            `Added photo "${rawTitle}" to canvas`
           );
         };
         img.src = imgData.data_url;
@@ -537,7 +541,24 @@ export default function App() {
     (files: File[], customClientX?: number, customClientY?: number) => {
       if (!files || files.length === 0) return;
 
-      files.forEach((file, index) => {
+      files.forEach(async (file, index) => {
+        let finalImageUrl = '';
+        let precalculatedAspect: number | undefined;
+
+        if (isTauriEnvironment()) {
+          try {
+            const arrayBuffer = await file.arrayBuffer();
+            const bytes = new Uint8Array(arrayBuffer);
+            const assetInfo = await saveAssetFromBytes(bytes, file.name);
+            if (assetInfo && assetInfo.assetUri) {
+              finalImageUrl = assetInfo.assetUri;
+              precalculatedAspect = assetInfo.aspectRatio;
+            }
+          } catch (e) {
+            console.warn('Native saveAssetFromBytes failed, fallback to data url:', e);
+          }
+        }
+
         const reader = new FileReader();
         reader.onload = (e) => {
           const dataUrl = e.target?.result as string;
@@ -545,7 +566,7 @@ export default function App() {
 
           const img = new Image();
           img.onload = () => {
-            const aspectRatio = img.naturalWidth / Math.max(1, img.naturalHeight);
+            const aspectRatio = precalculatedAspect || (img.naturalWidth / Math.max(1, img.naturalHeight));
 
             let worldX: number | undefined;
             let worldY: number | undefined;
@@ -562,7 +583,7 @@ export default function App() {
             const newId = handleAddImageNote(
               transform,
               settings,
-              dataUrl,
+              finalImageUrl || dataUrl,
               file.type,
               worldX,
               worldY,
@@ -574,8 +595,8 @@ export default function App() {
             );
             setSelectedNoteIds([newId]);
             sendNativeAppNotification(
-              'Photo Pinned',
-              `Pinned photo "${rawTitle}" to canvas`
+              'Photo Note Created',
+              `Added photo "${rawTitle}" to canvas`
             );
           };
           img.src = dataUrl;
@@ -628,43 +649,75 @@ export default function App() {
     const targetCount = notesToMerge.length;
     sendNativeAppNotification(
       'AI Merge Started',
-      `Synthesizing ${targetCount} notes in the background...`
+      `Synthesizing ${targetCount} notes in real-time...`
     );
+
+    const avgX = Math.round(notesToMerge.reduce((sum, n) => sum + n.x, 0) / notesToMerge.length);
+    const avgY = Math.round(notesToMerge.reduce((sum, n) => sum + (n.y + (n.height || 340)), 0) / notesToMerge.length) + 40;
+    const maxZ = Math.max(0, ...notes.map((n) => n.zIndex || 0));
+
+    const newNoteId = `note-${crypto.randomUUID()}`;
+    const initialNote: Note = {
+      id: newNoteId,
+      title: 'Synthesizing Notes...',
+      content: '✨ AI is analyzing and synthesizing notes...',
+      x: avgX,
+      y: avgY,
+      width: 500,
+      height: 420,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      fontFamily: settings.defaultFont || 'sans',
+      fontSize: 'md',
+      paperTheme: 'white',
+      activeMode: 'text',
+      isPinned: false,
+      zIndex: maxZ + 1,
+      tags: ['ai-merged'],
+    };
+
+    // Immediately render the card on the canvas so user sees streaming in real-time
+    handleUpdateNote(initialNote);
+    setSelectedNoteIds([newNoteId]);
 
     (async () => {
       try {
-        const result = await mergeNotesWithAI(notesToMerge, {
-          aiProvider: settings.aiProvider || 'gemini',
-          encryptedApiKey: settings.encryptedApiKey,
-          apiKeyIv: settings.apiKeyIv || '',
-          customBaseUrl: settings.customBaseUrl,
-          customModelName: settings.customModelName,
-        });
+        const result = await mergeNotesWithAI(
+          notesToMerge,
+          {
+            aiProvider: settings.aiProvider || 'gemini',
+            encryptedApiKey: settings.encryptedApiKey,
+            apiKeyIv: settings.apiKeyIv || '',
+            customBaseUrl: settings.customBaseUrl,
+            customModelName: settings.customModelName,
+          },
+          (progress) => {
+            let displayTitle = 'Synthesizing Notes...';
+            let displayContent = progress.accumulated;
 
-        const avgX = Math.round(notesToMerge.reduce((sum, n) => sum + n.x, 0) / notesToMerge.length);
-        const avgY = Math.round(notesToMerge.reduce((sum, n) => sum + (n.y + (n.height || 340)), 0) / notesToMerge.length) + 40;
-        const maxZ = Math.max(0, ...notes.map((n) => n.zIndex || 0));
+            if (displayContent.startsWith('# ')) {
+              const firstNewline = displayContent.indexOf('\n');
+              if (firstNewline !== -1) {
+                displayTitle = displayContent.slice(2, firstNewline).trim();
+                displayContent = displayContent.slice(firstNewline + 1).trim();
+              }
+            }
 
-        const newNote: Note = {
-          id: `note-${crypto.randomUUID()}`,
+            handleUpdateNote({
+              ...initialNote,
+              title: displayTitle || 'Synthesizing Notes...',
+              content: displayContent,
+              updatedAt: new Date().toISOString(),
+            });
+          }
+        );
+
+        handleUpdateNote({
+          ...initialNote,
           title: result.title,
           content: result.content,
-          x: avgX,
-          y: avgY,
-          width: 500,
-          height: 420,
-          createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          fontFamily: settings.defaultFont || 'sans',
-          fontSize: 'md',
-          paperTheme: 'white',
-          activeMode: 'text',
-          isPinned: false,
-          zIndex: maxZ + 1,
-          tags: ['ai-merged'],
-        };
-
-        handleUpdateNote(newNote);
+        });
 
         sendNativeAppNotification(
           'AI Note Merged Successfully',
@@ -672,6 +725,7 @@ export default function App() {
         );
       } catch (err: any) {
         console.error('Failed to merge notes with AI:', err);
+        handleDeleteMultipleNotes([newNoteId]);
         setMergedSelectionKeys((prev) => {
           const next = new Set(prev);
           next.delete(selKey);
@@ -685,7 +739,7 @@ export default function App() {
         setIsMergingAI(false);
       }
     })();
-  }, [settings, notes, selectedNoteIds, mergedSelectionKeys, handleUpdateNote, setIsAISettingsOpen, setIsMergingAI, setMergedSelectionKeys]);
+  }, [settings, notes, selectedNoteIds, mergedSelectionKeys, handleUpdateNote, handleDeleteMultipleNotes, setSelectedNoteIds, setIsAISettingsOpen, setIsMergingAI, setMergedSelectionKeys]);
 
   const handleOpenOrCreateTodayJournal = useCallback(
     (targetDateStr?: string) => {
@@ -1031,6 +1085,7 @@ export default function App() {
               onOpenShortcutsModal={() => setIsShortcutsModalOpen(true)}
               onOpenAbout={() => setIsAboutModalOpen(true)}
               onOpenNotesList={() => setIsNotesListOpen(true)}
+              onOpenDatabaseOperations={() => setIsDatabaseModalOpen(true)}
               onExportBackup={() => exportBackup(notes, transform, settings)}
               onImportBackup={handleImportBackupFile}
               showStatusBar={showStatusBar}
@@ -1064,6 +1119,21 @@ export default function App() {
             e.target.value = '';
           }
         }}
+      />
+
+      {/* Global Hidden Backup File Picker Input */}
+      <input
+        type="file"
+        ref={globalBackupInputRef}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            handleImportBackupFile(file);
+            e.target.value = '';
+          }
+        }}
+        accept=".json,.diarynote"
+        className="hidden"
       />
 
       {/* Sidebar Drawer */}
@@ -1134,6 +1204,9 @@ export default function App() {
         onCutNotes={handleCutSelectedNotes}
         onPasteRelocateNotes={handlePasteRelocateNotes}
         onCancelCutNotes={handleCancelCutNotes}
+        isDatabaseModalOpen={isDatabaseModalOpen}
+        setIsDatabaseModalOpen={setIsDatabaseModalOpen}
+        onTriggerImportFile={() => globalBackupInputRef.current?.click()}
       />
 
       {/* First-Time Release Update Alert Banner */}
@@ -1178,7 +1251,7 @@ export default function App() {
                   : 'dots',
             }))
           }
-          onOpenBackupModal={() => exportBackup(notes, transform, settings)}
+          onOpenDatabaseModal={() => setIsDatabaseModalOpen(true)}
           onOpenSearchModal={() => setIsSearchOpen(true)}
           onOpenJournalCalendar={() => setIsJournalCalendarOpen(true)}
         />

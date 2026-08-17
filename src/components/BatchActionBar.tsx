@@ -128,6 +128,7 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
       paperTheme: newTheme,
     }));
     onUpdateBatchNotes(updated);
+    sendNativeAppNotification('Theme Updated', `Applied theme to ${selectedNotes.length} notes`);
     setShowThemePicker(false);
   };
 
@@ -139,6 +140,10 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
       isPinned: targetState,
     }));
     onUpdateBatchNotes(updated);
+    sendNativeAppNotification(
+      targetState ? 'Notes Pinned' : 'Notes Unpinned',
+      `${selectedNotes.length} notes ${targetState ? 'pinned to top' : 'unpinned'}`
+    );
   };
 
   // Helper to get real live width of note card
@@ -159,6 +164,7 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
     const minX = Math.min(...selectedNotes.map((n) => n.x));
     const updated = selectedNotes.map((n) => ({ ...n, x: minX }));
     onUpdateBatchNotes(updated);
+    sendNativeAppNotification('Notes Aligned', `Aligned ${selectedNotes.length} notes to the left`);
     setShowAlignMenu(false);
   };
 
@@ -172,6 +178,7 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
       x: Math.round(avgCenter - getNoteWidth(n) / 2),
     }));
     onUpdateBatchNotes(updated);
+    sendNativeAppNotification('Notes Aligned', `Centered ${selectedNotes.length} notes horizontally`);
     setShowAlignMenu(false);
   };
 
@@ -185,6 +192,7 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
       x: maxRight - getNoteWidth(n),
     }));
     onUpdateBatchNotes(updated);
+    sendNativeAppNotification('Notes Aligned', `Aligned ${selectedNotes.length} notes to the right`);
     setShowAlignMenu(false);
   };
 
@@ -194,6 +202,7 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
     const minY = Math.min(...selectedNotes.map((n) => n.y));
     const updated = selectedNotes.map((n) => ({ ...n, y: minY }));
     onUpdateBatchNotes(updated);
+    sendNativeAppNotification('Notes Aligned', `Aligned ${selectedNotes.length} notes to the top`);
     setShowAlignMenu(false);
   };
 
@@ -207,6 +216,7 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
       y: Math.round(avgMiddle - getNoteHeight(n) / 2),
     }));
     onUpdateBatchNotes(updated);
+    sendNativeAppNotification('Notes Aligned', `Centered ${selectedNotes.length} notes vertically`);
     setShowAlignMenu(false);
   };
 
@@ -220,6 +230,7 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
       y: maxBottom - getNoteHeight(n),
     }));
     onUpdateBatchNotes(updated);
+    sendNativeAppNotification('Notes Aligned', `Aligned ${selectedNotes.length} notes to the bottom`);
     setShowAlignMenu(false);
   };
 
@@ -242,6 +253,7 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
       return { ...n, x: itemX };
     });
     onUpdateBatchNotes(updated);
+    sendNativeAppNotification('Notes Distributed', `Distributed ${selectedNotes.length} notes horizontally`);
     setShowAlignMenu(false);
   };
 
@@ -264,6 +276,7 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
       return { ...n, y: itemY };
     });
     onUpdateBatchNotes(updated);
+    sendNativeAppNotification('Notes Distributed', `Distributed ${selectedNotes.length} notes vertically`);
     setShowAlignMenu(false);
   };
 

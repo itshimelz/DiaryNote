@@ -6,7 +6,7 @@ import {
   Loading03Icon,
 } from '@hugeicons/core-free-icons';
 import { Button, Icon } from './ui';
-import { loadNotesFromDB } from '../lib/indexedDbStorage';
+import { initDatabase } from '../lib/rustStorage';
 
 interface Props {
   children: ReactNode;
@@ -51,7 +51,7 @@ export class ErrorBoundary extends Component<Props, State> {
   handleEmergencyExport = async () => {
     try {
       this.setState({ isExporting: true });
-      const notes = await loadNotesFromDB();
+      const { notes } = await initDatabase();
       const backupPayload = {
         version: 2,
         exportedAt: new Date().toISOString(),

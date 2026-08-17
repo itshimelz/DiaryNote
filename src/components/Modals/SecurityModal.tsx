@@ -6,7 +6,7 @@ import {
   CircleQuestionMarkIcon,
   CircleUnlock01Icon,
 } from '@hugeicons/core-free-icons';
-import { hashSecurityInput, verifySecurityInput } from '../../utils';
+import { hashSecurityInput, verifySecurityInput, sendNativeAppNotification } from '../../utils';
 import { CanvasTheme } from '../../types';
 import { cacheSessionPasscode } from '../../services/cryptoVaultService';
 import { setMasterSessionUnlocked } from '../../services/authPolicyService';
@@ -84,6 +84,7 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({
       setMasterSessionUnlocked(true);
 
       onSuccessSet(passHash, finalQuestion, ansHash);
+      sendNativeAppNotification('Security Passcode Enabled', 'Master password and recovery question saved.');
       onClose();
     } catch (err: any) {
       setErrorMessage(err?.message || 'Failed to set security passcode.');
@@ -100,6 +101,7 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({
         cacheSessionPasscode(password);
         setMasterSessionUnlocked(true);
         onSuccessUnlock();
+        sendNativeAppNotification('Vault Unlocked', 'Notes unlocked for this session.');
         onClose();
       } else {
         setErrorMessage('Incorrect password. Please try again or use recovery.');
@@ -118,6 +120,7 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({
       if (isValid) {
         setMasterSessionUnlocked(true);
         onSuccessUnlock();
+        sendNativeAppNotification('Vault Unlocked', 'Notes unlocked with recovery answer.');
         onClose();
       } else {
         setErrorMessage('Incorrect recovery answer. Please double-check spelling.');

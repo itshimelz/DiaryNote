@@ -46,9 +46,6 @@ export default defineConfig(() => {
               if (id.includes('node_modules/@hugeicons/')) {
                 return 'vendor-icons';
               }
-              if (id.includes('node_modules/dexie/')) {
-                return 'vendor-db';
-              }
               if (
                 id.includes('node_modules/react-markdown/') ||
                 id.includes('node_modules/remark-') ||

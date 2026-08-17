@@ -18,8 +18,8 @@ pub use graph::{get_note_backlinks, get_note_graph_connections, parse_note_markd
 pub use image::read_image_files;
 pub use search::{clear_vault_fts_index, index_vault_notes, search_notes};
 pub use storage::{
-    check_database_integrity, delete_notes, load_app_state, save_app_settings,
-    save_canvas_transform, save_notes_batch, AppState,
+    check_database_integrity, delete_notes, get_database_stats, load_app_state, save_app_settings,
+    save_canvas_transform, save_notes_batch, vacuum_database, AppState,
 };
 pub use vault::{
     vault_decrypt_note, vault_encrypt_note, vault_get_status, vault_hash_security_input,

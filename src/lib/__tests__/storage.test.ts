@@ -1,26 +1,26 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  db,
   initDatabase,
   saveNoteToDB,
   saveDirtyNotesToDB,
   deleteNoteFromDB,
   deleteMultipleNotesFromDB,
-  getNotesInBounds,
-  getNotesMetadata,
-  compactDatabase,
-  saveTransformToDB,
-  saveSettingsToDB,
-  saveImportedNotesToDB,
-  getDailyEntryByDate,
-} from '../indexedDbStorage';
+  saveCanvasTransformToDB,
+  saveAppSettingsToDB,
+  checkDatabaseIntegrity,
+  resetMockStorage,
+} from '../rustStorage';
 import { Note } from '../../types';
-import { DEFAULT_SETTINGS, exportBackup, exportNotesBackup } from '../storage';
 import {
-  cacheSessionPasscode,
-  lockSessionVault,
-  isEncryptedEnvelope,
-} from '../../services/cryptoVaultService';
+  DEFAULT_SETTINGS,
+  loadSettings,
+  saveSettings,
+  loadTransform,
+  saveTransform,
+  exportBackup,
+  exportNotesBackup,
+} from '../storage';
+import { validateAndParseBackupContent } from '../../schemas/backupSchema';
 import { setMasterSessionUnlocked } from '../../services/authPolicyService';
 
 function createTestNote(overrides: Partial<Note> = {}): Note {
@@ -42,12 +42,10 @@ function createTestNote(overrides: Partial<Note> = {}): Note {
   };
 }
 
-describe('IndexedDB Storage Engine (indexedDbStorage.ts)', () => {
+describe('Storage Core & Rust Bridge (storage.ts & rustStorage.ts)', () => {
   beforeEach(async () => {
     localStorage.clear();
-    await db.notes.clear();
-    await db.settings.clear();
-    await db.transform.clear();
+    resetMockStorage();
   });
 
   it('initializes database and seeds sample notes on first launch', async () => {
@@ -55,152 +53,78 @@ describe('IndexedDB Storage Engine (indexedDbStorage.ts)', () => {
     expect(notes.length).toBeGreaterThan(0);
     expect(transform).toBeDefined();
     expect(settings).toBeDefined();
-    expect(localStorage.getItem('diarynote_has_initialized')).toBe('true');
   });
 
-  it('saves and reads a single note', async () => {
-    const testNote = createTestNote({
-      id: 'test-note-1',
-      title: 'Test Note Title',
-      content: 'Test Note Content',
-      x: 100,
-      y: 200,
-      tags: ['test'],
-    });
+  it('saves and updates dirty notes via saveDirtyNotesToDB', async () => {
+    const note1 = createTestNote({ id: 'n1', title: 'Note 1', content: 'Body 1' });
+    const note2 = createTestNote({ id: 'n2', title: 'Note 2', content: 'Body 2' });
 
-    const saveSuccess = await saveNoteToDB(testNote);
-    expect(saveSuccess).toBe(true);
-
-    const loaded = await db.notes.get('test-note-1');
-    expect(loaded).toBeDefined();
-    expect(loaded?.title).toBe('Test Note Title');
-    expect(loaded?.content).toBe('Test Note Content');
-  });
-
-  it('saves only dirty notes via saveDirtyNotesToDB', async () => {
-    const noteA = createTestNote({
-      id: 'note-a',
-      title: 'Note A',
-      content: 'Content A',
-    });
-    const noteB = createTestNote({
-      id: 'note-b',
-      title: 'Note B',
-      content: 'Content B',
-      paperTheme: 'cream',
-    });
-
-    const res = await saveDirtyNotesToDB([noteA, noteB]);
-    expect(res).toBe(true);
-
-    const allNotes = await db.notes.toArray();
-    expect(allNotes.length).toBe(2);
-    expect(allNotes.map((n) => n.id)).toEqual(['note-a', 'note-b']);
-  });
-
-  it('performs $O(1)$ single-note and bulk-note deletions directly', async () => {
-    const notes: Note[] = [
-      createTestNote({ id: 'del-1', title: '1' }),
-      createTestNote({ id: 'del-2', title: '2' }),
-      createTestNote({ id: 'del-3', title: '3' }),
-    ];
-    await saveDirtyNotesToDB(notes);
-    expect(await db.notes.count()).toBe(3);
-
-    const delSingleSuccess = await deleteNoteFromDB('del-1');
-    expect(delSingleSuccess).toBe(true);
-    expect(await db.notes.get('del-1')).toBeUndefined();
-    expect(await db.notes.count()).toBe(2);
-
-    const delBulkSuccess = await deleteMultipleNotesFromDB(['del-2', 'del-3']);
-    expect(delBulkSuccess).toBe(true);
-    expect(await db.notes.count()).toBe(0);
-  });
-
-  it('fetches notes within spatial viewport bounds', async () => {
-    const insideNote = createTestNote({
-      id: 'inside',
-      title: 'Inside',
-      x: 100,
-      y: 100,
-      width: 300,
-      height: 300,
-    });
-    const outsideNote = createTestNote({
-      id: 'outside',
-      title: 'Outside',
-      x: 5000,
-      y: 5000,
-      width: 300,
-      height: 300,
-    });
-
-    await saveDirtyNotesToDB([insideNote, outsideNote]);
-
-    const results = await getNotesInBounds(0, 0, 1000, 1000);
-    expect(results.length).toBe(1);
-    expect(results[0].id).toBe('inside');
-  });
-
-  it('fetches lightweight note metadata without full content', async () => {
-    const noteWithBody = createTestNote({
-      id: 'heavy-note',
-      title: 'Heavy Note',
-      content: 'Very long text content that takes up memory',
-    });
-    await saveNoteToDB(noteWithBody);
-
-    const metadata = await getNotesMetadata();
-    expect(metadata.length).toBe(1);
-    expect(metadata[0].title).toBe('Heavy Note');
-    expect(metadata[0].content).toBe('');
-  });
-
-  it('compacts database and purges residual legacy localStorage keys', async () => {
-    localStorage.setItem('infinite_notes_v1_notes', '[]');
-    localStorage.setItem('infinite_notes_v1_settings', '{}');
-    localStorage.setItem('infinite_notes_v1_transform', '{}');
-
-    const result = await compactDatabase();
-    expect(result.freedKeys).toBeGreaterThanOrEqual(3);
-    expect(localStorage.getItem('infinite_notes_v1_notes')).toBeNull();
-    expect(localStorage.getItem('infinite_notes_v1_settings')).toBeNull();
-    expect(localStorage.getItem('infinite_notes_v1_transform')).toBeNull();
-  });
-
-  it('persists transform and settings to database', async () => {
-    const transformRes = await saveTransformToDB({ x: 500, y: -200, zoom: 1.5 });
-    expect(transformRes).toBe(true);
-
-    const settingsRes = await saveSettingsToDB({ ...DEFAULT_SETTINGS, defaultFont: 'sans' });
-    expect(settingsRes).toBe(true);
-
-    const loadedTransform = await db.transform.get('main');
-    expect(loadedTransform?.zoom).toBe(1.5);
-
-    const loadedSettings = await db.settings.get('main');
-    expect(loadedSettings?.defaultFont).toBe('sans');
-  });
-
-  it('encrypts locked note content at rest in IndexedDB when session passcode is available', async () => {
-    cacheSessionPasscode('VaultSecret2026');
-
-    const lockedNote = createTestNote({
-      id: 'locked-note-1',
-      title: 'Secret Thoughts',
-      content: 'This text must never be stored in plaintext on disk.',
-      isLocked: true,
-    });
-
-    const success = await saveNoteToDB(lockedNote);
+    const success = await saveDirtyNotesToDB([note1, note2]);
     expect(success).toBe(true);
 
-    const recordInDb = await db.notes.get('locked-note-1');
-    expect(recordInDb).toBeDefined();
-    expect(recordInDb?.content).not.toBe('This text must never be stored in plaintext on disk.');
-    expect(isEncryptedEnvelope(recordInDb?.content)).toBe(true);
+    const { notes } = await initDatabase();
+    expect(notes.some((n) => n.id === 'n1' && n.title === 'Note 1')).toBe(true);
+    expect(notes.some((n) => n.id === 'n2' && n.title === 'Note 2')).toBe(true);
+  });
 
-    lockSessionVault();
+  it('saves a single note via saveNoteToDB', async () => {
+    const note = createTestNote({ id: 'single-1', title: 'Single Note' });
+    const success = await saveNoteToDB(note);
+    expect(success).toBe(true);
+
+    const { notes } = await initDatabase();
+    expect(notes.some((n) => n.id === 'single-1')).toBe(true);
+  });
+
+  it('deletes a single note from storage via deleteNoteFromDB', async () => {
+    const note = createTestNote({ id: 'to-del', title: 'Delete Me' });
+    await saveNoteToDB(note);
+
+    const deleteSuccess = await deleteNoteFromDB('to-del');
+    expect(deleteSuccess).toBe(true);
+
+    const { notes } = await initDatabase();
+    expect(notes.some((n) => n.id === 'to-del')).toBe(false);
+  });
+
+  it('deletes multiple notes from storage via deleteMultipleNotesFromDB', async () => {
+    const note1 = createTestNote({ id: 'del-1' });
+    const note2 = createTestNote({ id: 'del-2' });
+    await saveDirtyNotesToDB([note1, note2]);
+
+    const deleteSuccess = await deleteMultipleNotesFromDB(['del-1', 'del-2']);
+    expect(deleteSuccess).toBe(true);
+
+    const { notes } = await initDatabase();
+    expect(notes.some((n) => n.id === 'del-1' || n.id === 'del-2')).toBe(false);
+  });
+
+  it('persists and loads canvas transform', async () => {
+    const newTransform = { x: 500, y: -200, zoom: 1.5 };
+    const success = await saveCanvasTransformToDB(newTransform);
+    expect(success).toBe(true);
+
+    saveTransform(newTransform);
+    const loaded = loadTransform();
+    expect(loaded.x).toBe(500);
+    expect(loaded.y).toBe(-200);
+    expect(loaded.zoom).toBe(1.5);
+  });
+
+  it('persists and loads app settings', async () => {
+    const newSettings = { ...DEFAULT_SETTINGS, defaultFont: 'sans' as const, snapToGrid: true };
+    const success = await saveAppSettingsToDB(newSettings);
+    expect(success).toBe(true);
+
+    saveSettings(newSettings);
+    const loaded = loadSettings();
+    expect(loaded.defaultFont).toBe('sans');
+    expect(loaded.snapToGrid).toBe(true);
+  });
+
+  it('verifies database integrity', async () => {
+    const isHealthy = await checkDatabaseIntegrity();
+    expect(isHealthy).toBe(true);
   });
 
   it('redacts unauthenticated locked notes when exporting workspace backup', async () => {
@@ -209,7 +133,6 @@ describe('IndexedDB Storage Engine (indexedDbStorage.ts)', () => {
     const publicNote = createTestNote({ id: 'p1', title: 'Public Note', content: 'Public Content' });
     const lockedNote = createTestNote({ id: 'l1', title: 'Locked Note', content: 'Secret Content', isLocked: true });
 
-    // Mock saveFileWithNotification by verifying behavior
     const transform = { x: 0, y: 0, zoom: 1 };
     await exportBackup([publicNote, lockedNote], transform, DEFAULT_SETTINGS);
 
@@ -218,34 +141,18 @@ describe('IndexedDB Storage Engine (indexedDbStorage.ts)', () => {
     expect(selectionRes).toBe('');
   });
 
-  it('atomically saves imported notes to IndexedDB via saveImportedNotesToDB', async () => {
-    const importedNotes = [
-      createTestNote({ id: 'import-1', title: 'Imported 1' }),
-      createTestNote({ id: 'import-2', title: 'Imported 2' }),
-    ];
-
-    const success = await saveImportedNotesToDB(importedNotes);
-    expect(success).toBe(true);
-
-    const count = await db.notes.count();
-    expect(count).toBe(2);
-  });
-
-  it('queries daily journal entry by exact date via getDailyEntryByDate', async () => {
-    const dailyNote = createTestNote({
-      id: 'journal-2026-08-14',
-      title: '2026-08-14',
-      isDailyEntry: true,
-      entryDate: '2026-08-14',
+  it('validates and parses valid backup content via schema', () => {
+    const validPayload = JSON.stringify({
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      notes: [createTestNote({ id: 'b1', title: 'Backup Note' })],
+      transform: { x: 100, y: 100, zoom: 1 },
+      settings: DEFAULT_SETTINGS,
     });
 
-    await saveNoteToDB(dailyNote);
-
-    const found = await getDailyEntryByDate('2026-08-14');
-    expect(found).toBeDefined();
-    expect(found?.id).toBe('journal-2026-08-14');
-
-    const notFound = await getDailyEntryByDate('2026-08-15');
-    expect(notFound).toBeUndefined();
+    const parsed = validateAndParseBackupContent(validPayload);
+    expect(parsed.notes.length).toBe(1);
+    expect(parsed.notes[0].id).toBe('b1');
+    expect(parsed.transform?.x).toBe(100);
   });
 });

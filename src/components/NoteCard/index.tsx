@@ -465,12 +465,17 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
             updatedAt: new Date().toISOString(),
           })
         }
-        onTogglePin={() =>
+        onTogglePin={() => {
+          const targetState = !note.isPinned;
           onUpdateNote({
             ...note,
-            isPinned: !note.isPinned,
-          })
-        }
+            isPinned: targetState,
+          });
+          sendNativeAppNotification(
+            targetState ? 'Note Pinned' : 'Note Unpinned',
+            `"${note.title || 'Note'}" ${targetState ? 'pinned to top layer' : 'unpinned'}`
+          );
+        }}
         onDeleteNote={() => onDeleteNote(note.id)}
         onDeselectNote={() => onSelectNote(null)}
         onRemoveFromGroup={() => {

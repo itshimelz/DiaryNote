@@ -8,12 +8,13 @@ use std::sync::{Arc, Mutex};
 use commands::{
     ai_generate_tags, ai_stream_synthesis, ai_test_connection, check_database_integrity,
     clear_vault_fts_index, delete_asset, delete_notes, export_vault_archive, get_asset_info,
-    get_note_backlinks, get_note_graph_connections, import_vault_archive, index_vault_notes,
-    inspect_vault_archive, load_app_state, parse_note_markdown_links, read_image_files,
-    relocate_notes, save_app_settings, save_asset_from_bytes, save_asset_from_path,
-    save_canvas_transform, save_export_file, save_notes_batch, search_notes,
-    vault_decrypt_note, vault_encrypt_note, vault_get_status, vault_hash_security_input,
-    vault_is_unlocked, vault_lock, vault_unlock, vault_verify_security_input, AppState,
+    get_database_stats, get_note_backlinks, get_note_graph_connections, import_vault_archive,
+    index_vault_notes, inspect_vault_archive, load_app_state, parse_note_markdown_links,
+    read_image_files, relocate_notes, save_app_settings, save_asset_from_bytes,
+    save_asset_from_path, save_canvas_transform, save_export_file, save_notes_batch,
+    search_notes, vacuum_database, vault_decrypt_note, vault_encrypt_note, vault_get_status,
+    vault_hash_security_input, vault_is_unlocked, vault_lock, vault_unlock,
+    vault_verify_security_input, AppState,
 };
 use domain::asset::AssetService;
 use domain::graph::GraphService;
@@ -36,22 +37,36 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .register_uri_scheme_protocol("diarynote-asset", |ctx, request| {
             let uri = request.uri();
+            let uri_str = uri.to_string();
             let raw_path = uri.path();
             let host = uri.host().unwrap_or("");
 
-            // Format can be diarynote-asset://<hash> (where host is <hash> or path is /<hash>)
-            let raw_hash = if !host.is_empty() && host != "localhost" {
+            // Format can be:
+            // 1. diarynote-asset://<hash> (where host is <hash> or path is /<hash>)
+            // 2. diarynote-asset://localhost/<hash>
+            // 3. diarynote-asset:///<hash>
+            let mut candidate = if !host.is_empty() && host != "localhost" {
                 host
             } else {
                 raw_path.trim_start_matches('/')
             };
-            let hash = raw_hash.split('/').next().unwrap_or(raw_hash);
 
-            let is_thumb = uri.query().map(|q| q.contains("thumb=1")).unwrap_or(false);
+            // Strip query parameters and sub-paths if present in authority
+            if let Some(pos) = candidate.find('?') {
+                candidate = &candidate[..pos];
+            }
+            if let Some(pos) = candidate.find('/') {
+                candidate = &candidate[..pos];
+            }
+            let hash = candidate.trim();
+
+            let is_thumb = uri.query().map(|q| q.contains("thumb=1")).unwrap_or(false)
+                || uri_str.contains("thumb=1");
 
             if AssetStore::validate_hash(hash).is_err() {
                 return tauri::http::Response::builder()
                     .status(tauri::http::StatusCode::BAD_REQUEST)
+                    .header("Access-Control-Allow-Origin", "*")
                     .body(Vec::new())
                     .unwrap();
             }
@@ -61,6 +76,7 @@ pub fn run() {
                 Err(_) => {
                     return tauri::http::Response::builder()
                         .status(tauri::http::StatusCode::INTERNAL_SERVER_ERROR)
+                        .header("Access-Control-Allow-Origin", "*")
                         .body(Vec::new())
                         .unwrap();
                 }
@@ -79,20 +95,24 @@ pub fn run() {
                         .status(tauri::http::StatusCode::OK)
                         .header("Content-Type", mime)
                         .header("Cache-Control", "public, max-age=31536000, immutable")
+                        .header("Access-Control-Allow-Origin", "*")
                         .body(bytes)
                         .unwrap_or_else(|_| {
                             tauri::http::Response::builder()
                                 .status(tauri::http::StatusCode::INTERNAL_SERVER_ERROR)
+                                .header("Access-Control-Allow-Origin", "*")
                                 .body(Vec::new())
                                 .unwrap()
                         }),
                     Err(_) => tauri::http::Response::builder()
                         .status(tauri::http::StatusCode::INTERNAL_SERVER_ERROR)
+                        .header("Access-Control-Allow-Origin", "*")
                         .body(Vec::new())
                         .unwrap(),
                 },
                 Err(_) => tauri::http::Response::builder()
                     .status(tauri::http::StatusCode::NOT_FOUND)
+                    .header("Access-Control-Allow-Origin", "*")
                     .body(Vec::new())
                     .unwrap(),
             }
@@ -107,6 +127,8 @@ pub fn run() {
             save_canvas_transform,
             save_app_settings,
             check_database_integrity,
+            get_database_stats,
+            vacuum_database,
             save_asset_from_bytes,
             save_asset_from_path,
             get_asset_info,

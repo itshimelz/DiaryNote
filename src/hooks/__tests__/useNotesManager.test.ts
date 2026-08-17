@@ -2,19 +2,17 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useNotesManager } from '../useNotesManager';
 import { useHistoryState } from '../useHistoryState';
-import { db } from '../../lib/indexedDbStorage';
+import { initDatabase, resetMockStorage } from '../../lib/rustStorage';
 import { DEFAULT_SETTINGS, INITIAL_TRANSFORM } from '../../lib/storage';
 
 describe('useNotesManager Hook & Persistence Lifecycle', () => {
   beforeEach(async () => {
     localStorage.clear();
-    await db.notes.clear();
-    await db.settings.clear();
-    await db.transform.clear();
+    resetMockStorage();
     vi.clearAllMocks();
   });
 
-  it('hydrates notes from IndexedDB on initialization', async () => {
+  it('hydrates notes from native storage on initialization', async () => {
     const { result: historyResult } = renderHook(() => useHistoryState());
     const { result: notesResult } = renderHook(() =>
       useNotesManager(historyResult.current.pushHistorySnapshot, historyResult.current.resetHistory)
@@ -64,8 +62,9 @@ describe('useNotesManager Hook & Persistence Lifecycle', () => {
       await new Promise((r) => setTimeout(r, 600));
     });
 
-    // Verify written to IndexedDB
-    const persisted = await db.notes.get(newNoteId);
+    // Verify written to storage
+    const { notes: persistedNotes } = await initDatabase();
+    const persisted = persistedNotes.find((n) => n.id === newNoteId);
     expect(persisted).toBeDefined();
     expect(persisted?.title).toBe('My Special Note');
     expect(persisted?.content).toBe('Hello World Content');
@@ -116,13 +115,14 @@ describe('useNotesManager Hook & Persistence Lifecycle', () => {
       await new Promise((r) => setTimeout(r, 600));
     });
 
-    const dbRecord = await db.notes.get(pastedId);
+    const { notes: dbRecords } = await initDatabase();
+    const dbRecord = dbRecords.find((n) => n.id === pastedId);
     expect(dbRecord).toBeDefined();
     expect(dbRecord?.title).toBe('Pasted Title');
     expect(dbRecord?.content).toBe('Pasted Markdown Body');
   });
 
-  it('performs $O(1)$ deletion from React state and IndexedDB', async () => {
+  it('performs $O(1)$ deletion from React state and persistent storage', async () => {
     const { result: historyResult } = renderHook(() => useHistoryState());
     const { result: notesResult } = renderHook(() =>
       useNotesManager(historyResult.current.pushHistorySnapshot, historyResult.current.resetHistory)
@@ -150,7 +150,8 @@ describe('useNotesManager Hook & Persistence Lifecycle', () => {
       await new Promise((r) => setTimeout(r, 600));
     });
 
-    expect(await db.notes.get(targetId)).toBeDefined();
+    const { notes: beforeDeleteNotes } = await initDatabase();
+    expect(beforeDeleteNotes.find((n) => n.id === targetId)).toBeDefined();
 
     // Delete note
     act(() => {
@@ -159,15 +160,16 @@ describe('useNotesManager Hook & Persistence Lifecycle', () => {
 
     expect(notesResult.current.notes.some((n) => n.id === targetId)).toBe(false);
 
-    // Wait a brief moment and verify IndexedDB has deleted it directly
+    // Wait a brief moment and verify storage has deleted it directly
     await act(async () => {
       await new Promise((r) => setTimeout(r, 100));
     });
 
-    expect(await db.notes.get(targetId)).toBeUndefined();
+    const { notes: afterDeleteNotes } = await initDatabase();
+    expect(afterDeleteNotes.find((n) => n.id === targetId)).toBeUndefined();
   });
 
-  it('reconciles and persists history undo/redo operations with IndexedDB', async () => {
+  it('reconciles and persists history undo/redo operations with storage', async () => {
     const { result: historyResult } = renderHook(() => useHistoryState());
     const { result: notesResult } = renderHook(() =>
       useNotesManager(historyResult.current.pushHistorySnapshot, historyResult.current.resetHistory)
@@ -214,7 +216,8 @@ describe('useNotesManager Hook & Persistence Lifecycle', () => {
       await new Promise((r) => setTimeout(r, 600));
     });
 
-    const restoredInDb = await db.notes.get(createdId);
+    const { notes: restoredNotes } = await initDatabase();
+    const restoredInDb = restoredNotes.find((n) => n.id === createdId);
     expect(restoredInDb).toBeDefined();
     expect(restoredInDb?.title).toBe('Note Before Delete');
   });
@@ -229,22 +232,23 @@ describe('useNotesManager Hook & Persistence Lifecycle', () => {
     act(() => {
       noteId = notesResult.current.handleAddNote(INITIAL_TRANSFORM, DEFAULT_SETTINGS);
     });
-    expect(noteId).toMatch(/^note-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
 
-    let journalRes = { noteId: '', isNew: false };
+    expect(noteId).toMatch(/^note-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    const createdNote = notesResult.current.notes.find((n) => n.id === noteId);
+    expect(createdNote?.isPinned).toBe(false);
+
+    let journalResult = { noteId: '', isNew: false };
     act(() => {
-      journalRes = notesResult.current.handleCreateOrFocusDailyEntry(
-        INITIAL_TRANSFORM,
-        DEFAULT_SETTINGS,
-        '2026-08-14'
-      );
+      journalResult = notesResult.current.handleCreateOrFocusDailyEntry(INITIAL_TRANSFORM, DEFAULT_SETTINGS);
     });
-    expect(journalRes.noteId).toMatch(
-      /^journal-2026-08-14-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    );
+
+    expect(journalResult.noteId).toMatch(/^journal-\d{4}-\d{2}-\d{2}-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    expect(journalResult.isNew).toBe(true);
+    const createdJournal = notesResult.current.notes.find((n) => n.id === journalResult.noteId);
+    expect(createdJournal?.isPinned).toBe(false);
   });
 
-  it('marks note dirty and persists updated zIndex on bringToFront', async () => {
+  it('preserves and persists note layering when bringToFront is called', async () => {
     const { result: historyResult } = renderHook(() => useHistoryState());
     const { result: notesResult } = renderHook(() =>
       useNotesManager(historyResult.current.pushHistorySnapshot, historyResult.current.resetHistory)
@@ -259,14 +263,8 @@ describe('useNotesManager Hook & Persistence Lifecycle', () => {
     let note1Id = '';
     let note2Id = '';
     act(() => {
-      note1Id = notesResult.current.handleAddNote(INITIAL_TRANSFORM, DEFAULT_SETTINGS);
-    });
-    act(() => {
-      note2Id = notesResult.current.handleAddNote(INITIAL_TRANSFORM, DEFAULT_SETTINGS);
-    });
-
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 600));
+      note1Id = notesResult.current.handleAddNote(INITIAL_TRANSFORM, DEFAULT_SETTINGS, 0, 0, 'Card 1');
+      note2Id = notesResult.current.handleAddNote(INITIAL_TRANSFORM, DEFAULT_SETTINGS, 50, 50, 'Card 2');
     });
 
     // Bring note 1 to front
@@ -283,7 +281,8 @@ describe('useNotesManager Hook & Persistence Lifecycle', () => {
       await new Promise((r) => setTimeout(r, 600));
     });
 
-    const note1InDb = await db.notes.get(note1Id);
+    const { notes: layerNotes } = await initDatabase();
+    const note1InDb = layerNotes.find((n) => n.id === note1Id);
     expect(note1InDb?.zIndex).toBe(note1After?.zIndex);
   });
 
@@ -330,7 +329,8 @@ describe('useNotesManager Hook & Persistence Lifecycle', () => {
       await new Promise((r) => setTimeout(r, 600));
     });
 
-    const noteInDb = await db.notes.get(imageNoteId);
+    const { notes: imgNotes } = await initDatabase();
+    const noteInDb = imgNotes.find((n) => n.id === imageNoteId);
     expect(noteInDb?.imageUrl).toBe('data:image/png;base64,test-image-data');
     expect(noteInDb?.frameStyle).toBe('polaroid');
     expect(noteInDb?.pinStyle).toBe('pushpin-red');
