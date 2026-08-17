@@ -4,17 +4,9 @@
  */
 
 import {
-  hashSecurityInputSecure,
-  verifySecurityInputSecure,
-  getRateLimitBackoffSeconds,
-} from '../services/cryptoVaultService';
+  hashSecurityInput,
+  verifySecurityInput,
+} from '../lib/rustVault';
+import { getRateLimitBackoffSeconds } from '../services/cryptoVaultService';
 
-export async function hashSecurityInput(input: string): Promise<string> {
-  return hashSecurityInputSecure(input);
-}
-
-export async function verifySecurityInput(input: string, storedHash: string): Promise<boolean> {
-  return verifySecurityInputSecure(input, storedHash);
-}
-
-export { getRateLimitBackoffSeconds };
+export { hashSecurityInput, verifySecurityInput, getRateLimitBackoffSeconds };

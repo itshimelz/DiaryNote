@@ -63,6 +63,42 @@ export async function initDatabase(): Promise<LoadedState> {
       };
     }
 
+    // Migrate legacy inline base64 images into Content-Addressable Asset Store
+    if (state.notes && state.notes.length > 0) {
+      let hasMigratedImages = false;
+      const updatedNotes = await Promise.all(
+        state.notes.map(async (n) => {
+          if (n.imageUrl && n.imageUrl.startsWith('data:')) {
+            try {
+              const commaIdx = n.imageUrl.indexOf(',');
+              if (commaIdx > 0) {
+                const base64Data = n.imageUrl.slice(commaIdx + 1);
+                const binStr = atob(base64Data);
+                const bytes = new Uint8Array(binStr.length);
+                for (let i = 0; i < binStr.length; i++) {
+                  bytes[i] = binStr.charCodeAt(i);
+                }
+                const asset = await invoke<{ assetUri: string }>('save_asset_from_bytes', {
+                  data: Array.from(bytes),
+                  filename: `${n.title || 'photo'}.png`,
+                });
+                hasMigratedImages = true;
+                return { ...n, imageUrl: asset.assetUri };
+              }
+            } catch (e) {
+              console.warn('Failed to migrate base64 image note to CAS asset:', e);
+            }
+          }
+          return n;
+        })
+      );
+
+      if (hasMigratedImages) {
+        await invoke<number>('save_notes_batch', { notes: updatedNotes });
+        state.notes = updatedNotes;
+      }
+    }
+
     return state;
   } catch (error) {
     console.error('Failed to initialize native SQLite storage, falling back to IndexedDB:', error);

@@ -10,7 +10,9 @@ import { useCanvasTransform, screenToWorld } from './hooks/useCanvasTransform';
 import { useNoteSelection } from './hooks/useNoteSelection';
 import { useAppUIState } from './hooks/useAppUIState';
 import { useNativeFileDrop, DroppedImageData, isTauriEnvironment } from './hooks/useNativeFileDrop';
+import { saveAssetFromPath } from './lib/rustAssets';
 import { invoke } from '@tauri-apps/api/core';
+
 
 // Modular Components
 import {
@@ -25,7 +27,7 @@ import {
 import { AppModals } from './components/Modals/AppModals';
 import { sendNativeAppNotification } from './utils';
 import { checkForAppUpdates } from './utils/updateChecker';
-import { saveSettingsToDB, saveImportedNotesToDB } from './lib/indexedDbStorage';
+import { saveAppSettingsToDB as saveSettingsToDB, saveDirtyNotesToDB as saveImportedNotesToDB } from './lib/rustStorage';
 import { mergeNotesWithAI } from './services/ai/aiMergeService';
 import { getSessionAuthState } from './services/authPolicyService';
 import { AppSettings } from './lib/storage';
@@ -467,10 +469,25 @@ export default function App() {
     (images: DroppedImageData[], customClientX?: number, customClientY?: number) => {
       if (!images || images.length === 0) return;
 
-      images.forEach((imgData, index) => {
+      images.forEach(async (imgData, index) => {
+        let finalImageUrl = imgData.data_url;
+        let precalculatedAspect: number | undefined;
+
+        if (isTauriEnvironment() && imgData.file_path) {
+          try {
+            const assetInfo = await saveAssetFromPath(imgData.file_path);
+            if (assetInfo && assetInfo.assetUri) {
+              finalImageUrl = assetInfo.assetUri;
+              precalculatedAspect = assetInfo.aspectRatio;
+            }
+          } catch (e) {
+            console.warn('Native asset save from path failed, using data_url fallback:', e);
+          }
+        }
+
         const img = new Image();
         img.onload = () => {
-          const aspectRatio = img.naturalWidth / Math.max(1, img.naturalHeight);
+          const aspectRatio = precalculatedAspect || (img.naturalWidth / Math.max(1, img.naturalHeight));
 
           let worldX: number | undefined;
           let worldY: number | undefined;
@@ -487,7 +504,7 @@ export default function App() {
           const newId = handleAddImageNote(
             transform,
             settings,
-            imgData.data_url,
+            finalImageUrl,
             imgData.mime_type,
             worldX,
             worldY,

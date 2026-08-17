@@ -2,7 +2,7 @@ use std::fs::{self, File};
 use std::io::{Read, Seek, Write};
 use std::path::Path;
 use rusqlite::Connection;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use zip::write::SimpleFileOptions;
 use zip::{ZipArchive, ZipWriter};
@@ -16,6 +16,20 @@ use crate::models::{
     AppSettings, BackupManifest, CanvasTransform, ConflictResolutionMode, Note,
     VaultArchiveInspection, VaultExportSummary, VaultImportSummary,
 };
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+struct LegacyBackup {
+    #[serde(default)]
+    version: Option<u32>,
+    #[serde(default)]
+    notes: Vec<Note>,
+    #[serde(default)]
+    transform: Option<CanvasTransform>,
+    #[serde(default)]
+    settings: Option<AppSettings>,
+    #[serde(default)]
+    exported_at: Option<String>,
+}
 
 #[derive(Debug, Error)]
 pub enum BackupError {
@@ -261,20 +275,6 @@ pub fn inspect_vault_archive<P: AsRef<Path>>(
         let mut f = File::open(archive_path)?;
         f.read_to_string(&mut json_str)?;
 
-        #[derive(Deserialize)]
-        struct LegacyBackup {
-            #[serde(default)]
-            version: Option<u32>,
-            #[serde(default)]
-            notes: Vec<Note>,
-            #[serde(default)]
-            transform: Option<CanvasTransform>,
-            #[serde(default)]
-            settings: Option<AppSettings>,
-            #[serde(default)]
-            exported_at: Option<String>,
-        }
-
         let legacy: LegacyBackup = serde_json::from_str(&json_str)?;
         let manifest = BackupManifest {
             format_version: "legacy-json".to_string(),
@@ -474,7 +474,7 @@ mod tests {
 
         // 2. Save a test asset
         let asset_store = AssetStore::new(paths.clone());
-        let asset = asset_store.save_asset(b"test-image-bytes-54321", Some("sample.png")).expect("Failed to save asset");
+        let asset = asset_store.save_asset(b"test-image-bytes-54321".as_slice(), Some("sample.png")).expect("Failed to save asset");
         assert_eq!(asset.hash.len(), 64);
 
         // 3. Export archive

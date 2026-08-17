@@ -4,6 +4,8 @@ import { AppSettings, exportNotesBackup } from '../../lib/storage';
 import { NoteContextMenu } from '../NoteContextMenu';
 import { HiddenClipboardListener } from '../HiddenClipboardListener';
 import { sendNativeAppNotification } from '../../utils';
+import { indexVaultNotesFts, clearVaultFtsIndex } from '../../lib/rustSearch';
+
 
 // Lazy-loaded modal components
 const SearchModal = lazy(() =>
@@ -233,6 +235,7 @@ export const AppModals: React.FC<AppModalsProps> = ({
             if (targets.length > 0) {
               const updated = targets.map((n) => ({ ...n, isLocked: true }));
               handleUpdateBatchNotes(updated);
+              clearVaultFtsIndex();
               const count = updated.length;
               sendNativeAppNotification(
                 'Note Locked',
@@ -267,6 +270,7 @@ export const AppModals: React.FC<AppModalsProps> = ({
             if (targetsToUnlock.length > 0) {
               const updated = targetsToUnlock.map((n) => ({ ...n, isLocked: false }));
               handleUpdateBatchNotes(updated);
+              indexVaultNotesFts(updated);
               const count = updated.length;
               sendNativeAppNotification(
                 'Note Unlocked',

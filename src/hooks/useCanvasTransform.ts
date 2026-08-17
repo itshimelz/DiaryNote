@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { CanvasTransform, Note } from '../types';
 import { loadTransform, saveTransform, loadSettings, saveSettings, AppSettings } from '../lib/storage';
-import { saveTransformToDB, saveSettingsToDB } from '../lib/indexedDbStorage';
+import { saveCanvasTransformToDB as saveTransformToDB, saveAppSettingsToDB as saveSettingsToDB } from '../lib/rustStorage';
 import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../constants/canvas';
 
 export function screenToWorld(

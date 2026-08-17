@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Note, CanvasTheme } from '../../types';
 import { formatDate } from '../../utils';
+import { searchNotesFts, SearchItemMatch } from '../../lib/rustSearch';
+import { isTauriEnvironment } from '../../hooks/useNativeFileDrop';
 import {
   Search01Icon,
   Calendar03Icon,
@@ -11,6 +13,7 @@ import {
   SecurityLockIcon,
 } from '@hugeicons/core-free-icons';
 import { Dialog, Input, Kbd, Badge, Icon, SegmentedControl, Menu, MenuItem, MenuGroupHeader, IconButton } from '../ui';
+
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -31,6 +34,7 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [filterType, setFilterType] = useState<'all' | 'tags' | 'date'>('all');
   const [isTagsDropdownOpen, setIsTagsDropdownOpen] = useState(false);
+  const [ftsMatches, setFtsMatches] = useState<SearchItemMatch[] | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const tagsDropdownRef = useRef<HTMLDivElement>(null);
   const selectedItemRef = useRef<HTMLDivElement>(null);
@@ -41,11 +45,50 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
       setQuery('');
       setSelectedIndex(0);
       setIsTagsDropdownOpen(false);
+      setFtsMatches(null);
       setTimeout(() => {
         inputRef.current?.focus();
       }, 50);
     }
   }, [isOpen]);
+
+  // Dual-Tier SQLite FTS5 Query Effect in Tauri Desktop Mode
+  useEffect(() => {
+    if (!isOpen) {
+      setFtsMatches(null);
+      return;
+    }
+
+    const cleanQuery = query.trim();
+    if (!cleanQuery || !isTauriEnvironment()) {
+      setFtsMatches(null);
+      return;
+    }
+
+    let isCancelled = false;
+    const filter =
+      filterType === 'tags'
+        ? { tag: cleanQuery.replace(/^#/, '') }
+        : filterType === 'date'
+        ? { entry_date: cleanQuery }
+        : undefined;
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await searchNotesFts(cleanQuery, filter);
+        if (!isCancelled && res && res.matches) {
+          setFtsMatches(res.matches);
+        }
+      } catch (e) {
+        console.warn('Native FTS search failed, falling back to in-memory filter:', e);
+      }
+    }, 40);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [isOpen, query, filterType]);
 
   // Click outside to close tag dropdown
   useEffect(() => {
@@ -125,9 +168,22 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
     return map;
   }, [notes]);
 
-  // Filter notes based on query and filter type
+  // Filter notes based on query and filter type (Native SQLite FTS5 rank priority + in-memory fallback)
   const filteredNotes = useMemo(() => {
     const cleanQuery = query.toLowerCase().trim();
+
+    if (cleanQuery && ftsMatches && ftsMatches.length > 0) {
+      const noteMap = new Map<string, Note>();
+      notes.forEach((n) => noteMap.set(n.id, n));
+      const ranked: Note[] = [];
+      ftsMatches.forEach((m) => {
+        const n = noteMap.get(m.note_id);
+        if (n) ranked.push(n);
+      });
+      if (ranked.length > 0) {
+        return ranked;
+      }
+    }
 
     return notes.filter((note) => {
       if (!cleanQuery) {
@@ -159,7 +215,7 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
         (note.groupName && note.groupName.toLowerCase().includes(cleanQuery))
       );
     });
-  }, [notes, query, filterType]);
+  }, [notes, query, filterType, ftsMatches]);
 
   // Reset selected index when results change
   useEffect(() => {
