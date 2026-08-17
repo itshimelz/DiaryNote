@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use rusqlite::{params, Connection, OptionalExtension};
 use crate::domain::note::error::StorageError;
@@ -24,7 +25,16 @@ impl NoteRepository for SqliteNoteRepository {
     fn load_all(&self) -> Result<LoadedAppState, StorageError> {
         let conn = self.conn.lock().map_err(|e| StorageError::Database(e.to_string()))?;
 
-        // 1. Load Notes
+        // 1. Batch Load All Note Tags (Single O(1) Pass to prevent N+1 queries)
+        let mut tag_stmt = conn.prepare("SELECT note_id, tag FROM note_tags ORDER BY note_id, tag ASC")?;
+        let mut tags_by_note: HashMap<String, Vec<String>> = HashMap::new();
+        let tag_rows = tag_stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))?;
+        for row in tag_rows {
+            let (note_id, tag) = row?;
+            tags_by_note.entry(note_id).or_default().push(tag);
+        }
+
+        // 2. Load All Notes
         let mut note_stmt = conn.prepare(
             r#"
             SELECT 
@@ -38,8 +48,6 @@ impl NoteRepository for SqliteNoteRepository {
             ORDER BY z_index ASC, created_timestamp ASC
             "#
         )?;
-
-        let mut tag_stmt = conn.prepare("SELECT tag FROM note_tags WHERE note_id = ?1 ORDER BY tag ASC")?;
 
         let note_rows = note_stmt.query_map([], |row| {
             let id: String = row.get(0)?;
@@ -139,11 +147,7 @@ impl NoteRepository for SqliteNoteRepository {
                 rotation,
             ) = row?;
 
-            let tags_iter = tag_stmt.query_map((&id,), |t_row| t_row.get::<_, String>(0))?;
-            let mut tags = Vec::new();
-            for t in tags_iter {
-                tags.push(t?);
-            }
+            let tags = tags_by_note.remove(&id);
 
             notes.push(Note {
                 id,
@@ -162,7 +166,7 @@ impl NoteRepository for SqliteNoteRepository {
                 paper_theme,
                 is_pinned,
                 z_index,
-                tags: if tags.is_empty() { None } else { Some(tags) },
+                tags,
                 active_mode,
                 embedding: None,
                 is_locked,

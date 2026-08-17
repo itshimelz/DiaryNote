@@ -15,6 +15,9 @@ pub fn init_sqlite_connection<P: AsRef<Path>>(db_path: P) -> Result<Connection> 
     let _: String = conn.query_row("PRAGMA journal_mode = WAL", [], |r| r.get(0))?;
     conn.pragma_update(None, "synchronous", 1)?;
     conn.pragma_update(None, "foreign_keys", true)?;
+    let _: i64 = conn.query_row("PRAGMA mmap_size = 268435456", [], |r| r.get(0)).unwrap_or(0);
+    let _: i64 = conn.query_row("PRAGMA cache_size = -64000", [], |r| r.get(0)).unwrap_or(0);
+    let _: i64 = conn.query_row("PRAGMA temp_store = 2", [], |r| r.get(0)).unwrap_or(0);
     conn.busy_timeout(std::time::Duration::from_millis(5000))?;
 
     // Run schema migrations

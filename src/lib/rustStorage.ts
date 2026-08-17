@@ -309,3 +309,32 @@ export async function vacuumDatabase(): Promise<DatabaseStats> {
     throw error;
   }
 }
+
+/**
+ * Formats and exports a single note to disk via native Rust backend.
+ */
+export async function exportNoteToFileNative(
+  note: Note,
+  format: 'md' | 'txt' | 'json',
+  subfolder?: string
+): Promise<string> {
+  if (!isTauriEnvironment()) {
+    return note.title || 'Untitled Note';
+  }
+
+  try {
+    return await invoke<string>('export_note_to_file', {
+      noteId: note.id,
+      title: note.title || 'Untitled Note',
+      content: note.content || '',
+      format,
+      tags: note.tags || [],
+      createdAt: note.createdAt,
+      updatedAt: note.updatedAt,
+      subfolder: subfolder || 'Exports',
+    });
+  } catch (error) {
+    console.error('Failed to export note natively:', error);
+    throw error;
+  }
+}

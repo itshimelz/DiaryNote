@@ -28,7 +28,7 @@ import {
 import { AppModals } from './components/Modals/AppModals';
 import { sendNativeAppNotification } from './utils';
 import { checkForAppUpdates } from './utils/updateChecker';
-import { saveAppSettingsToDB as saveSettingsToDB, saveDirtyNotesToDB as saveImportedNotesToDB } from './lib/rustStorage';
+import { saveAppSettingsToDB as saveSettingsToDB, saveDirtyNotesToDB as saveImportedNotesToDB, exportNoteToFileNative } from './lib/rustStorage';
 import { mergeNotesWithAI } from './services/ai/aiMergeService';
 import { getSessionAuthState } from './services/authPolicyService';
 import { AppSettings } from './lib/storage';
@@ -139,15 +139,17 @@ export default function App() {
     });
   }, [initAppDatabase, handleCanvasTransformChange, setSettings]);
 
-  // Task 14: Network Transparency — Check GitHub for updates on mount only if opted-in
+  // Task 14: Network Transparency — Check GitHub for updates on mount only if opted-in (deferred 3s after boot)
   useEffect(() => {
-    if (settings.checkForUpdatesOnLaunch !== false) {
+    if (settings.checkForUpdatesOnLaunch === false) return;
+    const timer = setTimeout(() => {
       checkForAppUpdates().then((res) => {
         if (res.updateAvailable && res.isFirstTimeAlert && res.latestRelease) {
           setUpdateReleaseAlert(res.latestRelease);
         }
       });
-    }
+    }, 3000);
+    return () => clearTimeout(timer);
   }, [settings.checkForUpdatesOnLaunch, setUpdateReleaseAlert]);
 
   // Staged backup import preview modal state
@@ -660,7 +662,7 @@ export default function App() {
     const initialNote: Note = {
       id: newNoteId,
       title: 'Synthesizing Notes...',
-      content: '✨ AI is analyzing and synthesizing notes...',
+      content: 'AI is analyzing and synthesizing notes...',
       x: avgX,
       y: avgY,
       width: 500,
@@ -855,6 +857,17 @@ export default function App() {
       setSecurityModalMode('unlock');
       return;
     }
+
+    if (isTauriEnvironment()) {
+      try {
+        const savedPath = await exportNoteToFileNative(note, format);
+        sendNativeAppNotification('Export Successful', `Exported to: ${savedPath}`);
+        return;
+      } catch (err) {
+        console.warn('Native export failed, falling back to browser download', err);
+      }
+    }
+
     const cleanTitle = (note.title || 'Untitled_Note').trim().replace(/[^a-z0-9_-]/gi, '_');
     const dateStr = new Date().toISOString().slice(0, 10);
     const fileName = `${cleanTitle}_${dateStr}.${format}`;

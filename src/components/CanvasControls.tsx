@@ -16,8 +16,11 @@ import {
   Settings02Icon,
   ListViewIcon,
 } from '@hugeicons/core-free-icons';
-import { CanvasSettingsModal } from './Modals/CanvasSettingsModal';
 import { Button, IconButton } from './ui';
+
+const CanvasSettingsModal = React.lazy(() =>
+  import('./Modals/CanvasSettingsModal').then((m) => ({ default: m.CanvasSettingsModal }))
+);
 
 interface CanvasControlsProps {
   notes?: Note[];
@@ -373,35 +376,37 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
       </div>
 
       {/* Professional Desktop Preferences Modal */}
-      <CanvasSettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        themeMode={themeMode}
-        onToggleTheme={onToggleTheme}
-        onChangeThemeMode={onChangeThemeMode}
-        gridType={gridType}
-        onChangeGridType={onChangeGridType}
-        snapToGrid={snapToGrid}
-        onToggleSnapToGrid={onToggleSnapToGrid}
-        showConnections={showConnections}
-        onToggleConnections={onToggleConnections}
-        showStatusBar={showStatusBar}
-        onToggleStatusBar={onToggleStatusBar || (() => {})}
-        checkForUpdatesOnLaunch={checkForUpdatesOnLaunch}
-        onToggleCheckForUpdates={onToggleCheckForUpdates || (() => {})}
-        notes={notes}
-        zoom={zoom}
-        onExportBackup={onExportBackup}
-        onTriggerImportFile={() => {
-          setIsSettingsOpen(false);
-          fileInputRef.current?.click();
-        }}
-        onOpenAbout={onOpenAbout}
-        onOpenAISettings={onOpenAISettings}
-        onOpenShortcutsModal={onOpenShortcutsModal}
-        onOpenDatabaseOperations={onOpenDatabaseOperations}
-        enableAIServices={enableAIServices}
-      />
+      <React.Suspense fallback={null}>
+        <CanvasSettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          themeMode={themeMode}
+          onToggleTheme={onToggleTheme}
+          onChangeThemeMode={onChangeThemeMode}
+          gridType={gridType}
+          onChangeGridType={onChangeGridType}
+          snapToGrid={snapToGrid}
+          onToggleSnapToGrid={onToggleSnapToGrid}
+          showConnections={showConnections}
+          onToggleConnections={onToggleConnections}
+          showStatusBar={showStatusBar}
+          onToggleStatusBar={onToggleStatusBar || (() => {})}
+          checkForUpdatesOnLaunch={checkForUpdatesOnLaunch}
+          onToggleCheckForUpdates={onToggleCheckForUpdates || (() => {})}
+          notes={notes}
+          zoom={zoom}
+          onExportBackup={onExportBackup}
+          onTriggerImportFile={() => {
+            setIsSettingsOpen(false);
+            fileInputRef.current?.click();
+          }}
+          onOpenAbout={onOpenAbout}
+          onOpenAISettings={onOpenAISettings}
+          onOpenShortcutsModal={onOpenShortcutsModal}
+          onOpenDatabaseOperations={onOpenDatabaseOperations}
+          enableAIServices={enableAIServices}
+        />
+      </React.Suspense>
     </>
   );
 };

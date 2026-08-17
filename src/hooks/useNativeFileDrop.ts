@@ -10,6 +10,9 @@ export interface DroppedImageData {
   mime_type: string;
   data_url: string;
   file_size: number;
+  width?: number;
+  height?: number;
+  aspect_ratio?: number;
 }
 
 interface UseNativeFileDropOptions {

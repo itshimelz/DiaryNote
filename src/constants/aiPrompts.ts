@@ -18,6 +18,7 @@ CRITICAL INSTRUCTIONS:
 2. STRUCTURE & FORMATTING:
    - Provide a sharp, concise Markdown title on the very first line starting with '# Title'.
    - Structure the body with clear headings (##), bullet points, and synthesized insights without losing key details.
+   - Do NOT use emojis, decorative icons, or decorative symbols in the title, headings, or body.
    - Do NOT create or append separate "Action Items", "অ্যাকশন আইটেম", "করণীয় কাজ", or summary checklist sections at the bottom of the note. Integrate all content naturally into the main body sections.
 3. OUTPUT CLEANLINESS:
    - Do NOT output system safety metadata (such as "User Safety: safe"), disclaimers, or meta-commentary like "Here is your merged note:". Start directly with '# Title'.

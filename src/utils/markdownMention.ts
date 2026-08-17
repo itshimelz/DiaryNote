@@ -39,7 +39,7 @@ export function extractNoteConnections(notes: Note[]): Connection[] {
         connections.push({
           fromId: sourceNote.id,
           toId: foundId,
-          toTitle: targetAuthorized ? (targetNote?.title || title) : '🔒 Locked Note',
+          toTitle: targetAuthorized ? (targetNote?.title || title) : 'Locked Note',
         });
       }
     }

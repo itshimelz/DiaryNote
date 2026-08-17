@@ -5,6 +5,7 @@ import { PAPER_THEMES, PAPER_THEME_OPTIONS, PAPER_THEME_LABELS } from '../consta
 import { exportNotesBackup } from '../lib/storage';
 import { authorizeNotes, isNoteAuthorized } from '../services/authPolicyService';
 import { sendNativeAppNotification } from '../utils';
+import { computeBatchLayoutNative } from '../utils/layoutUtils';
 import {
   CheckmarkSquare02Icon,
   PaintBoardIcon,
@@ -146,139 +147,46 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
     );
   };
 
-  // Helper to get real live width of note card
-  const getNoteWidth = (n: Note): number => {
-    const el = document.getElementById(`note-card-${n.id}`);
-    return el ? el.offsetWidth : n.width || 340;
-  };
-
-  // Helper to get real live height of note card
-  const getNoteHeight = (n: Note): number => {
-    const el = document.getElementById(`note-card-${n.id}`);
-    return el ? el.offsetHeight : n.height || 340;
+  // Unified Batch Layout Handler (Native Rust Accelerated with JS fallback)
+  const handleBatchLayout = async (mode: string, successTitle: string, successMsg: string) => {
+    if (selectedNotes.length < 2) return;
+    const updated = await computeBatchLayoutNative(selectedNotes, mode);
+    onUpdateBatchNotes(updated);
+    sendNativeAppNotification(successTitle, successMsg);
+    setShowAlignMenu(false);
   };
 
   // 3. Align Left (X min)
-  const handleAlignLeft = () => {
-    if (selectedNotes.length < 2) return;
-    const minX = Math.min(...selectedNotes.map((n) => n.x));
-    const updated = selectedNotes.map((n) => ({ ...n, x: minX }));
-    onUpdateBatchNotes(updated);
-    sendNativeAppNotification('Notes Aligned', `Aligned ${selectedNotes.length} notes to the left`);
-    setShowAlignMenu(false);
-  };
+  const handleAlignLeft = () =>
+    handleBatchLayout('align-left', 'Notes Aligned', `Aligned ${selectedNotes.length} notes to the left`);
 
   // 4. Align Center Horizontal
-  const handleAlignCenterHorizontal = () => {
-    if (selectedNotes.length < 2) return;
-    const centers = selectedNotes.map((n) => n.x + getNoteWidth(n) / 2);
-    const avgCenter = centers.reduce((a, b) => a + b, 0) / centers.length;
-    const updated = selectedNotes.map((n) => ({
-      ...n,
-      x: Math.round(avgCenter - getNoteWidth(n) / 2),
-    }));
-    onUpdateBatchNotes(updated);
-    sendNativeAppNotification('Notes Aligned', `Centered ${selectedNotes.length} notes horizontally`);
-    setShowAlignMenu(false);
-  };
+  const handleAlignCenterHorizontal = () =>
+    handleBatchLayout('align-center-h', 'Notes Aligned', `Centered ${selectedNotes.length} notes horizontally`);
 
   // 5. Align Right (X max)
-  const handleAlignRight = () => {
-    if (selectedNotes.length < 2) return;
-    const rightEdges = selectedNotes.map((n) => n.x + getNoteWidth(n));
-    const maxRight = Math.max(...rightEdges);
-    const updated = selectedNotes.map((n) => ({
-      ...n,
-      x: maxRight - getNoteWidth(n),
-    }));
-    onUpdateBatchNotes(updated);
-    sendNativeAppNotification('Notes Aligned', `Aligned ${selectedNotes.length} notes to the right`);
-    setShowAlignMenu(false);
-  };
+  const handleAlignRight = () =>
+    handleBatchLayout('align-right', 'Notes Aligned', `Aligned ${selectedNotes.length} notes to the right`);
 
   // 6. Align Top (Y min)
-  const handleAlignTop = () => {
-    if (selectedNotes.length < 2) return;
-    const minY = Math.min(...selectedNotes.map((n) => n.y));
-    const updated = selectedNotes.map((n) => ({ ...n, y: minY }));
-    onUpdateBatchNotes(updated);
-    sendNativeAppNotification('Notes Aligned', `Aligned ${selectedNotes.length} notes to the top`);
-    setShowAlignMenu(false);
-  };
+  const handleAlignTop = () =>
+    handleBatchLayout('align-top', 'Notes Aligned', `Aligned ${selectedNotes.length} notes to the top`);
 
   // 7. Align Middle Vertical
-  const handleAlignCenterVertical = () => {
-    if (selectedNotes.length < 2) return;
-    const middles = selectedNotes.map((n) => n.y + getNoteHeight(n) / 2);
-    const avgMiddle = middles.reduce((a, b) => a + b, 0) / middles.length;
-    const updated = selectedNotes.map((n) => ({
-      ...n,
-      y: Math.round(avgMiddle - getNoteHeight(n) / 2),
-    }));
-    onUpdateBatchNotes(updated);
-    sendNativeAppNotification('Notes Aligned', `Centered ${selectedNotes.length} notes vertically`);
-    setShowAlignMenu(false);
-  };
+  const handleAlignCenterVertical = () =>
+    handleBatchLayout('align-center-v', 'Notes Aligned', `Centered ${selectedNotes.length} notes vertically`);
 
   // 8. Align Bottom (Y max)
-  const handleAlignBottom = () => {
-    if (selectedNotes.length < 2) return;
-    const bottomEdges = selectedNotes.map((n) => n.y + getNoteHeight(n));
-    const maxBottom = Math.max(...bottomEdges);
-    const updated = selectedNotes.map((n) => ({
-      ...n,
-      y: maxBottom - getNoteHeight(n),
-    }));
-    onUpdateBatchNotes(updated);
-    sendNativeAppNotification('Notes Aligned', `Aligned ${selectedNotes.length} notes to the bottom`);
-    setShowAlignMenu(false);
-  };
+  const handleAlignBottom = () =>
+    handleBatchLayout('align-bottom', 'Notes Aligned', `Aligned ${selectedNotes.length} notes to the bottom`);
 
   // 9. Distribute Horizontally
-  const handleDistributeHorizontal = () => {
-    if (selectedNotes.length < 3) return;
-    const sorted = [...selectedNotes].sort((a, b) => a.x - b.x);
-    const minX = sorted[0].x;
-    const lastNote = sorted[sorted.length - 1];
-    const maxX = lastNote.x + getNoteWidth(lastNote);
-
-    const totalWidths = sorted.reduce((sum, n) => sum + getNoteWidth(n), 0);
-    const availableGap = maxX - minX - totalWidths;
-    const gap = Math.max(16, Math.round(availableGap / (sorted.length - 1)));
-
-    let currentX = minX;
-    const updated = sorted.map((n) => {
-      const itemX = currentX;
-      currentX += getNoteWidth(n) + gap;
-      return { ...n, x: itemX };
-    });
-    onUpdateBatchNotes(updated);
-    sendNativeAppNotification('Notes Distributed', `Distributed ${selectedNotes.length} notes horizontally`);
-    setShowAlignMenu(false);
-  };
+  const handleDistributeHorizontal = () =>
+    handleBatchLayout('distribute-h', 'Notes Distributed', `Distributed ${selectedNotes.length} notes horizontally`);
 
   // 10. Distribute Vertically
-  const handleDistributeVertical = () => {
-    if (selectedNotes.length < 3) return;
-    const sorted = [...selectedNotes].sort((a, b) => a.y - b.y);
-    const minY = sorted[0].y;
-    const lastNote = sorted[sorted.length - 1];
-    const maxY = lastNote.y + getNoteHeight(lastNote);
-
-    const totalHeights = sorted.reduce((sum, n) => sum + getNoteHeight(n), 0);
-    const availableGap = maxY - minY - totalHeights;
-    const gap = Math.max(16, Math.round(availableGap / (sorted.length - 1)));
-
-    let currentY = minY;
-    const updated = sorted.map((n) => {
-      const itemY = currentY;
-      currentY += getNoteHeight(n) + gap;
-      return { ...n, y: itemY };
-    });
-    onUpdateBatchNotes(updated);
-    sendNativeAppNotification('Notes Distributed', `Distributed ${selectedNotes.length} notes vertically`);
-    setShowAlignMenu(false);
-  };
+  const handleDistributeVertical = () =>
+    handleBatchLayout('distribute-v', 'Notes Distributed', `Distributed ${selectedNotes.length} notes vertically`);
 
   // 11. Group / Ungroup
   const isAllGrouped =

@@ -61,6 +61,19 @@ pub fn read_image_files(paths: Vec<String>) -> Result<Vec<DroppedImageData>, Str
         let base64_str = BASE64_STANDARD.encode(&bytes);
         let data_url = format!("data:{};base64,{}", mime, base64_str);
 
+        let (width, height, aspect_ratio) = match image::ImageReader::new(std::io::Cursor::new(&bytes))
+            .with_guessed_format()
+        {
+            Ok(reader) => match reader.into_dimensions() {
+                Ok((w, h)) => {
+                    let ar = if h > 0 { Some(w as f64 / h as f64) } else { None };
+                    (Some(w), Some(h), ar)
+                }
+                Err(_) => (None, None, None),
+            },
+            Err(_) => (None, None, None),
+        };
+
         results.push(DroppedImageData {
             file_path: clean_path_str.to_string(),
             filename,
@@ -68,6 +81,9 @@ pub fn read_image_files(paths: Vec<String>) -> Result<Vec<DroppedImageData>, Str
             mime_type: mime.to_string(),
             data_url,
             file_size,
+            width,
+            height,
+            aspect_ratio,
         });
     }
 

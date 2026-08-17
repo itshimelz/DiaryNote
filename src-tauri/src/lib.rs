@@ -7,13 +7,13 @@ pub mod utils;
 use std::sync::{Arc, Mutex};
 use commands::{
     ai_generate_tags, ai_stream_synthesis, ai_test_connection, check_database_integrity,
-    clear_vault_fts_index, delete_asset, delete_notes, export_vault_archive, get_asset_info,
-    get_database_stats, get_note_backlinks, get_note_graph_connections, import_vault_archive,
-    index_vault_notes, inspect_vault_archive, load_app_state, parse_note_markdown_links,
-    read_image_files, relocate_notes, save_app_settings, save_asset_from_bytes,
-    save_asset_from_path, save_canvas_transform, save_export_file, save_notes_batch,
-    search_notes, vacuum_database, vault_decrypt_note, vault_encrypt_note, vault_get_status,
-    vault_hash_security_input, vault_is_unlocked, vault_lock, vault_unlock,
+    clear_vault_fts_index, compute_batch_layout, delete_asset, delete_notes, export_note_to_file,
+    export_vault_archive, get_asset_info, get_database_stats, get_note_backlinks,
+    get_note_graph_connections, import_vault_archive, index_vault_notes, inspect_vault_archive,
+    load_app_state, parse_note_markdown_links, read_image_files, relocate_notes, save_app_settings,
+    save_asset_from_bytes, save_asset_from_path, save_canvas_transform, save_export_file,
+    save_notes_batch, search_notes, vacuum_database, vault_decrypt_note, vault_encrypt_note,
+    vault_get_status, vault_hash_security_input, vault_is_unlocked, vault_lock, vault_unlock,
     vault_verify_security_input, AppState,
 };
 use domain::asset::AssetService;
@@ -119,6 +119,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             save_export_file,
+            export_note_to_file,
+            compute_batch_layout,
             read_image_files,
             relocate_notes,
             load_app_state,

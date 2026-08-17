@@ -168,6 +168,17 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
     return map;
   }, [notes]);
 
+  // Map of Rust SQLite FTS5 snippets with native highlights
+  const ftsSnippetMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (ftsMatches) {
+      ftsMatches.forEach((m) => {
+        if (m.snippet) map.set(m.note_id, m.snippet);
+      });
+    }
+    return map;
+  }, [ftsMatches]);
+
   // Filter notes based on query and filter type (Native SQLite FTS5 rank priority + in-memory fallback)
   const filteredNotes = useMemo(() => {
     const cleanQuery = query.toLowerCase().trim();
@@ -443,11 +454,16 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
                       </span>
                     </div>
 
-                    {plainSnippet && (
+                    {ftsSnippetMap.get(note.id) ? (
+                      <p
+                        className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-1.5 leading-relaxed [&>mark]:bg-amber-200 dark:[&>mark]:bg-amber-900/60 dark:[&>mark]:text-amber-200 [&>mark]:px-0.5 [&>mark]:rounded-xs"
+                        dangerouslySetInnerHTML={{ __html: ftsSnippetMap.get(note.id)! }}
+                      />
+                    ) : plainSnippet ? (
                       <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-1.5 leading-relaxed">
                         {highlightMatch(plainSnippet, query)}
                       </p>
-                    )}
+                    ) : null}
 
                     {userHashtags.length > 0 && (
                       <div className="flex items-center gap-1 overflow-hidden">

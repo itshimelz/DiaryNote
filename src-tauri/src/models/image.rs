@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Data representation of an image file read and processed natively by Rust
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct DroppedImageData {
     /// Full filesystem path to the source image file
     pub file_path: String,
@@ -15,4 +15,10 @@ pub struct DroppedImageData {
     pub data_url: String,
     /// Total file size in bytes
     pub file_size: u64,
+    /// Image width in pixels
+    pub width: Option<u32>,
+    /// Image height in pixels
+    pub height: Option<u32>,
+    /// Calculated aspect ratio (width / height)
+    pub aspect_ratio: Option<f64>,
 }

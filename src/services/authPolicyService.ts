@@ -97,7 +97,7 @@ export function authorizeNotes(
 
     return {
       ...n,
-      title: n.title ? '🔒 Locked Note' : '🔒 Locked Note',
+      title: 'Locked Note',
       content: '<!-- CONTENT ENCRYPTED / LOCKED -->',
       tags: [],
     };

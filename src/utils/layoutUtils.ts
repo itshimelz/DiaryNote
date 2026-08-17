@@ -1,5 +1,7 @@
 import { Note } from '../types';
 import { GRID_SIZE, DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../constants/canvas';
+import { isTauriEnvironment } from '../lib/rustStorage';
+import { invoke } from '@tauri-apps/api/core';
 
 /**
  * Gets the actual live DOM width of a note card element, falling back to note.width or DEFAULT_NOTE_WIDTH.
@@ -250,4 +252,72 @@ export function calculateGroupBounds(
     width: Math.max(100, boundMaxX - boundMinX),
     height: Math.max(100, boundMaxY - boundMinY),
   };
+}
+
+/**
+ * Computes batch note layout and grid alignments with high-performance native Rust calculation.
+ */
+export async function computeBatchLayoutNative(
+  notes: Note[],
+  mode: string,
+  spacing?: number
+): Promise<Note[]> {
+  if (notes.length === 0) return notes;
+
+  if (isTauriEnvironment()) {
+    try {
+      const dims = getNoteDimensionsMap(notes);
+      const inputs = notes.map((n) => ({
+        id: n.id,
+        x: n.x,
+        y: n.y,
+        width: dims.get(n.id)?.width || n.width || DEFAULT_NOTE_WIDTH,
+        height: dims.get(n.id)?.height || n.height || DEFAULT_NOTE_HEIGHT,
+      }));
+
+      const outputs = await invoke<{ id: string; x: number; y: number }[]>('compute_batch_layout', {
+        notes: inputs,
+        mode,
+        spacing: spacing ?? null,
+      });
+
+      const posMap = new Map(outputs.map((o) => [o.id, o]));
+      return notes.map((n) => {
+        const p = posMap.get(n.id);
+        return p ? { ...n, x: p.x, y: p.y } : n;
+      });
+    } catch (err) {
+      console.warn('Native batch layout error, falling back to JS:', err);
+    }
+  }
+
+  // Pure JavaScript Fallback
+  switch (mode) {
+    case 'align-left':
+      return alignLeft(notes);
+    case 'align-center-h':
+      return alignCenterHorizontal(notes);
+    case 'align-right':
+      return alignRight(notes);
+    case 'align-top':
+      return alignTop(notes);
+    case 'align-center-v':
+      return alignCenterVertical(notes);
+    case 'align-bottom':
+      return alignBottom(notes);
+    case 'distribute-h':
+      return distributeHorizontally(notes);
+    case 'distribute-v':
+      return distributeVertically(notes);
+    case 'pack-grid':
+      return arrangeInGrid(notes);
+    case 'snap-to-grid':
+      return notes.map((n) => ({
+        ...n,
+        x: Math.round(n.x / GRID_SIZE) * GRID_SIZE,
+        y: Math.round(n.y / GRID_SIZE) * GRID_SIZE,
+      }));
+    default:
+      return notes;
+  }
 }

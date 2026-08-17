@@ -39,6 +39,33 @@ const DatabaseOperationsModal = lazy(() =>
   import('./DatabaseOperationsModal').then((m) => ({ default: m.DatabaseOperationsModal }))
 );
 
+/**
+ * Prefetches all lazy modal chunks during idle periods for instant 0ms modal opening.
+ */
+export function prefetchAppModals() {
+  if (typeof window === 'undefined') return;
+
+  const prefetch = () => {
+    import('./SearchModal');
+    import('./DeleteConfirmationModal');
+    import('./SecurityModal');
+    import('./KeyboardShortcutsModal');
+    import('./PasteConfirmModal');
+    import('./AboutModal');
+    import('./JournalCalendarModal');
+    import('./AISettingsModal');
+    import('./ImportPreviewModal');
+    import('./DatabaseOperationsModal');
+    import('./CanvasSettingsModal');
+  };
+
+  if ('requestIdleCallback' in window) {
+    (window as any).requestIdleCallback(prefetch, { timeout: 3000 });
+  } else {
+    setTimeout(prefetch, 1000);
+  }
+}
+
 interface AppModalsProps {
   notes: Note[];
   settings: AppSettings;
@@ -167,6 +194,10 @@ export const AppModals: React.FC<AppModalsProps> = ({
   onPasteRelocateNotes,
   onCancelCutNotes,
 }) => {
+  React.useEffect(() => {
+    prefetchAppModals();
+  }, []);
+
   return (
     <>
       <Suspense fallback={null}>
