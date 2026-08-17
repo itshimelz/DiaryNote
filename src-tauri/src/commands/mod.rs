@@ -1,8 +1,10 @@
+pub mod assets;
 pub mod clipboard;
 pub mod export;
 pub mod image;
 pub mod storage;
 
+pub use assets::{delete_asset, get_asset_info, save_asset_from_bytes, save_asset_from_path};
 pub use clipboard::relocate_notes;
 pub use export::save_export_file;
 pub use image::read_image_files;

@@ -1,15 +1,20 @@
 use std::sync::Arc;
 use tauri::State;
+use crate::domain::asset::AssetService;
 use crate::domain::note::NoteService;
 use crate::models::{AppSettings, CanvasTransform, LoadedAppState, Note};
 
 pub struct AppState {
     pub note_service: NoteService,
+    pub asset_service: AssetService,
 }
 
 impl AppState {
-    pub fn new(note_service: NoteService) -> Self {
-        Self { note_service }
+    pub fn new(note_service: NoteService, asset_service: AssetService) -> Self {
+        Self {
+            note_service,
+            asset_service,
+        }
     }
 }
 

@@ -49,21 +49,21 @@
 ---
 
 ## Phase 2: Content-Addressable Asset Store & Custom Protocol
-- [ ] **Task 2.1: SHA-256 Content-Addressable Asset Store & Staging Pipeline**
-  - [ ] Create `src-tauri/src/infrastructure/filesystem/asset_store.rs` (SHA-256 disk storage)
-  - [ ] Implement atomic staging pipeline via `temp/<uuid>.tmp` with `ENOSPC` handling
-  - [ ] Implement WebP thumbnail generation using `image` crate
-  - [ ] Create `src-tauri/src/commands/assets.rs`
-- [ ] **Task 2.2: Secure Custom URI Protocol (`diarynote-asset://`)**
-  - [ ] Register `diarynote-asset://` custom protocol handler in `src-tauri/src/lib.rs`
-  - [ ] Enforce strict hash regex validation (`^[a-f0-9]{64}$`) and path canonicalization
-  - [ ] Update `src/hooks/useNativeFileDrop.ts` to reference asset URIs instead of Base64 blobs
-  - [ ] Create `src/lib/rustAssets.ts`
+- [x] **Task 2.1: SHA-256 Content-Addressable Asset Store & Staging Pipeline**
+  - [x] Create `src-tauri/src/infrastructure/filesystem/asset_store.rs` (SHA-256 disk storage)
+  - [x] Implement atomic staging pipeline via `temp/<uuid>.tmp` with `ENOSPC` handling
+  - [x] Implement WebP thumbnail generation using `image` crate
+  - [x] Create `src-tauri/src/commands/assets.rs`
+- [x] **Task 2.2: Secure Custom URI Protocol (`diarynote-asset://`)**
+  - [x] Register `diarynote-asset://` custom protocol handler in `src-tauri/src/lib.rs`
+  - [x] Enforce strict hash regex validation (`^[a-f0-9]{64}$`) and path canonicalization
+  - [x] Update `src/hooks/useNativeFileDrop.ts` to reference asset URIs instead of Base64 blobs
+  - [x] Create `src/lib/rustAssets.ts`
 
 ### Checkpoint 2: Asset Store & Security
-- [ ] Path traversal security drill passes (`..` and invalid hashes rejected)
-- [ ] High-resolution images load on canvas cards with $< 2\text{KB}$ note JSON size
-- [ ] Disk-full errors abort cleanly without broken card state
+- [x] Path traversal security drill passes (`..` and invalid hashes rejected)
+- [x] High-resolution images load on canvas cards with $< 2\text{KB}$ note JSON size
+- [x] Disk-full errors abort cleanly without broken card state
 
 ---
 

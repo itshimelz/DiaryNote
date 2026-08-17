@@ -6,11 +6,13 @@ pub mod utils;
 
 use std::sync::Arc;
 use commands::{
-    check_database_integrity, delete_notes, load_app_state, read_image_files, relocate_notes,
-    save_app_settings, save_canvas_transform, save_export_file, save_notes_batch, AppState,
+    check_database_integrity, delete_asset, delete_notes, get_asset_info, load_app_state,
+    read_image_files, relocate_notes, save_app_settings, save_asset_from_bytes, save_asset_from_path,
+    save_canvas_transform, save_export_file, save_notes_batch, AppState,
 };
+use domain::asset::AssetService;
 use domain::note::NoteService;
-use infrastructure::{init_sqlite_connection, AppPaths, SqliteNoteRepository};
+use infrastructure::{init_sqlite_connection, AppPaths, AssetStore, SqliteNoteRepository};
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -24,6 +26,71 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_notification::init())
+        .register_uri_scheme_protocol("diarynote-asset", |ctx, request| {
+            let uri = request.uri();
+            let raw_path = uri.path();
+            let host = uri.host().unwrap_or("");
+
+            // Format can be diarynote-asset://<hash> (where host is <hash> or path is /<hash>)
+            let mut hash = if !host.is_empty() && host != "localhost" {
+                host
+            } else {
+                raw_path.trim_start_matches('/')
+            };
+            if let Some(pos) = hash.find('/') {
+                hash = &hash[..pos];
+            }
+
+            let is_thumb = uri.query().map(|q| q.contains("thumb=1")).unwrap_or(false);
+
+            if AssetStore::validate_hash(hash).is_err() {
+                return tauri::http::Response::builder()
+                    .status(tauri::http::StatusCode::BAD_REQUEST)
+                    .body(Vec::new())
+                    .unwrap();
+            }
+
+            let app_paths = match AppPaths::from_app(ctx.app_handle()) {
+                Ok(p) => p,
+                Err(_) => {
+                    return tauri::http::Response::builder()
+                        .status(tauri::http::StatusCode::INTERNAL_SERVER_ERROR)
+                        .body(Vec::new())
+                        .unwrap();
+                }
+            };
+
+            let store = AssetStore::new(app_paths);
+            let file_result = if is_thumb {
+                store.get_thumbnail_file(hash)
+            } else {
+                store.get_asset_file(hash)
+            };
+
+            match file_result {
+                Ok((path, mime)) => match std::fs::read(&path) {
+                    Ok(bytes) => tauri::http::Response::builder()
+                        .status(tauri::http::StatusCode::OK)
+                        .header("Content-Type", mime)
+                        .header("Cache-Control", "public, max-age=31536000, immutable")
+                        .body(bytes)
+                        .unwrap_or_else(|_| {
+                            tauri::http::Response::builder()
+                                .status(tauri::http::StatusCode::INTERNAL_SERVER_ERROR)
+                                .body(Vec::new())
+                                .unwrap()
+                        }),
+                    Err(_) => tauri::http::Response::builder()
+                        .status(tauri::http::StatusCode::INTERNAL_SERVER_ERROR)
+                        .body(Vec::new())
+                        .unwrap(),
+                },
+                Err(_) => tauri::http::Response::builder()
+                    .status(tauri::http::StatusCode::NOT_FOUND)
+                    .body(Vec::new())
+                    .unwrap(),
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             save_export_file,
             read_image_files,
@@ -34,6 +101,10 @@ pub fn run() {
             save_canvas_transform,
             save_app_settings,
             check_database_integrity,
+            save_asset_from_bytes,
+            save_asset_from_path,
+            get_asset_info,
+            delete_asset,
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {
@@ -51,7 +122,9 @@ pub fn run() {
                 .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
             let repo = Arc::new(SqliteNoteRepository::new(conn));
             let note_service = NoteService::new(repo);
-            let app_state = Arc::new(AppState::new(note_service));
+            let asset_store = Arc::new(AssetStore::new(app_paths));
+            let asset_service = AssetService::new(asset_store, None);
+            let app_state = Arc::new(AppState::new(note_service, asset_service));
 
             app.manage(app_state);
 
