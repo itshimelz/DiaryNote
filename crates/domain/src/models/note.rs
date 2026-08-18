@@ -265,6 +265,11 @@ impl Note {
         }
     }
 
+    /// Update the last modified timestamp
+    pub fn touch(&mut self) {
+        self.updated_at = Utc::now();
+    }
+
     /// Returns the Axis-Aligned Bounding Box (AABB) (min_x, min_y, max_x, max_y)
     pub fn aabb(&self) -> (f32, f32, f32, f32) {
         (

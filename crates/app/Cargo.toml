@@ -11,6 +11,7 @@ crypto = { workspace = true }
 storage = { workspace = true }
 ai = { workspace = true }
 ui = { workspace = true }
+gpui = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 serde = { workspace = true }
 serde_json = { workspace = true }

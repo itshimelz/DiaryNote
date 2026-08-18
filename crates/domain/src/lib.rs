@@ -1,11 +1,9 @@
 pub mod error;
-pub mod history;
 pub mod models;
 pub mod repositories;
 pub mod spatial;
 
 pub use error::{DomainError, DomainResult};
-pub use history::{CanvasAction, HistoryStack};
 pub use models::*;
 pub use repositories::*;
 pub use spatial::*;
@@ -98,7 +96,7 @@ mod tests {
         assert!(!history.can_redo());
 
         let note = Note::new("Test", "Body", Point2D::new(0.0, 0.0));
-        let action = CanvasAction::CreateNote(note.clone());
+        let action = CanvasAction::CreateNote(Box::new(note.clone()));
         history.push(action.clone());
 
         assert!(history.can_undo());
