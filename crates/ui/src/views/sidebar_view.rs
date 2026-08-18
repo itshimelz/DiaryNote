@@ -88,6 +88,82 @@ impl NotesSidebarView {
     }
 }
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for NotesSidebarView {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        if !self.is_open {
+            return gpui::div();
+        }
+
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+        let w = gpui::px(style.width);
+
+        let mut sidebar = gpui::div()
+            .flex()
+            .flex_col()
+            .w(w)
+            .h_full()
+            .bg(gpui::Hsla::from(style.bg))
+            .border_r_1()
+            .border_color(gpui::Hsla::from(style.border))
+            .p(gpui::px(12.0));
+
+        let search_input = crate::primitives::Input::new("Search notes...")
+            .with_value(self.search_query)
+            .with_prefix_icon(crate::tokens::icons::IconKind::Search);
+        sidebar = sidebar.child(search_input);
+
+        let mut list_el = gpui::div()
+            .flex()
+            .flex_col()
+            .gap_1()
+            .mt_3()
+            .overflow_hidden();
+        for item in self.items {
+            let (row_bg, row_fg) = if item.is_active {
+                (style.row_bg_active, style.row_fg)
+            } else {
+                (TRANSPARENT, style.row_fg_muted)
+            };
+
+            let row = gpui::div()
+                .flex()
+                .flex_col()
+                .p(gpui::px(8.0))
+                .rounded(gpui::px(CORNER_RADIUS_SM))
+                .bg(gpui::Hsla::from(row_bg))
+                .text_color(gpui::Hsla::from(row_fg))
+                .hover(|s| s.bg(gpui::Hsla::from(style.row_bg_hover)))
+                .cursor_pointer()
+                .child(
+                    gpui::div()
+                        .flex()
+                        .items_center()
+                        .justify_between()
+                        .child(item.title)
+                        .child(
+                            gpui::div()
+                                .text_color(gpui::Hsla::from(style.row_fg_muted))
+                                .child(item.date_str),
+                        ),
+                )
+                .child(
+                    gpui::div()
+                        .text_color(gpui::Hsla::from(style.row_fg_muted))
+                        .child(item.snippet),
+                );
+
+            list_el = list_el.child(row);
+        }
+
+        sidebar.child(list_el)
+    }
+}
+
 impl Default for NotesSidebarView {
     fn default() -> Self {
         Self::new()

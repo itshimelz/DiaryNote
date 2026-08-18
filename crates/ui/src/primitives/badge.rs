@@ -136,7 +136,39 @@ impl Badge {
         self.icon = Some(icon);
         self
     }
+}
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for Badge {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+        let px_pad_x = gpui::px(style.padding_x);
+        let px_pad_y = gpui::px(style.padding_y);
+
+        let mut el = gpui::div()
+            .flex()
+            .items_center()
+            .justify_center()
+            .gap_1()
+            .px(px_pad_x)
+            .py(px_pad_y)
+            .rounded(gpui::px(CORNER_RADIUS_XS))
+            .bg(gpui::Hsla::from(style.bg))
+            .text_color(gpui::Hsla::from(style.fg));
+
+        if let Some(border) = style.border {
+            el = el.border_1().border_color(gpui::Hsla::from(border));
+        }
+
+        el.child(self.label)
+    }
+}
+
+impl Badge {
     pub fn compute_style(&self, theme: &SurfaceTheme) -> BadgeStyle {
         let corner_radius = CornerRadii::uniform(CORNER_RADIUS_XS);
 

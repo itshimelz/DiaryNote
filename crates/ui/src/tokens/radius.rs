@@ -41,6 +41,11 @@ impl RadiusSize {
             Self::Full => CORNER_RADIUS_FULL,
         }
     }
+
+    /// Return the GPUI pixel length
+    pub fn to_gpui_px(&self) -> gpui::Pixels {
+        gpui::px(self.to_pixels())
+    }
 }
 
 /// Precise per-corner rounding specification
@@ -58,6 +63,15 @@ impl CornerRadii {
     pub const SM: Self = Self::uniform(CORNER_RADIUS_SM);
     pub const MD: Self = Self::uniform(CORNER_RADIUS_MD);
     pub const FULL: Self = Self::uniform(CORNER_RADIUS_FULL);
+
+    pub fn to_gpui_corners(&self) -> gpui::Corners<gpui::Pixels> {
+        gpui::Corners {
+            top_left: gpui::px(self.top_left),
+            top_right: gpui::px(self.top_right),
+            bottom_right: gpui::px(self.bottom_right),
+            bottom_left: gpui::px(self.bottom_left),
+        }
+    }
 
     pub const fn uniform(radius: f32) -> Self {
         Self {

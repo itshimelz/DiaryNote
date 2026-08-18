@@ -58,6 +58,30 @@ impl Kbd {
     }
 }
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for Kbd {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+
+        gpui::div()
+            .flex()
+            .items_center()
+            .justify_center()
+            .px(gpui::px(style.padding_x))
+            .py(gpui::px(style.padding_y))
+            .rounded(gpui::px(CORNER_RADIUS_XS))
+            .bg(gpui::Hsla::from(style.bg))
+            .text_color(gpui::Hsla::from(style.fg))
+            .border_1()
+            .border_color(gpui::Hsla::from(style.border))
+            .child(self.shortcut)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

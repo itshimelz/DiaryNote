@@ -127,6 +127,63 @@ impl Tabs {
     }
 }
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for Tabs {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+
+        let mut list = gpui::div()
+            .flex()
+            .items_center()
+            .p(gpui::px(2.0))
+            .gap_1()
+            .rounded(gpui::px(CORNER_RADIUS_SM))
+            .bg(gpui::Hsla::from(style.list_bg))
+            .border_1()
+            .border_color(gpui::Hsla::from(style.list_border));
+
+        for tab in self.tabs {
+            let is_active = tab.id == self.active_tab;
+            let (bg, fg) = if is_active {
+                (style.active_bg, style.active_fg)
+            } else {
+                (TRANSPARENT, style.inactive_fg)
+            };
+
+            let mut tab_btn = gpui::div()
+                .flex()
+                .items_center()
+                .gap_1()
+                .px(gpui::px(8.0))
+                .py(gpui::px(4.0))
+                .rounded(gpui::px(CORNER_RADIUS_SM))
+                .bg(gpui::Hsla::from(bg))
+                .text_color(gpui::Hsla::from(fg))
+                .cursor_pointer();
+
+            if !is_active {
+                tab_btn = tab_btn.hover(|s| {
+                    s.bg(gpui::Hsla::from(style.inactive_bg_hover))
+                        .text_color(gpui::Hsla::from(style.inactive_fg_hover))
+                });
+            }
+
+            if let Some(icon) = tab.icon {
+                tab_btn = tab_btn.child(icon.name());
+            }
+            tab_btn = tab_btn.child(tab.label);
+
+            list = list.child(tab_btn);
+        }
+
+        list
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

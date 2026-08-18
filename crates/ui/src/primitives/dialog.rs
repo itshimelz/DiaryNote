@@ -103,7 +103,76 @@ impl Dialog {
         self.is_open = is_open;
         self
     }
+}
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for Dialog {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        if !self.is_open {
+            return gpui::div();
+        }
+
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+        let max_w = gpui::px(style.max_width);
+        let pad = gpui::px(style.padding);
+
+        let mut container = gpui::div()
+            .flex()
+            .flex_col()
+            .w_full()
+            .max_w(max_w)
+            .p(pad)
+            .rounded(gpui::px(CORNER_RADIUS_SM))
+            .bg(gpui::Hsla::from(style.container_bg))
+            .border_1()
+            .border_color(gpui::Hsla::from(style.container_border));
+
+        if let Some(ref header) = self.header {
+            let mut header_el = gpui::div()
+                .flex()
+                .items_center()
+                .justify_between()
+                .pb_3()
+                .border_b_1()
+                .border_color(gpui::Hsla::from(style.divider_color));
+
+            let mut titles = gpui::div().flex().flex_col();
+            titles = titles.child(
+                gpui::div()
+                    .text_color(gpui::Hsla::from(style.title_color))
+                    .child(header.title.clone()),
+            );
+            if let Some(ref desc) = header.description {
+                titles = titles.child(
+                    gpui::div()
+                        .text_color(gpui::Hsla::from(style.description_color))
+                        .child(desc.clone()),
+                );
+            }
+            header_el = header_el.child(titles);
+            container = container.child(header_el);
+        }
+
+        if self.show_backdrop {
+            gpui::div()
+                .absolute()
+                .inset_0()
+                .flex()
+                .items_center()
+                .justify_center()
+                .bg(gpui::Hsla::from(style.backdrop_bg))
+                .child(container)
+        } else {
+            container
+        }
+    }
+}
+
+impl Dialog {
     pub fn compute_style(&self, theme: &SurfaceTheme) -> DialogStyle {
         let corner_radius = CornerRadii::uniform(CORNER_RADIUS_SM);
 

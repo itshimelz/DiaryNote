@@ -137,7 +137,35 @@ impl IconButton {
         self.tooltip = Some(tooltip.into());
         self
     }
+}
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for IconButton {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+        let sz = gpui::px(self.size.dimension());
+
+        gpui::div()
+            .flex()
+            .items_center()
+            .justify_center()
+            .w(sz)
+            .h(sz)
+            .rounded(gpui::px(CORNER_RADIUS_SM))
+            .bg(gpui::Hsla::from(style.bg))
+            .text_color(gpui::Hsla::from(style.fg))
+            .border_1()
+            .border_color(gpui::Hsla::from(style.border.unwrap_or(TRANSPARENT)))
+            .hover(|s| s.bg(gpui::Hsla::from(style.bg_hover)))
+            .child(self.icon.name())
+    }
+}
+
+impl IconButton {
     /// Resolve computed style given the active theme
     pub fn compute_style(&self, theme: &SurfaceTheme) -> IconButtonStyle {
         let opacity = if self.disabled { 0.4 } else { 1.0 };

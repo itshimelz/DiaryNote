@@ -15,6 +15,24 @@ pub struct Rgba {
     pub a: f32,
 }
 
+impl From<Rgba> for gpui::Rgba {
+    fn from(c: Rgba) -> Self {
+        gpui::Rgba {
+            r: c.r,
+            g: c.g,
+            b: c.b,
+            a: c.a,
+        }
+    }
+}
+
+impl From<Rgba> for gpui::Hsla {
+    fn from(c: Rgba) -> Self {
+        let gpui_rgba: gpui::Rgba = c.into();
+        gpui_rgba.into()
+    }
+}
+
 impl Rgba {
     pub const fn new(r: f32, g: f32, b: f32, a: f32) -> Self {
         Self { r, g, b, a }

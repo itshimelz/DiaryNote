@@ -106,6 +106,60 @@ impl SegmentedControl {
     }
 }
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for SegmentedControl {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+
+        let mut container = gpui::div()
+            .flex()
+            .items_center()
+            .p(gpui::px(2.0))
+            .gap_1()
+            .rounded(gpui::px(CORNER_RADIUS_SM))
+            .bg(gpui::Hsla::from(style.container_bg))
+            .border_1()
+            .border_color(gpui::Hsla::from(style.container_border));
+
+        for opt in self.options {
+            let is_selected = opt.value == self.selected_value;
+            let (bg, fg) = if is_selected {
+                (style.active_bg, style.active_fg)
+            } else {
+                (TRANSPARENT, style.inactive_fg)
+            };
+
+            let mut seg = gpui::div()
+                .flex()
+                .items_center()
+                .gap_1()
+                .px(gpui::px(8.0))
+                .py(gpui::px(3.0))
+                .rounded(gpui::px(CORNER_RADIUS_SM))
+                .bg(gpui::Hsla::from(bg))
+                .text_color(gpui::Hsla::from(fg))
+                .cursor_pointer();
+
+            if !is_selected {
+                seg = seg.hover(|s| s.text_color(gpui::Hsla::from(style.inactive_fg_hover)));
+            }
+
+            if let Some(icon) = opt.icon {
+                seg = seg.child(icon.name());
+            }
+            seg = seg.child(opt.label);
+
+            container = container.child(seg);
+        }
+
+        container
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

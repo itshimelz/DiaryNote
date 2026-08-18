@@ -112,6 +112,49 @@ impl NoteCardView {
     }
 }
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for NoteCardView {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+        let min_w = gpui::px(style.min_width);
+        let min_h = gpui::px(style.min_height);
+
+        let header = crate::components::NoteHeader::new(self.id, self.title.clone())
+            .with_pinned(self.is_pinned)
+            .with_locked(self.is_locked);
+
+        let checklist_total = self.checklist.len();
+        let checklist_completed = self.checklist.iter().filter(|i| i.completed).count();
+        let toolbar = crate::components::NoteToolbar::new(self.id)
+            .with_checklist(checklist_completed, checklist_total)
+            .with_tags(self.tags);
+
+        gpui::div()
+            .flex()
+            .flex_col()
+            .justify_between()
+            .min_w(min_w)
+            .min_h(min_h)
+            .rounded(gpui::px(CORNER_RADIUS_SM))
+            .bg(gpui::Hsla::from(style.bg))
+            .border_1()
+            .border_color(gpui::Hsla::from(style.border))
+            .child(header)
+            .child(
+                gpui::div()
+                    .flex_1()
+                    .p(gpui::px(12.0))
+                    .text_color(gpui::Hsla::from(style.text_color))
+                    .child(self.body),
+            )
+            .child(toolbar)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

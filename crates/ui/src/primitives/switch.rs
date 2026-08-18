@@ -65,7 +65,74 @@ impl Switch {
         self.disabled = disabled;
         self
     }
+}
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for Switch {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+        let tw = gpui::px(style.track_width);
+        let th = gpui::px(style.track_height);
+        let ts = gpui::px(style.thumb_size);
+
+        let thumb = gpui::div()
+            .w(ts)
+            .h(ts)
+            .rounded(gpui::px(CORNER_RADIUS_FULL))
+            .bg(gpui::Hsla::from(style.thumb_bg));
+
+        let mut track = gpui::div()
+            .flex()
+            .items_center()
+            .w(tw)
+            .h(th)
+            .px(gpui::px(2.0))
+            .rounded(gpui::px(CORNER_RADIUS_FULL))
+            .bg(gpui::Hsla::from(style.track_bg));
+
+        if self.checked {
+            track = track.justify_end().child(thumb);
+        } else {
+            track = track.justify_start().child(thumb);
+        }
+
+        let mut row = gpui::div()
+            .flex()
+            .items_center()
+            .justify_between()
+            .w_full()
+            .cursor_pointer();
+
+        if self.label.is_some() || self.description.is_some() {
+            let mut text_col = gpui::div().flex().flex_col();
+            if let Some(label) = self.label {
+                text_col = text_col.child(
+                    gpui::div()
+                        .text_color(gpui::Hsla::from(style.label_color))
+                        .child(label),
+                );
+            }
+            if let Some(desc) = self.description {
+                text_col = text_col.child(
+                    gpui::div()
+                        .text_color(gpui::Hsla::from(style.description_color))
+                        .child(desc),
+                );
+            }
+            row = row.child(text_col).child(track);
+        } else {
+            row = row.child(track);
+        }
+
+        row
+    }
+}
+
+impl Switch {
     pub fn compute_style(&self, theme: &SurfaceTheme) -> SwitchStyle {
         let opacity = if self.disabled { 0.5 } else { 1.0 };
         let corner_radius = CornerRadii::uniform(CORNER_RADIUS_FULL);

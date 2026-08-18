@@ -180,7 +180,43 @@ impl Button {
         self.full_width = full_width;
         self
     }
+}
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for Button {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+        let mut el = gpui::div()
+            .flex()
+            .items_center()
+            .justify_center()
+            .gap_1()
+            .h(gpui::px(self.size.height()))
+            .px(gpui::px(self.size.padding_x()))
+            .rounded(gpui::px(CORNER_RADIUS_SM))
+            .bg(gpui::Hsla::from(style.bg))
+            .text_color(gpui::Hsla::from(style.fg))
+            .border_1()
+            .border_color(gpui::Hsla::from(style.border.unwrap_or(TRANSPARENT)))
+            .hover(|s| s.bg(gpui::Hsla::from(style.bg_hover)));
+
+        if self.full_width {
+            el = el.w_full();
+        }
+
+        if let Some(label) = self.label {
+            el = el.child(label);
+        }
+
+        el
+    }
+}
+
+impl Button {
     /// Resolve computed style given the active theme
     pub fn compute_style(&self, theme: &SurfaceTheme) -> ButtonStyle {
         let is_disabled = self.disabled || self.loading;

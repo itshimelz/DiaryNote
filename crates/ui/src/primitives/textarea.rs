@@ -81,7 +81,46 @@ impl Textarea {
         self.read_only = read_only;
         self
     }
+}
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for Textarea {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+        let min_h = gpui::px(self.min_height);
+        let pad = gpui::px(style.padding);
+
+        let mut el = gpui::div()
+            .flex()
+            .flex_col()
+            .min_h(min_h)
+            .p(pad)
+            .rounded(gpui::px(CORNER_RADIUS_SM))
+            .bg(gpui::Hsla::from(style.bg))
+            .text_color(gpui::Hsla::from(style.fg))
+            .border_1()
+            .border_color(gpui::Hsla::from(style.border))
+            .hover(|s| s.border_color(gpui::Hsla::from(style.border_hover)));
+
+        if self.value.is_empty() {
+            el = el.child(
+                gpui::div()
+                    .text_color(gpui::Hsla::from(style.placeholder))
+                    .child(self.placeholder),
+            );
+        } else {
+            el = el.child(self.value);
+        }
+
+        el
+    }
+}
+
+impl Textarea {
     pub fn compute_style(&self, theme: &SurfaceTheme) -> TextareaStyle {
         let opacity = if self.disabled { 0.5 } else { 1.0 };
         let corner_radius = CornerRadii::uniform(CORNER_RADIUS_SM);

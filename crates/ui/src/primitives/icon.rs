@@ -51,6 +51,27 @@ impl Icon {
     }
 }
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for Icon {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let theme = SurfaceTheme::dark();
+        let (color, pixels, _) = self.resolve(&theme);
+        let sz = gpui::px(pixels);
+
+        gpui::div()
+            .flex()
+            .items_center()
+            .justify_center()
+            .w(sz)
+            .h(sz)
+            .text_color(gpui::Hsla::from(color))
+            .child(self.kind.name())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

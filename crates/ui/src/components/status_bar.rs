@@ -100,6 +100,69 @@ impl StatusBar {
     }
 }
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for StatusBar {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+        let h = gpui::px(style.height);
+        let px = gpui::px(style.padding_x);
+
+        let badge = self.save_badge();
+        let zoom_pct = format!("{}%", (self.active_zoom * 100.0).round() as i32);
+        let notes_text = if self.selected_notes_count > 0 {
+            format!(
+                "{} of {} selected",
+                self.selected_notes_count, self.total_notes
+            )
+        } else {
+            format!("{} notes", self.total_notes)
+        };
+
+        gpui::div()
+            .flex()
+            .items_center()
+            .justify_between()
+            .w_full()
+            .h(h)
+            .px(px)
+            .bg(gpui::Hsla::from(style.bg))
+            .border_t_1()
+            .border_color(gpui::Hsla::from(style.border))
+            .child(
+                gpui::div()
+                    .flex()
+                    .items_center()
+                    .gap_3()
+                    .child(badge)
+                    .child(
+                        gpui::div()
+                            .text_color(gpui::Hsla::from(style.text_muted))
+                            .child(self.storage_engine),
+                    ),
+            )
+            .child(
+                gpui::div()
+                    .flex()
+                    .items_center()
+                    .gap_3()
+                    .child(
+                        gpui::div()
+                            .text_color(gpui::Hsla::from(style.text_muted))
+                            .child(notes_text),
+                    )
+                    .child(
+                        gpui::div()
+                            .text_color(gpui::Hsla::from(style.text_color))
+                            .child(zoom_pct),
+                    ),
+            )
+    }
+}
+
 impl Default for StatusBar {
     fn default() -> Self {
         Self::new()

@@ -85,6 +85,64 @@ impl MentionMenu {
     }
 }
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for MentionMenu {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+        let w = gpui::px(style.width);
+
+        let mut menu_el = gpui::div()
+            .flex()
+            .flex_col()
+            .w(w)
+            .p(gpui::px(4.0))
+            .rounded(gpui::px(CORNER_RADIUS_SM))
+            .bg(gpui::Hsla::from(style.bg))
+            .border_1()
+            .border_color(gpui::Hsla::from(style.border));
+
+        for (idx, cand) in self.candidates.into_iter().enumerate() {
+            let is_selected = idx == self.selected_index;
+            let (bg, fg) = if is_selected {
+                (style.active_bg, style.active_fg)
+            } else {
+                (TRANSPARENT, style.inactive_fg)
+            };
+
+            let row = gpui::div()
+                .flex()
+                .flex_col()
+                .px(gpui::px(8.0))
+                .py(gpui::px(6.0))
+                .rounded(gpui::px(CORNER_RADIUS_SM))
+                .bg(gpui::Hsla::from(bg))
+                .text_color(gpui::Hsla::from(fg))
+                .cursor_pointer()
+                .child(
+                    gpui::div()
+                        .flex()
+                        .items_center()
+                        .gap_1()
+                        .child("📄")
+                        .child(cand.title),
+                )
+                .child(
+                    gpui::div()
+                        .text_color(gpui::Hsla::from(style.snippet_fg))
+                        .child(cand.snippet),
+                );
+
+            menu_el = menu_el.child(row);
+        }
+
+        menu_el
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

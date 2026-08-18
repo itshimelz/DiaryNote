@@ -111,6 +111,51 @@ impl InfiniteCanvasView {
     }
 }
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for InfiniteCanvasView {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+
+        let mut canvas_el = gpui::div()
+            .relative()
+            .w_full()
+            .h_full()
+            .bg(gpui::Hsla::from(style.bg_color))
+            .overflow_hidden();
+
+        if let Some(marquee) = self.marquee {
+            let (min_x, min_y, max_x, max_y) = marquee.aabb();
+            let screen_min = self
+                .camera
+                .canvas_to_screen(domain::models::note::Point2D::new(min_x, min_y));
+            let screen_max = self
+                .camera
+                .canvas_to_screen(domain::models::note::Point2D::new(max_x, max_y));
+            let w = screen_max.x - screen_min.x;
+            let h = screen_max.y - screen_min.y;
+
+            let marquee_el = gpui::div()
+                .absolute()
+                .left(gpui::px(screen_min.x))
+                .top(gpui::px(screen_min.y))
+                .w(gpui::px(w))
+                .h(gpui::px(h))
+                .rounded(gpui::px(CORNER_RADIUS_XS))
+                .bg(gpui::Hsla::from(style.marquee_bg))
+                .border_1()
+                .border_color(gpui::Hsla::from(style.marquee_border));
+
+            canvas_el = canvas_el.child(marquee_el);
+        }
+
+        canvas_el
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

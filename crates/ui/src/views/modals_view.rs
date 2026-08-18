@@ -99,6 +99,21 @@ impl ActiveModal {
     }
 }
 
+impl gpui::IntoElement for ActiveModal {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let desc = self.descriptor();
+        let mut dialog = crate::primitives::Dialog::new(desc.title).with_max_width(desc.max_width);
+
+        if let Some(d) = desc.description {
+            dialog = dialog.with_description(d);
+        }
+
+        dialog.into_element()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

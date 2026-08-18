@@ -33,6 +33,20 @@ impl BoxShadow {
     }
 }
 
+impl From<BoxShadow> for gpui::BoxShadow {
+    fn from(s: BoxShadow) -> Self {
+        gpui::BoxShadow {
+            color: s.color.into(),
+            offset: gpui::Point {
+                x: gpui::px(s.offset_x),
+                y: gpui::px(s.offset_y),
+            },
+            blur_radius: gpui::px(s.blur_radius),
+            spread_radius: gpui::px(s.spread_radius),
+        }
+    }
+}
+
 /// Standardized Shadow Elevation Scale
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ShadowStyle {

@@ -175,6 +175,80 @@ impl Menu {
     }
 }
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for MenuItem {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+
+        let mut row = gpui::div()
+            .flex()
+            .items_center()
+            .justify_between()
+            .h(gpui::px(style.height))
+            .px(gpui::px(style.padding_x))
+            .rounded(gpui::px(CORNER_RADIUS_SM))
+            .bg(gpui::Hsla::from(style.bg))
+            .text_color(gpui::Hsla::from(style.fg))
+            .hover(|s| {
+                s.bg(gpui::Hsla::from(style.bg_hover))
+                    .text_color(gpui::Hsla::from(style.fg_hover))
+            })
+            .cursor_pointer();
+
+        let mut left = gpui::div().flex().items_center().gap_2();
+        if let Some(icon) = self.icon {
+            left = left.child(
+                gpui::div()
+                    .text_color(gpui::Hsla::from(style.icon_color))
+                    .child(icon.name()),
+            );
+        }
+        left = left.child(self.label);
+        row = row.child(left);
+
+        if let Some(shortcut) = self.shortcut {
+            row = row.child(
+                gpui::div()
+                    .text_color(gpui::Hsla::from(SLATE_500))
+                    .child(shortcut),
+            );
+        }
+
+        row
+    }
+}
+
+impl gpui::IntoElement for Menu {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+        let min_w = gpui::px(style.min_width);
+        let pad = gpui::px(style.padding);
+
+        let mut menu_el = gpui::div()
+            .flex()
+            .flex_col()
+            .min_w(min_w)
+            .p(pad)
+            .rounded(gpui::px(CORNER_RADIUS_SM))
+            .bg(gpui::Hsla::from(style.bg))
+            .border_1()
+            .border_color(gpui::Hsla::from(style.border));
+
+        for item in self.items {
+            menu_el = menu_el.child(item);
+        }
+
+        menu_el
+    }
+}
+
 impl Default for Menu {
     fn default() -> Self {
         Self::new()

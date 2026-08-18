@@ -149,7 +149,50 @@ impl Input {
         self.disabled = disabled;
         self
     }
+}
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for Input {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+        let h = gpui::px(style.height);
+
+        let mut el = gpui::div()
+            .flex()
+            .items_center()
+            .h(h)
+            .px(gpui::px(style.padding_left))
+            .rounded(gpui::px(CORNER_RADIUS_SM))
+            .bg(gpui::Hsla::from(style.bg))
+            .text_color(gpui::Hsla::from(style.fg))
+            .border_1()
+            .border_color(gpui::Hsla::from(style.border))
+            .hover(|s| s.border_color(gpui::Hsla::from(style.border_hover)));
+
+        if self.value.is_empty() {
+            el = el.child(
+                gpui::div()
+                    .text_color(gpui::Hsla::from(style.placeholder))
+                    .child(self.placeholder),
+            );
+        } else {
+            let display_text = if self.is_password && !self.password_visible {
+                "•".repeat(self.value.len())
+            } else {
+                self.value
+            };
+            el = el.child(display_text);
+        }
+
+        el
+    }
+}
+
+impl Input {
     pub fn compute_style(&self, theme: &SurfaceTheme) -> InputStyle {
         let opacity = if self.disabled { 0.5 } else { 1.0 };
         let corner_radius = CornerRadii::uniform(CORNER_RADIUS_SM);

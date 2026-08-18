@@ -89,6 +89,56 @@ impl NoteHeader {
     }
 }
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for NoteHeader {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let paper = crate::tokens::paper_themes::PaperThemeKind::White.config();
+        let style = self.compute_style(&paper);
+        let h = gpui::px(style.height);
+        let px = gpui::px(style.padding_x);
+
+        let mut left = gpui::div().flex().items_center().gap_2();
+        if self.is_pinned {
+            left = left.child(
+                gpui::div()
+                    .text_color(gpui::Hsla::from(style.subtext_color))
+                    .child("📌"),
+            );
+        }
+        if self.is_locked {
+            left = left.child(
+                gpui::div()
+                    .text_color(gpui::Hsla::from(style.subtext_color))
+                    .child("🔒"),
+            );
+        }
+        left = left.child(
+            gpui::div()
+                .text_color(gpui::Hsla::from(style.text_color))
+                .child(self.title),
+        );
+
+        let mut el = gpui::div()
+            .flex()
+            .items_center()
+            .justify_between()
+            .w_full()
+            .h(h)
+            .px(px)
+            .bg(gpui::Hsla::from(style.bg))
+            .child(left);
+
+        if let Some(border) = style.border_bottom {
+            el = el.border_b_1().border_color(gpui::Hsla::from(border));
+        }
+
+        el
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

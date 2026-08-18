@@ -127,6 +127,66 @@ impl Select {
     }
 }
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for Select {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+
+        let selected_label = self
+            .options
+            .iter()
+            .find(|o| o.value == self.selected_value)
+            .map(|o| o.label.clone())
+            .unwrap_or_else(|| self.selected_value.clone());
+
+        let mut trigger = gpui::div()
+            .flex()
+            .items_center()
+            .justify_between()
+            .h(gpui::px(style.height))
+            .px(gpui::px(style.padding_x))
+            .rounded(gpui::px(CORNER_RADIUS_SM))
+            .bg(gpui::Hsla::from(style.bg))
+            .text_color(gpui::Hsla::from(style.fg))
+            .border_1()
+            .border_color(gpui::Hsla::from(style.border))
+            .hover(|s| s.border_color(gpui::Hsla::from(style.border_hover)))
+            .cursor_pointer();
+
+        let mut left = gpui::div().flex().items_center().gap_2();
+        if let Some(icon) = self.icon {
+            left = left.child(icon.name());
+        }
+        left = left.child(selected_label);
+        trigger = trigger.child(left);
+
+        trigger = trigger.child(
+            gpui::div()
+                .text_color(gpui::Hsla::from(style.chevron_color))
+                .child("▼"),
+        );
+
+        if let Some(label) = self.label {
+            gpui::div()
+                .flex()
+                .flex_col()
+                .gap_1()
+                .child(
+                    gpui::div()
+                        .text_color(gpui::Hsla::from(style.label_color))
+                        .child(label),
+                )
+                .child(trigger)
+        } else {
+            trigger
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

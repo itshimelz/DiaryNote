@@ -90,7 +90,57 @@ impl Checkbox {
         self.disabled = disabled;
         self
     }
+}
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for Checkbox {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+        let sz = gpui::px(style.box_size);
+
+        let mut box_el = gpui::div()
+            .flex()
+            .items_center()
+            .justify_center()
+            .w(sz)
+            .h(sz)
+            .rounded(gpui::px(CORNER_RADIUS_XS))
+            .bg(gpui::Hsla::from(style.box_bg))
+            .border_1()
+            .border_color(gpui::Hsla::from(style.box_border));
+
+        if self.checked {
+            box_el = box_el.child(
+                gpui::div()
+                    .text_color(gpui::Hsla::from(style.checkmark_color))
+                    .child("✓"),
+            );
+        }
+
+        let mut row = gpui::div()
+            .flex()
+            .items_center()
+            .gap_2()
+            .cursor_pointer()
+            .child(box_el);
+
+        if let Some(label) = self.label {
+            row = row.child(
+                gpui::div()
+                    .text_color(gpui::Hsla::from(style.label_color))
+                    .child(label),
+            );
+        }
+
+        row
+    }
+}
+
+impl Checkbox {
     pub fn compute_style(&self, theme: &SurfaceTheme) -> CheckboxStyle {
         let opacity = if self.disabled { 0.5 } else { 1.0 };
         let corner_radius = CornerRadii::uniform(CORNER_RADIUS_XS);

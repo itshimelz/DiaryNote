@@ -74,6 +74,58 @@ impl NoteToolbar {
     }
 }
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for NoteToolbar {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let paper = crate::tokens::paper_themes::PaperThemeKind::White.config();
+        let style = self.compute_style(&paper);
+        let h = gpui::px(style.height);
+        let px = gpui::px(style.padding_x);
+
+        let mut left = gpui::div().flex().items_center().gap_2();
+        if self.has_checklist() {
+            let chk_text = format!(
+                "{}/{} tasks",
+                self.checklist_completed, self.checklist_total
+            );
+            left = left.child(
+                gpui::div()
+                    .text_color(gpui::Hsla::from(style.fg))
+                    .child(chk_text),
+            );
+        }
+
+        let mut tags_el = gpui::div().flex().items_center().gap_1();
+        for tag in self.tags {
+            tags_el = tags_el.child(
+                gpui::div()
+                    .text_color(gpui::Hsla::from(style.fg))
+                    .child(format!("#{}", tag)),
+            );
+        }
+        left = left.child(tags_el);
+
+        let mut el = gpui::div()
+            .flex()
+            .items_center()
+            .justify_between()
+            .w_full()
+            .h(h)
+            .px(px)
+            .bg(gpui::Hsla::from(style.bg))
+            .child(left);
+
+        if let Some(border) = style.border_top {
+            el = el.border_t_1().border_color(gpui::Hsla::from(border));
+        }
+
+        el
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

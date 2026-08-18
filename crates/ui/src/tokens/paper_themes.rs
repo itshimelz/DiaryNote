@@ -38,6 +38,10 @@ impl PaperThemeKind {
         Self::Transparent,
     ];
 
+    pub fn all() -> &'static [Self] {
+        &Self::ALL
+    }
+
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::White => "white",

@@ -84,6 +84,39 @@ impl Minimap {
     }
 }
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for Minimap {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+        let w = gpui::px(style.width);
+        let h = gpui::px(style.height);
+
+        gpui::div()
+            .flex()
+            .items_center()
+            .justify_center()
+            .w(w)
+            .h(h)
+            .rounded(gpui::px(CORNER_RADIUS_SM))
+            .bg(gpui::Hsla::from(style.bg))
+            .border_1()
+            .border_color(gpui::Hsla::from(style.border))
+            .child(
+                gpui::div()
+                    .w(gpui::px(60.0))
+                    .h(gpui::px(40.0))
+                    .rounded(gpui::px(CORNER_RADIUS_XS))
+                    .bg(gpui::Hsla::from(style.viewport_bg))
+                    .border_1()
+                    .border_color(gpui::Hsla::from(style.viewport_border)),
+            )
+    }
+}
+
 impl Default for Minimap {
     fn default() -> Self {
         Self::new()

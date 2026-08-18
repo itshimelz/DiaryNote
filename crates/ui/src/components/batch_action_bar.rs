@@ -77,6 +77,62 @@ impl BatchActionBar {
     }
 }
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for BatchActionBar {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        if !self.is_visible() {
+            return gpui::div();
+        }
+
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+        let h = gpui::px(style.height);
+        let px = gpui::px(style.padding_x);
+
+        let selected_text = format!("{} selected", self.selected_count);
+
+        gpui::div()
+            .flex()
+            .items_center()
+            .justify_between()
+            .h(h)
+            .px(px)
+            .rounded(gpui::px(CORNER_RADIUS_SM))
+            .bg(gpui::Hsla::from(style.bg))
+            .border_1()
+            .border_color(gpui::Hsla::from(style.border))
+            .child(
+                gpui::div()
+                    .text_color(gpui::Hsla::from(style.text_color))
+                    .child(selected_text),
+            )
+            .child(
+                gpui::div()
+                    .flex()
+                    .items_center()
+                    .gap_2()
+                    .child(
+                        gpui::div()
+                            .text_color(gpui::Hsla::from(SLATE_400))
+                            .child("Align"),
+                    )
+                    .child(
+                        gpui::div()
+                            .text_color(gpui::Hsla::from(SLATE_400))
+                            .child("Group"),
+                    )
+                    .child(
+                        gpui::div()
+                            .text_color(gpui::Hsla::from(ROSE_500))
+                            .child("Delete"),
+                    ),
+            )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

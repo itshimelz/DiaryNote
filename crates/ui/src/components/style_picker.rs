@@ -63,6 +63,65 @@ impl StylePicker {
     }
 }
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for StylePicker {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+        let w = gpui::px(style.width);
+        let pad = gpui::px(style.padding);
+
+        let mut grid = gpui::div().flex().flex_wrap().gap_2();
+        for theme_kind in PaperThemeKind::all() {
+            let is_selected = *theme_kind == self.selected_paper;
+            let cfg = theme_kind.config();
+            let mut tile = gpui::div()
+                .w(gpui::px(24.0))
+                .h(gpui::px(24.0))
+                .rounded(gpui::px(CORNER_RADIUS_XS))
+                .bg(gpui::Hsla::from(cfg.bg))
+                .border_1()
+                .border_color(gpui::Hsla::from(if is_selected {
+                    BLUE_500
+                } else {
+                    cfg.border
+                }))
+                .cursor_pointer();
+
+            if is_selected {
+                tile = tile.child(
+                    gpui::div()
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .text_color(gpui::Hsla::from(cfg.text))
+                        .child("✓"),
+                );
+            }
+            grid = grid.child(tile);
+        }
+
+        gpui::div()
+            .flex()
+            .flex_col()
+            .w(w)
+            .p(pad)
+            .rounded(gpui::px(CORNER_RADIUS_SM))
+            .bg(gpui::Hsla::from(style.bg))
+            .border_1()
+            .border_color(gpui::Hsla::from(style.border))
+            .child(
+                gpui::div()
+                    .text_color(gpui::Hsla::from(style.text_color))
+                    .child("Paper Theme"),
+            )
+            .child(grid)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

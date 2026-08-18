@@ -82,6 +82,38 @@ impl Tooltip {
     }
 }
 
+use gpui::prelude::*;
+
+impl gpui::IntoElement for Tooltip {
+    type Element = gpui::Div;
+
+    fn into_element(self) -> Self::Element {
+        let theme = SurfaceTheme::dark();
+        let style = self.compute_style(&theme);
+
+        let mut tip = gpui::div()
+            .flex()
+            .items_center()
+            .gap_1()
+            .px(gpui::px(style.padding_x))
+            .py(gpui::px(style.padding_y))
+            .rounded(gpui::px(CORNER_RADIUS_XS))
+            .bg(gpui::Hsla::from(style.bg))
+            .text_color(gpui::Hsla::from(style.fg))
+            .child(self.content);
+
+        if let Some(shortcut) = self.shortcut {
+            tip = tip.child(
+                gpui::div()
+                    .text_color(gpui::Hsla::from(SLATE_400))
+                    .child(shortcut),
+            );
+        }
+
+        tip
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

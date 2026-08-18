@@ -56,6 +56,9 @@ rstar = "0.12"
 # Markdown & Text
 pulldown-cmark = { version = "0.12", default-features = false }
 
+# UI & Rendering
+gpui = "0.2.2"
+
 # Networking & AI
 reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
 
