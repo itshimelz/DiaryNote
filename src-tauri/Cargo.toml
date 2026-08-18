@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.2.0-beta.2"
+version = "0.2.0-beta.3"
 description = "DiaryNote Desktop Application"
 authors = ["DiaryNote Team"]
 edition = "2021"
