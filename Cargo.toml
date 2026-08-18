@@ -1,0 +1,67 @@
+[workspace]
+members = [
+    "crates/domain",
+    "crates/crypto",
+    "crates/storage",
+    "crates/ai",
+    "crates/ui",
+    "crates/app",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.2.0"
+authors = ["DiaryNote Team"]
+edition = "2021"
+rust-version = "1.77.2"
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+# Internal Workspace Crates
+domain = { path = "crates/domain" }
+crypto = { path = "crates/crypto" }
+storage = { path = "crates/storage" }
+ai = { path = "crates/ai" }
+ui = { path = "crates/ui" }
+
+# Serialization & Utilities
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.8", features = ["v4", "serde"] }
+thiserror = "1.0"
+anyhow = "1.0"
+async-trait = "0.1"
+
+# Async & Concurrency
+tokio = { version = "1.38", features = ["sync", "rt", "macros", "time", "rt-multi-thread"] }
+futures-util = "0.3"
+
+# Persistence & Storage
+rusqlite = { version = "0.31", features = ["bundled", "bundled-full"] }
+
+# Cryptography & Security
+argon2 = "0.5"
+aes-gcm = "0.10"
+zeroize = { version = "1.8", features = ["derive"] }
+rand = "0.8"
+sha2 = "0.10"
+hex = "0.4"
+base64 = "0.22"
+subtle = "2.6"
+
+# Spatial Indexing & Math
+rstar = "0.12"
+
+# Markdown & Text
+pulldown-cmark = { version = "0.12", default-features = false }
+
+# Networking & AI
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true
