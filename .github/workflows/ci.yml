@@ -4,44 +4,105 @@ on:
   push:
     branches:
       - main
+      - 'feature/**'
       - 'track/**'
   pull_request:
     branches:
       - main
+      - 'feature/**'
       - 'track/**'
 
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
 jobs:
-  validate:
-    name: Lint, Test & Build Validation
+  lint-and-format:
+    name: Rustfmt & Clippy Linting
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            pkg-config \
+            libssl-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libxkbcommon-x11-dev \
+            libx11-dev \
+            libxcb1-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libasound2-dev \
+            libvulkan-dev
+
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check Formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy Linter
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+  matrix-test-and-build:
+    name: Test & Build (${{ matrix.platform }})
+    needs: lint-and-format
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-latest
+            os: linux
+          - platform: macos-latest
+            os: macos
+          - platform: windows-latest
+            os: windows
+    runs-on: ${{ matrix.platform }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Version Consistency Check
-        run: npm run version:check
-
-      - name: Run Oxlint & TypeScript Typecheck
-        run: npm run lint
-
-      - name: Run Vitest Unit & Integration Tests
-        run: npm test
-
-      - name: Build Web Production Bundle
-        run: npm run build
+      - name: Install Linux system dependencies (GPUI & Graphics)
+        if: matrix.os == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            pkg-config \
+            libssl-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libxkbcommon-x11-dev \
+            libx11-dev \
+            libxcb1-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libasound2-dev \
+            libvulkan-dev \
+            vulkan-tools
 
       - name: Setup Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Rust Cargo Check
-        run: cargo check --manifest-path src-tauri/Cargo.toml
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.platform }}
+
+      - name: Run Workspace Unit & Integration Tests
+        run: cargo test --workspace --verbose
+
+      - name: Build Application (Debug)
+        run: cargo build --workspace

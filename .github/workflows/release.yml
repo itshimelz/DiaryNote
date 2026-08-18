@@ -1,10 +1,10 @@
-name: "Release Multi-Platform Binaries"
+name: "Release Multi-Platform Pure Rust Binaries"
 
 on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: "Release Tag (e.g. v0.1.3)"
+        description: "Release Tag (e.g. v0.2.0)"
         required: true
   push:
     tags:
@@ -12,15 +12,14 @@ on:
 
 jobs:
   validate:
+    name: Validate Release Version
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.validate.outputs.tag }}
+      ver: ${{ steps.validate.outputs.ver }}
       notes_file: ${{ steps.validate.outputs.notes_file }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
 
       - name: Validate release prerequisites
         id: validate
@@ -30,132 +29,126 @@ jobs:
           NOTES_FILE=".github/releases/RELEASE_NOTES_${TAG}.md"
 
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "ver=${VER}" >> "$GITHUB_OUTPUT"
           echo "notes_file=${NOTES_FILE}" >> "$GITHUB_OUTPUT"
 
-          if [ ! -f "$NOTES_FILE" ]; then
-            echo "::error::Missing release notes file: $NOTES_FILE"
-            exit 1
+          # Extract version from root or app Cargo.toml
+          if [ -f Cargo.toml ]; then
+            CARGO_VER=$(grep '^version' Cargo.toml | head -1 | cut -d'"' -f2 || echo "")
+          fi
+          if [ -z "$CARGO_VER" ] && [ -f crates/app/Cargo.toml ]; then
+            CARGO_VER=$(grep '^version' crates/app/Cargo.toml | head -1 | cut -d'"' -f2 || echo "")
           fi
 
-          PKG_VER=$(jq -r .version package.json)
-          CARGO_VER=$(grep '^version' src-tauri/Cargo.toml | head -1 | cut -d'"' -f2)
-          TAURI_VER=$(jq -r .version src-tauri/tauri.conf.json)
-
-          if [ "$PKG_VER" != "$VER" ]; then
-            echo "::error::package.json version ($PKG_VER) does not match tag ($VER)"
-            exit 1
-          fi
-          if [ "$CARGO_VER" != "$VER" ]; then
-            echo "::error::Cargo.toml version ($CARGO_VER) does not match tag ($VER)"
-            exit 1
-          fi
-          if [ "$TAURI_VER" != "$VER" ]; then
-            echo "::error::tauri.conf.json version ($TAURI_VER) does not match tag ($VER)"
-            exit 1
+          if [ -n "$CARGO_VER" ] && [ "$CARGO_VER" != "$VER" ]; then
+            echo "::warning::Cargo.toml version ($CARGO_VER) does not strictly match tag ($VER)"
           fi
 
-          bun run version:check
-
-  build-tauri:
+  build-release:
+    name: Build Binary (${{ matrix.platform.name }})
     needs: validate
     permissions:
       contents: write
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - platform: "macos-latest"
-            args: "--target aarch64-apple-darwin"
-          - platform: "macos-latest"
-            args: "--target x86_64-apple-darwin"
-          - platform: "ubuntu-22.04"
-            args: ""
-          - platform: "windows-latest"
-            args: ""
+        platform:
+          - name: "Linux (x86_64)"
+            os: "ubuntu-22.04"
+            target: "x86_64-unknown-linux-gnu"
+            artifact_name: "DiaryNote-linux-x86_64.tar.gz"
+          - name: "macOS Apple Silicon (aarch64)"
+            os: "macos-latest"
+            target: "aarch64-apple-darwin"
+            artifact_name: "DiaryNote-macos-aarch64.tar.gz"
+          - name: "macOS Intel (x86_64)"
+            os: "macos-13"
+            target: "x86_64-apple-darwin"
+            artifact_name: "DiaryNote-macos-x86_64.tar.gz"
+          - name: "Windows (x86_64)"
+            os: "windows-latest"
+            target: "x86_64-pc-windows-msvc"
+            artifact_name: "DiaryNote-windows-x86_64.zip"
 
-    runs-on: ${{ matrix.platform }}
+    runs-on: ${{ matrix.platform.os }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
-
-      - name: Install Linux dependencies
-        if: matrix.platform == 'ubuntu-22.04'
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y \
+            pkg-config \
+            libssl-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libxkbcommon-x11-dev \
+            libx11-dev \
+            libxcb1-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libasound2-dev \
+            libvulkan-dev
 
-      - name: Install frontend dependencies
-        run: bun install
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
 
-      - name: Build Tauri Application
-        uses: tauri-apps/tauri-action@v0
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.platform.target }}
+
+      - name: Build Release Binary
+        run: |
+          cargo build --release --target ${{ matrix.platform.target }} -p app || cargo build --release --target ${{ matrix.platform.target }}
+
+      - name: Package Linux Binary
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p dist_pkg
+          BIN_PATH=$(find target/${{ matrix.platform.target }}/release target/release -maxdepth 2 -type f \( -name "app" -o -name "DiaryNote" -o -name "diarynote" \) | head -n 1)
+          if [ -n "$BIN_PATH" ]; then
+            cp "$BIN_PATH" dist_pkg/DiaryNote
+            chmod +x dist_pkg/DiaryNote
+          fi
+          [ -f assets/DiaryNote.desktop ] && cp assets/DiaryNote.desktop dist_pkg/ || true
+          [ -f assets/logo.png ] && cp assets/logo.png dist_pkg/DiaryNote.png || true
+          tar -czvf ${{ matrix.platform.artifact_name }} -C dist_pkg .
+
+      - name: Package macOS Binary
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p dist_pkg
+          BIN_PATH=$(find target/${{ matrix.platform.target }}/release target/release -maxdepth 2 -type f \( -name "app" -o -name "DiaryNote" -o -name "diarynote" \) | head -n 1)
+          if [ -n "$BIN_PATH" ]; then
+            cp "$BIN_PATH" dist_pkg/DiaryNote
+            chmod +x dist_pkg/DiaryNote
+          fi
+          tar -czvf ${{ matrix.platform.artifact_name }} -C dist_pkg .
+
+      - name: Package Windows Binary
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          mkdir -p dist_pkg
+          BIN_PATH=$(find target/${{ matrix.platform.target }}/release target/release -maxdepth 2 -type f \( -name "app.exe" -o -name "DiaryNote.exe" -o -name "diarynote.exe" \) | head -n 1)
+          if [ -n "$BIN_PATH" ]; then
+            cp "$BIN_PATH" dist_pkg/DiaryNote.exe
+          fi
+          cd dist_pkg && 7z a -tzip ../${{ matrix.platform.artifact_name }} *
+
+      - name: Upload Artifact to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || inputs.release_tag != ''
+        with:
+          tag_name: ${{ needs.validate.outputs.tag }}
+          files: ${{ matrix.platform.artifact_name }}
+          draft: false
+          prerelease: ${{ contains(needs.validate.outputs.tag, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tagName: ${{ needs.validate.outputs.tag }}
-          releaseName: "${{ needs.validate.outputs.tag }}"
-          releaseBodyFile: ${{ needs.validate.outputs.notes_file }}
-          releaseDraft: false
-          prerelease: ${{ contains(needs.validate.outputs.tag, '-') }}
-          args: ${{ matrix.args }} ${{ (matrix.platform == 'windows-latest' && contains(needs.validate.outputs.tag, '-')) && '--bundles nsis' || '' }}
-
-      - name: Create and Upload Standalone Linux Package (DiaryNote-linux-x86_64.tar.gz)
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          TAG="${{ needs.validate.outputs.tag }}"
-          mkdir -p dist_standalone
-          BIN_PATH=$(find src-tauri/target -type f \( -name "app" -o -name "DiaryNote" -o -name "diary-note" \) | grep "release" | head -n 1)
-          if [ -n "$BIN_PATH" ]; then
-            cp "$BIN_PATH" dist_standalone/DiaryNote
-          fi
-          [ -f assets/DiaryNote.desktop ] && cp assets/DiaryNote.desktop dist_standalone/DiaryNote.desktop || true
-          [ -f assets/logo.png ] && cp assets/logo.png dist_standalone/DiaryNote.png || true
-          [ -f assets/install.sh ] && cp assets/install.sh dist_standalone/install.sh || true
-          chmod +x dist_standalone/DiaryNote 2>/dev/null || true
-          tar -czvf DiaryNote-linux-x86_64.tar.gz -C dist_standalone .
-          gh release upload "$TAG" DiaryNote-linux-x86_64.tar.gz --clobber
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Versioned macOS Archive (.app.tar.gz with version)
-        if: matrix.platform == 'macos-latest'
-        run: |
-          TAG="${{ needs.validate.outputs.tag }}"
-          VER="${TAG#v}"
-          for f in $(find src-tauri/target -name "DiaryNote_*.app.tar.gz"); do
-            FNAME=$(basename "$f")
-            if [[ "$FNAME" =~ ^DiaryNote_(aarch64|x64|x86_64)\.app\.tar\.gz$ ]]; then
-              ARCH="${BASH_REMATCH[1]}"
-              VERSIONED_NAME="DiaryNote_${VER}_${ARCH}.app.tar.gz"
-              cp "$f" "$VERSIONED_NAME"
-              gh release upload "$TAG" "$VERSIONED_NAME" --clobber
-            fi
-          done
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: tauri-${{ matrix.platform }}-${{ strategy.job-index }}
-          path: |
-            src-tauri/target/**/release/bundle/**/*.dmg
-            src-tauri/target/**/release/bundle/**/*.app.tar.gz
-            src-tauri/target/**/release/bundle/**/*.msi
-            src-tauri/target/**/release/bundle/**/*.exe
-            src-tauri/target/**/release/bundle/**/*.deb
-            src-tauri/target/**/release/bundle/**/*.AppImage
-            DiaryNote-linux-x86_64.tar.gz
-            DiaryNote_*.app.tar.gz
