@@ -24,7 +24,7 @@ mod domain_note_id {
 }
 
 impl CanvasAction {
-    /// Invert this action to produce its undo/redo counterpart
+    /// Invert this action to produce its inverse counterpart
     pub fn inverse(&self) -> Self {
         match self {
             Self::CreateNote(note) => Self::DeleteNote(note.clone()),
@@ -89,13 +89,13 @@ impl HistoryStack {
 
     pub fn undo(&mut self) -> Option<CanvasAction> {
         let action = self.undo_stack.pop()?;
-        self.redo_stack.push(action.inverse());
+        self.redo_stack.push(action.clone());
         Some(action)
     }
 
     pub fn redo(&mut self) -> Option<CanvasAction> {
         let action = self.redo_stack.pop()?;
-        self.undo_stack.push(action.inverse());
+        self.undo_stack.push(action.clone());
         Some(action)
     }
 
@@ -134,7 +134,7 @@ mod tests {
         assert!(history.can_redo());
 
         let redone = history.redo().unwrap();
-        assert_eq!(redone, CanvasAction::DeleteNote(Box::new(note)));
+        assert_eq!(redone, action);
         assert!(history.can_undo());
         assert!(!history.can_redo());
     }

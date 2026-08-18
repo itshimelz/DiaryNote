@@ -1,6 +1,7 @@
 //! Vector icon enumeration, standard stroke weight (1.5px), and pixel size mappings.
 //!
-//! Directly mirrors Hugeicons stroke weight and scale used across DiaryNote.
+//! Strictly monochromatic and geometric vector iconography across DiaryNote.
+//! Zero emojis used anywhere in the design.
 
 use serde::{Deserialize, Serialize};
 
@@ -31,7 +32,7 @@ impl IconSize {
     }
 }
 
-/// Enumeration of all UI vector icons used in DiaryNote
+/// Enumeration of all UI vector icons used in DiaryNote (Zero Emojis)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum IconKind {
     Add,
@@ -82,6 +83,10 @@ pub enum IconKind {
     Filter,
     Paperclip,
     Smile,
+    Flash,
+    Coffee,
+    CloudRain,
+    Star,
     FolderPlus,
     Maximize,
     Minimize,
@@ -90,38 +95,39 @@ pub enum IconKind {
 }
 
 impl IconKind {
+    /// Monochromatic unicode symbol / vector glyph representation (Zero Emojis)
     pub const fn name(&self) -> &'static str {
         match self {
             Self::Keyboard => "⌨",
-            Self::Loading => "⏳",
+            Self::Loading => "⟳",
             Self::Add => "+",
-            Self::Search => "🔍",
-            Self::Trash => "🗑",
-            Self::SecurityLock => "🔒",
-            Self::Key => "🔑",
-            Self::Pin => "📌",
-            Self::Unpin => "📍",
-            Self::Copy => "📋",
-            Self::Edit => "✏",
+            Self::Search => "⌕",
+            Self::Trash => "×",
+            Self::SecurityLock => "⚿",
+            Self::Key => "⚷",
+            Self::Pin => "▲",
+            Self::Unpin => "△",
+            Self::Copy => "❐",
+            Self::Edit => "✎",
             Self::Close => "✕",
             Self::Check => "✓",
             Self::Settings => "⚙",
-            Self::Sun => "☀",
-            Self::Moon => "🌙",
-            Self::Calendar => "📅",
-            Self::Sparkles => "✨",
-            Self::Fire => "🔥",
-            Self::ChevronDown => "▼",
-            Self::ChevronUp => "▲",
-            Self::ChevronLeft => "◀",
-            Self::ChevronRight => "▶",
-            Self::Eye => "👁",
-            Self::EyeOff => "🚫",
+            Self::Sun => "☼",
+            Self::Moon => "☾",
+            Self::Calendar => "▦",
+            Self::Sparkles => "✧",
+            Self::Fire => "★",
+            Self::ChevronDown => "▾",
+            Self::ChevronUp => "▴",
+            Self::ChevronLeft => "◂",
+            Self::ChevronRight => "▸",
+            Self::Eye => "◎",
+            Self::EyeOff => "⊘",
             Self::Share => "↗",
             Self::MoreVertical => "⋮",
             Self::MoreHorizontal => "…",
-            Self::Tag => "🏷",
-            Self::Folder => "📁",
+            Self::Tag => "#",
+            Self::Folder => "▤",
             Self::Undo => "↺",
             Self::Redo => "↻",
             Self::ZoomIn => "+",
@@ -138,11 +144,15 @@ impl IconKind {
             Self::Refresh => "↻",
             Self::ExternalLink => "↗",
             Self::Filter => "☵",
-            Self::Paperclip => "📎",
-            Self::Smile => "😊",
-            Self::FolderPlus => "📁+",
-            Self::Maximize => "🗖",
-            Self::Minimize => "🗕",
+            Self::Paperclip => "⧉",
+            Self::Smile => "☺",
+            Self::Flash => "⚡",
+            Self::Coffee => "☕",
+            Self::CloudRain => "☁",
+            Self::Star => "★",
+            Self::FolderPlus => "▤+",
+            Self::Maximize => "⛶",
+            Self::Minimize => "—",
         }
     }
 }

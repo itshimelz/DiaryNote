@@ -1,3 +1,4 @@
+#![recursion_limit = "256"]
 //! # DiaryNote Native UI Design System & Components (`ui`)
 //!
 //! A high-performance, modular UI design system strictly conforming to
@@ -7,7 +8,7 @@
 //! - **Standardized Design Tokens**: 4px universal corner radius (`rounded-sm`), subtle small shadows (`shadow-sm`), 4px grid spacing, and strict monochromatic light/dark surface palettes.
 //! - **9 Note Paper Themes**: White, Cream, Ruled, Dotted, Ruled Dark, Kraft, Dark, Graphite, and Transparent.
 //! - **Atomic UI Primitives**: `Button`, `IconButton`, `Input`, `Textarea`, `Checkbox`, `Switch`, `Badge`, `Kbd`, `Dialog`, `Menu`, `Tabs`, `SegmentedControl`, `Select`, `Tooltip`, `Icon`.
-//! - **Composite Components**: `StatusBar`, `BatchActionBar`, `NoteHeader`, `NoteToolbar`, `StylePicker`, `SlashMenu`, `MentionMenu`, `Minimap`.
+//! - **Composite Components**: `StatusBar`, `BatchActionBar`, `NoteHeader`, `NoteToolbar`, `StylePicker`, `SlashMenu`, `MentionMenu`, `Minimap`, `MarkdownView`.
 //! - **Declarative Views**: `InfiniteCanvasView`, `NoteCardView`, `NotesSidebarView`, `ModalsView`.
 
 pub mod components;

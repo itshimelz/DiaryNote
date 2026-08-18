@@ -1,9 +1,10 @@
 //! Composite UI Components module for DiaryNote.
 //!
 //! Includes StatusBar, BatchActionBar, NoteHeader, NoteToolbar, StylePicker,
-//! SlashMenu, MentionMenu, and Minimap.
+//! SlashMenu, MentionMenu, Minimap, and Markdown rendering engine.
 
 pub mod batch_action_bar;
+pub mod markdown;
 pub mod mention_menu;
 pub mod minimap;
 pub mod note_header;
@@ -13,6 +14,7 @@ pub mod status_bar;
 pub mod style_picker;
 
 pub use batch_action_bar::*;
+pub use markdown::*;
 pub use mention_menu::*;
 pub use minimap::*;
 pub use note_header::*;

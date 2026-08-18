@@ -1,10 +1,12 @@
 //! Note card view descriptor.
 //!
 //! Renders note cards on the canvas with 4px corner radius, subtle shadow,
-//! 9 paper themes, zero internal scrollbars, natural auto-height, and selection rings.
+//! 9 paper themes, zero internal scrollbars, natural auto-height, selection rings,
+//! rich markdown and interactive checklist parsing.
 
+use crate::components::markdown::MarkdownView;
 use crate::tokens::{
-    colors::*,
+    colors::{Rgba as TokenRgba, BLUE_500},
     paper_themes::PaperThemeKind,
     radius::{CornerRadii, CORNER_RADIUS_SM},
     shadows::ShadowStyle,
@@ -12,17 +14,19 @@ use crate::tokens::{
     typography::HandFont,
 };
 use domain::models::note::{ChecklistItem, Mood, Note, NoteId, Point2D, Size2D};
+use gpui::prelude::*;
+use gpui::*;
 use serde::{Deserialize, Serialize};
 
 /// Computed NoteCard Visual Style
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NoteCardStyle {
-    pub bg: Rgba,
-    pub border: Rgba,
+    pub bg: TokenRgba,
+    pub border: TokenRgba,
     pub border_width: f32,
-    pub text_color: Rgba,
-    pub subtext_color: Rgba,
-    pub selection_ring: Option<Rgba>,
+    pub text_color: TokenRgba,
+    pub subtext_color: TokenRgba,
+    pub selection_ring: Option<TokenRgba>,
     pub corner_radius: CornerRadii,
     pub shadow: ShadowStyle,
     pub font_family: &'static str,
@@ -112,20 +116,21 @@ impl NoteCardView {
     }
 }
 
-use gpui::prelude::*;
-
-impl gpui::IntoElement for NoteCardView {
-    type Element = gpui::Div;
+impl IntoElement for NoteCardView {
+    type Element = Div;
 
     fn into_element(self) -> Self::Element {
         let theme = SurfaceTheme::dark();
         let style = self.compute_style(&theme);
-        let min_w = gpui::px(style.min_width);
-        let min_h = gpui::px(style.min_height);
+        let min_w = px(style.min_width);
+        let min_h = px(style.min_height);
 
         let header = crate::components::NoteHeader::new(self.id, self.title.clone())
             .with_pinned(self.is_pinned)
-            .with_locked(self.is_locked);
+            .with_locked(self.is_locked)
+            .with_favorite(self.is_favorite)
+            .with_mood(self.mood)
+            .with_selected(self.is_selected);
 
         let checklist_total = self.checklist.len();
         let checklist_completed = self.checklist.iter().filter(|i| i.completed).count();
@@ -133,23 +138,25 @@ impl gpui::IntoElement for NoteCardView {
             .with_checklist(checklist_completed, checklist_total)
             .with_tags(self.tags);
 
-        gpui::div()
+        let body_content = MarkdownView::new(self.body)
+            .with_text_color(style.text_color);
+
+        div()
             .flex()
             .flex_col()
             .justify_between()
             .min_w(min_w)
             .min_h(min_h)
-            .rounded(gpui::px(CORNER_RADIUS_SM))
-            .bg(gpui::Hsla::from(style.bg))
+            .rounded(px(CORNER_RADIUS_SM))
+            .bg(Hsla::from(style.bg))
             .border_1()
-            .border_color(gpui::Hsla::from(style.border))
+            .border_color(Hsla::from(style.border))
             .child(header)
             .child(
-                gpui::div()
+                div()
                     .flex_1()
-                    .p(gpui::px(12.0))
-                    .text_color(gpui::Hsla::from(style.text_color))
-                    .child(self.body),
+                    .p(px(12.0))
+                    .child(body_content),
             )
             .child(toolbar)
     }
@@ -157,13 +164,16 @@ impl gpui::IntoElement for NoteCardView {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::NoteCardView;
+    use crate::tokens::colors::BLUE_500;
+    use crate::tokens::surfaces::SurfaceTheme;
+    use domain::models::note::{Note, Point2D};
 
     #[test]
     fn test_note_card_view() {
         let note = Note::new(
             "Rust GPUI Architecture",
-            "Fully native GPU-rendered desktop client",
+            "- [x] Fully native GPU-rendered desktop client\n- [ ] Multi-card spatial dragging",
             Point2D::new(100.0, 100.0),
         );
         let view = NoteCardView::from_note(&note, true, false);
