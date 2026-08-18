@@ -5,3 +5,4 @@ export * from './rustVault';
 export * from './rustSearch';
 export * from './rustGraph';
 export * from './rustBackup';
+export * from './rustLayout';

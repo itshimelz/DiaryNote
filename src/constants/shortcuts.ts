@@ -30,6 +30,7 @@ export const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
       { keys: ['Ctrl', 'Scroll'], description: 'Smooth zoom in / out' },
       { keys: ['Shift', 'Z'], description: 'Focus & zoom to selected note (or Shift+F)' },
       { keys: ['Alt', 'Click'], description: 'Focus & zoom to clicked note' },
+      { keys: ['←', '→', '↑', '↓'], description: 'Navigate focus to nearest spatial note' },
     ],
   },
   {

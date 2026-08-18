@@ -40,64 +40,141 @@ impl GraphService {
     /// Computes all directed edges/connections across a collection of notes.
     pub fn get_connections(&self, notes: &[Note]) -> Vec<NoteConnection> {
         let mut connections = Vec::new();
-        let mut title_to_id: HashMap<String, String> = HashMap::new();
+        let mut title_to_ids: HashMap<String, Vec<String>> = HashMap::new();
         let mut id_to_title: HashMap<String, String> = HashMap::new();
+        let mut id_to_locked: HashMap<String, bool> = HashMap::new();
 
         for note in notes {
-            title_to_id.insert(note.title.trim().to_lowercase(), note.id.clone());
+            let clean_title = note.title.trim();
+            if !clean_title.is_empty() {
+                title_to_ids
+                    .entry(clean_title.to_lowercase())
+                    .or_default()
+                    .push(note.id.clone());
+            }
             id_to_title.insert(note.id.clone(), note.title.clone());
+            id_to_locked.insert(note.id.clone(), note.is_locked.unwrap_or(false));
         }
 
+        let mut seen_edges = std::collections::HashSet::new();
+
         for note in notes {
+            // Skip unauthenticated encrypted ciphertext bodies to save CPU cycles and protect boundaries
+            if note.is_locked.unwrap_or(false) && note.content.starts_with("enc:v1:") {
+                continue;
+            }
+
             let parsed = parse_markdown_links(&note.content);
 
-            // 1. Process @mentions
-            for mention in parsed.mentions {
-                let normalized = mention.trim().to_lowercase();
-                if let Some(target_id) = title_to_id.get(&normalized) {
-                    if target_id != &note.id {
-                        connections.push(NoteConnection {
-                            from_note_id: note.id.clone(),
-                            to_note_id: target_id.clone(),
-                            link_type: "mention".to_string(),
-                            label: mention.clone(),
-                        });
+            // 1. Process @mentions with explicit ID or title
+            for m in parsed.mention_links {
+                let target_id = if let Some(ref explicit_id) = m.target_id {
+                    if id_to_title.contains_key(explicit_id) {
+                        Some(explicit_id.clone())
+                    } else {
+                        title_to_ids
+                            .get(&m.title.trim().to_lowercase())
+                            .and_then(|ids| ids.first().cloned())
                     }
-                } else if id_to_title.contains_key(&mention) && mention != note.id {
-                    connections.push(NoteConnection {
-                        from_note_id: note.id.clone(),
-                        to_note_id: mention.clone(),
-                        link_type: "mention".to_string(),
-                        label: id_to_title.get(&mention).cloned().unwrap_or(mention),
-                    });
+                } else {
+                    let norm = m.title.trim().to_lowercase();
+                    title_to_ids
+                        .get(&norm)
+                        .and_then(|ids| ids.first().cloned())
+                        .or_else(|| {
+                            if id_to_title.contains_key(&m.title) {
+                                Some(m.title.clone())
+                            } else {
+                                None
+                            }
+                        })
+                };
+
+                if let Some(to_id) = target_id {
+                    if to_id != note.id {
+                        let target_is_locked = id_to_locked.get(&to_id).copied().unwrap_or(false);
+                        // Zero-knowledge rule: do not leak connections to locked notes in public graph
+                        if !target_is_locked {
+                            let edge_key = (note.id.clone(), to_id.clone());
+                            if !seen_edges.contains(&edge_key) {
+                                seen_edges.insert(edge_key);
+                                let label = id_to_title.get(&to_id).cloned().unwrap_or(m.title);
+
+                                connections.push(NoteConnection {
+                                    from_note_id: note.id.clone(),
+                                    to_note_id: to_id,
+                                    link_type: "mention".to_string(),
+                                    label,
+                                });
+                            }
+                        }
+                    }
                 }
             }
 
             // 2. Process [[wikilinks]]
             for wikilink in parsed.wikilinks {
                 let normalized = wikilink.trim().to_lowercase();
-                if let Some(target_id) = title_to_id.get(&normalized) {
-                    if target_id != &note.id {
-                        connections.push(NoteConnection {
-                            from_note_id: note.id.clone(),
-                            to_note_id: target_id.clone(),
-                            link_type: "wikilink".to_string(),
-                            label: wikilink.clone(),
-                        });
+                if let Some(ids) = title_to_ids.get(&normalized) {
+                    for to_id in ids {
+                        if to_id != &note.id {
+                            let target_is_locked = id_to_locked.get(to_id).copied().unwrap_or(false);
+                            if !target_is_locked {
+                                let edge_key = (note.id.clone(), to_id.clone());
+                                if !seen_edges.contains(&edge_key) {
+                                    seen_edges.insert(edge_key);
+
+                                    connections.push(NoteConnection {
+                                        from_note_id: note.id.clone(),
+                                        to_note_id: to_id.clone(),
+                                        link_type: "wikilink".to_string(),
+                                        label: wikilink.clone(),
+                                    });
+                                }
+                            }
+                        }
                     }
                 }
             }
 
             // 3. Process markdown links
             for md_link in parsed.markdown_links {
-                if let Some(target_id) = title_to_id.get(&md_link.target.trim().to_lowercase()) {
-                    if target_id != &note.id {
-                        connections.push(NoteConnection {
-                            from_note_id: note.id.clone(),
-                            to_note_id: target_id.clone(),
-                            link_type: "link".to_string(),
-                            label: md_link.text,
-                        });
+                let target_id = if md_link.target.starts_with("#note-") {
+                    let extracted = md_link.target.trim_start_matches("#note-");
+                    if id_to_title.contains_key(extracted) {
+                        Some(extracted.to_string())
+                    } else {
+                        None
+                    }
+                } else if id_to_title.contains_key(&md_link.target) {
+                    Some(md_link.target.clone())
+                } else {
+                    title_to_ids
+                        .get(&md_link.target.trim().to_lowercase())
+                        .and_then(|ids| ids.first().cloned())
+                };
+
+                if let Some(to_id) = target_id {
+                    if to_id != note.id {
+                        let target_is_locked = id_to_locked.get(&to_id).copied().unwrap_or(false);
+                        if !target_is_locked {
+                            let edge_key = (note.id.clone(), to_id.clone());
+                            if !seen_edges.contains(&edge_key) {
+                                seen_edges.insert(edge_key);
+                                let label = if !md_link.text.is_empty() {
+                                    md_link.text
+                                } else {
+                                    id_to_title.get(&to_id).cloned().unwrap_or_default()
+                                };
+
+                                connections.push(NoteConnection {
+                                    from_note_id: note.id.clone(),
+                                    to_note_id: to_id,
+                                    link_type: "link".to_string(),
+                                    label,
+                                });
+                            }
+                        }
                     }
                 }
             }
@@ -109,7 +186,9 @@ impl GraphService {
     /// Computes all incoming backlinks pointing to a specific note.
     pub fn get_backlinks(&self, target_note_id: &str, notes: &[Note]) -> Vec<BacklinkItem> {
         let target_note = notes.iter().find(|n| n.id == target_note_id);
-        let target_title_normalized = target_note.map(|n| n.title.trim().to_lowercase());
+        let target_title_normalized = target_note
+            .map(|n| n.title.trim().to_lowercase())
+            .filter(|t| !t.is_empty());
 
         let mut backlinks = Vec::new();
 
@@ -118,12 +197,24 @@ impl GraphService {
                 continue;
             }
 
+            // Skip unauthenticated encrypted ciphertext bodies
+            if note.is_locked.unwrap_or(false) && note.content.starts_with("enc:v1:") {
+                continue;
+            }
+
             let parsed = parse_markdown_links(&note.content);
             let mut matches_target = false;
             let mut link_type = "mention".to_string();
 
-            for mention in &parsed.mentions {
-                let norm = mention.trim().to_lowercase();
+            for m in &parsed.mention_links {
+                if let Some(ref tid) = m.target_id {
+                    if tid == target_note_id {
+                        matches_target = true;
+                        link_type = "mention".to_string();
+                        break;
+                    }
+                }
+                let norm = m.title.trim().to_lowercase();
                 if norm == target_note_id
                     || (target_title_normalized.is_some()
                         && Some(&norm) == target_title_normalized.as_ref())
@@ -147,8 +238,30 @@ impl GraphService {
                 }
             }
 
+            if !matches_target {
+                for md_link in &parsed.markdown_links {
+                    let is_match = if md_link.target.starts_with("#note-") {
+                        md_link.target.trim_start_matches("#note-") == target_note_id
+                    } else if md_link.target == target_note_id {
+                        true
+                    } else if let Some(ref title_norm) = target_title_normalized {
+                        &md_link.target.trim().to_lowercase() == title_norm
+                    } else {
+                        false
+                    };
+
+                    if is_match {
+                        matches_target = true;
+                        link_type = "link".to_string();
+                        break;
+                    }
+                }
+            }
+
             if matches_target {
-                let context_snippet = if note.content.chars().count() > 140 {
+                let context_snippet = if note.is_locked.unwrap_or(false) {
+                    "Locked Note Content".to_string()
+                } else if note.content.chars().count() > 140 {
                     format!("{}...", note.content.chars().take(140).collect::<String>())
                 } else {
                     note.content.clone()
@@ -209,8 +322,16 @@ mod tests {
 
     #[test]
     fn test_graph_service_connections_and_backlinks() {
-        let note_a = create_mock_note("note-1", "Rust Architecture", "See @[Database Design] and [[API Gateway]].");
-        let note_b = create_mock_note("note-2", "Database Design", "Contains SQLite tables and FTS5 triggers.");
+        let note_a = create_mock_note(
+            "note-1",
+            "Rust Architecture",
+            "See @[Database Design](note-2) and [[API Gateway|Gateway Module]] and [Anchor Target](#note-3).",
+        );
+        let note_b = create_mock_note(
+            "note-2",
+            "Database Design",
+            "Contains SQLite tables and FTS5 triggers.",
+        );
         let note_c = create_mock_note("note-3", "API Gateway", "Handles Tauri IPC.");
 
         let notes = vec![note_a, note_b, note_c];
@@ -220,6 +341,7 @@ mod tests {
         assert_eq!(connections.len(), 2);
         assert_eq!(connections[0].from_note_id, "note-1");
         assert_eq!(connections[0].to_note_id, "note-2");
+        assert_eq!(connections[0].label, "Database Design");
         assert_eq!(connections[1].from_note_id, "note-1");
         assert_eq!(connections[1].to_note_id, "note-3");
 
@@ -227,5 +349,31 @@ mod tests {
         assert_eq!(backlinks.len(), 1);
         assert_eq!(backlinks[0].source_note_id, "note-1");
         assert_eq!(backlinks[0].source_note_title, "Rust Architecture");
+    }
+
+    #[test]
+    fn test_zero_knowledge_locked_note_graph_redaction() {
+        let note_a = create_mock_note(
+            "note-1",
+            "Public Note",
+            "Links to @[Secret Vault](note-locked).",
+        );
+        let mut note_locked = create_mock_note(
+            "note-locked",
+            "Secret Vault",
+            "enc:v1:aes256gcm_ciphertext_payload_here",
+        );
+        note_locked.is_locked = Some(true);
+
+        let notes = vec![note_a, note_locked];
+        let graph = GraphService::new();
+
+        // Locked target must be omitted from public connection graph
+        let connections = graph.get_connections(&notes);
+        assert_eq!(connections.len(), 0);
+
+        // Ciphertext backlinks must be skipped
+        let backlinks = graph.get_backlinks("note-1", &notes);
+        assert_eq!(backlinks.len(), 0);
     }
 }

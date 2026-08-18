@@ -470,6 +470,9 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
     }
 
     e.preventDefault();
+    if (e.button === 1) {
+      e.stopPropagation();
+    }
     setIsPanning(true);
     panStartRef.current = { x: e.clientX, y: e.clientY, transformX: transform.x, transformY: transform.y };
     
@@ -477,6 +480,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
     let pendingTransform: CanvasTransform | null = null;
 
     const handleMouseMove = (moveEvt: MouseEvent) => {
+      onMouseMoveCoord?.(moveEvt.clientX, moveEvt.clientY);
       const dx = moveEvt.clientX - panStartRef.current.x;
       const dy = moveEvt.clientY - panStartRef.current.y;
       pendingTransform = {
@@ -495,7 +499,11 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
       }
     };
 
-    const handleMouseUp = () => {
+    const handleMouseUp = (upEvt: MouseEvent) => {
+      if (upEvt.button === 1) {
+        upEvt.preventDefault();
+        upEvt.stopPropagation();
+      }
       if (panFrame !== null) {
         cancelAnimationFrame(panFrame);
         panFrame = null;
@@ -626,6 +634,12 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
     <div
       ref={containerRef}
       onMouseDown={handleMouseDown}
+      onAuxClick={(e) => {
+        if (e.button === 1) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }}
       onPointerMove={(e) => onMouseMoveCoord?.(e.clientX, e.clientY)}
       onDoubleClick={handleDoubleClick}
       onContextMenu={(e) => {
@@ -660,7 +674,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
         }
       }}
       className={`relative w-full h-full overflow-hidden select-none touch-none ${
-        isPanMode || isSpacePressed ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default'
+        isPanning ? 'cursor-grabbing' : isPanMode || isSpacePressed ? 'cursor-grab' : 'cursor-default'
       }`}
     >
       {/* Background layer */}

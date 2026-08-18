@@ -208,6 +208,138 @@ pub fn compute_batch_layout(
     }
 }
 
+/// Direction for spatial navigation between cards on the 2D canvas
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/")]
+#[serde(rename_all = "camelCase")]
+pub enum SpatialDirection {
+    Left,
+    Right,
+    Up,
+    Down,
+}
+
+/// Finds the geometrically nearest note card in the given cardinal direction relative to `current_note_id`.
+#[tauri::command]
+pub fn find_nearest_spatial_note(
+    current_note_id: String,
+    direction: String,
+    notes: Vec<NoteLayoutInput>,
+) -> Result<Option<String>, AppError> {
+    if notes.is_empty() {
+        return Ok(None);
+    }
+
+    let dir = match direction.to_lowercase().as_str() {
+        "left" => SpatialDirection::Left,
+        "right" => SpatialDirection::Right,
+        "up" => SpatialDirection::Up,
+        "down" => SpatialDirection::Down,
+        _ => return Err(AppError::Validation(format!("Invalid spatial direction: {}", direction))),
+    };
+
+    let origin = match notes.iter().find(|n| n.id == current_note_id) {
+        Some(n) => n,
+        None => return Ok(None),
+    };
+
+    let o_w = origin.width.unwrap_or(DEFAULT_WIDTH);
+    let o_h = origin.height.unwrap_or(DEFAULT_HEIGHT);
+    let o_cx = origin.x + o_w / 2.0;
+    let o_cy = origin.y + o_h / 2.0;
+    let o_min_x = origin.x;
+    let o_max_x = origin.x + o_w;
+    let o_min_y = origin.y;
+    let o_max_y = origin.y + o_h;
+
+    let mut best_id = None;
+    let mut best_score = f64::INFINITY;
+
+    for candidate in &notes {
+        if candidate.id == current_note_id {
+            continue;
+        }
+
+        let c_w = candidate.width.unwrap_or(DEFAULT_WIDTH);
+        let c_h = candidate.height.unwrap_or(DEFAULT_HEIGHT);
+        let c_cx = candidate.x + c_w / 2.0;
+        let c_cy = candidate.y + c_h / 2.0;
+        let c_min_x = candidate.x;
+        let c_max_x = candidate.x + c_w;
+        let c_min_y = candidate.y;
+        let c_max_y = candidate.y + c_h;
+
+        let (d_primary, gap_orthogonal, d_secondary_center) = match dir {
+            SpatialDirection::Right => {
+                let is_forward = c_cx > o_cx || (c_max_x > o_max_x && c_min_x >= o_min_x);
+                if !is_forward {
+                    continue;
+                }
+                let primary = if c_min_x >= o_max_x {
+                    c_min_x - o_max_x
+                } else {
+                    (c_cx - o_cx).max(1.0)
+                };
+                let gap_y = (o_min_y.max(c_min_y) - o_max_y.min(c_max_y)).max(0.0);
+                let dy = (c_cy - o_cy).abs();
+                (primary, gap_y, dy)
+            }
+            SpatialDirection::Left => {
+                let is_forward = c_cx < o_cx || (c_min_x < o_min_x && c_max_x <= o_max_x);
+                if !is_forward {
+                    continue;
+                }
+                let primary = if c_max_x <= o_min_x {
+                    o_min_x - c_max_x
+                } else {
+                    (o_cx - c_cx).max(1.0)
+                };
+                let gap_y = (o_min_y.max(c_min_y) - o_max_y.min(c_max_y)).max(0.0);
+                let dy = (c_cy - o_cy).abs();
+                (primary, gap_y, dy)
+            }
+            SpatialDirection::Down => {
+                let is_forward = c_cy > o_cy || (c_max_y > o_max_y && c_min_y >= o_min_y);
+                if !is_forward {
+                    continue;
+                }
+                let primary = if c_min_y >= o_max_y {
+                    c_min_y - o_max_y
+                } else {
+                    (c_cy - o_cy).max(1.0)
+                };
+                let gap_x = (o_min_x.max(c_min_x) - o_max_x.min(c_max_x)).max(0.0);
+                let dx = (c_cx - o_cx).abs();
+                (primary, gap_x, dx)
+            }
+            SpatialDirection::Up => {
+                let is_forward = c_cy < o_cy || (c_min_y < o_min_y && c_max_y <= o_max_y);
+                if !is_forward {
+                    continue;
+                }
+                let primary = if c_max_y <= o_min_y {
+                    o_min_y - c_max_y
+                } else {
+                    (o_cy - c_cy).max(1.0)
+                };
+                let gap_x = (o_min_x.max(c_min_x) - o_max_x.min(c_max_x)).max(0.0);
+                let dx = (c_cx - o_cx).abs();
+                (primary, gap_x, dx)
+            }
+        };
+
+        // Standard spatial navigation score: primary distance + 3x orthogonal gap penalty + 0.5x center distance
+        let score = d_primary + 3.0 * gap_orthogonal + 0.5 * d_secondary_center;
+
+        if score < best_score {
+            best_score = score;
+            best_id = Some(candidate.id.clone());
+        }
+    }
+
+    Ok(best_id)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -240,5 +372,35 @@ mod tests {
         assert_eq!(res[1].y, 10.0);
         assert_eq!(res[2].x, 10.0);
         assert_eq!(res[2].y, 130.0);
+    }
+
+    #[test]
+    fn test_find_nearest_spatial_note_cardinal_directions() {
+        let notes = vec![
+            // Origin at center (500, 500)
+            NoteLayoutInput { id: "origin".into(), x: 500.0, y: 500.0, width: Some(200.0), height: Some(200.0) },
+            // Right neighbor (800, 500)
+            NoteLayoutInput { id: "right_node".into(), x: 800.0, y: 500.0, width: Some(200.0), height: Some(200.0) },
+            // Left neighbor (200, 500)
+            NoteLayoutInput { id: "left_node".into(), x: 200.0, y: 500.0, width: Some(200.0), height: Some(200.0) },
+            // Below neighbor (500, 800)
+            NoteLayoutInput { id: "down_node".into(), x: 500.0, y: 800.0, width: Some(200.0), height: Some(200.0) },
+            // Above neighbor (500, 200)
+            NoteLayoutInput { id: "up_node".into(), x: 500.0, y: 200.0, width: Some(200.0), height: Some(200.0) },
+            // Diagonal far node
+            NoteLayoutInput { id: "diag_node".into(), x: 800.0, y: 800.0, width: Some(200.0), height: Some(200.0) },
+        ];
+
+        let right = find_nearest_spatial_note("origin".into(), "right".into(), notes.clone()).unwrap();
+        assert_eq!(right, Some("right_node".to_string()));
+
+        let left = find_nearest_spatial_note("origin".into(), "left".into(), notes.clone()).unwrap();
+        assert_eq!(left, Some("left_node".to_string()));
+
+        let down = find_nearest_spatial_note("origin".into(), "down".into(), notes.clone()).unwrap();
+        assert_eq!(down, Some("down_node".to_string()));
+
+        let up = find_nearest_spatial_note("origin".into(), "up".into(), notes.clone()).unwrap();
+        assert_eq!(up, Some("up_node".to_string()));
     }
 }

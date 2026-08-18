@@ -255,4 +255,38 @@ describe('useNoteSelection Hook & Shortcuts', () => {
     expect(onCancelCutNotes).not.toHaveBeenCalled();
     expect(result.current.selectedNoteIds).toEqual([]);
   });
+
+  it('navigates to nearest spatial note on Arrow keys when a note is selected', async () => {
+    const handleUndo = vi.fn();
+    const handleRedo = vi.fn();
+    const requestDeleteNotes = vi.fn();
+    const setIsSearchOpen = vi.fn();
+
+    const { result } = renderHook(() =>
+      useNoteSelection(
+        dummyNotes,
+        handleUndo,
+        handleRedo,
+        requestDeleteNotes,
+        setIsSearchOpen
+      )
+    );
+
+    // Select first note
+    act(() => {
+      result.current.handleSelectNote('note-1');
+    });
+    expect(result.current.selectedNoteIds).toEqual(['note-1']);
+
+    // Press ArrowRight (moves from note-1 at (100, 200) to note-2 at (400, 500))
+    await act(async () => {
+      const event = new KeyboardEvent('keydown', {
+        key: 'ArrowRight',
+        bubbles: true,
+      });
+      window.dispatchEvent(event);
+    });
+
+    expect(result.current.selectedNoteIds).toEqual(['note-2']);
+  });
 });

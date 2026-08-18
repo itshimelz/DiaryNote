@@ -51,6 +51,9 @@ export const HiddenClipboardListener: React.FC<HiddenClipboardListenerProps> = (
   }, [onCancelCutNotes]);
 
   useEffect(() => {
+    const lastKeyboardPasteTimeRef = { current: 0 };
+    const hasHandledPasteRef = { current: false };
+
     const handleKeyDown = async (e: KeyboardEvent) => {
       // If Escape is pressed while notes are in cut state, cancel cut state immediately
       if (e.key === 'Escape' && hasCutNotesRef.current) {
@@ -72,11 +75,15 @@ export const HiddenClipboardListener: React.FC<HiddenClipboardListenerProps> = (
       }
 
       if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'v' || e.code === 'KeyV')) {
+        lastKeyboardPasteTimeRef.current = Date.now();
+        hasHandledPasteRef.current = false;
+
         // If notes are in cut state, relocate them instantly and never open clipboard modal!
         if (hasCutNotesRef.current) {
           e.preventDefault();
           e.stopPropagation();
           onPasteRelocateNotesRef.current?.();
+          hasHandledPasteRef.current = true;
           return;
         }
 
@@ -90,6 +97,7 @@ export const HiddenClipboardListener: React.FC<HiddenClipboardListenerProps> = (
                 const blob = await item.getType(imageType);
                 const file = new File([blob], `pasted-image-${Date.now()}.png`, { type: imageType });
                 e.preventDefault();
+                hasHandledPasteRef.current = true;
                 onPasteImageRef.current?.(file);
                 return;
               }
@@ -104,6 +112,7 @@ export const HiddenClipboardListener: React.FC<HiddenClipboardListenerProps> = (
             const text = await navigator.clipboard.readText();
             if (text && text.trim().length > 0) {
               e.preventDefault();
+              hasHandledPasteRef.current = true;
               onPasteTextRef.current(text.trim());
             }
           } catch {
@@ -122,6 +131,21 @@ export const HiddenClipboardListener: React.FC<HiddenClipboardListenerProps> = (
           (activeEl as HTMLElement).isContentEditable ||
           activeEl.getAttribute('contenteditable') === 'true')
       ) {
+        return;
+      }
+
+      // Guard: On Linux (WebKitGTK/X11/Wayland), releasing or clicking the middle mouse button
+      // triggers a synthetic window paste event from PRIMARY selection. Only handle paste events
+      // that were explicitly initiated via Ctrl+V / Cmd+V keyboard shortcuts.
+      const isExplicitKeyboard = Date.now() - lastKeyboardPasteTimeRef.current < 1500;
+      if (!isExplicitKeyboard) {
+        e.preventDefault();
+        return;
+      }
+
+      if (hasHandledPasteRef.current) {
+        hasHandledPasteRef.current = false;
+        e.preventDefault();
         return;
       }
 
@@ -155,11 +179,23 @@ export const HiddenClipboardListener: React.FC<HiddenClipboardListenerProps> = (
       }
     };
 
+    const handleAuxClick = (e: MouseEvent) => {
+      // Prevent browser default middle-click behaviors (such as auto-scroll icon or middle-click paste) on the canvas
+      if (e.button === 1) {
+        const target = e.target as HTMLElement;
+        if (!target.closest('input') && !target.closest('textarea') && !target.isContentEditable) {
+          e.preventDefault();
+        }
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown, true);
     window.addEventListener('paste', handlePasteEvent, true);
+    window.addEventListener('auxclick', handleAuxClick, true);
     return () => {
       window.removeEventListener('keydown', handleKeyDown, true);
       window.removeEventListener('paste', handlePasteEvent, true);
+      window.removeEventListener('auxclick', handleAuxClick, true);
     };
   }, []);
 

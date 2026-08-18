@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Note, CanvasTheme } from '../types';
-import { extractNoteConnections } from '../utils';
+import { getNoteGraphConnections, NoteConnection } from '../lib/rustGraph';
 import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../constants/canvas';
 
 interface NoteConnectionsProps {
@@ -50,14 +50,29 @@ const NoteConnectionsComponent: React.FC<NoteConnectionsProps> = ({
   themeMode = 'dark',
   viewportBounds,
 }) => {
+  const [connections, setConnections] = useState<NoteConnection[]>([]);
+
   const connectionsContentKey = useMemo(
-    () => (notes || []).map((n) => `${n.id}:${n.updatedAt || n.createdAt}:${n.content?.length || 0}`).join(';'),
+    () => (notes || []).map((n) => `${n.id}:${n.title}:${n.updatedAt || n.createdAt}`).join(';'),
     [notes]
   );
 
-  // Re-run regex connection extraction ONLY when text content or titles change
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const connections = useMemo(() => extractNoteConnections(notes), [connectionsContentKey]);
+  // Asynchronously compute graph connections via native Rust engine without blocking UI thread
+  useEffect(() => {
+    let isMounted = true;
+    const timer = window.setTimeout(() => {
+      getNoteGraphConnections(notes || []).then((res) => {
+        if (isMounted) {
+          setConnections(res || []);
+        }
+      });
+    }, 150);
+
+    return () => {
+      isMounted = false;
+      window.clearTimeout(timer);
+    };
+  }, [connectionsContentKey, notes]);
 
   const noteMap = useMemo(() => {
     const map = new Map<string, Note>();
@@ -99,8 +114,8 @@ const NoteConnectionsComponent: React.FC<NoteConnectionsProps> = ({
       </defs>
 
       {connections.map((conn, idx) => {
-        const fromNote = noteMap.get(conn.fromId);
-        const toNote = noteMap.get(conn.toId);
+        const fromNote = noteMap.get(conn.fromNoteId);
+        const toNote = noteMap.get(conn.toNoteId);
 
         if (!fromNote || !toNote) return null;
 
@@ -158,7 +173,7 @@ const NoteConnectionsComponent: React.FC<NoteConnectionsProps> = ({
         const worldToX = toEdge.x;
         const worldToY = toEdge.y;
 
-        const isHighlighted = selectedNoteId === conn.fromId || selectedNoteId === conn.toId;
+        const isHighlighted = selectedNoteId === conn.fromNoteId || selectedNoteId === conn.toNoteId;
 
         // Calculate cubic bezier control points
         const dx = worldToX - worldFromX;
@@ -206,8 +221,10 @@ const NoteConnectionsComponent: React.FC<NoteConnectionsProps> = ({
           ? '#cbd5e1'
           : '#475569';
 
+        const labelText = conn.label || toNote.title || 'Note';
+
         return (
-          <g key={`${conn.fromId}-${conn.toId}-${idx}`} className="group pointer-events-auto">
+          <g key={`${conn.fromNoteId}-${conn.toNoteId}-${idx}`} className="group pointer-events-auto">
             <path
               d={pathData}
               fill="none"
@@ -216,13 +233,13 @@ const NoteConnectionsComponent: React.FC<NoteConnectionsProps> = ({
               strokeDasharray={isHighlighted ? undefined : '6, 6'}
               markerEnd={isHighlighted ? 'url(#arrow-head-active)' : 'url(#arrow-head)'}
               className="transition-colors duration-150 opacity-70 hover:opacity-100 hover:stroke-blue-500 cursor-pointer"
-              onClick={() => onSelectNote(conn.toId)}
+              onClick={() => onSelectNote(conn.toNoteId)}
             />
             {/* Reference Badge on connection line */}
             <g
               transform={`translate(${midX}, ${midY})`}
               className="cursor-pointer select-none"
-              onClick={() => onSelectNote(conn.toId)}
+              onClick={() => onSelectNote(conn.toNoteId)}
             >
               <rect
                 x="-42"
@@ -244,7 +261,7 @@ const NoteConnectionsComponent: React.FC<NoteConnectionsProps> = ({
                 fontFamily="sans-serif"
                 fontWeight="600"
               >
-                @{conn.toTitle.length > 8 ? conn.toTitle.slice(0, 8) + '…' : conn.toTitle}
+                @{labelText.length > 8 ? labelText.slice(0, 8) + '…' : labelText}
               </text>
             </g>
           </g>
@@ -255,3 +272,4 @@ const NoteConnectionsComponent: React.FC<NoteConnectionsProps> = ({
 };
 
 export const NoteConnections = React.memo(NoteConnectionsComponent);
+

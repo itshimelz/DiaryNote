@@ -321,3 +321,112 @@ export async function computeBatchLayoutNative(
       return notes;
   }
 }
+
+/**
+ * Finds the geometrically nearest note in the given cardinal direction using native Rust spatial calculation.
+ */
+export async function findNearestSpatialNoteNative(
+  currentNoteId: string,
+  direction: 'left' | 'right' | 'up' | 'down',
+  notes: Note[]
+): Promise<string | null> {
+  if (!currentNoteId || notes.length < 2) return null;
+
+  const dims = getNoteDimensionsMap(notes);
+  const inputs = notes.map((n) => ({
+    id: n.id,
+    x: n.x,
+    y: n.y,
+    width: dims.get(n.id)?.width || n.width || DEFAULT_NOTE_WIDTH,
+    height: dims.get(n.id)?.height || n.height || DEFAULT_NOTE_HEIGHT,
+  }));
+
+  if (isTauriEnvironment()) {
+    try {
+      return await invoke<string | null>('find_nearest_spatial_note', {
+        currentNoteId,
+        direction,
+        notes: inputs,
+      });
+    } catch (err) {
+      console.warn('Native spatial navigation error, falling back to JS:', err);
+    }
+  }
+
+  // Pure JavaScript Fallback
+  const origin = inputs.find((n) => n.id === currentNoteId);
+  if (!origin) return null;
+
+  const oW = origin.width || DEFAULT_NOTE_WIDTH;
+  const oH = origin.height || DEFAULT_NOTE_HEIGHT;
+  const oCx = origin.x + oW / 2;
+  const oCy = origin.y + oH / 2;
+  const oMinX = origin.x;
+  const oMaxX = origin.x + oW;
+  const oMinY = origin.y;
+  const oMaxY = origin.y + oH;
+
+  let bestId: string | null = null;
+  let bestScore = Infinity;
+
+  for (const candidate of inputs) {
+    if (candidate.id === currentNoteId) continue;
+
+    const cW = candidate.width || DEFAULT_NOTE_WIDTH;
+    const cH = candidate.height || DEFAULT_NOTE_HEIGHT;
+    const cCx = candidate.x + cW / 2;
+    const cCy = candidate.y + cH / 2;
+    const cMinX = candidate.x;
+    const cMaxX = candidate.x + cW;
+    const cMinY = candidate.y;
+    const cMaxY = candidate.y + cH;
+
+    let dPrimary = 0;
+    let gapOrthogonal = 0;
+    let dSecondaryCenter = 0;
+
+    switch (direction) {
+      case 'right': {
+        const isForward = cCx > oCx || (cMaxX > oMaxX && cMinX >= oMinX);
+        if (!isForward) continue;
+        dPrimary = cMinX >= oMaxX ? cMinX - oMaxX : Math.max(1, cCx - oCx);
+        gapOrthogonal = Math.max(0, Math.max(oMinY, cMinY) - Math.min(oMaxY, cMaxY));
+        dSecondaryCenter = Math.abs(cCy - oCy);
+        break;
+      }
+      case 'left': {
+        const isForward = cCx < oCx || (cMinX < oMinX && cMaxX <= oMaxX);
+        if (!isForward) continue;
+        dPrimary = cMaxX <= oMinX ? oMinX - cMaxX : Math.max(1, oCx - cCx);
+        gapOrthogonal = Math.max(0, Math.max(oMinY, cMinY) - Math.min(oMaxY, cMaxY));
+        dSecondaryCenter = Math.abs(cCy - oCy);
+        break;
+      }
+      case 'down': {
+        const isForward = cCy > oCy || (cMaxY > oMaxY && cMinY >= oMinY);
+        if (!isForward) continue;
+        dPrimary = cMinY >= oMaxY ? cMinY - oMaxY : Math.max(1, cCy - oCy);
+        gapOrthogonal = Math.max(0, Math.max(oMinX, cMinX) - Math.min(oMaxX, cMaxX));
+        dSecondaryCenter = Math.abs(cCx - oCx);
+        break;
+      }
+      case 'up': {
+        const isForward = cCy < oCy || (cMinY < oMinY && cMaxY <= oMaxY);
+        if (!isForward) continue;
+        dPrimary = cMaxY <= oMinY ? oMinY - cMaxY : Math.max(1, oCy - cCy);
+        gapOrthogonal = Math.max(0, Math.max(oMinX, cMinX) - Math.min(oMaxX, cMaxX));
+        dSecondaryCenter = Math.abs(cCx - oCx);
+        break;
+      }
+    }
+
+    const score = dPrimary + 3 * gapOrthogonal + 0.5 * dSecondaryCenter;
+    if (score < bestScore) {
+      bestScore = score;
+      bestId = candidate.id;
+    }
+  }
+
+  return bestId;
+}
+

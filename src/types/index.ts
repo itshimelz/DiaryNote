@@ -103,12 +103,6 @@ export interface MentionReference {
   targetTitle: string;
 }
 
-export interface Connection {
-  fromId: string;
-  toId: string;
-  toTitle: string;
-}
-
 // Re-export auto-generated Rust backend types
 export type {
   AiConnectionTestResult,
@@ -126,6 +120,7 @@ export type {
   DroppedImageData,
   LoadedAppState,
   MarkdownLink,
+  MentionLink,
   Note as GeneratedNote,
   NoteConnection,
   NoteLayoutInput,
@@ -136,6 +131,7 @@ export type {
   SearchFilter,
   SearchItemMatch,
   SearchResultItem,
+  SpatialDirection,
   VaultArchiveInspection,
   VaultExportSummary,
   VaultImportSummary,

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Note } from '../types';
+import { findNearestSpatialNoteNative } from '../utils/layoutUtils';
 
 export function useNoteSelection(
   notes: Note[],
@@ -31,6 +32,7 @@ export function useNoteSelection(
 
   const selectedNoteId = selectedNoteIds.length > 0 ? selectedNoteIds[selectedNoteIds.length - 1] : null;
 
+  const notesRef = useRef(notes);
   const onCreateNoteRef = useRef(onCreateNote);
   const onFitNotesRef = useRef(onFitNotes);
   const onResetZoomRef = useRef(onResetZoom);
@@ -51,6 +53,9 @@ export function useNoteSelection(
   const hasCutNotesRef = useRef(hasCutNotes);
 
   const editTimerRef = useRef<number>(0);
+  const navSequenceRef = useRef<number>(0);
+  const activeNavTargetIdRef = useRef<string | null>(null);
+
   const stateRef = useRef({
     selectedNoteId,
     selectedNoteIds,
@@ -61,6 +66,7 @@ export function useNoteSelection(
   });
 
   useEffect(() => {
+    notesRef.current = notes;
     stateRef.current = {
       selectedNoteId,
       selectedNoteIds,
@@ -72,6 +78,7 @@ export function useNoteSelection(
   });
 
   useEffect(() => {
+    notesRef.current = notes;
     onCreateNoteRef.current = onCreateNote;
     onFitNotesRef.current = onFitNotes;
     onResetZoomRef.current = onResetZoom;
@@ -91,13 +98,13 @@ export function useNoteSelection(
     onCancelCutNotesRef.current = onCancelCutNotes;
     hasCutNotesRef.current = hasCutNotes;
   }, [
+    notes,
     onCreateNote,
     onFitNotes,
     onResetZoom,
     onTogglePanMode,
     onToggleTheme,
     onToggleSnapToGrid,
-    onToggleConnections,
     onToggleZenMode,
     onLockSelectedNotes,
     onNavigateToNote,
@@ -111,8 +118,8 @@ export function useNoteSelection(
     hasCutNotes,
   ]);
 
-
   const handleSelectNote = useCallback((noteId: string | null, isMultiSelect?: boolean) => {
+    activeNavTargetIdRef.current = noteId;
     if (noteId === null) {
       setSelectedNoteIds([]);
       setEditingNoteId(null);
@@ -129,6 +136,7 @@ export function useNoteSelection(
   }, []);
 
   const handleSelectMultipleNotes = useCallback((ids: string[]) => {
+    activeNavTargetIdRef.current = ids.length > 0 ? ids[ids.length - 1] : null;
     setSelectedNoteIds(ids || []);
   }, []);
 
@@ -328,6 +336,45 @@ export function useNoteSelection(
           onPasteRelocateNotesRef.current?.();
           return;
         }
+      }
+
+      // Spatial Arrow-Key Navigation (ArrowLeft, ArrowRight, ArrowUp, ArrowDown)
+      if (
+        !isEditingText &&
+        (activeNavTargetIdRef.current || curSelectedNoteId) &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown')
+      ) {
+        e.preventDefault();
+        const originId = activeNavTargetIdRef.current || curSelectedNoteId!;
+        const dir =
+          e.key === 'ArrowLeft'
+            ? 'left'
+            : e.key === 'ArrowRight'
+            ? 'right'
+            : e.key === 'ArrowUp'
+            ? 'up'
+            : 'down';
+
+        const isShift = e.shiftKey;
+        const currentSeq = ++navSequenceRef.current;
+
+        findNearestSpatialNoteNative(originId, dir, notesRef.current).then((targetId) => {
+          if (currentSeq !== navSequenceRef.current) return;
+          if (targetId) {
+            activeNavTargetIdRef.current = targetId;
+            if (isShift) {
+              setSelectedNoteIds((prev = []) => (prev.includes(targetId) ? prev : [...prev, targetId]));
+            } else {
+              setSelectedNoteIds([targetId]);
+              setEditingNoteId(null);
+            }
+            onNavigateToNoteRef.current?.(targetId);
+          }
+        });
+        return;
       }
 
       // Enter key opens edit mode on selected note
