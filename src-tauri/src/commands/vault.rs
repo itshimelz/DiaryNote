@@ -1,77 +1,65 @@
 use std::sync::Arc;
 use tauri::State;
 
-use crate::commands::storage::AppState;
-use crate::domain::vault::VaultStatus;
+use crate::domain::vault::{VaultService, VaultStatus};
+use crate::error::AppError;
 
 #[tauri::command]
 pub fn vault_hash_security_input(
-    state: State<Arc<AppState>>,
+    vault_service: State<'_, Arc<VaultService>>,
     input: String,
-) -> Result<String, String> {
-    Ok(state.vault_service.hash_security_input(&input))
+) -> Result<String, AppError> {
+    Ok(vault_service.hash_security_input(&input))
 }
 
 #[tauri::command]
 pub fn vault_verify_security_input(
-    state: State<Arc<AppState>>,
+    vault_service: State<'_, Arc<VaultService>>,
     input: String,
     stored_hash: String,
-) -> Result<bool, String> {
-    state
-        .vault_service
-        .verify_security_input(&input, &stored_hash)
-        .map_err(|e| e.to_string())
+) -> Result<bool, AppError> {
+    Ok(vault_service.verify_security_input(&input, &stored_hash)?)
 }
 
 #[tauri::command]
 pub fn vault_unlock(
-    state: State<Arc<AppState>>,
+    vault_service: State<'_, Arc<VaultService>>,
     passcode: String,
     stored_hash: Option<String>,
     timeout_secs: Option<u64>,
-) -> Result<bool, String> {
-    state
-        .vault_service
-        .unlock(&passcode, stored_hash.as_deref(), timeout_secs)
-        .map_err(|e| e.to_string())
+) -> Result<bool, AppError> {
+    Ok(vault_service.unlock(&passcode, stored_hash.as_deref(), timeout_secs)?)
 }
 
 #[tauri::command]
-pub fn vault_lock(state: State<Arc<AppState>>) -> Result<(), String> {
-    state.vault_service.lock().map_err(|e| e.to_string())
+pub fn vault_lock(vault_service: State<'_, Arc<VaultService>>) -> Result<(), AppError> {
+    Ok(vault_service.lock()?)
 }
 
 #[tauri::command]
-pub fn vault_is_unlocked(state: State<Arc<AppState>>) -> Result<bool, String> {
-    Ok(state.vault_service.is_unlocked())
+pub fn vault_is_unlocked(vault_service: State<'_, Arc<VaultService>>) -> Result<bool, AppError> {
+    Ok(vault_service.is_unlocked())
 }
 
 #[tauri::command]
-pub fn vault_get_status(state: State<Arc<AppState>>) -> Result<VaultStatus, String> {
-    Ok(state.vault_service.get_status())
+pub fn vault_get_status(vault_service: State<'_, Arc<VaultService>>) -> Result<VaultStatus, AppError> {
+    Ok(vault_service.get_status())
 }
 
 #[tauri::command]
 pub fn vault_encrypt_note(
-    state: State<Arc<AppState>>,
+    vault_service: State<'_, Arc<VaultService>>,
     plaintext: String,
     passcode: Option<String>,
-) -> Result<String, String> {
-    state
-        .vault_service
-        .encrypt_content(&plaintext, passcode.as_deref())
-        .map_err(|e| e.to_string())
+) -> Result<String, AppError> {
+    Ok(vault_service.encrypt_content(&plaintext, passcode.as_deref())?)
 }
 
 #[tauri::command]
 pub fn vault_decrypt_note(
-    state: State<Arc<AppState>>,
+    vault_service: State<'_, Arc<VaultService>>,
     envelope: String,
     passcode: Option<String>,
-) -> Result<String, String> {
-    state
-        .vault_service
-        .decrypt_content(&envelope, passcode.as_deref())
-        .map_err(|e| e.to_string())
+) -> Result<String, AppError> {
+    Ok(vault_service.decrypt_content(&envelope, passcode.as_deref())?)
 }

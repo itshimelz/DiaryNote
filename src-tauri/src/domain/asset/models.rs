@@ -1,10 +1,13 @@
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, TS)]
+#[ts(export, export_to = "../../src/types/generated/")]
 #[serde(rename_all = "camelCase")]
 pub struct AssetInfo {
     pub hash: String,
     pub mime_type: String,
+    #[ts(type = "number")]
     pub size_bytes: u64,
     pub created_at: String,
     pub width: Option<u32>,

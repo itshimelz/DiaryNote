@@ -7,7 +7,11 @@ use crate::domain::note::error::StorageError;
 use crate::infrastructure::sqlite::FtsEngine;
 use crate::models::Note;
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+use ts_rs::TS;
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/")]
+#[serde(rename_all = "camelCase")]
 pub struct SearchFilter {
     pub tag: Option<String>,
     pub mood: Option<String>,
@@ -16,7 +20,9 @@ pub struct SearchFilter {
     pub entry_date: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/")]
+#[serde(rename_all = "camelCase")]
 pub struct SearchItemMatch {
     pub note_id: String,
     pub title: String,
@@ -31,7 +37,9 @@ pub struct SearchItemMatch {
     pub updated_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/")]
+#[serde(rename_all = "camelCase")]
 pub struct SearchResultItem {
     pub total: usize,
     pub matches: Vec<SearchItemMatch>,

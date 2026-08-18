@@ -40,4 +40,6 @@ zip = { version = "2.2", default-features = false, features = ["deflate"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
 futures-util = "0.3"
 tokio = { version = "1.38", features = ["sync", "rt", "macros"] }
+ts-rs = { version = "10.1", features = ["serde-compat", "chrono-impl"] }
+
 

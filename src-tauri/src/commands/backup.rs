@@ -1,23 +1,25 @@
 use std::path::PathBuf;
-use std::sync::Arc;
 use tauri::State;
 
-use crate::commands::storage::AppState;
+use crate::error::AppError;
 use crate::infrastructure::filesystem::backup::{
     export_vault_archive as infra_export_vault_archive,
     import_vault_archive as infra_import_vault_archive,
     inspect_vault_archive as infra_inspect_vault_archive,
 };
+use crate::infrastructure::os::AppPaths;
+use crate::infrastructure::sqlite::DbPool;
 use crate::models::{
     ConflictResolutionMode, VaultArchiveInspection, VaultExportSummary, VaultImportSummary,
 };
 
 #[tauri::command]
 pub fn export_vault_archive(
-    state: State<Arc<AppState>>,
+    db_pool: State<'_, DbPool>,
+    app_paths: State<'_, AppPaths>,
     target_path: Option<String>,
-) -> Result<VaultExportSummary, String> {
-    let conn = state.db_conn.lock().map_err(|e| e.to_string())?;
+) -> Result<VaultExportSummary, AppError> {
+    let conn = db_pool.reader().map_err(AppError::Database)?;
 
     let default_filename = format!(
         "DiaryNote-Backup-{}.diarynote",
@@ -26,55 +28,49 @@ pub fn export_vault_archive(
 
     let export_path = match target_path {
         Some(p) if !p.trim().is_empty() => PathBuf::from(p),
-        _ => state.app_paths.backups_dir.join(&default_filename),
+        _ => app_paths.backups_dir.join(&default_filename),
     };
 
-    infra_export_vault_archive(&conn, &state.app_paths, &export_path)
-        .map_err(|e| e.to_string())
+    Ok(infra_export_vault_archive(&conn, &app_paths, &export_path)?)
 }
 
 #[tauri::command]
 pub fn inspect_vault_archive(
-    state: State<Arc<AppState>>,
+    app_paths: State<'_, AppPaths>,
     archive_path: String,
-) -> Result<VaultArchiveInspection, String> {
+) -> Result<VaultArchiveInspection, AppError> {
     let path = PathBuf::from(&archive_path);
-    infra_inspect_vault_archive(&path, &state.app_paths.temp_dir).map_err(|e| e.to_string())
+    Ok(infra_inspect_vault_archive(&path, &app_paths.temp_dir)?)
 }
 
 #[tauri::command]
 pub fn import_vault_archive(
-    state: State<Arc<AppState>>,
+    db_pool: State<'_, DbPool>,
+    app_paths: State<'_, AppPaths>,
     archive_path: String,
     conflict_mode: Option<ConflictResolutionMode>,
     include_settings: Option<bool>,
-) -> Result<VaultImportSummary, String> {
-    let conn = state.db_conn.lock().map_err(|e| e.to_string())?;
+) -> Result<VaultImportSummary, AppError> {
+    let conn = db_pool.writer().map_err(AppError::Database)?;
     let path = PathBuf::from(&archive_path);
 
-    infra_import_vault_archive(
+    Ok(infra_import_vault_archive(
         &conn,
-        &state.app_paths,
+        &app_paths,
         &path,
         conflict_mode.unwrap_or(ConflictResolutionMode::KeepBoth),
         include_settings.unwrap_or(false),
-    )
-    .map_err(|e| e.to_string())
+    )?)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::asset::AssetService;
-    use crate::domain::graph::GraphService;
     use crate::domain::note::NoteService;
-    use crate::domain::search::SearchService;
-    use crate::domain::vault::VaultService;
-    use crate::infrastructure::filesystem::AssetStore;
     use crate::infrastructure::os::AppPaths;
     use crate::infrastructure::sqlite::{init_sqlite_connection, SqliteNoteRepository};
     use crate::models::Note;
-    use std::sync::Mutex;
+    use std::sync::{Arc, Mutex};
 
     #[test]
     fn test_commands_backup_roundtrip() {
@@ -85,21 +81,6 @@ mod tests {
 
         let repo = Arc::new(SqliteNoteRepository::from_arc(Arc::clone(&conn_arc)));
         let note_service = NoteService::new(repo);
-        let asset_store = Arc::new(AssetStore::new(app_paths.clone()));
-        let asset_service = AssetService::new(asset_store, Some(Arc::clone(&conn_arc)));
-        let vault_service = VaultService::new();
-        let search_service = SearchService::new(Arc::clone(&conn_arc));
-        let graph_service = GraphService::new();
-
-        let app_state = Arc::new(AppState::new(
-            note_service,
-            asset_service,
-            vault_service,
-            search_service,
-            graph_service,
-            Arc::clone(&conn_arc),
-            app_paths.clone(),
-        ));
 
         // Save a note
         let note = Note {
@@ -136,7 +117,7 @@ mod tests {
             rotation: None,
         };
 
-        app_state.note_service.save_notes_batch(&[note]).unwrap();
+        note_service.save_notes_batch(std::slice::from_ref(&note)).unwrap();
 
         let backup_dest = app_paths.backups_dir.join("cmd_test_backup.diarynote");
         let export_res = infra_export_vault_archive(

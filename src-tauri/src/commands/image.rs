@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use base64::prelude::*;
 
+use crate::error::AppError;
 use crate::models::DroppedImageData;
 use crate::utils::detect_image_mime_type;
 
@@ -10,7 +11,7 @@ const MAX_IMAGE_FILE_SIZE: u64 = 50 * 1024 * 1024;
 /// Tauri command to read and process dropped image files natively via Rust.
 /// Bypasses webview sandbox restrictions and returns base64 data URLs with clean titles and metadata.
 #[tauri::command]
-pub fn read_image_files(paths: Vec<String>) -> Result<Vec<DroppedImageData>, String> {
+pub fn read_image_files(paths: Vec<String>) -> Result<Vec<DroppedImageData>, AppError> {
     let mut results = Vec::new();
 
     for p in paths {

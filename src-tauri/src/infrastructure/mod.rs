@@ -14,6 +14,6 @@ pub use filesystem::{
 };
 pub use network::{AiClient, AiError};
 pub use os::AppPaths;
-pub use sqlite::{init_sqlite_connection, SqliteNoteRepository};
+pub use sqlite::{init_sqlite_connection, init_sqlite_db_pool, DbPool, SqliteNoteRepository};
 
 

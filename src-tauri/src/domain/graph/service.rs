@@ -1,10 +1,13 @@
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 use std::collections::HashMap;
 
 use super::parser::{parse_markdown_links, ParsedLinks};
 use crate::models::Note;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/")]
+#[serde(rename_all = "camelCase")]
 pub struct NoteConnection {
     pub from_note_id: String,
     pub to_note_id: String,
@@ -12,7 +15,9 @@ pub struct NoteConnection {
     pub label: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/")]
+#[serde(rename_all = "camelCase")]
 pub struct BacklinkItem {
     pub source_note_id: String,
     pub source_note_title: String,

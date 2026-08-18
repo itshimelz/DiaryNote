@@ -108,3 +108,37 @@ export interface Connection {
   toId: string;
   toTitle: string;
 }
+
+// Re-export auto-generated Rust backend types
+export type {
+  AiConnectionTestResult,
+  AiProvider as GeneratedAiProvider,
+  AiRequestConfig,
+  AiStreamChunkPayload,
+  AiSynthesisResult,
+  AppSettings,
+  AssetInfo,
+  BacklinkItem,
+  BackupManifest,
+  CanvasTransform as GeneratedCanvasTransform,
+  ConflictResolutionMode,
+  DatabaseStats,
+  DroppedImageData,
+  LoadedAppState,
+  MarkdownLink,
+  Note as GeneratedNote,
+  NoteConnection,
+  NoteLayoutInput,
+  NoteLayoutOutput,
+  NotePosition,
+  ParsedLinks,
+  RelocatedNoteResult,
+  SearchFilter,
+  SearchItemMatch,
+  SearchResultItem,
+  VaultArchiveInspection,
+  VaultExportSummary,
+  VaultImportSummary,
+  VaultStatus,
+} from './generated';
+

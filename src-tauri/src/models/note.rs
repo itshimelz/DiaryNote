@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, TS)]
+#[ts(export, export_to = "../../src/types/generated/")]
 #[serde(rename_all = "camelCase")]
 pub struct Note {
     pub id: String,
@@ -17,8 +19,10 @@ pub struct Note {
     #[serde(default)]
     pub updated_at: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(type = "number | null")]
     pub created_timestamp: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(type = "number | null")]
     pub updated_timestamp: Option<i64>,
     #[serde(default = "default_font_family")]
     pub font_family: String,

@@ -1,3 +1,4 @@
+use crate::error::AppError;
 use crate::utils::validate_and_resolve_export_path;
 
 /// Tauri command to securely save an exported database backup file inside ~/DiaryNote
@@ -6,18 +7,19 @@ pub fn save_export_file(
     filename: String,
     content: String,
     subfolder: Option<String>,
-) -> Result<String, String> {
+) -> Result<String, AppError> {
     let home_dir = std::env::var("HOME")
         .or_else(|_| std::env::var("USERPROFILE"))
-        .map_err(|e| format!("Failed to determine home directory: {}", e))?;
+        .map_err(|e| AppError::Io(format!("Failed to determine home directory: {}", e)))?;
 
-    let file_path = validate_and_resolve_export_path(&home_dir, &filename, subfolder.as_deref())?;
+    let file_path = validate_and_resolve_export_path(&home_dir, &filename, subfolder.as_deref())
+        .map_err(AppError::Validation)?;
 
     if let Some(parent) = file_path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create directories: {}", e))?;
+        std::fs::create_dir_all(parent)?;
     }
 
-    std::fs::write(&file_path, content).map_err(|e| format!("Failed to write export file: {}", e))?;
+    std::fs::write(&file_path, content)?;
 
     Ok(file_path.to_string_lossy().into_owned())
 }
@@ -34,7 +36,7 @@ pub fn export_note_to_file(
     created_at: String,
     updated_at: String,
     subfolder: Option<String>,
-) -> Result<String, String> {
+) -> Result<String, AppError> {
     let clean_title = title.trim();
     let safe_title = if clean_title.is_empty() {
         "Untitled Note"

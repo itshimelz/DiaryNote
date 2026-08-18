@@ -3,17 +3,15 @@ use tauri::{AppHandle, Emitter};
 use crate::domain::ai::{
     AiConnectionTestResult, AiRequestConfig, AiStreamChunkPayload, AiSynthesisResult,
 };
+use crate::error::AppError;
 use crate::infrastructure::network::AiClient;
 
 #[tauri::command]
 pub async fn ai_test_connection(
     config: AiRequestConfig,
-) -> Result<AiConnectionTestResult, String> {
+) -> Result<AiConnectionTestResult, AppError> {
     let client = AiClient::new();
-    client
-        .test_connection(&config)
-        .await
-        .map_err(|e| e.to_string())
+    Ok(client.test_connection(&config).await?)
 }
 
 #[tauri::command]
@@ -21,7 +19,7 @@ pub async fn ai_stream_synthesis(
     app: AppHandle,
     config: AiRequestConfig,
     request_id: String,
-) -> Result<AiSynthesisResult, String> {
+) -> Result<AiSynthesisResult, AppError> {
     let client = AiClient::new();
     let req_id_clone = request_id.clone();
     let app_clone = app.clone();
@@ -45,7 +43,7 @@ pub async fn ai_stream_synthesis(
                 error: Some(e.to_string()),
             };
             let _ = app.emit("ai:stream-chunk", &error_payload);
-            e.to_string()
+            AppError::Network(e.to_string())
         })?;
 
     // Emit final completion event
@@ -76,12 +74,9 @@ pub async fn ai_generate_tags(
     config: AiRequestConfig,
     title: String,
     content: String,
-) -> Result<Vec<String>, String> {
+) -> Result<Vec<String>, AppError> {
     let client = AiClient::new();
-    client
-        .generate_tags(&config, &title, &content)
-        .await
-        .map_err(|e| e.to_string())
+    Ok(client.generate_tags(&config, &title, &content).await?)
 }
 
 #[cfg(test)]

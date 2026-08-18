@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, TS)]
+#[ts(export, export_to = "../../src/types/generated/")]
 #[serde(rename_all = "camelCase")]
 pub struct CanvasTransform {
     pub x: f64,
@@ -18,7 +20,8 @@ impl Default for CanvasTransform {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, TS)]
+#[ts(export, export_to = "../../src/types/generated/")]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
     #[serde(default = "default_grid_type")]
@@ -98,7 +101,8 @@ impl Default for AppSettings {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, TS)]
+#[ts(export, export_to = "../../src/types/generated/")]
 #[serde(rename_all = "camelCase")]
 pub struct LoadedAppState {
     pub notes: Vec<super::Note>,
@@ -106,14 +110,18 @@ pub struct LoadedAppState {
     pub settings: AppSettings,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, TS)]
+#[ts(export, export_to = "../../src/types/generated/")]
 #[serde(rename_all = "camelCase")]
 pub struct DatabaseStats {
     pub db_path: String,
+    #[ts(type = "number")]
     pub db_size_bytes: u64,
+    #[ts(type = "number")]
     pub wal_size_bytes: u64,
     pub total_notes: usize,
     pub total_assets: usize,
+    #[ts(type = "number")]
     pub total_assets_size_bytes: u64,
     pub is_integrity_ok: bool,
 }

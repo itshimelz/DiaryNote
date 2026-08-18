@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
+use crate::error::AppError;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/")]
 #[serde(rename_all = "camelCase")]
 pub struct NoteLayoutInput {
     pub id: String,
@@ -10,7 +13,8 @@ pub struct NoteLayoutInput {
     pub height: Option<f64>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/")]
 #[serde(rename_all = "camelCase")]
 pub struct NoteLayoutOutput {
     pub id: String,
@@ -28,7 +32,7 @@ pub fn compute_batch_layout(
     notes: Vec<NoteLayoutInput>,
     mode: String,
     spacing: Option<f64>,
-) -> Result<Vec<NoteLayoutOutput>, String> {
+) -> Result<Vec<NoteLayoutOutput>, AppError> {
     if notes.is_empty() {
         return Ok(Vec::new());
     }
@@ -200,7 +204,7 @@ pub fn compute_batch_layout(
                 y: (n.y / GRID_SIZE).round() * GRID_SIZE,
             })
             .collect()),
-        _ => Err(format!("Unsupported layout mode: {}", mode)),
+        _ => Err(AppError::Validation(format!("Unsupported layout mode: {}", mode))),
     }
 }
 

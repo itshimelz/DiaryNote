@@ -32,6 +32,26 @@ pub fn init_sqlite_connection<P: AsRef<Path>>(db_path: P) -> Result<Connection> 
     Ok(conn)
 }
 
+/// Initializes a segregated `DbPool` with dedicated Writer and Reader connections in SQLite WAL mode.
+pub fn init_sqlite_db_pool<P: AsRef<Path>>(db_path: P) -> Result<super::db_pool::DbPool> {
+    let path_ref = db_path.as_ref();
+    let writer = init_sqlite_connection(path_ref)?;
+
+    let reader = Connection::open_with_flags(
+        path_ref,
+        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_FULL_MUTEX,
+    )?;
+
+    // Configure reader pragmas for non-blocking concurrent reads
+    reader.pragma_update(None, "foreign_keys", true)?;
+    let _: i64 = reader.query_row("PRAGMA mmap_size = 268435456", [], |r| r.get(0)).unwrap_or(0);
+    let _: i64 = reader.query_row("PRAGMA cache_size = -64000", [], |r| r.get(0)).unwrap_or(0);
+    let _: i64 = reader.query_row("PRAGMA query_only = 1", [], |r| r.get(0)).unwrap_or(0);
+    reader.busy_timeout(std::time::Duration::from_millis(5000))?;
+
+    Ok(super::db_pool::DbPool::new(writer, reader))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

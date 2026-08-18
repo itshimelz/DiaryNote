@@ -23,10 +23,15 @@ pub enum VaultError {
     LockError,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+use ts_rs::TS;
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/")]
 pub struct VaultStatus {
     pub is_unlocked: bool,
+    #[ts(type = "number")]
     pub auto_lock_timeout_secs: u64,
+    #[ts(type = "number")]
     pub backoff_remaining_secs: u64,
     pub failed_attempts: u32,
 }

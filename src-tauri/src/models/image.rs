@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 /// Data representation of an image file read and processed natively by Rust
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, TS)]
+#[ts(export, export_to = "../../src/types/generated/")]
+#[serde(rename_all = "camelCase")]
 pub struct DroppedImageData {
     /// Full filesystem path to the source image file
     pub file_path: String,
@@ -14,6 +17,7 @@ pub struct DroppedImageData {
     /// Base64 data URL string ready to be assigned directly to an <img> src or storage
     pub data_url: String,
     /// Total file size in bytes
+    #[ts(type = "number")]
     pub file_size: u64,
     /// Image width in pixels
     pub width: Option<u32>,

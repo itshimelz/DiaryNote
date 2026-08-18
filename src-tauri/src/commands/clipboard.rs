@@ -1,3 +1,4 @@
+use crate::error::AppError;
 use crate::models::{NotePosition, RelocatedNoteResult};
 
 /// Tauri command to calculate relocated coordinates for cut notes.
@@ -8,7 +9,7 @@ pub fn relocate_notes(
     note_positions: Vec<NotePosition>,
     target_x: f64,
     target_y: f64,
-) -> Result<Vec<RelocatedNoteResult>, String> {
+) -> Result<Vec<RelocatedNoteResult>, AppError> {
     if note_positions.is_empty() {
         return Ok(Vec::new());
     }

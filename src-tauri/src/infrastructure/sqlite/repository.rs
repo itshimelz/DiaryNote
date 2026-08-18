@@ -3,27 +3,86 @@ use std::sync::{Arc, Mutex};
 use rusqlite::{params, Connection, OptionalExtension};
 use crate::domain::note::error::StorageError;
 use crate::domain::note::repository::NoteRepository;
+use crate::infrastructure::sqlite::db_pool::DbPool;
 use crate::models::{AppSettings, CanvasTransform, LoadedAppState, Note};
 
+/// Canonical column list for Note queries.
+pub const NOTE_COLUMNS: &str = r#"
+    id, title, content, x, y, width, height,
+    created_at, updated_at, created_timestamp, updated_timestamp,
+    font_family, font_size, paper_theme, is_pinned, z_index,
+    active_mode, is_locked, group_id, group_name, entry_date,
+    is_daily_entry, mood, image_url, image_type, image_aspect_ratio,
+    frame_style, pin_style, rotation
+"#;
+
+/// Parses a SQLite row into a `Note` using named column lookups.
+pub fn note_from_row(row: &rusqlite::Row) -> rusqlite::Result<Note> {
+    let is_pinned_int: Option<i32> = row.get("is_pinned")?;
+    let is_locked_int: Option<i32> = row.get("is_locked")?;
+    let is_daily_entry_int: Option<i32> = row.get("is_daily_entry")?;
+
+    Ok(Note {
+        id: row.get("id")?,
+        title: row.get("title")?,
+        content: row.get("content")?,
+        x: row.get("x")?,
+        y: row.get("y")?,
+        width: row.get("width")?,
+        height: row.get("height")?,
+        created_at: row.get("created_at")?,
+        updated_at: row.get("updated_at")?,
+        created_timestamp: row.get("created_timestamp")?,
+        updated_timestamp: row.get("updated_timestamp")?,
+        font_family: row.get("font_family")?,
+        font_size: row.get("font_size")?,
+        paper_theme: row.get("paper_theme")?,
+        is_pinned: is_pinned_int.map(|v| v != 0),
+        z_index: row.get("z_index")?,
+        tags: None,
+        active_mode: row.get("active_mode")?,
+        embedding: None,
+        is_locked: is_locked_int.map(|v| v != 0),
+        group_id: row.get("group_id")?,
+        group_name: row.get("group_name")?,
+        entry_date: row.get("entry_date")?,
+        is_daily_entry: is_daily_entry_int.map(|v| v != 0),
+        mood: row.get("mood")?,
+        image_url: row.get("image_url")?,
+        image_type: row.get("image_type")?,
+        image_aspect_ratio: row.get("image_aspect_ratio")?,
+        frame_style: row.get("frame_style")?,
+        pin_style: row.get("pin_style")?,
+        rotation: row.get("rotation")?,
+    })
+}
+
 pub struct SqliteNoteRepository {
-    conn: Arc<Mutex<Connection>>,
+    pool: DbPool,
 }
 
 impl SqliteNoteRepository {
     pub fn new(conn: Connection) -> Self {
+        let arc = Arc::new(Mutex::new(conn));
         Self {
-            conn: Arc::new(Mutex::new(conn)),
+            pool: DbPool::from_arcs(Arc::clone(&arc), arc),
         }
     }
 
     pub fn from_arc(conn: Arc<Mutex<Connection>>) -> Self {
-        Self { conn }
+        Self {
+            pool: DbPool::from_arcs(Arc::clone(&conn), conn),
+        }
+    }
+
+    pub fn from_pool(pool: DbPool) -> Self {
+        Self { pool }
     }
 }
 
 impl NoteRepository for SqliteNoteRepository {
     fn load_all(&self) -> Result<LoadedAppState, StorageError> {
-        let conn = self.conn.lock().map_err(|e| StorageError::Database(e.to_string()))?;
+        let conn = self.pool.reader().map_err(StorageError::Database)?;
 
         // 1. Batch Load All Note Tags (Single O(1) Pass to prevent N+1 queries)
         let mut tag_stmt = conn.prepare("SELECT note_id, tag FROM note_tags ORDER BY note_id, tag ASC")?;
@@ -34,157 +93,22 @@ impl NoteRepository for SqliteNoteRepository {
             tags_by_note.entry(note_id).or_default().push(tag);
         }
 
-        // 2. Load All Notes
-        let mut note_stmt = conn.prepare(
-            r#"
-            SELECT 
-                id, title, content, x, y, width, height, 
-                created_at, updated_at, created_timestamp, updated_timestamp,
-                font_family, font_size, paper_theme, is_pinned, z_index,
-                active_mode, is_locked, group_id, group_name, entry_date,
-                is_daily_entry, mood, image_url, image_type, image_aspect_ratio,
-                frame_style, pin_style, rotation
-            FROM notes
-            ORDER BY z_index ASC, created_timestamp ASC
-            "#
-        )?;
-
-        let note_rows = note_stmt.query_map([], |row| {
-            let id: String = row.get(0)?;
-            let title: String = row.get(1)?;
-            let content: String = row.get(2)?;
-            let x: f64 = row.get(3)?;
-            let y: f64 = row.get(4)?;
-            let width: f64 = row.get(5)?;
-            let height: f64 = row.get(6)?;
-            let created_at: String = row.get(7)?;
-            let updated_at: String = row.get(8)?;
-            let created_timestamp: Option<i64> = row.get(9)?;
-            let updated_timestamp: Option<i64> = row.get(10)?;
-            let font_family: String = row.get(11)?;
-            let font_size: String = row.get(12)?;
-            let paper_theme: String = row.get(13)?;
-            let is_pinned_int: Option<i32> = row.get(14)?;
-            let z_index: i32 = row.get(15)?;
-            let active_mode: Option<String> = row.get(16)?;
-            let is_locked_int: Option<i32> = row.get(17)?;
-            let group_id: Option<String> = row.get(18)?;
-            let group_name: Option<String> = row.get(19)?;
-            let entry_date: Option<String> = row.get(20)?;
-            let is_daily_entry_int: Option<i32> = row.get(21)?;
-            let mood: Option<String> = row.get(22)?;
-            let image_url: Option<String> = row.get(23)?;
-            let image_type: Option<String> = row.get(24)?;
-            let image_aspect_ratio: Option<f64> = row.get(25)?;
-            let frame_style: Option<String> = row.get(26)?;
-            let pin_style: Option<String> = row.get(27)?;
-            let rotation: Option<f64> = row.get(28)?;
-
-            Ok((
-                id,
-                title,
-                content,
-                x,
-                y,
-                width,
-                height,
-                created_at,
-                updated_at,
-                created_timestamp,
-                updated_timestamp,
-                font_family,
-                font_size,
-                paper_theme,
-                is_pinned_int.map(|v| v != 0),
-                z_index,
-                active_mode,
-                is_locked_int.map(|v| v != 0),
-                group_id,
-                group_name,
-                entry_date,
-                is_daily_entry_int.map(|v| v != 0),
-                mood,
-                image_url,
-                image_type,
-                image_aspect_ratio,
-                frame_style,
-                pin_style,
-                rotation,
-            ))
-        })?;
+        // 2. Load All Notes using resilient named column extractor
+        let query = format!(
+            "SELECT {} FROM notes ORDER BY z_index ASC, created_timestamp ASC",
+            NOTE_COLUMNS
+        );
+        let mut note_stmt = conn.prepare(&query)?;
+        let note_rows = note_stmt.query_map([], note_from_row)?;
 
         let mut notes = Vec::new();
-        for row in note_rows {
-            let (
-                id,
-                title,
-                content,
-                x,
-                y,
-                width,
-                height,
-                created_at,
-                updated_at,
-                created_timestamp,
-                updated_timestamp,
-                font_family,
-                font_size,
-                paper_theme,
-                is_pinned,
-                z_index,
-                active_mode,
-                is_locked,
-                group_id,
-                group_name,
-                entry_date,
-                is_daily_entry,
-                mood,
-                image_url,
-                image_type,
-                image_aspect_ratio,
-                frame_style,
-                pin_style,
-                rotation,
-            ) = row?;
-
-            let tags = tags_by_note.remove(&id);
-
-            notes.push(Note {
-                id,
-                title,
-                content,
-                x,
-                y,
-                width,
-                height,
-                created_at,
-                updated_at,
-                created_timestamp,
-                updated_timestamp,
-                font_family,
-                font_size,
-                paper_theme,
-                is_pinned,
-                z_index,
-                tags,
-                active_mode,
-                embedding: None,
-                is_locked,
-                group_id,
-                group_name,
-                entry_date,
-                is_daily_entry,
-                mood,
-                image_url,
-                image_type,
-                image_aspect_ratio,
-                frame_style,
-                pin_style,
-                rotation,
-            });
+        for note_res in note_rows {
+            let mut note = note_res?;
+            note.tags = tags_by_note.remove(&note.id);
+            notes.push(note);
         }
 
-        // 2. Load Canvas Transform
+        // 3. Load Canvas Transform
         let transform_row = conn
             .query_row("SELECT x, y, zoom FROM canvas_transform WHERE id = 'default'", [], |row| {
                 Ok(CanvasTransform {
@@ -197,7 +121,7 @@ impl NoteRepository for SqliteNoteRepository {
 
         let transform = transform_row.unwrap_or_default();
 
-        // 3. Load App Settings
+        // 4. Load App Settings
         let settings_raw: Option<String> = conn
             .query_row(
                 "SELECT value FROM app_settings WHERE key = 'app_settings'",
@@ -219,7 +143,7 @@ impl NoteRepository for SqliteNoteRepository {
     }
 
     fn save_batch(&self, notes: &[Note]) -> Result<usize, StorageError> {
-        let mut conn = self.conn.lock().map_err(|e| StorageError::Database(e.to_string()))?;
+        let mut conn = self.pool.writer().map_err(StorageError::Database)?;
         let tx = conn.transaction()?;
 
         {
@@ -323,7 +247,7 @@ impl NoteRepository for SqliteNoteRepository {
     }
 
     fn delete_batch(&self, ids: &[String]) -> Result<usize, StorageError> {
-        let mut conn = self.conn.lock().map_err(|e| StorageError::Database(e.to_string()))?;
+        let mut conn = self.pool.writer().map_err(StorageError::Database)?;
         let tx = conn.transaction()?;
         let mut deleted_count = 0;
 
@@ -340,7 +264,7 @@ impl NoteRepository for SqliteNoteRepository {
     }
 
     fn save_canvas_transform(&self, transform: &CanvasTransform) -> Result<(), StorageError> {
-        let conn = self.conn.lock().map_err(|e| StorageError::Database(e.to_string()))?;
+        let conn = self.pool.writer().map_err(StorageError::Database)?;
         conn.execute(
             r#"
             INSERT INTO canvas_transform (id, x, y, zoom) 
@@ -356,7 +280,7 @@ impl NoteRepository for SqliteNoteRepository {
     }
 
     fn save_app_settings(&self, settings: &AppSettings) -> Result<(), StorageError> {
-        let conn = self.conn.lock().map_err(|e| StorageError::Database(e.to_string()))?;
+        let conn = self.pool.writer().map_err(StorageError::Database)?;
         let json_val = serde_json::to_string(settings)?;
         conn.execute(
             r#"
@@ -371,7 +295,7 @@ impl NoteRepository for SqliteNoteRepository {
     }
 
     fn check_integrity(&self) -> Result<bool, StorageError> {
-        let conn = self.conn.lock().map_err(|e| StorageError::Database(e.to_string()))?;
+        let conn = self.pool.reader().map_err(StorageError::Database)?;
         let integrity: String = conn.query_row("PRAGMA quick_check", [], |row| row.get::<_, String>(0))?;
         Ok(integrity == "ok")
     }

@@ -1,10 +1,13 @@
 pub mod commands;
 pub mod domain;
+pub mod error;
 pub mod infrastructure;
 pub mod models;
 pub mod utils;
 
-use std::sync::{Arc, Mutex};
+pub use error::AppError;
+
+use std::sync::Arc;
 use commands::{
     ai_generate_tags, ai_stream_synthesis, ai_test_connection, check_database_integrity,
     clear_vault_fts_index, compute_batch_layout, delete_asset, delete_notes, export_note_to_file,
@@ -14,14 +17,14 @@ use commands::{
     save_asset_from_bytes, save_asset_from_path, save_canvas_transform, save_export_file,
     save_notes_batch, search_notes, vacuum_database, vault_decrypt_note, vault_encrypt_note,
     vault_get_status, vault_hash_security_input, vault_is_unlocked, vault_lock, vault_unlock,
-    vault_verify_security_input, AppState,
+    vault_verify_security_input,
 };
 use domain::asset::AssetService;
 use domain::graph::GraphService;
 use domain::note::NoteService;
 use domain::search::SearchService;
 use domain::vault::VaultService;
-use infrastructure::{init_sqlite_connection, AppPaths, AssetStore, SqliteNoteRepository};
+use infrastructure::{init_sqlite_db_pool, AppPaths, AssetStore, SqliteNoteRepository};
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -165,34 +168,30 @@ pub fn run() {
                 )?;
             }
 
-            // Resolve platform-aware paths and initialize SQLite repository
+            // Resolve platform-aware paths and initialize segregated SQLite DbPool
             let app_paths = AppPaths::from_app(app.handle())
                 .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
-            let conn = init_sqlite_connection(&app_paths.db_path)
+            let db_pool = init_sqlite_db_pool(&app_paths.db_path)
                 .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
-            let conn_arc = Arc::new(Mutex::new(conn));
 
-            let repo = Arc::new(SqliteNoteRepository::from_arc(Arc::clone(&conn_arc)));
-            let note_service = NoteService::new(repo);
+            let repo = Arc::new(SqliteNoteRepository::from_pool(db_pool.clone()));
+            let note_service = Arc::new(NoteService::new(repo));
 
             let asset_store = Arc::new(AssetStore::new(app_paths.clone()));
-            let asset_service = AssetService::new(asset_store, Some(Arc::clone(&conn_arc)));
+            let asset_service = Arc::new(AssetService::new(asset_store, Some(db_pool.writer_arc())));
 
-            let vault_service = VaultService::new();
-            let search_service = SearchService::new(Arc::clone(&conn_arc));
-            let graph_service = GraphService::new();
+            let vault_service = Arc::new(VaultService::new());
+            let search_service = Arc::new(SearchService::new(db_pool.reader_arc()));
+            let graph_service = Arc::new(GraphService::new());
 
-            let app_state = Arc::new(AppState::new(
-                note_service,
-                asset_service,
-                vault_service,
-                search_service,
-                graph_service,
-                Arc::clone(&conn_arc),
-                app_paths,
-            ));
-
-            app.manage(app_state);
+            // Direct state injection into Tauri
+            app.manage(note_service);
+            app.manage(asset_service);
+            app.manage(vault_service);
+            app.manage(search_service);
+            app.manage(graph_service);
+            app.manage(db_pool);
+            app.manage(app_paths);
 
             Ok(())
         })
