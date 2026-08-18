@@ -113,6 +113,7 @@ pub struct Button {
     pub loading: bool,
     pub disabled: bool,
     pub full_width: bool,
+    pub theme: Option<SurfaceTheme>,
 }
 
 impl Button {
@@ -126,7 +127,13 @@ impl Button {
             loading: false,
             disabled: false,
             full_width: false,
+            theme: None,
         }
+    }
+
+    pub fn with_theme(mut self, theme: SurfaceTheme) -> Self {
+        self.theme = Some(theme);
+        self
     }
 
     pub fn primary(label: impl Into<String>) -> Self {
@@ -188,7 +195,7 @@ impl gpui::IntoElement for Button {
     type Element = gpui::Div;
 
     fn into_element(self) -> Self::Element {
-        let theme = SurfaceTheme::dark();
+        let theme = self.theme.as_ref().cloned().unwrap_or_default();
         let style = self.compute_style(&theme);
         let mut el = gpui::div()
             .flex()

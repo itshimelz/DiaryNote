@@ -35,11 +35,12 @@ pub struct TooltipStyle {
 }
 
 /// Declarative Tooltip Component Model
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Tooltip {
     pub content: String,
     pub shortcut: Option<String>,
     pub position: TooltipPosition,
+    pub theme: Option<SurfaceTheme>,
 }
 
 impl Tooltip {
@@ -48,7 +49,13 @@ impl Tooltip {
             content: content.into(),
             shortcut: None,
             position: TooltipPosition::Top,
+            theme: None,
         }
+    }
+
+    pub fn with_theme(mut self, theme: SurfaceTheme) -> Self {
+        self.theme = Some(theme);
+        self
     }
 
     pub fn with_shortcut(mut self, shortcut: impl Into<String>) -> Self {
@@ -88,7 +95,7 @@ impl gpui::IntoElement for Tooltip {
     type Element = gpui::Div;
 
     fn into_element(self) -> Self::Element {
-        let theme = SurfaceTheme::dark();
+        let theme = self.theme.as_ref().cloned().unwrap_or_default();
         let style = self.compute_style(&theme);
 
         let mut tip = gpui::div()

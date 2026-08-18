@@ -17,6 +17,10 @@ pub enum CanvasAction {
         before: Box<Note>,
         after: Box<Note>,
     },
+    BatchUpdate {
+        before: Vec<Note>,
+        after: Vec<Note>,
+    },
 }
 
 mod domain_note_id {
@@ -35,6 +39,10 @@ impl CanvasAction {
                 to: *from,
             },
             Self::UpdateNote { before, after } => Self::UpdateNote {
+                before: after.clone(),
+                after: before.clone(),
+            },
+            Self::BatchUpdate { before, after } => Self::BatchUpdate {
                 before: after.clone(),
                 after: before.clone(),
             },

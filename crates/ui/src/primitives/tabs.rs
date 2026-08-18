@@ -63,6 +63,7 @@ pub struct TabsStyle {
 pub struct Tabs {
     pub active_tab: String,
     pub tabs: Vec<TabItem>,
+    pub theme: Option<SurfaceTheme>,
 }
 
 impl Tabs {
@@ -70,7 +71,13 @@ impl Tabs {
         Self {
             active_tab: active_tab.into(),
             tabs: Vec::new(),
+            theme: None,
         }
+    }
+
+    pub fn with_theme(mut self, theme: SurfaceTheme) -> Self {
+        self.theme = Some(theme);
+        self
     }
 
     pub fn with_tab(mut self, tab: TabItem) -> Self {
@@ -133,7 +140,7 @@ impl gpui::IntoElement for Tabs {
     type Element = gpui::Div;
 
     fn into_element(self) -> Self::Element {
-        let theme = SurfaceTheme::dark();
+        let theme = self.theme.as_ref().cloned().unwrap_or_default();
         let style = self.compute_style(&theme);
 
         let mut list = gpui::div()

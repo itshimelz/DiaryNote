@@ -43,6 +43,7 @@ pub struct MentionMenu {
     pub selected_index: usize,
     pub position_x: f32,
     pub position_y: f32,
+    pub theme: Option<SurfaceTheme>,
 }
 
 impl MentionMenu {
@@ -53,7 +54,13 @@ impl MentionMenu {
             selected_index: 0,
             position_x,
             position_y,
+            theme: None,
         }
+    }
+
+    pub fn with_theme(mut self, theme: SurfaceTheme) -> Self {
+        self.theme = Some(theme);
+        self
     }
 
     pub fn with_candidates(mut self, candidates: Vec<MentionCandidate>) -> Self {
@@ -85,13 +92,15 @@ impl MentionMenu {
     }
 }
 
+use crate::primitives::icon::Icon;
+use crate::tokens::icons::{IconKind, IconSize};
 use gpui::prelude::*;
 
 impl gpui::IntoElement for MentionMenu {
     type Element = gpui::Div;
 
     fn into_element(self) -> Self::Element {
-        let theme = SurfaceTheme::dark();
+        let theme = self.theme.as_ref().cloned().unwrap_or_default();
         let style = self.compute_style(&theme);
         let w = gpui::px(style.width);
 
@@ -127,7 +136,11 @@ impl gpui::IntoElement for MentionMenu {
                         .flex()
                         .items_center()
                         .gap_1()
-                        .child("📄")
+                        .child(
+                            Icon::new(IconKind::Edit)
+                                .with_size(IconSize::Xs)
+                                .with_theme(theme.clone()),
+                        )
                         .child(cand.title),
                 )
                 .child(

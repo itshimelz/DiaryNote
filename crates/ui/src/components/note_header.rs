@@ -40,6 +40,7 @@ pub struct NoteHeader {
     pub is_daily_entry: bool,
     pub entry_date: Option<String>,
     pub is_selected: bool,
+    pub paper: Option<PaperThemeConfig>,
 }
 
 impl NoteHeader {
@@ -54,7 +55,13 @@ impl NoteHeader {
             is_daily_entry: false,
             entry_date: None,
             is_selected: false,
+            paper: None,
         }
+    }
+
+    pub fn with_paper(mut self, paper: PaperThemeConfig) -> Self {
+        self.paper = Some(paper);
+        self
     }
 
     pub fn with_mood(mut self, mood: Mood) -> Self {
@@ -105,7 +112,11 @@ impl IntoElement for NoteHeader {
     type Element = Div;
 
     fn into_element(self) -> Self::Element {
-        let paper = crate::tokens::paper_themes::PaperThemeKind::White.config();
+        let paper = self
+            .paper
+            .as_ref()
+            .cloned()
+            .unwrap_or_else(|| crate::tokens::paper_themes::PaperThemeKind::White.config());
         let style = self.compute_style(&paper);
         let h = px(style.height);
         let padding_x = px(style.padding_x);

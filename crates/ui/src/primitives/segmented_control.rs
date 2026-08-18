@@ -58,6 +58,7 @@ pub struct SegmentedControl {
     pub selected_value: String,
     pub options: Vec<SegmentOption>,
     pub full_width: bool,
+    pub theme: Option<SurfaceTheme>,
 }
 
 impl SegmentedControl {
@@ -66,7 +67,13 @@ impl SegmentedControl {
             selected_value: selected_value.into(),
             options: Vec::new(),
             full_width: true,
+            theme: None,
         }
+    }
+
+    pub fn with_theme(mut self, theme: SurfaceTheme) -> Self {
+        self.theme = Some(theme);
+        self
     }
 
     pub fn with_option(mut self, option: SegmentOption) -> Self {
@@ -112,7 +119,7 @@ impl gpui::IntoElement for SegmentedControl {
     type Element = gpui::Div;
 
     fn into_element(self) -> Self::Element {
-        let theme = SurfaceTheme::dark();
+        let theme = self.theme.as_ref().cloned().unwrap_or_default();
         let style = self.compute_style(&theme);
 
         let mut container = gpui::div()

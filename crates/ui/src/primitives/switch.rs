@@ -34,6 +34,7 @@ pub struct Switch {
     pub label: Option<String>,
     pub description: Option<String>,
     pub disabled: bool,
+    pub theme: Option<SurfaceTheme>,
 }
 
 impl Switch {
@@ -43,7 +44,13 @@ impl Switch {
             label: None,
             description: None,
             disabled: false,
+            theme: None,
         }
+    }
+
+    pub fn with_theme(mut self, theme: SurfaceTheme) -> Self {
+        self.theme = Some(theme);
+        self
     }
 
     pub fn with_checked(mut self, checked: bool) -> Self {
@@ -73,7 +80,7 @@ impl gpui::IntoElement for Switch {
     type Element = gpui::Div;
 
     fn into_element(self) -> Self::Element {
-        let theme = SurfaceTheme::dark();
+        let theme = self.theme.as_ref().cloned().unwrap_or_default();
         let style = self.compute_style(&theme);
         let tw = gpui::px(style.track_width);
         let th = gpui::px(style.track_height);

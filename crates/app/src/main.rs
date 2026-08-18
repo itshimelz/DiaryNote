@@ -22,7 +22,7 @@ fn main() {
             ..Default::default()
         };
 
-        cx.open_window(options, |_window, cx| cx.new(|_cx| WorkspaceView::new()))
+        cx.open_window(options, |_window, cx| cx.new(WorkspaceView::new))
             .unwrap();
     });
 }

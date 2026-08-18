@@ -77,6 +77,7 @@ pub struct Input {
     pub error_message: Option<String>,
     pub disabled: bool,
     pub auto_focus: bool,
+    pub theme: Option<SurfaceTheme>,
 }
 
 impl Input {
@@ -95,7 +96,13 @@ impl Input {
             error_message: None,
             disabled: false,
             auto_focus: false,
+            theme: None,
         }
+    }
+
+    pub fn with_theme(mut self, theme: SurfaceTheme) -> Self {
+        self.theme = Some(theme);
+        self
     }
 
     pub fn password(placeholder: impl Into<String>) -> Self {
@@ -157,7 +164,7 @@ impl gpui::IntoElement for Input {
     type Element = gpui::Div;
 
     fn into_element(self) -> Self::Element {
-        let theme = SurfaceTheme::dark();
+        let theme = self.theme.as_ref().cloned().unwrap_or_default();
         let style = self.compute_style(&theme);
         let h = gpui::px(style.height);
 

@@ -86,6 +86,7 @@ pub struct Badge {
     pub variant: BadgeVariant,
     pub size: BadgeSize,
     pub icon: Option<IconKind>,
+    pub theme: Option<SurfaceTheme>,
 }
 
 impl Badge {
@@ -95,7 +96,13 @@ impl Badge {
             variant: BadgeVariant::Default,
             size: BadgeSize::Xs,
             icon: None,
+            theme: None,
         }
+    }
+
+    pub fn with_theme(mut self, theme: SurfaceTheme) -> Self {
+        self.theme = Some(theme);
+        self
     }
 
     pub fn subtle(label: impl Into<String>) -> Self {
@@ -144,7 +151,7 @@ impl gpui::IntoElement for Badge {
     type Element = gpui::Div;
 
     fn into_element(self) -> Self::Element {
-        let theme = SurfaceTheme::dark();
+        let theme = self.theme.as_ref().cloned().unwrap_or_default();
         let style = self.compute_style(&theme);
         let px_pad_x = gpui::px(style.padding_x);
         let px_pad_y = gpui::px(style.padding_y);

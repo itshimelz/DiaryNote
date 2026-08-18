@@ -114,6 +114,8 @@ pub enum ColorTheme {
     Sky,
     Violet,
     Slate,
+    Dark,
+    Cork,
 }
 
 impl ColorTheme {
@@ -126,17 +128,21 @@ impl ColorTheme {
             Self::Sky => "sky",
             Self::Violet => "violet",
             Self::Slate => "slate",
+            Self::Dark => "dark",
+            Self::Cork => "cork",
         }
     }
 
     pub fn from_name(name: &str) -> Self {
         match name.to_lowercase().as_str() {
-            "amber" => Self::Amber,
-            "emerald" => Self::Emerald,
-            "rose" => Self::Rose,
-            "sky" => Self::Sky,
-            "violet" => Self::Violet,
-            "slate" => Self::Slate,
+            "amber" | "yellow" => Self::Amber,
+            "emerald" | "green" => Self::Emerald,
+            "rose" | "pink" => Self::Rose,
+            "sky" | "blue" => Self::Sky,
+            "violet" | "purple" => Self::Violet,
+            "slate" | "gray" => Self::Slate,
+            "dark" => Self::Dark,
+            "cork" => Self::Cork,
             _ => Self::Default,
         }
     }
@@ -164,6 +170,17 @@ pub enum FontFamily {
     Serif,
     Mono,
     Handwriting,
+}
+
+impl FontFamily {
+    pub fn from_str_name(name: &str) -> Self {
+        match name.to_lowercase().as_str() {
+            "serif" => Self::Serif,
+            "mono" | "monospace" => Self::Mono,
+            "hand" | "handwriting" => Self::Handwriting,
+            _ => Self::Sans,
+        }
+    }
 }
 
 /// Interactive checklist item inside a note

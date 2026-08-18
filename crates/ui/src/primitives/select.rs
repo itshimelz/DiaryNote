@@ -54,6 +54,7 @@ pub struct Select {
     pub helper_text: Option<String>,
     pub icon: Option<IconKind>,
     pub disabled: bool,
+    pub theme: Option<SurfaceTheme>,
 }
 
 impl Select {
@@ -66,7 +67,13 @@ impl Select {
             helper_text: None,
             icon: None,
             disabled: false,
+            theme: None,
         }
+    }
+
+    pub fn with_theme(mut self, theme: SurfaceTheme) -> Self {
+        self.theme = Some(theme);
+        self
     }
 
     pub fn with_option(mut self, option: SelectOption) -> Self {
@@ -133,7 +140,7 @@ impl gpui::IntoElement for Select {
     type Element = gpui::Div;
 
     fn into_element(self) -> Self::Element {
-        let theme = SurfaceTheme::dark();
+        let theme = self.theme.as_ref().cloned().unwrap_or_default();
         let style = self.compute_style(&theme);
 
         let selected_label = self

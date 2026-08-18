@@ -50,6 +50,7 @@ pub struct MenuItem {
     pub danger: bool,
     pub active: bool,
     pub disabled: bool,
+    pub theme: Option<SurfaceTheme>,
 }
 
 impl MenuItem {
@@ -62,7 +63,13 @@ impl MenuItem {
             danger: false,
             active: false,
             disabled: false,
+            theme: None,
         }
+    }
+
+    pub fn with_theme(mut self, theme: SurfaceTheme) -> Self {
+        self.theme = Some(theme);
+        self
     }
 
     pub fn with_icon(mut self, icon: IconKind) -> Self {
@@ -138,6 +145,7 @@ impl MenuItem {
 pub struct Menu {
     pub items: Vec<MenuItem>,
     pub min_width: f32,
+    pub theme: Option<SurfaceTheme>,
 }
 
 impl Menu {
@@ -145,7 +153,13 @@ impl Menu {
         Self {
             items: Vec::new(),
             min_width: 180.0,
+            theme: None,
         }
+    }
+
+    pub fn with_theme(mut self, theme: SurfaceTheme) -> Self {
+        self.theme = Some(theme);
+        self
     }
 
     pub fn with_item(mut self, item: MenuItem) -> Self {
@@ -181,7 +195,7 @@ impl gpui::IntoElement for MenuItem {
     type Element = gpui::Div;
 
     fn into_element(self) -> Self::Element {
-        let theme = SurfaceTheme::dark();
+        let theme = self.theme.as_ref().cloned().unwrap_or_default();
         let style = self.compute_style(&theme);
 
         let mut row = gpui::div()
@@ -226,7 +240,7 @@ impl gpui::IntoElement for Menu {
     type Element = gpui::Div;
 
     fn into_element(self) -> Self::Element {
-        let theme = SurfaceTheme::dark();
+        let theme = self.theme.as_ref().cloned().unwrap_or_default();
         let style = self.compute_style(&theme);
         let min_w = gpui::px(style.min_width);
         let pad = gpui::px(style.padding);

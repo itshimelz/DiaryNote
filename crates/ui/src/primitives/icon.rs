@@ -17,6 +17,7 @@ pub struct Icon {
     pub size: IconSize,
     pub stroke_width: f32,
     pub color: Option<Rgba>,
+    pub theme: Option<SurfaceTheme>,
 }
 
 impl Icon {
@@ -26,7 +27,13 @@ impl Icon {
             size: IconSize::Sm,
             stroke_width: DEFAULT_ICON_STROKE_WIDTH,
             color: None,
+            theme: None,
         }
+    }
+
+    pub fn with_theme(mut self, theme: SurfaceTheme) -> Self {
+        self.theme = Some(theme);
+        self
     }
 
     pub fn with_size(mut self, size: IconSize) -> Self {
@@ -57,7 +64,7 @@ impl gpui::IntoElement for Icon {
     type Element = gpui::Div;
 
     fn into_element(self) -> Self::Element {
-        let theme = SurfaceTheme::dark();
+        let theme = self.theme.as_ref().cloned().unwrap_or_default();
         let (color, pixels, _) = self.resolve(&theme);
         let sz = gpui::px(pixels);
 

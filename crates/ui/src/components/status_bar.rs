@@ -42,6 +42,7 @@ pub struct StatusBar {
     pub total_notes: usize,
     pub selected_notes_count: usize,
     pub active_zoom: f32,
+    pub theme: Option<SurfaceTheme>,
 }
 
 impl StatusBar {
@@ -52,7 +53,13 @@ impl StatusBar {
             total_notes: 0,
             selected_notes_count: 0,
             active_zoom: 1.0,
+            theme: None,
         }
+    }
+
+    pub fn with_theme(mut self, theme: SurfaceTheme) -> Self {
+        self.theme = Some(theme);
+        self
     }
 
     pub fn with_save_status(mut self, status: SaveStatus) -> Self {
@@ -83,9 +90,9 @@ impl StatusBar {
         let corner_radius = CornerRadii::uniform(CORNER_RADIUS_SM);
 
         let (bg, border, text_color, text_muted) = if theme.is_dark {
-            (SLATE_900.with_alpha(0.9), SLATE_800, SLATE_300, SLATE_500)
+            (SLATE_900.with_alpha(0.92), SLATE_800, SLATE_300, SLATE_500)
         } else {
-            (WHITE.with_alpha(0.9), SLATE_200, SLATE_700, SLATE_400)
+            (WHITE.with_alpha(0.92), SLATE_200, SLATE_700, SLATE_400)
         };
 
         StatusBarStyle {
@@ -106,12 +113,12 @@ impl gpui::IntoElement for StatusBar {
     type Element = gpui::Div;
 
     fn into_element(self) -> Self::Element {
-        let theme = SurfaceTheme::dark();
+        let theme = self.theme.as_ref().cloned().unwrap_or_default();
         let style = self.compute_style(&theme);
         let h = gpui::px(style.height);
         let px = gpui::px(style.padding_x);
 
-        let badge = self.save_badge();
+        let badge = self.save_badge().with_theme(theme.clone());
         let zoom_pct = format!("{}%", (self.active_zoom * 100.0).round() as i32);
         let notes_text = if self.selected_notes_count > 0 {
             format!(

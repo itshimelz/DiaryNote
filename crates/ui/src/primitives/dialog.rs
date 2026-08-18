@@ -69,6 +69,7 @@ pub struct Dialog {
     pub show_backdrop: bool,
     pub close_on_backdrop_click: bool,
     pub close_on_escape: bool,
+    pub theme: Option<SurfaceTheme>,
 }
 
 impl Dialog {
@@ -84,7 +85,13 @@ impl Dialog {
             show_backdrop: true,
             close_on_backdrop_click: true,
             close_on_escape: true,
+            theme: None,
         }
+    }
+
+    pub fn with_theme(mut self, theme: SurfaceTheme) -> Self {
+        self.theme = Some(theme);
+        self
     }
 
     pub fn with_description(mut self, description: impl Into<String>) -> Self {
@@ -115,7 +122,7 @@ impl gpui::IntoElement for Dialog {
             return gpui::div();
         }
 
-        let theme = SurfaceTheme::dark();
+        let theme = self.theme.as_ref().cloned().unwrap_or_default();
         let style = self.compute_style(&theme);
         let max_w = gpui::px(style.max_width);
         let pad = gpui::px(style.padding);

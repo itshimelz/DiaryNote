@@ -32,6 +32,7 @@ pub struct NoteToolbar {
     pub tags: Vec<String>,
     pub is_favorite: bool,
     pub is_locked: bool,
+    pub paper: Option<PaperThemeConfig>,
 }
 
 impl NoteToolbar {
@@ -43,7 +44,13 @@ impl NoteToolbar {
             tags: Vec::new(),
             is_favorite: false,
             is_locked: false,
+            paper: None,
         }
+    }
+
+    pub fn with_paper(mut self, paper: PaperThemeConfig) -> Self {
+        self.paper = Some(paper);
+        self
     }
 
     pub fn with_checklist(mut self, completed: usize, total: usize) -> Self {
@@ -80,7 +87,11 @@ impl gpui::IntoElement for NoteToolbar {
     type Element = gpui::Div;
 
     fn into_element(self) -> Self::Element {
-        let paper = crate::tokens::paper_themes::PaperThemeKind::White.config();
+        let paper = self
+            .paper
+            .as_ref()
+            .cloned()
+            .unwrap_or_else(|| crate::tokens::paper_themes::PaperThemeKind::White.config());
         let style = self.compute_style(&paper);
         let h = gpui::px(style.height);
         let px = gpui::px(style.padding_x);

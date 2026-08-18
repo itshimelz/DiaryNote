@@ -30,6 +30,7 @@ pub struct StylePickerStyle {
 pub struct StylePicker {
     pub selected_paper: PaperThemeKind,
     pub selected_font: HandFont,
+    pub theme: Option<SurfaceTheme>,
 }
 
 impl StylePicker {
@@ -37,7 +38,13 @@ impl StylePicker {
         Self {
             selected_paper,
             selected_font,
+            theme: None,
         }
+    }
+
+    pub fn with_theme(mut self, theme: SurfaceTheme) -> Self {
+        self.theme = Some(theme);
+        self
     }
 
     pub fn compute_style(&self, theme: &SurfaceTheme) -> StylePickerStyle {
@@ -69,7 +76,7 @@ impl gpui::IntoElement for StylePicker {
     type Element = gpui::Div;
 
     fn into_element(self) -> Self::Element {
-        let theme = SurfaceTheme::dark();
+        let theme = self.theme.as_ref().cloned().unwrap_or_default();
         let style = self.compute_style(&theme);
         let w = gpui::px(style.width);
         let pad = gpui::px(style.padding);

@@ -30,6 +30,7 @@ pub struct BatchActionBar {
     pub selected_count: usize,
     pub has_locked_notes: bool,
     pub has_grouped_notes: bool,
+    pub theme: Option<SurfaceTheme>,
 }
 
 impl BatchActionBar {
@@ -38,7 +39,13 @@ impl BatchActionBar {
             selected_count,
             has_locked_notes: false,
             has_grouped_notes: false,
+            theme: None,
         }
+    }
+
+    pub fn with_theme(mut self, theme: SurfaceTheme) -> Self {
+        self.theme = Some(theme);
+        self
     }
 
     pub fn with_has_locked(mut self, has_locked: bool) -> Self {
@@ -87,7 +94,7 @@ impl gpui::IntoElement for BatchActionBar {
             return gpui::div();
         }
 
-        let theme = SurfaceTheme::dark();
+        let theme = self.theme.as_ref().cloned().unwrap_or_default();
         let style = self.compute_style(&theme);
         let h = gpui::px(style.height);
         let px = gpui::px(style.padding_x);

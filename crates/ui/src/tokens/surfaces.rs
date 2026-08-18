@@ -29,6 +29,10 @@ pub struct SurfaceTheme {
     pub text_dim: Rgba,
     pub focus_ring: Rgba,
     pub selection_overlay: Rgba,
+    pub dot_grid: Rgba,
+    pub connection_line: Rgba,
+    pub code_bg: Rgba,
+    pub code_fg: Rgba,
 }
 
 impl SurfaceTheme {
@@ -48,6 +52,10 @@ impl SurfaceTheme {
             text_dim: SLATE_500,
             focus_ring: SLATE_500,
             selection_overlay: BLUE_500.with_alpha(0.15),
+            dot_grid: SLATE_800.with_alpha(0.7),
+            connection_line: SLATE_700.with_alpha(0.7),
+            code_bg: SLATE_900,
+            code_fg: SLATE_200,
         }
     }
 
@@ -67,6 +75,10 @@ impl SurfaceTheme {
             text_dim: SLATE_400,
             focus_ring: SLATE_400,
             selection_overlay: BLUE_500.with_alpha(0.15),
+            dot_grid: SLATE_300.with_alpha(0.8),
+            connection_line: SLATE_300,
+            code_bg: SLATE_100,
+            code_fg: SLATE_800,
         }
     }
 

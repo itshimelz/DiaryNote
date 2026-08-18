@@ -58,6 +58,7 @@ pub struct Checkbox {
     pub size: CheckboxSize,
     pub error: Option<String>,
     pub disabled: bool,
+    pub theme: Option<SurfaceTheme>,
 }
 
 impl Checkbox {
@@ -68,7 +69,13 @@ impl Checkbox {
             size: CheckboxSize::Sm,
             error: None,
             disabled: false,
+            theme: None,
         }
+    }
+
+    pub fn with_theme(mut self, theme: SurfaceTheme) -> Self {
+        self.theme = Some(theme);
+        self
     }
 
     pub fn with_checked(mut self, checked: bool) -> Self {
@@ -98,7 +105,7 @@ impl gpui::IntoElement for Checkbox {
     type Element = gpui::Div;
 
     fn into_element(self) -> Self::Element {
-        let theme = SurfaceTheme::dark();
+        let theme = self.theme.as_ref().cloned().unwrap_or_default();
         let style = self.compute_style(&theme);
         let sz = gpui::px(style.box_size);
 

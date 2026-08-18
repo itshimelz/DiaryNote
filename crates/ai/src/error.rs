@@ -13,6 +13,12 @@ pub enum AiError {
 
     #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
+
+    #[error("Empty response from AI service")]
+    EmptyResponse,
+
+    #[error("AI features are disabled in settings")]
+    Disabled,
 }
 
 pub type AiResult<T> = Result<T, AiError>;

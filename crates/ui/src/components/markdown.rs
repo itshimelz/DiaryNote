@@ -7,7 +7,6 @@
 use crate::primitives::checkbox::Checkbox;
 use crate::tokens::{
     colors::Rgba as TokenRgba,
-    colors::SLATE_200,
     radius::CORNER_RADIUS_XS,
     surfaces::SurfaceTheme,
 };
@@ -206,6 +205,7 @@ pub fn parse_markdown(input: &str) -> Vec<MarkdownBlock> {
 pub struct MarkdownView {
     pub content: String,
     pub text_color: Option<TokenRgba>,
+    pub theme: Option<SurfaceTheme>,
 }
 
 impl MarkdownView {
@@ -213,7 +213,13 @@ impl MarkdownView {
         Self {
             content: content.into(),
             text_color: None,
+            theme: None,
         }
+    }
+
+    pub fn with_theme(mut self, theme: SurfaceTheme) -> Self {
+        self.theme = Some(theme);
+        self
     }
 
     pub fn with_text_color(mut self, color: TokenRgba) -> Self {
@@ -226,7 +232,7 @@ impl IntoElement for MarkdownView {
     type Element = Div;
 
     fn into_element(self) -> Self::Element {
-        let theme = SurfaceTheme::dark();
+        let theme = self.theme.as_ref().cloned().unwrap_or_default();
         let base_text_color = self.text_color.unwrap_or(theme.text);
         let blocks = parse_markdown(&self.content);
 
@@ -267,7 +273,9 @@ impl IntoElement for MarkdownView {
                     container = container.child(p);
                 }
                 MarkdownBlock::ChecklistItem { completed, text, .. } => {
-                    let checkbox = Checkbox::new("").with_checked(completed);
+                    let checkbox = Checkbox::new("")
+                        .with_checked(completed)
+                        .with_theme(theme.clone());
                     let mut label = div().text_xs().child(text);
                     if completed {
                         label = label
@@ -318,12 +326,12 @@ impl IntoElement for MarkdownView {
                     let code_el = div()
                         .p(px(8.0))
                         .rounded(px(CORNER_RADIUS_XS))
-                        .bg(Hsla::from(theme.sub_surface))
+                        .bg(Hsla::from(theme.code_bg))
                         .border_1()
                         .border_color(Hsla::from(theme.border_subtle))
                         .text_xs()
                         .font_family(".SystemUIFont")
-                        .text_color(Hsla::from(SLATE_200))
+                        .text_color(Hsla::from(theme.code_fg))
                         .child(code);
                     container = container.child(code_el);
                 }

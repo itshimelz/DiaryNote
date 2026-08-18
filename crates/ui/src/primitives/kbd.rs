@@ -24,16 +24,23 @@ pub struct KbdStyle {
 }
 
 /// Declarative Kbd Component Model
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Kbd {
     pub shortcut: String,
+    pub theme: Option<SurfaceTheme>,
 }
 
 impl Kbd {
     pub fn new(shortcut: impl Into<String>) -> Self {
         Self {
             shortcut: shortcut.into(),
+            theme: None,
         }
+    }
+
+    pub fn with_theme(mut self, theme: SurfaceTheme) -> Self {
+        self.theme = Some(theme);
+        self
     }
 
     pub fn compute_style(&self, theme: &SurfaceTheme) -> KbdStyle {
@@ -64,7 +71,7 @@ impl gpui::IntoElement for Kbd {
     type Element = gpui::Div;
 
     fn into_element(self) -> Self::Element {
-        let theme = SurfaceTheme::dark();
+        let theme = self.theme.as_ref().cloned().unwrap_or_default();
         let style = self.compute_style(&theme);
 
         gpui::div()

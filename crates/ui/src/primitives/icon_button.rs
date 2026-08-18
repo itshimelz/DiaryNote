@@ -86,6 +86,7 @@ pub struct IconButton {
     pub disabled: bool,
     pub aria_label: String,
     pub tooltip: Option<String>,
+    pub theme: Option<SurfaceTheme>,
 }
 
 impl IconButton {
@@ -98,7 +99,13 @@ impl IconButton {
             disabled: false,
             aria_label: aria_label.into(),
             tooltip: None,
+            theme: None,
         }
+    }
+
+    pub fn with_theme(mut self, theme: SurfaceTheme) -> Self {
+        self.theme = Some(theme);
+        self
     }
 
     pub fn subtle(icon: IconKind, aria_label: impl Into<String>) -> Self {
@@ -145,7 +152,7 @@ impl gpui::IntoElement for IconButton {
     type Element = gpui::Div;
 
     fn into_element(self) -> Self::Element {
-        let theme = SurfaceTheme::dark();
+        let theme = self.theme.as_ref().cloned().unwrap_or_default();
         let style = self.compute_style(&theme);
         let sz = gpui::px(self.size.dimension());
 
