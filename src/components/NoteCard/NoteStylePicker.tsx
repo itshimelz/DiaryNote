@@ -373,7 +373,7 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
             <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
               Seal SVG Emblem
             </span>
-            <div className="grid grid-cols-5 gap-1.5 p-1 rounded-sm bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+            <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5 p-1 rounded-sm bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
               {SEAL_STYLES.map((seal) => {
                 const isSelected = (note.sealStyle || DEFAULT_SEAL_STYLE) === seal.id;
                 return (
@@ -387,14 +387,14 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
                         updatedAt: new Date().toISOString(),
                       })
                     }
-                    className={`p-1 rounded-xs flex items-center justify-center transition-all cursor-pointer ${
+                    className={`p-1.5 rounded-xs flex items-center justify-center transition-all cursor-pointer ${
                       isSelected
                         ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs ring-1 ring-slate-400'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
                     }`}
                     title={`${seal.name} (${seal.category})`}
                   >
-                    {seal.renderIcon({ size: 22 })}
+                    {seal.renderIcon({ size: 24 })}
                   </button>
                 );
               })}

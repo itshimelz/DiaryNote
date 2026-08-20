@@ -22,6 +22,25 @@ pub struct NoteLayoutOutput {
     pub y: f64,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/")]
+#[serde(rename_all = "camelCase")]
+pub struct WorldFrustumInput {
+    pub min_x: f64,
+    pub max_x: f64,
+    pub min_y: f64,
+    pub max_y: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/types/generated/")]
+#[serde(rename_all = "camelCase")]
+pub struct DragPositionDelta {
+    pub id: String,
+    pub start_x: f64,
+    pub start_y: f64,
+}
+
 const DEFAULT_WIDTH: f64 = 280.0;
 const DEFAULT_HEIGHT: f64 = 340.0;
 const GRID_SIZE: f64 = 20.0;
@@ -340,9 +359,106 @@ pub fn find_nearest_spatial_note(
     Ok(best_id)
 }
 
+/// Native Rust 2D AABB spatial intersection query for viewport culling
+#[tauri::command]
+pub fn cull_notes_in_frustum(
+    notes: Vec<NoteLayoutInput>,
+    frustum: WorldFrustumInput,
+) -> Result<Vec<String>, AppError> {
+    let mut visible_ids = Vec::with_capacity(notes.len());
+    for n in &notes {
+        let w = n.width.unwrap_or(DEFAULT_WIDTH);
+        let h = n.height.unwrap_or(DEFAULT_HEIGHT);
+        let note_min_x = n.x;
+        let note_max_x = n.x + w;
+        let note_min_y = n.y;
+        let note_max_y = n.y + h;
+
+        // 2D Axis-Aligned Bounding Box (AABB) intersection
+        let intersects = note_max_x >= frustum.min_x
+            && note_min_x <= frustum.max_x
+            && note_max_y >= frustum.min_y
+            && note_min_y <= frustum.max_y;
+
+        if intersects {
+            visible_ids.push(n.id.clone());
+        }
+    }
+    Ok(visible_ids)
+}
+
+/// Computes final snapped coordinates for multi-note drag completion in microsecond native Rust
+#[tauri::command]
+pub fn compute_batch_drag_snapping(
+    items: Vec<DragPositionDelta>,
+    delta_x: f64,
+    delta_y: f64,
+    snap_to_grid: bool,
+    grid_size: Option<f64>,
+) -> Result<Vec<NoteLayoutOutput>, AppError> {
+    let grid = grid_size.unwrap_or(GRID_SIZE);
+    let mut results = Vec::with_capacity(items.len());
+
+    for item in items {
+        let raw_x = item.start_x + delta_x;
+        let raw_y = item.start_y + delta_y;
+        let final_x = if snap_to_grid {
+            (raw_x / grid).round() * grid
+        } else {
+            raw_x.round()
+        };
+        let final_y = if snap_to_grid {
+            (raw_y / grid).round() * grid
+        } else {
+            raw_y.round()
+        };
+        results.push(NoteLayoutOutput {
+            id: item.id,
+            x: final_x,
+            y: final_y,
+        });
+    }
+
+    Ok(results)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_cull_notes_in_frustum() {
+        let notes = vec![
+            NoteLayoutInput { id: "inside".into(), x: 100.0, y: 100.0, width: Some(200.0), height: Some(200.0) },
+            NoteLayoutInput { id: "outside".into(), x: 2000.0, y: 2000.0, width: Some(200.0), height: Some(200.0) },
+            NoteLayoutInput { id: "overlapping".into(), x: 450.0, y: 100.0, width: Some(100.0), height: Some(100.0) },
+        ];
+        let frustum = WorldFrustumInput {
+            min_x: 0.0,
+            max_x: 500.0,
+            min_y: 0.0,
+            max_y: 500.0,
+        };
+        let visible = cull_notes_in_frustum(notes, frustum).unwrap();
+        assert_eq!(visible.len(), 2);
+        assert!(visible.contains(&"inside".to_string()));
+        assert!(visible.contains(&"overlapping".to_string()));
+        assert!(!visible.contains(&"outside".to_string()));
+    }
+
+    #[test]
+    fn test_compute_batch_drag_snapping() {
+        let items = vec![
+            DragPositionDelta { id: "n1".into(), start_x: 10.0, start_y: 10.0 },
+            DragPositionDelta { id: "n2".into(), start_x: 100.0, start_y: 100.0 },
+        ];
+        let res = compute_batch_drag_snapping(items, 15.0, 25.0, true, Some(20.0)).unwrap();
+        assert_eq!(res.len(), 2);
+        assert_eq!(res[0].x, 20.0); // 10 + 15 = 25 -> 20
+        assert_eq!(res[0].y, 40.0); // 10 + 25 = 35 -> 40
+        assert_eq!(res[1].x, 120.0); // 100 + 15 = 115 -> 120
+        assert_eq!(res[1].y, 120.0); // 100 + 25 = 125 -> 120
+    }
 
     #[test]
     fn test_compute_batch_layout_align_left() {

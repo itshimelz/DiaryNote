@@ -73,29 +73,23 @@ export type {
 } from '../constants/aiModelsCatalog';
 
 export type CoverStyle =
+  | 'vintage-airmail'
   | 'classic-kraft'
-  | 'leather-journal'
   | 'obsidian-minimal'
-  | 'botanical-linen'
-  | 'sakura-blush'
-  | 'vintage-parchment'
-  | 'ocean-navy'
-  | 'celestial-gold'
-  | 'matcha-vellum'
-  | 'clean-monochrome'
   | (string & {});
 
 export type SealStyle =
-  | 'wax-seal-crest'
   | 'golden-sun'
   | 'botanical-branch'
-  | 'vintage-stamp'
   | 'origami-crane'
-  | 'mystic-eye'
   | 'minimal-knot'
-  | 'feather-quill'
   | 'monogram-star'
   | 'compass-rose'
+  | 'air-mail-postmark'
+  | 'eiffel-postage-stamp'
+  | 'pisa-postage-stamp'
+  | 'pyramid-postage-stamp'
+  | 'mail-crest-postmark'
   | (string & {});
 
 export interface Note {

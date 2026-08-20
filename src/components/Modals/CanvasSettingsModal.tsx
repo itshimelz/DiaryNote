@@ -38,6 +38,7 @@ import {
   Switch,
   Icon,
 } from '../ui';
+import { NoteCoverDecorations } from '../NoteCard/NoteCoverDecorations';
 import { SecurityModalMode } from './SecurityModal';
 
 export type SettingsTab = 'canvas' | 'appearance' | 'covers' | 'data' | 'security' | 'ai' | 'about';
@@ -109,7 +110,7 @@ export const CanvasSettingsModal: React.FC<CanvasSettingsModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('canvas');
   const [previewCoverStyle, setPreviewCoverStyle] = useState<CoverStyle>('classic-kraft');
-  const [previewSealStyle, setPreviewSealStyle] = useState<SealStyle>('wax-seal-crest');
+  const [previewSealStyle, setPreviewSealStyle] = useState<SealStyle>('golden-sun');
   const [previewRevealed, setPreviewRevealed] = useState<boolean>(false);
 
   const pinnedCount = useMemo(() => notes.filter((n) => n.isPinned).length, [notes]);
@@ -459,28 +460,32 @@ export const CanvasSettingsModal: React.FC<CanvasSettingsModalProps> = ({
                         </>
                       ) : (
                         <>
-                          <div className="flex items-center justify-between text-[10px] opacity-70">
-                            <span className="font-mono uppercase">2026-08-20</span>
-                            <span className="flex items-center gap-1">
-                              <Icon icon={Book01Icon} size="xs" />
+                          <NoteCoverDecorations
+                            coverStyle={previewCoverStyle}
+                            accentColor={getCoverStyleById(previewCoverStyle).accentColor}
+                          />
+                          <div className="relative z-10 flex items-center justify-between text-xs font-mono font-semibold tracking-wider opacity-85">
+                            <span className="uppercase">2026-08-20</span>
+                            <span className="flex items-center gap-1 opacity-90">
+                              <Icon icon={Book01Icon} size="sm" />
                               <span>Cover</span>
                             </span>
                           </div>
-                          <div className="flex flex-col items-center justify-center text-center gap-2 my-auto">
-                            <div className="transform transition-transform hover:scale-105">
+                          <div className="relative z-10 flex flex-col items-center justify-center text-center gap-3 my-auto">
+                            <div className="transform transition-transform hover:scale-105 flex items-center justify-center">
                               {getSealStyleById(previewSealStyle).renderIcon({
-                                size: 42,
+                                size: 56,
                                 color: getCoverStyleById(previewCoverStyle).accentColor,
                               })}
                             </div>
-                            <h4 className={`font-bold text-sm line-clamp-1 ${getCoverStyleById(previewCoverStyle).titleClass}`}>
+                            <h4 className={`font-bold text-base sm:text-lg tracking-tight line-clamp-1 ${getCoverStyleById(previewCoverStyle).titleClass}`}>
                               Sample Private Entry
                             </h4>
                           </div>
-                          <div className="flex items-center justify-center text-[10px] font-medium opacity-80">
-                            <span className="flex items-center gap-1">
+                          <div className="relative z-10 flex items-center justify-center text-xs font-semibold tracking-wide opacity-85">
+                            <span className="flex items-center gap-1.5">
                               <span>Click anywhere to open</span>
-                              <Icon icon={ArrowRight01Icon} size="xs" />
+                              <Icon icon={ArrowRight01Icon} size="sm" />
                             </span>
                           </div>
                         </>
@@ -494,7 +499,7 @@ export const CanvasSettingsModal: React.FC<CanvasSettingsModalProps> = ({
                   <span className="font-semibold block text-slate-800 dark:text-slate-200">
                     Available Cover Styles ({NOTE_COVER_STYLES.length})
                   </span>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     {NOTE_COVER_STYLES.map((cov) => {
                       const isSelected = previewCoverStyle === cov.id;
                       return (
@@ -505,14 +510,20 @@ export const CanvasSettingsModal: React.FC<CanvasSettingsModalProps> = ({
                             setPreviewCoverStyle(cov.id);
                             setPreviewRevealed(false);
                           }}
-                          className={`p-2 rounded-sm border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+                          className={`p-2 rounded-sm border text-left flex flex-col gap-1.5 transition-all cursor-pointer ${
                             isSelected
                               ? 'border-slate-900 dark:border-white ring-1 ring-slate-900 dark:ring-white bg-slate-100 dark:bg-slate-800 shadow-xs'
                               : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-400'
                           }`}
                         >
-                          <div className={`w-full h-8 rounded-xs flex items-center justify-center text-[10px] font-bold ${cov.previewBg}`}>
-                            {cov.name}
+                          <div className="w-full h-10 rounded-xs flex items-center justify-center overflow-hidden relative shadow-xs bg-slate-100 dark:bg-slate-800">
+                            {cov.src ? (
+                              <img src={cov.src} alt={cov.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className={`w-full h-full flex items-center justify-center text-[10px] font-bold ${cov.previewBg}`}>
+                                {cov.name}
+                              </div>
+                            )}
                           </div>
                           <span className="text-[10px] font-medium text-slate-700 dark:text-slate-300 truncate">
                             {cov.name}
@@ -531,7 +542,7 @@ export const CanvasSettingsModal: React.FC<CanvasSettingsModalProps> = ({
                   <span className="font-semibold block text-slate-800 dark:text-slate-200">
                     Vector Seal Emblems ({SEAL_STYLES.length})
                   </span>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
                     {SEAL_STYLES.map((seal) => {
                       const isSelected = previewSealStyle === seal.id;
                       return (
@@ -542,19 +553,19 @@ export const CanvasSettingsModal: React.FC<CanvasSettingsModalProps> = ({
                             setPreviewSealStyle(seal.id);
                             setPreviewRevealed(false);
                           }}
-                          className={`p-2.5 rounded-sm border flex flex-col items-center justify-center text-center gap-1.5 transition-all cursor-pointer ${
+                          className={`p-2 rounded-sm border flex flex-col items-center justify-center text-center gap-1 transition-all cursor-pointer ${
                             isSelected
                               ? 'border-slate-900 dark:border-white ring-1 ring-slate-900 dark:ring-white bg-slate-100 dark:bg-slate-800 shadow-xs'
                               : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-400'
                           }`}
                         >
-                          <div className="text-slate-800 dark:text-slate-200">
-                            {seal.renderIcon({ size: 32 })}
+                          <div className="text-slate-800 dark:text-slate-200 flex items-center justify-center h-8">
+                            {seal.renderIcon({ size: 28 })}
                           </div>
-                          <span className="text-[10px] font-semibold text-slate-800 dark:text-slate-200 truncate max-w-full">
+                          <span className="text-[9px] font-semibold text-slate-800 dark:text-slate-200 truncate max-w-full">
                             {seal.name}
                           </span>
-                          <span className="text-[8px] text-slate-500 dark:text-slate-400">
+                          <span className="text-[8px] text-slate-500 dark:text-slate-400 truncate max-w-full">
                             {seal.category}
                           </span>
                         </button>

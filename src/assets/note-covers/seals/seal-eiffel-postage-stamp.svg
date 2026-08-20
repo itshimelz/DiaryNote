@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none">
+  <rect x="10" y="6" width="28" height="36" rx="1" stroke="currentColor" stroke-width="1.4" stroke-dasharray="2.5 1.5" />
+  <rect x="13" y="9" width="22" height="30" stroke="currentColor" stroke-width="0.8" fill="currentColor" fill-opacity="0.08" />
+  <text x="24" y="14" text-anchor="middle" font-size="3.5" font-weight="bold" font-family="serif" fill="currentColor" letter-spacing="0.5">PARIS</text>
+  <path d="M24 16V18" stroke="currentColor" stroke-width="1" />
+  <path d="M22.5 18H25.5L26 23H22L22.5 18Z" stroke="currentColor" stroke-width="0.8" fill="currentColor" fill-opacity="0.2" />
+  <path d="M21.5 23H26.5L28 32H20L21.5 23Z" stroke="currentColor" stroke-width="0.8" fill="currentColor" fill-opacity="0.15" />
+  <path d="M22 24L26 27M26 24L22 27M21 28L27 31M27 28L21 31" stroke="currentColor" stroke-width="0.6" opacity="0.7" />
+  <path d="M20 32C20 30 22 28.5 24 28.5C26 28.5 28 30 28 32" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+  <text x="24" y="37" text-anchor="middle" font-size="3" font-weight="bold" font-family="monospace" fill="currentColor">25¢</text>
+</svg>

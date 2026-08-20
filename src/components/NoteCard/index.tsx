@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { SecurityLockIcon, FolderAddIcon } from '@hugeicons/core-free-icons';
 import { Icon } from '../ui';
 import { NoteCardProps, NoteMode, FONT_CLASSES, PAPER_THEMES } from './types';
@@ -86,6 +86,11 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
   const markdownRef = useRef<HTMLDivElement>(null);
   const handledEditRequestRef = useRef<string | null>(null);
   const lastRevealedTimeRef = useRef<number>(0);
+
+  const handleReveal = useCallback(() => {
+    lastRevealedTimeRef.current = Date.now();
+    setIsRevealed(true);
+  }, []);
 
   const { isDragging, handleMouseDown } = useNoteDrag({
     note,
@@ -483,10 +488,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         <NoteCover
           note={note}
           isDragging={isDragging || isCardDragging}
-          onReveal={() => {
-            lastRevealedTimeRef.current = Date.now();
-            setIsRevealed(true);
-          }}
+          onReveal={handleReveal}
         />
       )}
 

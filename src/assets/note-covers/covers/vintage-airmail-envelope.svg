@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" width="100%" height="100%">
+  <defs>
+    <pattern id="airmail-stripes" width="36" height="36" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect x="0" y="0" width="12" height="36" fill="#c83226" />
+      <rect x="12" y="0" width="6" height="36" fill="#fdfbf7" />
+      <rect x="18" y="0" width="12" height="36" fill="#1d4ed8" />
+      <rect x="30" y="0" width="6" height="36" fill="#fdfbf7" />
+    </pattern>
+  </defs>
+
+  <!-- Outer Airmail Striped Frame -->
+  <rect x="0" y="0" width="400" height="260" rx="4" fill="url(#airmail-stripes)" />
+  <!-- Inner Vintage Aerogramme Paper -->
+  <rect x="10" y="10" width="380" height="240" rx="2" fill="#f7f3e8" />
+</svg>

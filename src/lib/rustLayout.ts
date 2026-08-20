@@ -4,6 +4,19 @@ import { isTauriEnvironment } from './rustStorage';
 
 export type { NoteLayoutInput, NoteLayoutOutput, SpatialDirection };
 
+export interface WorldFrustumInput {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+}
+
+export interface DragPositionDelta {
+  id: string;
+  startX: number;
+  startY: number;
+}
+
 /**
  * Computes batch alignment or grid layout via native Rust.
  */
@@ -20,6 +33,66 @@ export async function computeBatchLayout(
     notes,
     mode,
     spacing: spacing ?? null,
+  });
+}
+
+/**
+ * Performs fast 2D AABB viewport culling via native Rust.
+ */
+export async function cullNotesInFrustum(
+  notes: NoteLayoutInput[],
+  frustum: WorldFrustumInput
+): Promise<string[]> {
+  if (!isTauriEnvironment()) {
+    return notes
+      .filter((n) => {
+        const w = n.width || 280;
+        const h = n.height || 340;
+        return (
+          n.x + w >= frustum.minX &&
+          n.x <= frustum.maxX &&
+          n.y + h >= frustum.minY &&
+          n.y <= frustum.maxY
+        );
+      })
+      .map((n) => n.id);
+  }
+
+  return await invoke<string[]>('cull_notes_in_frustum', {
+    notes,
+    frustum,
+  });
+}
+
+/**
+ * Computes final snapped positions for multi-note drag completion via native Rust.
+ */
+export async function computeBatchDragSnapping(
+  items: DragPositionDelta[],
+  deltaX: number,
+  deltaY: number,
+  snapToGrid: boolean,
+  gridSize?: number | null
+): Promise<NoteLayoutOutput[]> {
+  if (!isTauriEnvironment()) {
+    const grid = gridSize || 20;
+    return items.map((item) => {
+      const rawX = item.startX + deltaX;
+      const rawY = item.startY + deltaY;
+      return {
+        id: item.id,
+        x: snapToGrid ? Math.round(rawX / grid) * grid : Math.round(rawX),
+        y: snapToGrid ? Math.round(rawY / grid) * grid : Math.round(rawY),
+      };
+    });
+  }
+
+  return await invoke<NoteLayoutOutput[]>('compute_batch_drag_snapping', {
+    items,
+    deltaX,
+    deltaY,
+    snapToGrid,
+    gridSize: gridSize ?? null,
   });
 }
 

@@ -149,4 +149,42 @@ describe('ImageNoteCard component', () => {
     fireEvent.click(lockBtn);
     expect(onRequestLockNote).toHaveBeenCalledWith('img-note-1');
   });
+
+  it('renders NoteCover when isCovered is true and allows revealing and closing', () => {
+    const coveredPhotoNote: Note = {
+      ...mockImageNote,
+      isCovered: true,
+      coverStyle: 'vintage-airmail',
+      sealStyle: 'golden-sun',
+      title: 'Secret Photo Memory',
+    };
+
+    render(
+      <ImageNoteCard
+        note={coveredPhotoNote}
+        isSelected={true}
+        onSelectNote={vi.fn()}
+        onUpdateNote={vi.fn()}
+        onDeleteNote={vi.fn()}
+      />
+    );
+
+    // Cover should be visible with title and prompt
+    expect(screen.getByText('Secret Photo Memory')).toBeTruthy();
+    expect(screen.getByText('Click to open')).toBeTruthy();
+
+    // Click cover to reveal
+    const coverButton = screen.getByTitle('Click to open note');
+    fireEvent.click(coverButton);
+
+    // After revealing, photo content and close cover button should be active
+    expect(screen.getByText('Sunset over Shibuya')).toBeTruthy();
+    const closeCoverBtn = screen.getByTitle('Close Cover (Alt+C)');
+    expect(closeCoverBtn).toBeTruthy();
+
+    // Clicking close cover re-seals it
+    fireEvent.click(closeCoverBtn);
+    expect(screen.getByText('Secret Photo Memory')).toBeTruthy();
+    expect(screen.getByText('Click to open')).toBeTruthy();
+  });
 });

@@ -33,6 +33,7 @@ import { mergeNotesWithAI } from './services/ai/aiMergeService';
 import { getSessionAuthState, setMasterSessionUnlocked, isNoteAuthorized } from './services/authPolicyService';
 import { lockSessionVault } from './services/cryptoVaultService';
 import { AppSettings } from './lib/storage';
+import { DEFAULT_COVER_STYLE, DEFAULT_SEAL_STYLE } from './constants/noteCovers';
 
 export default function App() {
   const {
@@ -418,8 +419,8 @@ export default function App() {
       const updated = targetNotes.map((n) => ({
         ...n,
         isCovered: newCoveredState,
-        coverStyle: n.coverStyle || 'clean-monochrome',
-        sealStyle: n.sealStyle || 'wax-seal-crest',
+        coverStyle: n.coverStyle || DEFAULT_COVER_STYLE,
+        sealStyle: n.sealStyle || DEFAULT_SEAL_STYLE,
         coverPrompt: n.coverPrompt || 'Click to open',
         updatedAt: new Date().toISOString(),
       }));

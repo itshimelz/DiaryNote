@@ -5,6 +5,8 @@ import { Note } from '../../types';
 import { getCoverStyleById, getSealStyleById } from '../../constants/noteCovers';
 import { FONT_CLASSES } from './types';
 
+import { NoteCoverDecorations } from './NoteCoverDecorations';
+
 interface NoteCoverProps {
   note: Note;
   onReveal: () => void;
@@ -12,7 +14,7 @@ interface NoteCoverProps {
   isDragging?: boolean;
 }
 
-export const NoteCover: React.FC<NoteCoverProps> = ({
+const NoteCoverComponent: React.FC<NoteCoverProps> = ({
   note,
   onReveal,
   className = '',
@@ -22,6 +24,29 @@ export const NoteCover: React.FC<NoteCoverProps> = ({
   const sealConfig = getSealStyleById(note.sealStyle);
   const fontClass = FONT_CLASSES[note.fontFamily] || FONT_CLASSES.sans;
   const pointerDownPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  const cardWidth = note.width || 320;
+  const cardHeight = note.height || 360;
+
+  // Monotonic geometric mean: sqrt(w * h) guarantees bigger card = bigger seal, smaller card = smaller seal
+  const baseDim = Math.sqrt(cardWidth * cardHeight);
+
+  // Dynamic seal size: smoothly scales from 56px on compact cards up to 220px on huge cards
+  const sealSize = Math.max(56, Math.min(220, Math.round(baseDim * 0.24)));
+
+  // Dynamic title font size based on base dimensions
+  const titleSizeClass =
+    baseDim >= 600
+      ? 'text-3xl sm:text-4xl'
+      : baseDim >= 440
+      ? 'text-2xl sm:text-3xl'
+      : baseDim >= 340
+      ? 'text-xl sm:text-2xl'
+      : 'text-lg sm:text-xl';
+
+  // Dynamic center spacing and padding based on base dimensions
+  const centerGapClass = baseDim >= 480 ? 'gap-6' : 'gap-4';
+  const coverPaddingClass = baseDim >= 480 ? 'p-6' : 'p-5';
 
   return (
     <div
@@ -65,58 +90,77 @@ export const NoteCover: React.FC<NoteCoverProps> = ({
           onReveal();
         }
       }}
-      className={`absolute inset-0 z-25 flex flex-col justify-between p-5 rounded-sm select-none cursor-pointer transition-all duration-200 ${coverConfig.cardClass} ${coverConfig.borderClass} ${className}`}
+      style={{
+        contain: 'strict',
+        transform: 'translateZ(0)',
+      }}
+      className={`absolute inset-0 z-25 flex flex-col justify-between ${coverPaddingClass} rounded-sm select-none cursor-pointer overflow-hidden ${coverConfig.cardClass} ${coverConfig.borderClass} ${className}`}
       title="Click to open note"
     >
-      {/* Top Header Row on Cover: Optional Date, Mood, or Minimalist Emblem */}
-      <div className="flex items-center justify-between text-[10px] opacity-70">
-        <span className="font-mono tracking-wider uppercase">
+      {/* Cover-Specific Artistic Overlays & Stamp Decorations */}
+      <NoteCoverDecorations coverStyle={coverConfig.id} accentColor={coverConfig.accentColor} />
+
+      {/* Top Header Row on Cover: Optional Date or Entry Date */}
+      <div className="relative z-10 flex items-center justify-between text-xs sm:text-sm font-mono tracking-wider font-semibold opacity-85">
+        <span className="uppercase">
           {note.entryDate || (note.createdAt ? note.createdAt.split('T')[0] : 'NOTE')}
         </span>
         {note.isPinned && (
-          <Icon icon={PinIcon} size="xs" className="opacity-80" />
+          <Icon icon={PinIcon} size="sm" className="opacity-90" />
         )}
       </div>
 
-      {/* Center Section: Seal SVG + Title */}
-      <div className="my-auto flex flex-col items-center justify-center text-center px-3 py-2 gap-3.5">
-        {/* Seal SVG Artwork - Hover effect only on the wax */}
-        <div className="transform transition-transform duration-200 hover:scale-105">
+      {/* Center Section: Dynamic Seal SVG + Title */}
+      <div className={`relative z-10 my-auto flex flex-col items-center justify-center text-center px-3 py-2 ${centerGapClass}`}>
+        {/* Seal SVG Artwork - Proportional dimension scaling */}
+        <div className="transform transition-transform duration-200 hover:scale-105 flex items-center justify-center">
           {sealConfig.renderIcon({
-            size: 52,
+            size: sealSize,
             color: coverConfig.accentColor || 'currentColor',
           })}
         </div>
 
-        {/* Note Title - Static typography without hover mutation */}
-        <div className="space-y-1 w-full max-w-[90%]">
+        {/* Note Title - Proportional dimension scaling */}
+        <div className="w-full max-w-[94%]">
           <h2
-            className={`text-lg font-bold tracking-tight line-clamp-3 leading-snug break-words ${fontClass} ${coverConfig.titleClass}`}
+            className={`${titleSizeClass} font-bold tracking-tight line-clamp-3 leading-snug break-words ${fontClass} ${coverConfig.titleClass}`}
           >
             {note.title?.trim() || 'Untitled Note'}
           </h2>
-          {note.tags && note.tags.length > 0 && (
-            <div className="flex flex-wrap items-center justify-center gap-1 pt-1 opacity-70">
-              {note.tags.slice(0, 3).map((t) => (
-                <span
-                  key={t}
-                  className="text-[9px] px-1.5 py-0.2 rounded-xs bg-black/10 dark:bg-white/10"
-                >
-                  #{t}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
       {/* Bottom Footer Row on Cover: Interactive Tap/Click Prompt */}
-      <div className="flex items-center justify-center pt-2 text-[11px] font-medium">
-        <span className={`flex items-center gap-1.5 ${coverConfig.promptClass}`}>
+      <div className="relative z-10 flex items-center justify-center pt-2 text-xs sm:text-sm font-semibold tracking-wide">
+        <span className={`flex items-center gap-2 ${coverConfig.promptClass}`}>
           <span>{note.coverPrompt || 'Click to open'}</span>
-          <Icon icon={ArrowRight01Icon} size="xs" />
+          <Icon icon={ArrowRight01Icon} size="sm" />
         </span>
       </div>
     </div>
   );
 };
+
+function areNoteCoverPropsEqual(prev: NoteCoverProps, next: NoteCoverProps) {
+  if (prev.isDragging !== next.isDragging) return false;
+  if (prev.className !== next.className) return false;
+
+  const p = prev.note;
+  const n = next.note;
+  return (
+    p.id === n.id &&
+    p.title === n.title &&
+    p.width === n.width &&
+    p.height === n.height &&
+    p.isCovered === n.isCovered &&
+    p.coverStyle === n.coverStyle &&
+    p.sealStyle === n.sealStyle &&
+    p.coverPrompt === n.coverPrompt &&
+    p.fontFamily === n.fontFamily &&
+    p.isPinned === n.isPinned &&
+    p.entryDate === n.entryDate &&
+    p.createdAt === n.createdAt
+  );
+}
+
+export const NoteCover = React.memo(NoteCoverComponent, areNoteCoverPropsEqual);

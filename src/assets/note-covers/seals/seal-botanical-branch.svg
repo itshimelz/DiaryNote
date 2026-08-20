@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none">
+  <circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="1.2" opacity="0.4" />
+  <path d="M16 34C17.5 28 20 20 28 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+  <path d="M28 14C26 12 23 13 23 15C25 17 28 14 28 14Z" fill="currentColor" fill-opacity="0.4" stroke="currentColor" stroke-width="1.2" />
+  <path d="M24 18C21 17 19 19 20 21C22 22 24 18 24 18Z" fill="currentColor" fill-opacity="0.4" stroke="currentColor" stroke-width="1.2" />
+  <path d="M25 21C28 20 30 22 29 24C27 25 25 21 25 21Z" fill="currentColor" fill-opacity="0.4" stroke="currentColor" stroke-width="1.2" />
+  <path d="M20 25C17 25 16 28 18 29C20 30 20 25 20 25Z" fill="currentColor" fill-opacity="0.4" stroke="currentColor" stroke-width="1.2" />
+  <path d="M22 27C25 27 26 30 25 31C23 32 22 27 22 27Z" fill="currentColor" fill-opacity="0.4" stroke="currentColor" stroke-width="1.2" />
+</svg>

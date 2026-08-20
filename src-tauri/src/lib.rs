@@ -10,7 +10,8 @@ pub use error::AppError;
 use std::sync::Arc;
 use commands::{
     ai_generate_tags, ai_stream_synthesis, ai_test_connection, check_database_integrity,
-    clear_vault_fts_index, compute_batch_layout, delete_asset, delete_notes, export_note_to_file,
+    clear_vault_fts_index, compute_batch_layout, compute_batch_drag_snapping, cull_notes_in_frustum,
+    delete_asset, delete_notes, export_note_to_file,
     export_vault_archive, find_nearest_spatial_note, get_asset_info, get_database_stats, get_note_backlinks,
     get_note_graph_connections, import_vault_archive, index_vault_notes, inspect_vault_archive,
     load_app_state, parse_note_markdown_links, read_image_files, relocate_notes, save_app_settings,
@@ -124,6 +125,8 @@ pub fn run() {
             save_export_file,
             export_note_to_file,
             compute_batch_layout,
+            compute_batch_drag_snapping,
+            cull_notes_in_frustum,
             find_nearest_spatial_note,
             read_image_files,
             relocate_notes,

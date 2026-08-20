@@ -18,7 +18,7 @@ pub use clipboard::relocate_notes;
 pub use export::{export_note_to_file, save_export_file};
 pub use graph::{get_note_backlinks, get_note_graph_connections, parse_note_markdown_links};
 pub use image::read_image_files;
-pub use layout::{compute_batch_layout, find_nearest_spatial_note};
+pub use layout::{compute_batch_drag_snapping, compute_batch_layout, cull_notes_in_frustum, find_nearest_spatial_note};
 pub use search::{clear_vault_fts_index, index_vault_notes, search_notes};
 pub use storage::{
     check_database_integrity, delete_notes, get_database_stats, load_app_state, save_app_settings,

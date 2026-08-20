@@ -1,10 +1,29 @@
 import React from 'react';
 import { CoverStyle, SealStyle } from '../types';
 
+// Cover SVG Asset Imports (Single Source of Truth)
+import coverClassicKraft from '../assets/note-covers/covers/cover-classic-kraft.svg';
+import coverObsidianMinimal from '../assets/note-covers/covers/cover-obsidian-minimal.svg';
+import coverVintageAirmail from '../assets/note-covers/covers/cover-vintage-airmail.svg';
+
+// Seal SVG Asset Imports (Single Source of Truth)
+import sealGoldenSun from '../assets/note-covers/seals/seal-golden-sun.svg';
+import sealBotanicalBranch from '../assets/note-covers/seals/seal-botanical-branch.svg';
+import sealOrigamiCrane from '../assets/note-covers/seals/seal-origami-crane.svg';
+import sealMinimalKnot from '../assets/note-covers/seals/seal-minimal-knot.svg';
+import sealCompassRose from '../assets/note-covers/seals/seal-compass-rose.svg';
+import sealMonogramStar from '../assets/note-covers/seals/seal-monogram-star.svg';
+import sealAirMailPostmark from '../assets/note-covers/seals/seal-air-mail-postmark.svg';
+import sealEiffelPostageStamp from '../assets/note-covers/seals/seal-eiffel-postage-stamp.svg';
+import sealPisaPostageStamp from '../assets/note-covers/seals/seal-pisa-postage-stamp.svg';
+import sealPyramidPostageStamp from '../assets/note-covers/seals/seal-pyramid-postage-stamp.svg';
+import sealMailCrestPostmark from '../assets/note-covers/seals/seal-mail-crest-postmark.svg';
+
 export interface NoteCoverStyleConfig {
   id: CoverStyle;
   name: string;
   description: string;
+  src?: string;
   previewBg: string;
   cardClass: string;
   titleClass: string;
@@ -18,47 +37,40 @@ export interface SealStyleConfig {
   name: string;
   category: string;
   description: string;
+  src?: string;
   renderIcon: (props?: { className?: string; size?: number; color?: string }) => React.ReactNode;
 }
 
 export const NOTE_COVER_STYLES: NoteCoverStyleConfig[] = [
   {
-    id: 'clean-monochrome',
-    name: 'Monochrome Slate',
-    description: 'Clean, monotonic slate & white minimalist finish',
-    previewBg: 'bg-slate-900 text-white dark:bg-white dark:text-slate-900',
-    cardClass: 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-slate-700/80 dark:border-slate-300',
-    titleClass: 'text-white dark:text-slate-900',
-    promptClass: 'text-slate-400 dark:text-slate-500',
-    borderClass: 'border border-dashed border-slate-700 dark:border-slate-300/80',
-    accentColor: '#64748b',
+    id: 'vintage-airmail',
+    name: 'Vintage Airmail',
+    description: 'Iconic airmail envelope with red-blue barber-pole border and postal markings',
+    src: coverVintageAirmail,
+    previewBg: 'bg-[#f4efe4] text-[#3d3326]',
+    cardClass: 'bg-[#f7f3e8] text-[#3e3427] border-[#cfc3ad] shadow-md',
+    titleClass: 'text-[#2d2417]',
+    promptClass: 'text-[#73624e]',
+    borderClass: 'border border-[#cfc3ad]/80',
+    accentColor: '#c83226',
   },
   {
     id: 'classic-kraft',
     name: 'Classic Kraft',
     description: 'Warm rustic cardboard paper with stitched edge detailing',
+    src: coverClassicKraft,
     previewBg: 'bg-[#d8c3a5] text-[#4a3928]',
-    cardClass: 'bg-[#d8c3a5] dark:bg-[#524433] text-[#4a3928] dark:text-[#f3e9dc] border-[#bda685] dark:border-[#6b5843]',
-    titleClass: 'text-[#3e2e1e] dark:text-[#f7f0e6]',
-    promptClass: 'text-[#725e46] dark:text-[#c4b39e]',
-    borderClass: 'border-2 border-dashed border-[#bda685]/80 dark:border-[#826d55]/80',
+    cardClass: 'bg-[#d8c3a5] text-[#4a3928] border-[#bda685] shadow-md',
+    titleClass: 'text-[#3e2e1e]',
+    promptClass: 'text-[#725e46]',
+    borderClass: 'border-2 border-dashed border-[#bda685]/80',
     accentColor: '#8c6b45',
-  },
-  {
-    id: 'leather-journal',
-    name: 'Vintage Leather',
-    description: 'Deep saddle brown leather tone with warm embossed trim',
-    previewBg: 'bg-[#5c3a21] text-[#f8ebd7]',
-    cardClass: 'bg-[#5c3a21] dark:bg-[#382011] text-[#f8ebd7] border-[#422714] dark:border-[#221309] shadow-md',
-    titleClass: 'text-[#ffeedd]',
-    promptClass: 'text-[#d4b99b]',
-    borderClass: 'border border-[#8a5d3b]/60',
-    accentColor: '#d4af37',
   },
   {
     id: 'obsidian-minimal',
     name: 'Obsidian Velvet',
     description: 'Midnight pitch black texture with subtle silver glow',
+    src: coverObsidianMinimal,
     previewBg: 'bg-zinc-950 text-zinc-100',
     cardClass: 'bg-zinc-950 text-zinc-100 border-zinc-800 shadow-lg',
     titleClass: 'text-zinc-100',
@@ -66,94 +78,18 @@ export const NOTE_COVER_STYLES: NoteCoverStyleConfig[] = [
     borderClass: 'border border-zinc-800 ring-1 ring-white/5',
     accentColor: '#a1a1aa',
   },
-  {
-    id: 'botanical-linen',
-    name: 'Botanical Linen',
-    description: 'Earthy sage green texture with serene herbal undertones',
-    previewBg: 'bg-[#e2e8e1] text-[#2d3a2e] dark:bg-[#2d3b2e] dark:text-[#e4eee3]',
-    cardClass: 'bg-[#e2e8e1] dark:bg-[#2d3b2e] text-[#2d3a2e] dark:text-[#e4eee3] border-[#c4cfc2] dark:border-[#3e4f40]',
-    titleClass: 'text-[#202c21] dark:text-[#f0f7ef]',
-    promptClass: 'text-[#566b58] dark:text-[#9fb3a0]',
-    borderClass: 'border border-[#b8c6b6] dark:border-[#485b4a]',
-    accentColor: '#4d7c57',
-  },
-  {
-    id: 'sakura-blush',
-    name: 'Sakura Blush',
-    description: 'Delicate soft cherry blossom pink with warm rose hues',
-    previewBg: 'bg-[#fceeed] text-[#5e3839] dark:bg-[#4a282b] dark:text-[#fceeed]',
-    cardClass: 'bg-[#fceeed] dark:bg-[#4a282b] text-[#5e3839] dark:text-[#fceeed] border-[#f3d4d3] dark:border-[#633a3d]',
-    titleClass: 'text-[#482829] dark:text-[#fff5f5]',
-    promptClass: 'text-[#8b5a5c] dark:text-[#d9a8ab]',
-    borderClass: 'border border-[#eec5c4] dark:border-[#6f4245]',
-    accentColor: '#e07a7e',
-  },
-  {
-    id: 'ocean-navy',
-    name: 'Ocean Navy',
-    description: 'Deep nautical midnight navy with royal navy accents',
-    previewBg: 'bg-[#122238] text-[#e0ecfc]',
-    cardClass: 'bg-[#122238] dark:bg-[#0c1624] text-[#e0ecfc] border-[#1f3759]',
-    titleClass: 'text-[#eef6ff]',
-    promptClass: 'text-[#8cb4e2]',
-    borderClass: 'border border-[#2d4d7a]/60',
-    accentColor: '#60a5fa',
-  },
-  {
-    id: 'vintage-parchment',
-    name: 'Aged Parchment',
-    description: 'Antique weathered manuscript vellum with warm sepia lines',
-    previewBg: 'bg-[#f4ebd0] text-[#42331f] dark:bg-[#3d3121] dark:text-[#f4ebd0]',
-    cardClass: 'bg-[#f4ebd0] dark:bg-[#3d3121] text-[#42331f] dark:text-[#f4ebd0] border-[#ddce9f] dark:border-[#574630]',
-    titleClass: 'text-[#302414] dark:text-[#fbf5e6]',
-    promptClass: 'text-[#6e5638] dark:text-[#c4ae8f]',
-    borderClass: 'border-2 border-double border-[#cbba87] dark:border-[#6e593d]',
-    accentColor: '#b89758',
-  },
 ];
 
-export const DEFAULT_COVER_STYLE: CoverStyle = 'clean-monochrome';
-export const DEFAULT_SEAL_STYLE: SealStyle = 'wax-seal-crest';
+export const DEFAULT_COVER_STYLE: CoverStyle = 'vintage-airmail';
+export const DEFAULT_SEAL_STYLE: SealStyle = 'golden-sun';
 
 export const SEAL_STYLES: SealStyleConfig[] = [
-  {
-    id: 'wax-seal-crest',
-    name: 'Wax Crest',
-    category: 'Classic',
-    description: 'Embossed heraldic seal with royal crown and laurel frame',
-    renderIcon: ({ className = '', size = 40, color = 'currentColor' } = {}) => (
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 48 48"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className={className}
-      >
-        <circle cx="24" cy="24" r="21" stroke={color} strokeWidth="1.5" strokeDasharray="2 2" opacity="0.6" />
-        <circle cx="24" cy="24" r="18" fill={color} fillOpacity="0.12" stroke={color} strokeWidth="2" />
-        <circle cx="24" cy="24" r="14" stroke={color} strokeWidth="1" opacity="0.5" />
-        {/* Crown & Star */}
-        <path
-          d="M17 26L19 19L24 23L29 19L31 26H17Z"
-          fill={color}
-          fillOpacity="0.4"
-          stroke={color}
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-        <circle cx="24" cy="18" r="1.5" fill={color} />
-        <circle cx="19" cy="18" r="1" fill={color} />
-        <circle cx="29" cy="18" r="1" fill={color} />
-        <path d="M19 28H29" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
-      </svg>
-    ),
-  },
   {
     id: 'golden-sun',
     name: 'Celestial Sun',
     category: 'Celestial',
     description: 'Radiant geometric sunburst with intricate solar rays',
+    src: sealGoldenSun,
     renderIcon: ({ className = '', size = 40, color = 'currentColor' } = {}) => (
       <svg
         width={size}
@@ -183,6 +119,7 @@ export const SEAL_STYLES: SealStyleConfig[] = [
     name: 'Laurel Branch',
     category: 'Nature',
     description: 'Organic botanical wreath with delicate leaves',
+    src: sealBotanicalBranch,
     renderIcon: ({ className = '', size = 40, color = 'currentColor' } = {}) => (
       <svg
         width={size}
@@ -240,32 +177,11 @@ export const SEAL_STYLES: SealStyleConfig[] = [
     ),
   },
   {
-    id: 'vintage-stamp',
-    name: 'Postal Postmark',
-    category: 'Vintage',
-    description: 'Antique mail cancel mark and official postal stamp',
-    renderIcon: ({ className = '', size = 40, color = 'currentColor' } = {}) => (
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 48 48"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className={className}
-      >
-        <rect x="7" y="7" width="34" height="34" rx="2" stroke={color} strokeWidth="1.5" strokeDasharray="3 2" />
-        <rect x="11" y="11" width="26" height="26" stroke={color} strokeWidth="1" opacity="0.7" />
-        <circle cx="24" cy="24" r="9" stroke={color} strokeWidth="1.5" />
-        <path d="M17 24H31M24 17V31" stroke={color} strokeWidth="1.2" strokeLinecap="round" />
-        <path d="M13 39L35 39" stroke={color} strokeWidth="1" strokeDasharray="2 2" />
-      </svg>
-    ),
-  },
-  {
     id: 'origami-crane',
     name: 'Origami Crane',
     category: 'Minimalist',
     description: 'Faceted geometric Japanese folded paper crane',
+    src: sealOrigamiCrane,
     renderIcon: ({ className = '', size = 40, color = 'currentColor' } = {}) => (
       <svg
         width={size}
@@ -286,41 +202,11 @@ export const SEAL_STYLES: SealStyleConfig[] = [
     ),
   },
   {
-    id: 'feather-quill',
-    name: 'Calligraphy Quill',
-    category: 'Literature',
-    description: 'Elegant vintage writing feather and ink drop',
-    renderIcon: ({ className = '', size = 40, color = 'currentColor' } = {}) => (
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 48 48"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className={className}
-      >
-        <circle cx="24" cy="24" r="20" stroke={color} strokeWidth="1" opacity="0.3" />
-        {/* Quill */}
-        <path
-          d="M34 10C34 10 32 20 22 26L16 38L18 32C22 28 30 22 34 10Z"
-          fill={color}
-          fillOpacity="0.2"
-          stroke={color}
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-        <path d="M16 38L28 18" stroke={color} strokeWidth="1.2" />
-        {/* Ink droplets */}
-        <circle cx="13" cy="40" r="1.5" fill={color} />
-        <circle cx="10" cy="38" r="0.8" fill={color} opacity="0.6" />
-      </svg>
-    ),
-  },
-  {
     id: 'minimal-knot',
     name: 'Infinity Knot',
     category: 'Minimalist',
     description: 'Intertwined geometric loop representing continuity and focus',
+    src: sealMinimalKnot,
     renderIcon: ({ className = '', size = 40, color = 'currentColor' } = {}) => (
       <svg
         width={size}
@@ -350,6 +236,7 @@ export const SEAL_STYLES: SealStyleConfig[] = [
     name: 'Compass Rose',
     category: 'Vintage',
     description: 'Classic eight-point exploration and navigational compass',
+    src: sealCompassRose,
     renderIcon: ({ className = '', size = 40, color = 'currentColor' } = {}) => (
       <svg
         width={size}
@@ -373,41 +260,11 @@ export const SEAL_STYLES: SealStyleConfig[] = [
     ),
   },
   {
-    id: 'mystic-eye',
-    name: 'Celestial Eye',
-    category: 'Celestial',
-    description: 'Minimalist visionary eye with radiant star aura',
-    renderIcon: ({ className = '', size = 40, color = 'currentColor' } = {}) => (
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 48 48"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className={className}
-      >
-        <circle cx="24" cy="24" r="20" stroke={color} strokeWidth="1" strokeDasharray="3 3" opacity="0.4" />
-        {/* Eye contour */}
-        <path
-          d="M10 24C14 16 34 16 38 24C34 32 14 32 10 24Z"
-          stroke={color}
-          strokeWidth="1.8"
-          strokeLinejoin="round"
-          fill={color}
-          fillOpacity="0.1"
-        />
-        <circle cx="24" cy="24" r="4.5" stroke={color} strokeWidth="1.5" />
-        <circle cx="24" cy="24" r="2" fill={color} />
-        {/* Eyelash stars */}
-        <path d="M24 10V14M16 13L18 16M32 13L30 16" stroke={color} strokeWidth="1.2" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
     id: 'monogram-star',
     name: 'Ornamental Star',
     category: 'Minimalist',
     description: 'Four-point geometric diamond star with heraldic ring',
+    src: sealMonogramStar,
     renderIcon: ({ className = '', size = 40, color = 'currentColor' } = {}) => (
       <svg
         width={size}
@@ -428,6 +285,293 @@ export const SEAL_STYLES: SealStyleConfig[] = [
           strokeLinejoin="round"
         />
         <circle cx="24" cy="24" r="1.5" fill={color} />
+      </svg>
+    ),
+  },
+  {
+    id: 'air-mail-postmark',
+    name: 'Air Mail Postmark',
+    category: 'Airmail',
+    description: 'Vintage circular postmark with wavy postal cancel lines',
+    src: sealAirMailPostmark,
+    renderIcon: ({ className = '', size = 40, color = 'currentColor' } = {}) => (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 48 48"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={className}
+      >
+        {/* Double circular postmark ring */}
+        <circle cx="20" cy="24" r="16" stroke={color} strokeWidth="1.4" />
+        <circle cx="20" cy="24" r="13" stroke={color} strokeWidth="0.8" strokeDasharray="2 1.5" opacity="0.7" />
+        {/* Inner postal mark text & stars */}
+        <text
+          x="20"
+          y="17"
+          textAnchor="middle"
+          fontSize="4"
+          fontWeight="bold"
+          fontFamily="monospace"
+          fill={color}
+          letterSpacing="0.5"
+        >
+          AIR-MAIL
+        </text>
+        <path d="M16 23.5H24M14 24.5H26" stroke={color} strokeWidth="1" strokeLinecap="round" />
+        <circle cx="14" cy="20" r="0.7" fill={color} />
+        <circle cx="26" cy="20" r="0.7" fill={color} />
+        <text
+          x="20"
+          y="31"
+          textAnchor="middle"
+          fontSize="3.5"
+          fontWeight="bold"
+          fontFamily="monospace"
+          fill={color}
+          letterSpacing="0.5"
+        >
+          POST
+        </text>
+        {/* Flowing wavy cancel lines extending across right side */}
+        <path
+          d="M34 16C37 13.5 41 18.5 45 16M33 21C36.5 18.5 40.5 23.5 45 21M34 26C37 23.5 41 28.5 45 26M35 31C37.5 28.5 41.5 33.5 45 31"
+          stroke={color}
+          strokeWidth="1.2"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
+  },
+  {
+    id: 'eiffel-postage-stamp',
+    name: 'Eiffel Stamp',
+    category: 'Postage',
+    description: 'Vintage perforated postage stamp with Eiffel Tower engraving',
+    src: sealEiffelPostageStamp,
+    renderIcon: ({ className = '', size = 40, color = 'currentColor' } = {}) => (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 48 48"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={className}
+      >
+        {/* Perforated scalloped outer stamp frame */}
+        <rect
+          x="10"
+          y="6"
+          width="28"
+          height="36"
+          rx="1"
+          stroke={color}
+          strokeWidth="1.4"
+          strokeDasharray="2.5 1.5"
+        />
+        {/* Inner frame */}
+        <rect x="13" y="9" width="22" height="30" stroke={color} strokeWidth="0.8" fill={color} fillOpacity="0.08" />
+        {/* Top header */}
+        <text
+          x="24"
+          y="14"
+          textAnchor="middle"
+          fontSize="3.5"
+          fontWeight="bold"
+          fontFamily="serif"
+          fill={color}
+          letterSpacing="0.5"
+        >
+          PARIS
+        </text>
+        {/* Eiffel Tower architectural engraving */}
+        {/* Spire */}
+        <path d="M24 16V18" stroke={color} strokeWidth="1" />
+        {/* Top platform */}
+        <path d="M22.5 18H25.5L26 23H22L22.5 18Z" stroke={color} strokeWidth="0.8" fill={color} fillOpacity="0.2" />
+        {/* Mid section */}
+        <path d="M21.5 23H26.5L28 32H20L21.5 23Z" stroke={color} strokeWidth="0.8" fill={color} fillOpacity="0.15" />
+        {/* Lattice crosses */}
+        <path d="M22 24L26 27M26 24L22 27M21 28L27 31M27 28L21 31" stroke={color} strokeWidth="0.6" opacity="0.7" />
+        {/* Base arch */}
+        <path
+          d="M20 32C20 30 22 28.5 24 28.5C26 28.5 28 30 28 32"
+          stroke={color}
+          strokeWidth="1.2"
+          strokeLinecap="round"
+        />
+        {/* Bottom postal value */}
+        <text
+          x="24"
+          y="37"
+          textAnchor="middle"
+          fontSize="3"
+          fontWeight="bold"
+          fontFamily="monospace"
+          fill={color}
+        >
+          25¢
+        </text>
+      </svg>
+    ),
+  },
+  {
+    id: 'pisa-postage-stamp',
+    name: 'Pisa Tower Stamp',
+    category: 'Postage',
+    description: 'Classic perforated stamp featuring the Leaning Tower of Pisa',
+    src: sealPisaPostageStamp,
+    renderIcon: ({ className = '', size = 40, color = 'currentColor' } = {}) => (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 48 48"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={className}
+      >
+        {/* Perforated outer stamp frame */}
+        <rect
+          x="10"
+          y="6"
+          width="28"
+          height="36"
+          rx="1"
+          stroke={color}
+          strokeWidth="1.4"
+          strokeDasharray="2.5 1.5"
+        />
+        <rect x="13" y="9" width="22" height="30" stroke={color} strokeWidth="0.8" fill={color} fillOpacity="0.08" />
+        <text
+          x="24"
+          y="14"
+          textAnchor="middle"
+          fontSize="3.2"
+          fontWeight="bold"
+          fontFamily="serif"
+          fill={color}
+          letterSpacing="0.5"
+        >
+          ITALIA
+        </text>
+        {/* Leaning Tower of Pisa tilted vector art */}
+        <g transform="rotate(5 24 25)">
+          {/* Belfry top */}
+          <rect x="22" y="16" width="5" height="3" stroke={color} strokeWidth="0.8" fill={color} fillOpacity="0.2" />
+          <path d="M23 16V14.5H26V16" stroke={color} strokeWidth="0.8" />
+          {/* Tiers with arcade columns */}
+          <path d="M21 19H28V22H21V19Z" stroke={color} strokeWidth="0.7" fill={color} fillOpacity="0.1" />
+          <path d="M20.5 22H28.5V25H20.5V22Z" stroke={color} strokeWidth="0.7" fill={color} fillOpacity="0.1" />
+          <path d="M20 25H29V28H20V25Z" stroke={color} strokeWidth="0.7" fill={color} fillOpacity="0.1" />
+          <path d="M19.5 28H29.5V31H19.5V28Z" stroke={color} strokeWidth="0.7" fill={color} fillOpacity="0.1" />
+          {/* Base foundation */}
+          <path d="M19 31H30V34H19V31Z" stroke={color} strokeWidth="0.8" fill={color} fillOpacity="0.25" />
+          {/* Colonnade tick marks */}
+          <path d="M23 20V22M26 20V22M22.5 23V25M26.5 23V25M22 26V28M27 26V28M21.5 29V31M27.5 29V31" stroke={color} strokeWidth="0.6" />
+        </g>
+        <text
+          x="24"
+          y="37"
+          textAnchor="middle"
+          fontSize="3"
+          fontWeight="bold"
+          fontFamily="monospace"
+          fill={color}
+        >
+          15L
+        </text>
+      </svg>
+    ),
+  },
+  {
+    id: 'pyramid-postage-stamp',
+    name: 'Pyramid Stamp',
+    category: 'Postage',
+    description: 'Antique desert postage stamp with the Great Pyramids of Giza',
+    src: sealPyramidPostageStamp,
+    renderIcon: ({ className = '', size = 40, color = 'currentColor' } = {}) => (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 48 48"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={className}
+      >
+        {/* Perforated stamp frame */}
+        <rect
+          x="8"
+          y="8"
+          width="32"
+          height="32"
+          rx="1"
+          stroke={color}
+          strokeWidth="1.4"
+          strokeDasharray="2.5 1.5"
+        />
+        <rect x="11" y="11" width="26" height="26" stroke={color} strokeWidth="0.8" fill={color} fillOpacity="0.08" />
+        {/* Desert Sun */}
+        <circle cx="19" cy="18" r="3.5" stroke={color} strokeWidth="0.8" fill={color} fillOpacity="0.25" />
+        {/* Large Pyramid */}
+        <polygon points="23,17 33,32 15,32" stroke={color} strokeWidth="1" fill={color} fillOpacity="0.15" />
+        <polygon points="23,17 25,32 33,32" stroke={color} strokeWidth="0.8" fill={color} fillOpacity="0.35" />
+        {/* Smaller side pyramid */}
+        <polygon points="15,22 22,32 9,32" stroke={color} strokeWidth="0.9" fill={color} fillOpacity="0.2" />
+        {/* Desert baseline */}
+        <path d="M11 32H37" stroke={color} strokeWidth="1" strokeLinecap="round" />
+        <text
+          x="24"
+          y="35.5"
+          textAnchor="middle"
+          fontSize="2.8"
+          fontWeight="bold"
+          fontFamily="serif"
+          fill={color}
+          letterSpacing="0.4"
+        >
+          GIZA · POST
+        </text>
+      </svg>
+    ),
+  },
+  {
+    id: 'mail-crest-postmark',
+    name: 'Official Mail Seal',
+    category: 'Airmail',
+    description: 'Double-ring official post office MAIL cancellation mark',
+    src: sealMailCrestPostmark,
+    renderIcon: ({ className = '', size = 40, color = 'currentColor' } = {}) => (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 48 48"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={className}
+      >
+        <ellipse cx="24" cy="24" rx="20" ry="16" stroke={color} strokeWidth="1.4" />
+        <ellipse cx="24" cy="24" rx="17" ry="13" stroke={color} strokeWidth="0.8" strokeDasharray="2 1.5" opacity="0.7" />
+        {/* Center MAIL banner */}
+        <text
+          x="24"
+          y="26"
+          textAnchor="middle"
+          fontSize="7"
+          fontWeight="bold"
+          fontFamily="sans-serif"
+          fill={color}
+          letterSpacing="1"
+        >
+          MAIL
+        </text>
+        {/* Top / Bottom postal decorative stars */}
+        <circle cx="16" cy="15" r="0.8" fill={color} />
+        <circle cx="24" cy="13" r="1" fill={color} />
+        <circle cx="32" cy="15" r="0.8" fill={color} />
+        <circle cx="16" cy="33" r="0.8" fill={color} />
+        <circle cx="24" cy="35" r="1" fill={color} />
+        <circle cx="32" cy="33" r="0.8" fill={color} />
       </svg>
     ),
   },

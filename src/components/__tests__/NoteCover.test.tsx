@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { NoteCover } from '../NoteCard/NoteCover';
+import { NoteCoverDecorations } from '../NoteCard/NoteCoverDecorations';
+import { NOTE_COVER_STYLES, SEAL_STYLES } from '../../constants/noteCovers';
 import { Note } from '../../types';
 
 describe('NoteCover Component', () => {
@@ -19,21 +21,19 @@ describe('NoteCover Component', () => {
     paperTheme: 'kraft',
     isCovered: true,
     coverStyle: 'classic-kraft',
-    sealStyle: 'wax-seal-crest',
+    sealStyle: 'golden-sun',
     coverPrompt: 'Tap to read secret',
     tags: ['personal', 'diary'],
     createdAt: '2026-08-20T12:00:00Z',
     updatedAt: '2026-08-20T12:00:00Z',
   };
 
-  it('renders title, custom prompt, and tags correctly', () => {
+  it('renders title and custom prompt correctly', () => {
     const onReveal = vi.fn();
     render(<NoteCover note={mockNote} onReveal={onReveal} />);
 
     expect(screen.getByText('Secret Diary Entry')).toBeDefined();
     expect(screen.getByText('Tap to read secret')).toBeDefined();
-    expect(screen.getByText('#personal')).toBeDefined();
-    expect(screen.getByText('#diary')).toBeDefined();
   });
 
   it('triggers onReveal on click', () => {
@@ -121,4 +121,96 @@ describe('NoteCover Component', () => {
 
     expect(onReveal).toHaveBeenCalled();
   });
+
+  it('renders vintage-airmail envelope cover with postal decorations', () => {
+    const onReveal = vi.fn();
+    const airmailNote: Note = {
+      ...mockNote,
+      coverStyle: 'vintage-airmail',
+      sealStyle: 'air-mail-postmark',
+      title: 'Airmail Letter to Paris',
+    };
+    render(<NoteCover note={airmailNote} onReveal={onReveal} />);
+
+    expect(screen.getByText('Airmail Letter to Paris')).toBeDefined();
+    expect(screen.getByText('2026-08-20')).toBeDefined();
+  });
+
+  it('renders vintage postage stamp seal styles correctly', () => {
+    const onReveal = vi.fn();
+    const eiffelNote: Note = {
+      ...mockNote,
+      coverStyle: 'vintage-airmail',
+      sealStyle: 'eiffel-postage-stamp',
+      title: 'Paris Travelogue',
+    };
+    render(<NoteCover note={eiffelNote} onReveal={onReveal} />);
+
+    expect(screen.getByText('Paris Travelogue')).toBeDefined();
+  });
+
+  it('renders NoteCoverDecorations for vintage-airmail style cleanly', () => {
+    const { container } = render(<NoteCoverDecorations coverStyle="vintage-airmail" />);
+    expect(container.firstChild).not.toBeNull();
+  });
+
+  it('renders null from NoteCoverDecorations for non-decorated styles', () => {
+    const { container } = render(<NoteCoverDecorations coverStyle="classic-kraft" />);
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('verifies all 3 cover styles have valid assets and configurations', () => {
+    expect(NOTE_COVER_STYLES.length).toBe(3);
+    NOTE_COVER_STYLES.forEach((cover) => {
+      expect(cover.id).toBeDefined();
+      expect(cover.name).toBeDefined();
+      expect(cover.src).toBeDefined();
+    });
+  });
+
+  it('verifies all 11 seal styles have valid assets and renderIcon functions', () => {
+    expect(SEAL_STYLES.length).toBe(11);
+    SEAL_STYLES.forEach((seal) => {
+      expect(seal.id).toBeDefined();
+      expect(seal.name).toBeDefined();
+      expect(seal.src).toBeDefined();
+      expect(typeof seal.renderIcon).toBe('function');
+      const { container } = render(<div>{seal.renderIcon({ size: 32 })}</div>);
+      expect(container.querySelector('svg')).not.toBeNull();
+    });
+  });
+
+  it('scales seal SVG emblem and typography adaptively based on large note dimensions', () => {
+    const onReveal = vi.fn();
+    const compactNote: Note = {
+      ...mockNote,
+      width: 280,
+      height: 300,
+      title: 'Compact Note',
+    };
+    const { container: compactContainer } = render(<NoteCover note={compactNote} onReveal={onReveal} />);
+    const compactSeal = compactContainer.querySelector('svg[width]');
+    const compactSize = parseInt(compactSeal?.getAttribute('width') || '0', 10);
+
+    const largeNote: Note = {
+      ...mockNote,
+      width: 650,
+      height: 500,
+      title: 'Wide Blueprint Document',
+    };
+    const { container: largeContainer } = render(<NoteCover note={largeNote} onReveal={onReveal} />);
+
+    expect(screen.getByText('Wide Blueprint Document')).toBeDefined();
+    const titleEl = screen.getByText('Wide Blueprint Document');
+    expect(titleEl.className).toContain('text-3xl');
+
+    const largeSeal = largeContainer.querySelector('svg[width]');
+    expect(largeSeal).not.toBeNull();
+    const largeSize = parseInt(largeSeal?.getAttribute('width') || '0', 10);
+
+    // Bigger note MUST have strictly larger seal than compact note
+    expect(largeSize).toBeGreaterThan(compactSize);
+    expect(largeSize).toBeGreaterThan(120);
+  });
 });
+

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none">
+  <circle cx="24" cy="24" r="19" stroke="currentColor" stroke-width="1.5" />
+  <circle cx="24" cy="24" r="15" stroke="currentColor" stroke-width="0.8" stroke-dasharray="2 2" opacity="0.6" />
+  <polygon points="24,9 27,21 39,24 27,27 24,39 21,27 9,24 21,21" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="1.2" />
+  <polygon points="24,9 24,24 21,21" fill="currentColor" />
+  <polygon points="39,24 24,24 27,21" fill="currentColor" />
+  <polygon points="24,39 24,24 27,27" fill="currentColor" />
+  <polygon points="9,24 24,24 21,27" fill="currentColor" />
+  <circle cx="24" cy="24" r="2" fill="currentColor" />
+</svg>

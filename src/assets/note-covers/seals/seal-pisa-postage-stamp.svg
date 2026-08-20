@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none">
+  <rect x="10" y="6" width="28" height="36" rx="1" stroke="currentColor" stroke-width="1.4" stroke-dasharray="2.5 1.5" />
+  <rect x="13" y="9" width="22" height="30" stroke="currentColor" stroke-width="0.8" fill="currentColor" fill-opacity="0.08" />
+  <text x="24" y="14" text-anchor="middle" font-size="3.2" font-weight="bold" font-family="serif" fill="currentColor" letter-spacing="0.5">ITALIA</text>
+  <g transform="rotate(5 24 25)">
+    <rect x="22" y="16" width="5" height="3" stroke="currentColor" stroke-width="0.8" fill="currentColor" fill-opacity="0.2" />
+    <path d="M23 16V14.5H26V16" stroke="currentColor" stroke-width="0.8" />
+    <path d="M21 19H28V22H21V19Z" stroke="currentColor" stroke-width="0.7" fill="currentColor" fill-opacity="0.1" />
+    <path d="M20.5 22H28.5V25H20.5V22Z" stroke="currentColor" stroke-width="0.7" fill="currentColor" fill-opacity="0.1" />
+    <path d="M20 25H29V28H20V25Z" stroke="currentColor" stroke-width="0.7" fill="currentColor" fill-opacity="0.1" />
+    <path d="M19.5 28H29.5V31H19.5V28Z" stroke="currentColor" stroke-width="0.7" fill="currentColor" fill-opacity="0.1" />
+    <path d="M19 31H30V34H19V31Z" stroke="currentColor" stroke-width="0.8" fill="currentColor" fill-opacity="0.25" />
+    <path d="M23 20V22M26 20V22M22.5 23V25M26.5 23V25M22 26V28M27 26V28M21.5 29V31M27.5 29V31" stroke="currentColor" stroke-width="0.6" />
+  </g>
+  <text x="24" y="37" text-anchor="middle" font-size="3" font-weight="bold" font-family="monospace" fill="currentColor">15L</text>
+</svg>

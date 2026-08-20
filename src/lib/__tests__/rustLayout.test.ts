@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   computeBatchLayout,
   findNearestSpatialNote,
+  cullNotesInFrustum,
+  computeBatchDragSnapping,
 } from '../rustLayout';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -69,5 +71,47 @@ describe('rustLayout bridge', () => {
 
     const up = await findNearestSpatialNote('origin', 'up', notes);
     expect(up).toBe('up_node');
+  });
+
+  it('delegates cullNotesInFrustum to Tauri invoke or fallback', async () => {
+    (invoke as any).mockResolvedValueOnce(['inside', 'overlapping']);
+
+    const frustum = { minX: 0, maxX: 500, minY: 0, maxY: 500 };
+    const result = await cullNotesInFrustum([], frustum);
+    expect(invoke).toHaveBeenCalledWith('cull_notes_in_frustum', {
+      notes: [],
+      frustum,
+    });
+    expect(result).toEqual(['inside', 'overlapping']);
+
+    // Fallback mode test
+    delete (window as any).__TAURI_INTERNALS__;
+    const notes = [
+      { id: 'inside', x: 100, y: 100, width: 200, height: 200 },
+      { id: 'outside', x: 2000, y: 2000, width: 200, height: 200 },
+    ];
+    const fallbackResult = await cullNotesInFrustum(notes, frustum);
+    expect(fallbackResult).toEqual(['inside']);
+  });
+
+  it('delegates computeBatchDragSnapping to Tauri invoke or fallback', async () => {
+    const mockOutput = [{ id: 'n1', x: 20, y: 40 }];
+    (invoke as any).mockResolvedValueOnce(mockOutput);
+
+    const items = [{ id: 'n1', startX: 10, startY: 10 }];
+    const result = await computeBatchDragSnapping(items, 10, 30, true, 20);
+    expect(invoke).toHaveBeenCalledWith('compute_batch_drag_snapping', {
+      items,
+      deltaX: 10,
+      deltaY: 30,
+      snapToGrid: true,
+      gridSize: 20,
+    });
+    expect(result).toEqual(mockOutput);
+
+    // Fallback mode test
+    delete (window as any).__TAURI_INTERNALS__;
+    const fallbackResult = await computeBatchDragSnapping(items, 15, 25, true, 20);
+    expect(fallbackResult).toEqual([{ id: 'n1', x: 20, y: 40 }]);
   });
 });

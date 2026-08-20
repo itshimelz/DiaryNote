@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   ZoomInAreaIcon,
   Upload04Icon,
@@ -11,10 +11,12 @@ import {
   SecurityLockIcon,
   CircleUnlock01Icon,
   Image01Icon,
+  Book01Icon,
 } from '@hugeicons/core-free-icons';
 import { IconButton, Icon } from '../ui';
 import { Note, FrameStyle } from '../../types';
 import { NoteDecorations } from './NoteDecorations';
+import { NoteCover } from './NoteCover';
 import { NoteStylePicker } from './NoteStylePicker';
 import { ImageLightboxModal } from '../Modals/ImageLightboxModal';
 import { useNoteDrag } from '../../hooks/useNoteDrag';
@@ -77,6 +79,12 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [isRevealed, setIsRevealed] = useState(false);
+  const lastRevealedTimeRef = useRef<number>(0);
+  const handleReveal = useCallback(() => {
+    lastRevealedTimeRef.current = Date.now();
+    setIsRevealed(true);
+  }, []);
   const cardRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const captionInputRef = useRef<HTMLInputElement>(null);
@@ -85,6 +93,11 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
     setImageError(false);
     setImageLoaded(false);
   }, [note.imageUrl]);
+
+  useEffect(() => {
+    setIsRevealed(false);
+    setIsEditingCaption(false);
+  }, [note.isCovered]);
 
   const { isDragging, handleMouseDown } = useNoteDrag({
     note,
@@ -179,7 +192,24 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();
+          if (note.isCovered && !isRevealed) {
+            return;
+          }
           onContextMenu?.(e, note.id);
+        }}
+        onDoubleClick={(e) => {
+          if (note.isCovered && !isRevealed) return;
+          if (Date.now() - lastRevealedTimeRef.current < 500) return;
+          if (isPanMode || (e.target as HTMLElement).closest('button, input, textarea, a, .no-drag')) return;
+          setIsLightboxOpen(true);
+        }}
+        onKeyDown={(e) => {
+          if (note.isCovered && !isRevealed) return;
+          if ((e.target as HTMLElement).closest('input, textarea')) return;
+          if (e.key === 'Enter' && isSelected) {
+            e.preventDefault();
+            setIsEditingCaption(true);
+          }
         }}
         role="article"
         tabIndex={0}
@@ -212,6 +242,15 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
       >
         {/* Bulletin Board 3D Pushpins and Washi Tape */}
         <NoteDecorations pinStyle={note.pinStyle} />
+
+        {/* Full Note Cover (When Covered & Closed) */}
+        {note.isCovered && !isRevealed && (
+          <NoteCover
+            note={note}
+            isDragging={isDragging || isCardDragging}
+            onReveal={handleReveal}
+          />
+        )}
 
         {/* Smart Quick-Action: Add to Overlapping Group */}
         {isSelected && overlappingGroup && (
@@ -246,6 +285,19 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
         >
           {!note.isLocked && (
             <>
+              {note.isCovered && isRevealed && (
+                <IconButton
+                  icon={Book01Icon}
+                  size="sm"
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsRevealed(false);
+                  }}
+                  aria-label="Close cover"
+                  title="Close Cover (Alt+C)"
+                />
+              )}
               <IconButton
                 icon={ZoomInAreaIcon}
                 size="sm"
@@ -366,6 +418,8 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
             {/* Image Surface */}
             <div
               onDoubleClick={(e) => {
+                if (note.isCovered && !isRevealed) return;
+                if (Date.now() - lastRevealedTimeRef.current < 500) return;
                 e.stopPropagation();
                 setIsLightboxOpen(true);
               }}
@@ -396,6 +450,8 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
             <div
               className="mt-2.5 px-1 min-h-[34px] flex items-center justify-center text-center cursor-text"
               onClick={(e) => {
+                if (note.isCovered && !isRevealed) return;
+                if (Date.now() - lastRevealedTimeRef.current < 500) return;
                 e.stopPropagation();
                 setIsEditingCaption(true);
               }}
@@ -445,6 +501,8 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
           <div className="relative w-full flex-1 flex flex-col p-2">
             <div
               onDoubleClick={(e) => {
+                if (note.isCovered && !isRevealed) return;
+                if (Date.now() - lastRevealedTimeRef.current < 500) return;
                 e.stopPropagation();
                 setIsLightboxOpen(true);
               }}
@@ -480,6 +538,8 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
           /* Frameless / Standard View */
           <div
             onDoubleClick={(e) => {
+              if (note.isCovered && !isRevealed) return;
+              if (Date.now() - lastRevealedTimeRef.current < 500) return;
               e.stopPropagation();
               setIsLightboxOpen(true);
             }}
