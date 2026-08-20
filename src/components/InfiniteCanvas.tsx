@@ -296,6 +296,10 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
       const baseTransform = pendingWheelTransformRef.current || transform;
       const scheduleWheelTransform = (nextTransform: CanvasTransform) => {
         pendingWheelTransformRef.current = nextTransform;
+        // Direct DOM update for 0ms latency hardware-accelerated wheel motion
+        if (worldLayerRef.current) {
+          worldLayerRef.current.style.transform = `translate3d(${nextTransform.x}px, ${nextTransform.y}px, 0) scale(${nextTransform.zoom})`;
+        }
         if (wheelFrameRef.current !== null) return;
         wheelFrameRef.current = requestAnimationFrame(() => {
           const next = pendingWheelTransformRef.current;
@@ -478,23 +482,35 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
     
     let panFrame: number | null = null;
     let pendingTransform: CanvasTransform | null = null;
+    let lastThrottledSyncTime = 0;
 
     const handleMouseMove = (moveEvt: MouseEvent) => {
       onMouseMoveCoord?.(moveEvt.clientX, moveEvt.clientY);
       const dx = moveEvt.clientX - panStartRef.current.x;
       const dy = moveEvt.clientY - panStartRef.current.y;
+      const nextX = Math.round(panStartRef.current.transformX + dx);
+      const nextY = Math.round(panStartRef.current.transformY + dy);
+
       pendingTransform = {
         ...transform,
-        x: Math.round(panStartRef.current.transformX + dx),
-        y: Math.round(panStartRef.current.transformY + dy),
+        x: nextX,
+        y: nextY,
       };
 
       if (panFrame === null) {
         panFrame = requestAnimationFrame(() => {
-          if (pendingTransform) {
-            onTransformChange(pendingTransform);
+          // Direct DOM transform: 0ms latency hardware-accelerated GPU translation
+          if (worldLayerRef.current && pendingTransform) {
+            worldLayerRef.current.style.transform = `translate3d(${pendingTransform.x}px, ${pendingTransform.y}px, 0) scale(${pendingTransform.zoom})`;
           }
           panFrame = null;
+
+          // Throttled background sync every 120ms for long continuous pans
+          const now = performance.now();
+          if (now - lastThrottledSyncTime > 120 && pendingTransform) {
+            lastThrottledSyncTime = now;
+            onTransformChange(pendingTransform);
+          }
         });
       }
     };
@@ -686,7 +702,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
       {/* World layer */}
       <div
         ref={worldLayerRef}
-        className="absolute inset-0 origin-top-left will-change-transform"
+        className={`absolute inset-0 origin-top-left will-change-transform ${isPanning ? 'pointer-events-none' : ''}`}
         style={{
           transform: `translate3d(${transform.x}px, ${transform.y}px, 0) scale(${transform.zoom})`,
         }}

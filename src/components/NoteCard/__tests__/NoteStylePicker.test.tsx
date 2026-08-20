@@ -108,6 +108,7 @@ describe('NoteStylePicker component', () => {
     render(
       <NoteStylePicker
         note={textNote}
+        initialTab="cover"
         onUpdateNote={onUpdateNote}
         onClose={onClose}
       />
@@ -123,14 +124,43 @@ describe('NoteStylePicker component', () => {
 
     // Clicking a seal emblem calls onUpdateNote
     const seals = screen.getAllByRole('button');
-    const vintageSealBtn = seals.find((b) => b.getAttribute('title')?.includes('Vintage Floral'));
-    if (vintageSealBtn) {
-      fireEvent.click(vintageSealBtn);
+    const sunSealBtn = seals.find((b) => b.getAttribute('title')?.includes('Golden Sun'));
+    if (sunSealBtn) {
+      fireEvent.click(sunSealBtn);
       expect(onUpdateNote).toHaveBeenCalledWith(
         expect.objectContaining({
-          sealStyle: 'seal-floral',
+          sealStyle: 'golden-sun',
         })
       );
     }
+  });
+
+  it('allows switching between segmented tabs seamlessly', () => {
+    const onUpdateNote = vi.fn();
+    const onClose = vi.fn();
+
+    render(
+      <NoteStylePicker
+        note={textNote}
+        onUpdateNote={onUpdateNote}
+        onClose={onClose}
+      />
+    );
+
+    // Initial tab is Paper & Style
+    expect(screen.getByText('Washi Tape Decoration')).toBeTruthy();
+    expect(screen.queryByText('Handwriting & Font Family')).toBeNull();
+
+    // Switch to Typography tab
+    fireEvent.click(screen.getByRole('button', { name: /typography/i }));
+    expect(screen.getByText('Handwriting & Font Family')).toBeTruthy();
+    expect(screen.getByText('Text Size')).toBeTruthy();
+    expect(screen.queryByText('Washi Tape Decoration')).toBeNull();
+
+    // Switch to Cover & Seal tab
+    fireEvent.click(screen.getByRole('button', { name: /cover & seal/i }));
+    expect(screen.getByText('Cover Style & Seal')).toBeTruthy();
+    expect(screen.getByText('Seal SVG Emblem')).toBeTruthy();
+    expect(screen.queryByText('Handwriting & Font Family')).toBeNull();
   });
 });

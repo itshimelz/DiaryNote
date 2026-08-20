@@ -484,20 +484,23 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       )}
 
       {/* Full Note Cover (When Covered & Closed) */}
-      {note.isCovered && !isRevealed && (
+      {isCoverActive ? (
         <NoteCover
           note={note}
           isDragging={isDragging || isCardDragging}
           onReveal={handleReveal}
         />
-      )}
+      ) : (
+        <>
+          {/* Washi Tape Decoration for Text Notes */}
+          <NoteDecorations pinStyle={note.pinStyle} allowedTypes="tape-only" />
 
-      {/* 1. Header */}
-      <NoteHeader
-        note={note}
-        allNotes={allNotes}
-        themeConfig={themeConfig}
-        isEditingTitle={false}
+          {/* 1. Header */}
+          <NoteHeader
+            note={note}
+            allNotes={allNotes}
+            themeConfig={themeConfig}
+            isEditingTitle={false}
         onUpdateTitle={(newTitle) => {
           const uniqueTitle = getUniqueTitleForDay(newTitle, note.id, allNotes);
           onUpdateNote({
@@ -988,6 +991,8 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
           <path d="M9 9H7V7H9V9ZM9 5H7V3H9V5ZM5 9H3V7H5V9Z" />
         </svg>
       </div>
+        </>
+      )}
     </div>
   );
 };
@@ -1033,6 +1038,10 @@ export const NoteCard = React.memo(NoteCardComponent, (prevProps, nextProps) => 
     prevProps.note.isPinned === nextProps.note.isPinned &&
     prevProps.note.groupId === nextProps.note.groupId &&
     prevProps.note.groupName === nextProps.note.groupName &&
-    prevProps.note.isLocked === nextProps.note.isLocked
+    prevProps.note.isLocked === nextProps.note.isLocked &&
+    prevProps.note.isCovered === nextProps.note.isCovered &&
+    prevProps.note.coverStyle === nextProps.note.coverStyle &&
+    prevProps.note.sealStyle === nextProps.note.sealStyle &&
+    prevProps.note.coverPrompt === nextProps.note.coverPrompt
   );
 });

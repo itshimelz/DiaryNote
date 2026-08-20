@@ -90,10 +90,6 @@ const NoteCoverComponent: React.FC<NoteCoverProps> = ({
           onReveal();
         }
       }}
-      style={{
-        contain: 'strict',
-        transform: 'translateZ(0)',
-      }}
       className={`absolute inset-0 z-25 flex flex-col justify-between ${coverPaddingClass} rounded-sm select-none cursor-pointer overflow-hidden ${coverConfig.cardClass} ${coverConfig.borderClass} ${className}`}
       title="Click to open note"
     >
@@ -113,7 +109,7 @@ const NoteCoverComponent: React.FC<NoteCoverProps> = ({
       {/* Center Section: Dynamic Seal SVG + Title */}
       <div className={`relative z-10 my-auto flex flex-col items-center justify-center text-center px-3 py-2 ${centerGapClass}`}>
         {/* Seal SVG Artwork - Proportional dimension scaling */}
-        <div className="transform transition-transform duration-200 hover:scale-105 flex items-center justify-center">
+        <div className="flex items-center justify-center pointer-events-none">
           {sealConfig.renderIcon({
             size: sealSize,
             color: coverConfig.accentColor || 'currentColor',

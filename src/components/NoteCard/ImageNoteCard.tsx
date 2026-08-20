@@ -240,19 +240,19 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
             : ''
         }`}
       >
-        {/* Bulletin Board 3D Pushpins and Washi Tape */}
-        <NoteDecorations pinStyle={note.pinStyle} />
-
         {/* Full Note Cover (When Covered & Closed) */}
-        {note.isCovered && !isRevealed && (
+        {note.isCovered && !isRevealed ? (
           <NoteCover
             note={note}
             isDragging={isDragging || isCardDragging}
             onReveal={handleReveal}
           />
-        )}
+        ) : (
+          <>
+            {/* Bulletin Board 3D Pushpins and Washi Tape */}
+            <NoteDecorations pinStyle={note.pinStyle} />
 
-        {/* Smart Quick-Action: Add to Overlapping Group */}
+            {/* Smart Quick-Action: Add to Overlapping Group */}
         {isSelected && overlappingGroup && (
           <div className="absolute -top-7 left-2 z-50 pointer-events-auto select-none">
             <button
@@ -583,6 +583,8 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
         >
           <div className="w-2.5 h-2.5 border-r-2 border-b-2 border-slate-400 dark:border-slate-500 rounded-br-xs" />
         </div>
+          </>
+        )}
       </div>
 
       {/* Lightbox Modal */}
