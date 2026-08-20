@@ -8,6 +8,7 @@ pub mod image;
 pub mod layout;
 pub mod search;
 pub mod storage;
+pub mod url;
 pub mod vault;
 
 pub use ai::{ai_generate_tags, ai_stream_synthesis, ai_test_connection};
@@ -23,6 +24,7 @@ pub use storage::{
     check_database_integrity, delete_notes, get_database_stats, load_app_state, save_app_settings,
     save_canvas_transform, save_notes_batch, vacuum_database,
 };
+pub use url::open_external_url;
 pub use vault::{
     vault_decrypt_note, vault_encrypt_note, vault_get_status, vault_hash_security_input,
     vault_is_unlocked, vault_lock, vault_unlock, vault_verify_security_input,

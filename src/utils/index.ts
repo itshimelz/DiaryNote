@@ -10,3 +10,4 @@ export * from './aiUsageTracker';
 export * from './textareaCursor';
 export * from './logger';
 export * from './inlineMarkdownScanner';
+export * from './urlOpener';

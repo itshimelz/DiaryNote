@@ -5,7 +5,7 @@ import remarkBreaks from 'remark-breaks';
 import { Tick02Icon } from '@hugeicons/core-free-icons';
 import { Icon } from '../ui';
 import { Note, PaperTheme } from '../../types';
-import { processMarkdownMentions, preserveNoteTabsAndIndentation } from '../../utils';
+import { processMarkdownMentions, preserveNoteTabsAndIndentation, openExternalUrl } from '../../utils';
 import { PAPER_THEMES } from './types';
 
 function disableIndentedCodePlugin(this: any) {
@@ -262,8 +262,14 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            className={`${themeConfig.linkColor} hover:underline inline`}
-            onClick={(e) => e.stopPropagation()}
+            className={`${themeConfig.linkColor} hover:underline inline cursor-pointer`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (href) {
+                openExternalUrl(href);
+              }
+            }}
           >
             {children}
           </a>

@@ -8,6 +8,7 @@ import {
 } from '@hugeicons/core-free-icons';
 import { Button, IconButton, Badge, Icon } from './ui';
 import { ReleaseInfo, dismissUpdateAlert, CURRENT_VERSION } from '../utils/updateChecker';
+import { openExternalUrl } from '../utils/urlOpener';
 import { CanvasTheme } from '../types';
 
 interface UpdateAlertBannerProps {
@@ -31,7 +32,7 @@ export const UpdateAlertBanner: React.FC<UpdateAlertBannerProps> = ({
   };
 
   const handleViewRelease = () => {
-    window.open(release.htmlUrl, '_blank', 'noopener,noreferrer');
+    openExternalUrl(release.htmlUrl);
   };
 
   return (

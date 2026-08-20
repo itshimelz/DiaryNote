@@ -17,7 +17,7 @@ use commands::{
     save_asset_from_bytes, save_asset_from_path, save_canvas_transform, save_export_file,
     save_notes_batch, search_notes, vacuum_database, vault_decrypt_note, vault_encrypt_note,
     vault_get_status, vault_hash_security_input, vault_is_unlocked, vault_lock, vault_unlock,
-    vault_verify_security_input,
+    vault_verify_security_input, open_external_url,
 };
 use domain::asset::AssetService;
 use domain::graph::GraphService;
@@ -159,6 +159,7 @@ pub fn run() {
             ai_test_connection,
             ai_stream_synthesis,
             ai_generate_tags,
+            open_external_url,
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {

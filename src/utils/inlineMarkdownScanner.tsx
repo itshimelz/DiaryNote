@@ -1,6 +1,7 @@
 import React from 'react';
 import { Note } from '../types';
 import { getNoteLookupMaps } from './markdownMention';
+import { openExternalUrl } from './urlOpener';
 
 export interface InlineMarkdownOptions {
   allNotes?: Note[];
@@ -125,8 +126,12 @@ export function renderInlineMarkdown(
             href={linkHref}
             target="_blank"
             rel="noopener noreferrer"
-            className={`${linkColor} hover:underline inline`}
-            onClick={(e) => e.stopPropagation()}
+            className={`${linkColor} hover:underline inline cursor-pointer`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              openExternalUrl(linkHref);
+            }}
           >
             {linkText}
           </a>

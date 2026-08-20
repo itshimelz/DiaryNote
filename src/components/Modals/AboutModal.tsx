@@ -17,6 +17,7 @@ import {
   checkForAppUpdates,
   ReleaseInfo,
 } from '../../utils/updateChecker';
+import { openExternalUrl } from '../../utils/urlOpener';
 import { CanvasTheme } from '../../types';
 import { Dialog, DialogHeader, DialogBody, DialogFooter, Button, Badge, Icon } from '../ui';
 
@@ -146,7 +147,13 @@ export const AboutModal: React.FC<AboutModalProps> = ({
                   href={updateResult.latestRelease.htmlUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 mt-1 text-[11px] font-bold underline hover:opacity-80"
+                  className="inline-flex items-center gap-1 mt-1 text-[11px] font-bold underline hover:opacity-80 cursor-pointer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (updateResult.latestRelease?.htmlUrl) {
+                      openExternalUrl(updateResult.latestRelease.htmlUrl);
+                    }
+                  }}
                 >
                   <span>Download {updateResult.latestRelease.tagName} on GitHub</span>
                   <Icon icon={LinkSquare02Icon} size="xs" />
@@ -187,7 +194,11 @@ export const AboutModal: React.FC<AboutModalProps> = ({
               href={REPO_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 font-mono text-xs font-semibold text-slate-800 dark:text-slate-200 hover:underline"
+              className="flex items-center gap-1 font-mono text-xs font-semibold text-slate-800 dark:text-slate-200 hover:underline cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault();
+                openExternalUrl(REPO_URL);
+              }}
             >
               <Icon icon={GithubIcon} size="sm" />
               <span>itshimelz/DiaryNote</span>
@@ -212,7 +223,11 @@ export const AboutModal: React.FC<AboutModalProps> = ({
             href={`${REPO_URL}/releases`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:underline"
+            className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:underline cursor-pointer"
+            onClick={(e) => {
+              e.preventDefault();
+              openExternalUrl(`${REPO_URL}/releases`);
+            }}
           >
             <Icon icon={Globe02Icon} size="xs" />
             <span>Releases</span>
