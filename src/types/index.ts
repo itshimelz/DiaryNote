@@ -72,6 +72,32 @@ export type {
   AIModelsCatalog,
 } from '../constants/aiModelsCatalog';
 
+export type CoverStyle =
+  | 'classic-kraft'
+  | 'leather-journal'
+  | 'obsidian-minimal'
+  | 'botanical-linen'
+  | 'sakura-blush'
+  | 'vintage-parchment'
+  | 'ocean-navy'
+  | 'celestial-gold'
+  | 'matcha-vellum'
+  | 'clean-monochrome'
+  | (string & {});
+
+export type SealStyle =
+  | 'wax-seal-crest'
+  | 'golden-sun'
+  | 'botanical-branch'
+  | 'vintage-stamp'
+  | 'origami-crane'
+  | 'mystic-eye'
+  | 'minimal-knot'
+  | 'feather-quill'
+  | 'monogram-star'
+  | 'compass-rose'
+  | (string & {});
+
 export interface Note {
   id: string;
   title: string;
@@ -104,6 +130,10 @@ export interface Note {
   frameStyle?: FrameStyle;
   pinStyle?: PinStyle;
   rotation?: number;
+  isCovered?: boolean;
+  coverStyle?: CoverStyle;
+  sealStyle?: SealStyle;
+  coverPrompt?: string;
 }
 
 export interface CanvasTransform {

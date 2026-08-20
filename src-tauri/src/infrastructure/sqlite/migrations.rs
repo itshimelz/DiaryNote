@@ -1,19 +1,24 @@
 use rusqlite::{Connection, Result};
 use super::schema::INITIAL_SCHEMA_SQL;
 
-pub const CURRENT_SCHEMA_VERSION: i32 = 1;
+pub const CURRENT_SCHEMA_VERSION: i32 = 2;
 
 /// Runs all pending schema migrations inside an atomic transaction.
 pub fn run_migrations(conn: &mut Connection) -> Result<()> {
     let current_version: i32 = conn.query_row("PRAGMA user_version", [], |row| row.get(0))?;
 
-    if current_version < CURRENT_SCHEMA_VERSION {
+    if current_version < 1 {
         conn.execute_batch(INITIAL_SCHEMA_SQL)?;
-        conn.pragma_update(None, "user_version", CURRENT_SCHEMA_VERSION)?;
+        conn.pragma_update(None, "user_version", 1)?;
     }
 
-    // Future version migrations can be added here:
-    // if current_version < 2 { ... }
+    if current_version < 2 {
+        let _ = conn.execute("ALTER TABLE notes ADD COLUMN is_covered INTEGER NOT NULL DEFAULT 0", []);
+        let _ = conn.execute("ALTER TABLE notes ADD COLUMN cover_style TEXT", []);
+        let _ = conn.execute("ALTER TABLE notes ADD COLUMN seal_style TEXT", []);
+        let _ = conn.execute("ALTER TABLE notes ADD COLUMN cover_prompt TEXT", []);
+        conn.pragma_update(None, "user_version", 2)?;
+    }
 
     Ok(())
 }

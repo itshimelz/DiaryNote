@@ -289,4 +289,141 @@ describe('useNoteSelection Hook & Shortcuts', () => {
 
     expect(result.current.selectedNoteIds).toEqual(['note-2']);
   });
+
+  it('triggers onToggleCoverSelectedNotes when Alt+C or Shift+C is pressed on selected notes', () => {
+    const handleUndo = vi.fn();
+    const handleRedo = vi.fn();
+    const requestDeleteNotes = vi.fn();
+    const setIsSearchOpen = vi.fn();
+    const onToggleCoverSelectedNotes = vi.fn();
+
+    const { result } = renderHook(() =>
+      useNoteSelection(
+        dummyNotes,
+        handleUndo,
+        handleRedo,
+        requestDeleteNotes,
+        setIsSearchOpen,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        onToggleCoverSelectedNotes
+      )
+    );
+
+    // Select note-1
+    act(() => {
+      result.current.handleSelectNote('note-1');
+    });
+
+    // Press Alt+C
+    act(() => {
+      const event = new KeyboardEvent('keydown', {
+        key: 'c',
+        altKey: true,
+        bubbles: true,
+      });
+      window.dispatchEvent(event);
+    });
+
+    expect(onToggleCoverSelectedNotes).toHaveBeenCalledWith(['note-1']);
+
+    // Press Shift+C
+    act(() => {
+      const event = new KeyboardEvent('keydown', {
+        key: 'c',
+        shiftKey: true,
+        bubbles: true,
+      });
+      window.dispatchEvent(event);
+    });
+
+    expect(onToggleCoverSelectedNotes).toHaveBeenCalledWith(['note-1']);
+  });
+
+  it('ensures handleSelectMultipleNotes clears editingNoteId', () => {
+    const handleUndo = vi.fn();
+    const handleRedo = vi.fn();
+    const requestDeleteNotes = vi.fn();
+    const setIsSearchOpen = vi.fn();
+
+    const { result } = renderHook(() =>
+      useNoteSelection(
+        dummyNotes,
+        handleUndo,
+        handleRedo,
+        requestDeleteNotes,
+        setIsSearchOpen
+      )
+    );
+
+    act(() => {
+      result.current.setEditingNoteId('note-1');
+    });
+    expect(result.current.editingNoteId).toBe('note-1');
+
+    act(() => {
+      result.current.handleSelectMultipleNotes(['note-1', 'note-2']);
+    });
+    expect(result.current.editingNoteId).toBeNull();
+    expect(result.current.selectedNoteIds).toEqual(['note-1', 'note-2']);
+  });
+
+  it('does NOT trigger edit mode on Enter key if selected note is covered', () => {
+    const coveredNotes: Note[] = [
+      {
+        ...dummyNotes[0],
+        id: 'covered-note-1',
+        isCovered: true,
+      },
+    ];
+    const handleUndo = vi.fn();
+    const handleRedo = vi.fn();
+    const requestDeleteNotes = vi.fn();
+    const setIsSearchOpen = vi.fn();
+
+    const { result } = renderHook(() =>
+      useNoteSelection(
+        coveredNotes,
+        handleUndo,
+        handleRedo,
+        requestDeleteNotes,
+        setIsSearchOpen
+      )
+    );
+
+    act(() => {
+      result.current.handleSelectNote('covered-note-1');
+    });
+
+    expect(result.current.selectedNoteIds).toEqual(['covered-note-1']);
+    expect(result.current.editingNoteId).toBeNull();
+
+    // Press Enter
+    act(() => {
+      const event = new KeyboardEvent('keydown', {
+        key: 'Enter',
+        bubbles: true,
+      });
+      window.dispatchEvent(event);
+    });
+
+    // Remains null, does not enter edit mode
+    expect(result.current.editingNoteId).toBeNull();
+  });
 });

@@ -93,4 +93,42 @@ describe('CanvasSettingsModal Component', () => {
     expect(screen.getByText('Update Recovery Question')).toBeDefined();
     expect(screen.getByText('Remove Passcode')).toBeDefined();
   });
+
+  it('switches to Covers & Seals tab and allows interactive preview toggle', () => {
+    render(
+      <CanvasSettingsModal
+        isOpen={true}
+        onClose={onClose}
+        themeMode="dark"
+        onToggleTheme={onToggleTheme}
+        gridType="dots"
+        onChangeGridType={onChangeGridType}
+        snapToGrid={true}
+        onToggleSnapToGrid={onToggleSnapToGrid}
+        showConnections={true}
+        onToggleConnections={onToggleConnections}
+        showStatusBar={true}
+        onToggleStatusBar={onToggleStatusBar}
+        checkForUpdatesOnLaunch={true}
+        onToggleCheckForUpdates={onToggleCheckForUpdates}
+        notes={mockNotes}
+        zoom={1}
+        onExportBackup={onExportBackup}
+        onTriggerImportFile={onTriggerImportFile}
+      />
+    );
+
+    const coversNavBtn = screen.getByText('Covers & Seals');
+    fireEvent.click(coversNavBtn);
+
+    expect(screen.getByText('Note Covers & Vector Seals')).toBeDefined();
+    expect(screen.getByText('Interactive Live Preview')).toBeDefined();
+    expect(screen.getByText('Sample Private Entry')).toBeDefined();
+
+    // Click interactive preview card to reveal
+    const cardTitle = screen.getByText('Sample Private Entry');
+    fireEvent.click(cardTitle);
+
+    expect(screen.getByText('Close Cover')).toBeDefined();
+  });
 });

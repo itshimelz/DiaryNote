@@ -13,7 +13,8 @@ pub const NOTE_COLUMNS: &str = r#"
     font_family, font_size, paper_theme, is_pinned, z_index,
     active_mode, is_locked, group_id, group_name, entry_date,
     is_daily_entry, mood, image_url, image_type, image_aspect_ratio,
-    frame_style, pin_style, rotation
+    frame_style, pin_style, rotation,
+    is_covered, cover_style, seal_style, cover_prompt
 "#;
 
 /// Parses a SQLite row into a `Note` using named column lookups.
@@ -21,6 +22,7 @@ pub fn note_from_row(row: &rusqlite::Row) -> rusqlite::Result<Note> {
     let is_pinned_int: Option<i32> = row.get("is_pinned")?;
     let is_locked_int: Option<i32> = row.get("is_locked")?;
     let is_daily_entry_int: Option<i32> = row.get("is_daily_entry")?;
+    let is_covered_int: Option<i32> = row.get("is_covered").unwrap_or(Some(0));
 
     Ok(Note {
         id: row.get("id")?,
@@ -54,6 +56,10 @@ pub fn note_from_row(row: &rusqlite::Row) -> rusqlite::Result<Note> {
         frame_style: row.get("frame_style")?,
         pin_style: row.get("pin_style")?,
         rotation: row.get("rotation")?,
+        is_covered: is_covered_int.map(|v| v != 0),
+        cover_style: row.get("cover_style").unwrap_or(None),
+        seal_style: row.get("seal_style").unwrap_or(None),
+        cover_prompt: row.get("cover_prompt").unwrap_or(None),
     })
 }
 
@@ -155,14 +161,16 @@ impl NoteRepository for SqliteNoteRepository {
                     font_family, font_size, paper_theme, is_pinned, z_index,
                     active_mode, is_locked, group_id, group_name, entry_date,
                     is_daily_entry, mood, image_url, image_type, image_aspect_ratio,
-                    frame_style, pin_style, rotation
+                    frame_style, pin_style, rotation,
+                    is_covered, cover_style, seal_style, cover_prompt
                 ) VALUES (
                     ?1, ?2, ?3, ?4, ?5, ?6, ?7,
                     ?8, ?9, ?10, ?11,
                     ?12, ?13, ?14, ?15, ?16,
                     ?17, ?18, ?19, ?20, ?21,
                     ?22, ?23, ?24, ?25, ?26,
-                    ?27, ?28, ?29
+                    ?27, ?28, ?29,
+                    ?30, ?31, ?32, ?33
                 )
                 ON CONFLICT(id) DO UPDATE SET
                     title = excluded.title,
@@ -192,7 +200,11 @@ impl NoteRepository for SqliteNoteRepository {
                     image_aspect_ratio = excluded.image_aspect_ratio,
                     frame_style = excluded.frame_style,
                     pin_style = excluded.pin_style,
-                    rotation = excluded.rotation
+                    rotation = excluded.rotation,
+                    is_covered = excluded.is_covered,
+                    cover_style = excluded.cover_style,
+                    seal_style = excluded.seal_style,
+                    cover_prompt = excluded.cover_prompt
                 "#
             )?;
 
@@ -230,6 +242,10 @@ impl NoteRepository for SqliteNoteRepository {
                     note.frame_style,
                     note.pin_style,
                     note.rotation,
+                    note.is_covered.map(|v| if v { 1 } else { 0 }).unwrap_or(0),
+                    note.cover_style,
+                    note.seal_style,
+                    note.cover_prompt,
                 ])?;
 
                 // Re-create tags
@@ -347,6 +363,10 @@ mod tests {
             frame_style: None,
             pin_style: None,
             rotation: None,
+            is_covered: None,
+            cover_style: None,
+            seal_style: None,
+            cover_prompt: None,
         };
 
         // 1. Save Batch

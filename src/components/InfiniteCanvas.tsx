@@ -736,7 +736,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
               isCardDragging={draggingNoteIds.includes(note.id)}
               isCut={cutNoteIds.includes(note.id)}
               onDragStateChange={handleDragStateChange}
-              shouldStartEditing={editingNoteId === note.id}
+              shouldStartEditing={editingNoteId === note.id && !note.isCovered}
               onSelectNote={handleSelectNoteStable}
               onNavigateToNote={onNavigateToNote}
               onUpdateNote={onUpdateNote}
@@ -762,7 +762,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
               isCardDragging={draggingNoteIds.includes(note.id)}
               isCut={cutNoteIds.includes(note.id)}
               onDragStateChange={handleDragStateChange}
-              shouldStartEditing={editingNoteId === note.id}
+              shouldStartEditing={editingNoteId === note.id && !note.isCovered}
               onSelectNote={handleSelectNoteStable}
               onNavigateToNote={onNavigateToNote}
               onUpdateNote={onUpdateNote}

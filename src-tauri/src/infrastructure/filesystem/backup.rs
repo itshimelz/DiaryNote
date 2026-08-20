@@ -434,6 +434,10 @@ mod tests {
             frame_style: None,
             pin_style: None,
             rotation: None,
+            is_covered: None,
+            cover_style: None,
+            seal_style: None,
+            cover_prompt: None,
         };
 
         repo.save_batch(std::slice::from_ref(&note1)).expect("Failed to save note");

@@ -406,6 +406,35 @@ export default function App() {
     }
   }, []);
 
+  const handleToggleCoverSelectedNotes = useCallback(
+    (noteIds: string[]) => {
+      if (!noteIds || noteIds.length === 0) return;
+      const targetNotes = notes.filter((n) => noteIds.includes(n.id));
+      if (targetNotes.length === 0) return;
+
+      const allCovered = targetNotes.every((n) => Boolean(n.isCovered));
+      const newCoveredState = !allCovered;
+
+      const updated = targetNotes.map((n) => ({
+        ...n,
+        isCovered: newCoveredState,
+        coverStyle: n.coverStyle || 'clean-monochrome',
+        sealStyle: n.sealStyle || 'wax-seal-crest',
+        coverPrompt: n.coverPrompt || 'Click to open',
+        updatedAt: new Date().toISOString(),
+      }));
+
+      handleUpdateBatchNotes(updated);
+      sendNativeAppNotification(
+        newCoveredState ? 'Note Covered' : 'Note Cover Removed',
+        `${targetNotes.length} note${targetNotes.length > 1 ? 's' : ''} ${
+          newCoveredState ? 'covered with seal' : 'cover removed'
+        }`
+      );
+    },
+    [notes, handleUpdateBatchNotes]
+  );
+
   // 4. Note Selection & Keyboard Shortcuts Hook
   const {
     selectedNoteIds,
@@ -463,7 +492,8 @@ export default function App() {
     (ids?: string[]) => handleCutSelectedNotes(ids),
     () => handlePasteRelocateNotes(),
     () => handleCancelCutNotes(),
-    cutNoteIds.length > 0
+    cutNoteIds.length > 0,
+    handleToggleCoverSelectedNotes
   );
 
   useEffect(() => {

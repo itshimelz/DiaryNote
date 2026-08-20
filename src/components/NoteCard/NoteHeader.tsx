@@ -12,6 +12,7 @@ import {
   CloudRainIcon,
   HappyIcon,
   MoreVerticalIcon,
+  Book01Icon,
 } from '@hugeicons/core-free-icons';
 import { Icon, Menu, MenuItem, MenuDivider } from '../ui';
 import { Note, JournalMood } from '../../types';
@@ -31,6 +32,7 @@ interface NoteHeaderProps {
   onShareNote?: () => void;
   onDeselectNote?: () => void;
   onRemoveFromGroup?: () => void;
+  onReCoverNote?: () => void;
   headerDragProps?: Record<string, any>;
   themeConfig?: PaperThemeConfig;
 }
@@ -45,6 +47,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
   onDeleteNote,
   onShareNote,
   onRemoveFromGroup,
+  onReCoverNote,
   headerDragProps = {},
   themeConfig,
 }) => {
@@ -247,6 +250,16 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                         setIsOverflowMenuOpen(false);
                       }}
                     />
+                    {note.isCovered && onReCoverNote && (
+                      <MenuItem
+                        icon={Book01Icon}
+                        label="Close Cover"
+                        onClick={() => {
+                          onReCoverNote();
+                          setIsOverflowMenuOpen(false);
+                        }}
+                      />
+                    )}
                     {note.groupId && onRemoveFromGroup && (
                       <MenuItem
                         icon={FolderMinusIcon}
@@ -415,6 +428,23 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                     </div>
                   )}
                 </div>
+              )}
+
+              {/* Close Cover Button (when note has cover enabled) */}
+              {note.isCovered && onReCoverNote && (
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReCoverNote();
+                  }}
+                  className={`p-1.5 rounded-sm transition-colors cursor-pointer ${actionBtnClass}`}
+                  title="Close cover"
+                  aria-label="Close cover"
+                >
+                  <Icon icon={Book01Icon} size="lg" />
+                </button>
               )}
 
               {/* Pin Note Button */}

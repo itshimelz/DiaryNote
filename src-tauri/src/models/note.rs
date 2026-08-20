@@ -64,6 +64,14 @@ pub struct Note {
     pub pin_style: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rotation: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_covered: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cover_style: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub seal_style: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cover_prompt: Option<String>,
 }
 
 fn default_font_family() -> String {

@@ -8,6 +8,7 @@ import { NoteChecklist } from './NoteChecklist';
 import { NoteMarkdownView } from './NoteMarkdownView';
 import { NoteStylePicker } from './NoteStylePicker';
 import { NoteDecorations } from './NoteDecorations';
+import { NoteCover } from './NoteCover';
 import { MentionAutocomplete } from '../MentionAutocomplete';
 import { SlashCommandMenu, SlashCommand, SLASH_COMMANDS } from './SlashCommandMenu';
 import {
@@ -59,6 +60,16 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [showStylePicker, setShowStylePicker] = useState(false);
   const [activeMode, setActiveMode] = useState<NoteMode>(note.activeMode || 'text');
+  const [isRevealed, setIsRevealed] = useState(false);
+
+  const isCoverActive = Boolean(note.isCovered && !isRevealed);
+  const canEdit = !isCoverActive && isEditing;
+
+  useEffect(() => {
+    // When note becomes covered or uncovered, reset revealed state and stop editing
+    setIsRevealed(false);
+    setIsEditing(false);
+  }, [note.isCovered]);
 
   // Mention autocomplete state
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
@@ -74,6 +85,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const markdownRef = useRef<HTMLDivElement>(null);
   const handledEditRequestRef = useRef<string | null>(null);
+  const lastRevealedTimeRef = useRef<number>(0);
 
   const { isDragging, handleMouseDown } = useNoteDrag({
     note,
@@ -162,15 +174,18 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
   }, [isEditing, note.content, note.fontSize, note.fontFamily]);
 
   useEffect(() => {
-    if (!shouldStartEditing) {
+    if (!shouldStartEditing || isCoverActive) {
       handledEditRequestRef.current = null;
+      if (isCoverActive && isEditing) {
+        setIsEditing(false);
+      }
       return;
     }
     if (handledEditRequestRef.current !== note.id && activeMode === 'text') {
       handledEditRequestRef.current = note.id;
       setIsEditing(true);
     }
-  }, [shouldStartEditing, activeMode, note.id]);
+  }, [shouldStartEditing, activeMode, note.id, isCoverActive, isEditing]);
 
   const handleSelectMention = (targetNote: Note) => {
     if (!textareaRef.current) return;
@@ -384,14 +399,20 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       onContextMenu={(e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (note.isCovered && !isRevealed) {
+          return;
+        }
         onContextMenu?.(e, note.id);
       }}
       onDoubleClick={(e) => {
+        if (note.isCovered && !isRevealed) return;
+        if (Date.now() - lastRevealedTimeRef.current < 500) return;
         if (isPanMode || (e.target as HTMLElement).closest('.group\\/header, button, input')) return;
         setActiveMode('text');
         setIsEditing(true);
       }}
       onKeyDown={(e) => {
+        if (note.isCovered && !isRevealed) return;
         // Keyboard shortcuts on the card must never override normal text entry.
         if ((e.target as HTMLElement).closest('input, textarea, [contenteditable="true"]')) return;
         if (e.key === 'Enter' && isSelected && activeMode === 'text') {
@@ -457,6 +478,18 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         </div>
       )}
 
+      {/* Full Note Cover (When Covered & Closed) */}
+      {note.isCovered && !isRevealed && (
+        <NoteCover
+          note={note}
+          isDragging={isDragging || isCardDragging}
+          onReveal={() => {
+            lastRevealedTimeRef.current = Date.now();
+            setIsRevealed(true);
+          }}
+        />
+      )}
+
       {/* 1. Header */}
       <NoteHeader
         note={note}
@@ -491,6 +524,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         }}
         onDeleteNote={() => onDeleteNote(note.id)}
         onDeselectNote={() => onSelectNote(null)}
+        onReCoverNote={() => setIsRevealed(false)}
         onRemoveFromGroup={() => {
           onSelectNote(null);
           onUpdateNote({
@@ -505,7 +539,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       {/* 2. Main Body Content Area */}
       <div
         onDoubleClick={(e) => {
-          if (isPanMode || (e.target as HTMLElement).closest('button, input, textarea, a, .no-drag')) return;
+          if (isCoverActive || Date.now() - lastRevealedTimeRef.current < 500 || isPanMode || (e.target as HTMLElement).closest('button, input, textarea, a, .no-drag')) return;
           setActiveMode('text');
           setIsEditing(true);
         }}
@@ -557,7 +591,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
             fontSizeClass={fontSizeClass}
             paperTheme={note.paperTheme}
           />
-        ) : isEditing ? (
+        ) : canEdit ? (
           <div
             className={`relative w-full flex-none flex flex-col ${
               isPanMode ? 'cursor-grab pointer-events-none' : 'cursor-text note-editor-container'
@@ -890,6 +924,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
             fontSizeClass={fontSizeClass}
             onNavigateToNote={onNavigateToNote}
             onDoubleClick={() => {
+              if (isCoverActive || Date.now() - lastRevealedTimeRef.current < 500) return;
               setActiveMode('text');
               setIsEditing(true);
             }}

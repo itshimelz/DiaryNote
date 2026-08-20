@@ -100,4 +100,37 @@ describe('NoteStylePicker component', () => {
       })
     );
   });
+
+  it('renders cover style & seal selection and allows customizing emblem without switch toggle', () => {
+    const onUpdateNote = vi.fn();
+    const onClose = vi.fn();
+
+    render(
+      <NoteStylePicker
+        note={textNote}
+        onUpdateNote={onUpdateNote}
+        onClose={onClose}
+      />
+    );
+
+    expect(screen.getByText('Cover Style & Seal')).toBeTruthy();
+    expect(screen.getByText('Alt+C')).toBeTruthy();
+    expect(screen.getByText('Cover Style')).toBeTruthy();
+    expect(screen.getByText('Seal SVG Emblem')).toBeTruthy();
+
+    // Must NOT contain toggle switch
+    expect(screen.queryByRole('switch')).toBeNull();
+
+    // Clicking a seal emblem calls onUpdateNote
+    const seals = screen.getAllByRole('button');
+    const vintageSealBtn = seals.find((b) => b.getAttribute('title')?.includes('Vintage Floral'));
+    if (vintageSealBtn) {
+      fireEvent.click(vintageSealBtn);
+      expect(onUpdateNote).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sealStyle: 'seal-floral',
+        })
+      );
+    }
+  });
 });

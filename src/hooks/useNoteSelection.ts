@@ -25,7 +25,8 @@ export function useNoteSelection(
   onCutNotes?: (ids?: string[]) => void,
   onPasteRelocateNotes?: () => void,
   onCancelCutNotes?: () => void,
-  hasCutNotes?: boolean
+  hasCutNotes?: boolean,
+  onToggleCoverSelectedNotes?: (ids: string[]) => void
 ) {
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -51,6 +52,7 @@ export function useNoteSelection(
   const onPasteRelocateNotesRef = useRef(onPasteRelocateNotes);
   const onCancelCutNotesRef = useRef(onCancelCutNotes);
   const hasCutNotesRef = useRef(hasCutNotes);
+  const onToggleCoverSelectedNotesRef = useRef(onToggleCoverSelectedNotes);
 
   const editTimerRef = useRef<number>(0);
   const navSequenceRef = useRef<number>(0);
@@ -97,6 +99,7 @@ export function useNoteSelection(
     onPasteRelocateNotesRef.current = onPasteRelocateNotes;
     onCancelCutNotesRef.current = onCancelCutNotes;
     hasCutNotesRef.current = hasCutNotes;
+    onToggleCoverSelectedNotesRef.current = onToggleCoverSelectedNotes;
   }, [
     notes,
     onCreateNote,
@@ -105,6 +108,7 @@ export function useNoteSelection(
     onTogglePanMode,
     onToggleTheme,
     onToggleSnapToGrid,
+    onToggleConnections,
     onToggleZenMode,
     onLockSelectedNotes,
     onNavigateToNote,
@@ -116,6 +120,7 @@ export function useNoteSelection(
     onPasteRelocateNotes,
     onCancelCutNotes,
     hasCutNotes,
+    onToggleCoverSelectedNotes,
   ]);
 
   const handleSelectNote = useCallback((noteId: string | null, isMultiSelect?: boolean) => {
@@ -130,14 +135,20 @@ export function useNoteSelection(
       setSelectedNoteIds((prev = []) =>
         prev.includes(noteId) ? prev.filter((id) => id !== noteId) : [...prev, noteId]
       );
+      setEditingNoteId(null);
     } else {
       setSelectedNoteIds([noteId]);
+      const target = notesRef.current.find((n) => n.id === noteId);
+      if (target && target.isCovered) {
+        setEditingNoteId(null);
+      }
     }
   }, []);
 
   const handleSelectMultipleNotes = useCallback((ids: string[]) => {
     activeNavTargetIdRef.current = ids.length > 0 ? ids[ids.length - 1] : null;
     setSelectedNoteIds(ids || []);
+    setEditingNoteId(null);
   }, []);
 
   // Global Keyboard Shortcuts (bound once on mount for stable memory footprint)
@@ -262,8 +273,21 @@ export function useNoteSelection(
         return;
       }
 
-      // Toggle Connections Shortcut ('C')
-      if (key === 'c') {
+      // Toggle Note Cover on Selected Note(s) Shortcut (Alt+C, Shift+C, or Ctrl+Shift+C)
+      if (
+        !isEditingText &&
+        curSelectedNoteIds.length > 0 &&
+        ((e.altKey && (key === 'c' || key === 'C')) ||
+         ((e.ctrlKey || e.metaKey) && e.shiftKey && (key === 'c' || key === 'C')) ||
+         (e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && (key === 'c' || key === 'C')))
+      ) {
+        e.preventDefault();
+        onToggleCoverSelectedNotesRef.current?.(curSelectedNoteIds);
+        return;
+      }
+
+      // Toggle Connections Shortcut ('C' without modifiers)
+      if (key === 'c' && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
         e.preventDefault();
         onToggleConnectionsRef.current?.();
         return;
@@ -377,8 +401,13 @@ export function useNoteSelection(
         return;
       }
 
-      // Enter key opens edit mode on selected note
+      // Enter key opens edit mode on selected note (unless note is covered)
       if (e.key === 'Enter' && curSelectedNoteId) {
+        const target = notesRef.current.find((n) => n.id === curSelectedNoteId);
+        if (target && target.isCovered) {
+          // Do not enter edit mode on covered note
+          return;
+        }
         e.preventDefault();
         setEditingNoteId(null);
         window.clearTimeout(editTimerRef.current);

@@ -13,6 +13,12 @@ import {
   PUSHPIN_OPTIONS,
   getWashiTapeById,
 } from '../../constants/washiTapes';
+import {
+  NOTE_COVER_STYLES,
+  SEAL_STYLES,
+  DEFAULT_COVER_STYLE,
+  DEFAULT_SEAL_STYLE,
+} from '../../constants/noteCovers';
 
 interface NoteStylePickerProps {
   note: Note;
@@ -54,7 +60,7 @@ const NONE_OPTION: DecorationOption = {
   value: 'none',
   label: 'None',
   shortLabel: 'None',
-  renderIcon: () => <span className="text-slate-400 text-xs">∅</span>,
+  renderIcon: () => <Icon icon={Cancel01Icon} size="xs" className="text-slate-400" />,
 };
 
 const TAPE_OPTIONS: DecorationOption[] = WASHI_TAPES.map((tape) => ({
@@ -328,6 +334,74 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
           />
         </div>
       )}
+
+      {/* 7. Cover Style & Vector Seal */}
+      <div className="flex flex-col gap-2.5 pt-2.5 border-t border-slate-200/80 dark:border-slate-800">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Cover Style & Seal
+          </span>
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-xs bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+            Alt+C
+          </span>
+        </div>
+
+        <div className="space-y-2">
+          {/* Cover Style Swatch Selector */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+              Cover Style
+            </span>
+            <Select
+              value={note.coverStyle || DEFAULT_COVER_STYLE}
+              onChange={(e) =>
+                onUpdateNote({
+                  ...note,
+                  coverStyle: e.target.value as any,
+                  updatedAt: new Date().toISOString(),
+                })
+              }
+              options={NOTE_COVER_STYLES.map((c) => ({
+                value: c.id,
+                label: c.name,
+              }))}
+            />
+          </div>
+
+          {/* Seal SVG Selector */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+              Seal SVG Emblem
+            </span>
+            <div className="grid grid-cols-5 gap-1.5 p-1 rounded-sm bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              {SEAL_STYLES.map((seal) => {
+                const isSelected = (note.sealStyle || DEFAULT_SEAL_STYLE) === seal.id;
+                return (
+                  <button
+                    key={seal.id}
+                    type="button"
+                    onClick={() =>
+                      onUpdateNote({
+                        ...note,
+                        sealStyle: seal.id,
+                        updatedAt: new Date().toISOString(),
+                      })
+                    }
+                    className={`p-1 rounded-xs flex items-center justify-center transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs ring-1 ring-slate-400'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                    title={`${seal.name} (${seal.category})`}
+                  >
+                    {seal.renderIcon({ size: 22 })}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

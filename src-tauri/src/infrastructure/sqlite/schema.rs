@@ -28,7 +28,11 @@ CREATE TABLE IF NOT EXISTS notes (
     image_aspect_ratio REAL,
     frame_style TEXT,
     pin_style TEXT,
-    rotation REAL
+    rotation REAL,
+    is_covered INTEGER NOT NULL DEFAULT 0,
+    cover_style TEXT,
+    seal_style TEXT,
+    cover_prompt TEXT
 );
 
 CREATE TABLE IF NOT EXISTS note_tags (
