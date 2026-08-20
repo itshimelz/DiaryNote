@@ -12,6 +12,10 @@ import {
   Download04Icon,
   KeyboardIcon,
   PinIcon,
+  SecurityLockIcon,
+  Key01Icon,
+  CircleQuestionMarkIcon,
+  Delete02Icon,
 } from '@hugeicons/core-free-icons';
 import { CanvasTheme, GridType, Note } from '../../types';
 import { CURRENT_VERSION } from '../../utils/updateChecker';
@@ -25,8 +29,9 @@ import {
   Switch,
   Icon,
 } from '../ui';
+import { SecurityModalMode } from './SecurityModal';
 
-export type SettingsTab = 'canvas' | 'appearance' | 'data' | 'ai' | 'about';
+export type SettingsTab = 'canvas' | 'appearance' | 'data' | 'security' | 'ai' | 'about';
 
 export interface CanvasSettingsModalProps {
   isOpen: boolean;
@@ -53,6 +58,12 @@ export interface CanvasSettingsModalProps {
   onOpenShortcutsModal?: () => void;
   onOpenDatabaseOperations?: () => void;
   enableAIServices?: boolean;
+  masterPasswordHash?: string;
+  masterSecurityQuestion?: string;
+  isMasterUnlocked?: boolean;
+  onLockSession?: () => void;
+  onUnlockSession?: () => void;
+  onOpenSecurityModal?: (mode: SecurityModalMode) => void;
 }
 
 export const CanvasSettingsModal: React.FC<CanvasSettingsModalProps> = ({
@@ -80,6 +91,12 @@ export const CanvasSettingsModal: React.FC<CanvasSettingsModalProps> = ({
   onOpenShortcutsModal,
   onOpenDatabaseOperations,
   enableAIServices = false,
+  masterPasswordHash,
+  masterSecurityQuestion,
+  isMasterUnlocked = false,
+  onLockSession,
+  onUnlockSession,
+  onOpenSecurityModal,
 }) => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('canvas');
 
@@ -144,6 +161,19 @@ export const CanvasSettingsModal: React.FC<CanvasSettingsModalProps> = ({
               >
                 <Icon icon={Database01Icon} size="xs" />
                 <span>Data & Backup</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('security')}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-sm text-xs font-semibold transition-colors cursor-pointer ${
+                  activeTab === 'security'
+                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700/80 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                }`}
+              >
+                <Icon icon={SecurityLockIcon} size="xs" />
+                <span>Security & Lock</span>
               </button>
 
               <button
@@ -432,6 +462,190 @@ export const CanvasSettingsModal: React.FC<CanvasSettingsModalProps> = ({
                     </Button>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* TAB: SECURITY & LOCK */}
+            {activeTab === 'security' && (
+              <div className="space-y-3.5">
+                <div>
+                  <h3 className="font-bold text-xs uppercase tracking-wider mb-1 text-slate-900 dark:text-slate-200">
+                    Vault & Security Settings
+                  </h3>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                    Manage master passcode protection, session locks, and account recovery.
+                  </p>
+                </div>
+
+                {/* Status Card */}
+                <div className="p-3 rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Icon icon={SecurityLockIcon} size="sm" className="text-slate-600 dark:text-slate-400" />
+                      <span className="font-semibold text-slate-900 dark:text-slate-100">Master Passcode</span>
+                    </div>
+                    {masterPasswordHash ? (
+                      <Badge variant="success" size="xs">
+                        Configured
+                      </Badge>
+                    ) : (
+                      <Badge variant="warning" size="xs">
+                        Not Set
+                      </Badge>
+                    )}
+                  </div>
+
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                    {masterPasswordHash
+                      ? 'Your vault is secured with local cryptographic hashing. Locked notes require your passcode or recovery answer to access.'
+                      : 'Protect sensitive notes with client-side zero-knowledge encryption.'}
+                  </p>
+
+                  {masterPasswordHash ? (
+                    <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Session Status:</span>
+                        <Badge variant={isMasterUnlocked ? 'success' : 'subtle'} size="xs">
+                          {isMasterUnlocked ? 'Unlocked' : 'Locked'}
+                        </Badge>
+                      </div>
+                      {isMasterUnlocked ? (
+                        <Button
+                          variant="secondary"
+                          size="xs"
+                          icon={SecurityLockIcon}
+                          onClick={() => onLockSession?.()}
+                        >
+                          Lock Session Now
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="primary"
+                          size="xs"
+                          icon={Key01Icon}
+                          onClick={() => onUnlockSession?.()}
+                        >
+                          Unlock Session
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+                      <Button
+                        variant="primary"
+                        size="xs"
+                        icon={SecurityLockIcon}
+                        onClick={() => {
+                          onClose();
+                          onOpenSecurityModal?.('set');
+                        }}
+                      >
+                        Set Master Passcode
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Passcode Actions (When Configured) */}
+                {masterPasswordHash && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Passcode & Recovery Actions
+                    </h4>
+
+                    {/* Change Passcode */}
+                    <div className="p-3 rounded-sm border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="font-medium text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                          <Icon icon={Key01Icon} size="xs" />
+                          <span>Change Passcode</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          Update your master password by verifying current passcode.
+                        </p>
+                      </div>
+                      <Button
+                        variant="secondary"
+                        size="xs"
+                        onClick={() => {
+                          onClose();
+                          onOpenSecurityModal?.('change');
+                        }}
+                      >
+                        Change
+                      </Button>
+                    </div>
+
+                    {/* Reset via Recovery */}
+                    <div className="p-3 rounded-sm border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="font-medium text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                          <Icon icon={CircleQuestionMarkIcon} size="xs" />
+                          <span>Reset Passcode</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          Forgot your passcode? Reset using your security recovery question.
+                        </p>
+                      </div>
+                      <Button
+                        variant="secondary"
+                        size="xs"
+                        onClick={() => {
+                          onClose();
+                          onOpenSecurityModal?.('reset');
+                        }}
+                      >
+                        Reset
+                      </Button>
+                    </div>
+
+                    {/* Update Recovery Question */}
+                    <div className="p-3 rounded-sm border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="font-medium text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                          <Icon icon={CircleQuestionMarkIcon} size="xs" />
+                          <span>Update Recovery Question</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          "{masterSecurityQuestion || 'Secret Question'}"
+                        </p>
+                      </div>
+                      <Button
+                        variant="secondary"
+                        size="xs"
+                        onClick={() => {
+                          onClose();
+                          onOpenSecurityModal?.('update_recovery');
+                        }}
+                      >
+                        Update
+                      </Button>
+                    </div>
+
+                    {/* Remove Passcode */}
+                    <div className="p-3 rounded-sm border border-rose-200/70 dark:border-rose-900/40 bg-rose-50/40 dark:bg-rose-950/20 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="font-medium text-rose-800 dark:text-rose-300 flex items-center gap-1.5">
+                          <Icon icon={Delete02Icon} size="xs" />
+                          <span>Remove Passcode</span>
+                        </div>
+                        <p className="text-[11px] text-rose-600 dark:text-rose-400 truncate">
+                          Disable passcode protection and unlock all notes.
+                        </p>
+                      </div>
+                      <Button
+                        variant="danger"
+                        size="xs"
+                        onClick={() => {
+                          onClose();
+                          onOpenSecurityModal?.('remove');
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

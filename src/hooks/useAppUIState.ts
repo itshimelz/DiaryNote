@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { ReleaseInfo } from '../utils/updateChecker';
+import { SecurityModalMode } from '../components/Modals/SecurityModal';
 
 export function useAppUIState() {
   const [isNotesListOpen, setIsNotesListOpen] = useState(false);
@@ -23,7 +24,7 @@ export function useAppUIState() {
     return saved !== null ? saved === 'true' : true;
   });
   const [securityModalNoteId, setSecurityModalNoteId] = useState<string | null>(null);
-  const [securityModalMode, setSecurityModalMode] = useState<'set' | 'unlock'>('set');
+  const [securityModalMode, setSecurityModalMode] = useState<SecurityModalMode>('set');
   const [notesToUnlock, setNotesToUnlock] = useState<string[]>([]);
   const [notesToLock, setNotesToLock] = useState<string[]>([]);
 

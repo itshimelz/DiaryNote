@@ -62,6 +62,12 @@ interface CanvasControlsProps {
   checkForUpdatesOnLaunch?: boolean;
   onToggleCheckForUpdates?: () => void;
   onOpenDatabaseOperations?: () => void;
+  masterPasswordHash?: string;
+  masterSecurityQuestion?: string;
+  isMasterUnlocked?: boolean;
+  onLockSession?: () => void;
+  onUnlockSession?: () => void;
+  onOpenSecurityModal?: (mode: import('./Modals/SecurityModal').SecurityModalMode) => void;
 }
 
 const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
@@ -104,6 +110,12 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
   onOpenDatabaseOperations,
   enableAIServices = false,
   onOpenAISettings,
+  masterPasswordHash,
+  masterSecurityQuestion,
+  isMasterUnlocked,
+  onLockSession,
+  onUnlockSession,
+  onOpenSecurityModal,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -405,6 +417,12 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
           onOpenShortcutsModal={onOpenShortcutsModal}
           onOpenDatabaseOperations={onOpenDatabaseOperations}
           enableAIServices={enableAIServices}
+          masterPasswordHash={masterPasswordHash}
+          masterSecurityQuestion={masterSecurityQuestion}
+          isMasterUnlocked={isMasterUnlocked}
+          onLockSession={onLockSession}
+          onUnlockSession={onUnlockSession}
+          onOpenSecurityModal={onOpenSecurityModal}
         />
       </React.Suspense>
     </>

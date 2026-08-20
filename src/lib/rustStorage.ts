@@ -327,7 +327,7 @@ export async function exportNoteToFileNative(
       noteId: note.id,
       title: note.title || 'Untitled Note',
       content: note.content || '',
-      format,
+      exportFormat: format,
       tags: note.tags || [],
       createdAt: note.createdAt,
       updatedAt: note.updatedAt,

@@ -30,7 +30,8 @@ import { sendNativeAppNotification } from './utils';
 import { checkForAppUpdates } from './utils/updateChecker';
 import { saveAppSettingsToDB as saveSettingsToDB, saveDirtyNotesToDB as saveImportedNotesToDB, exportNoteToFileNative } from './lib/rustStorage';
 import { mergeNotesWithAI } from './services/ai/aiMergeService';
-import { getSessionAuthState } from './services/authPolicyService';
+import { getSessionAuthState, setMasterSessionUnlocked, isNoteAuthorized } from './services/authPolicyService';
+import { lockSessionVault } from './services/cryptoVaultService';
 import { AppSettings } from './lib/storage';
 
 export default function App() {
@@ -852,16 +853,19 @@ export default function App() {
   const securityModalNote = notes.find((n) => n.id === securityModalNoteId) || null;
 
   const handleExportNote = useCallback(async (note: Note, format: 'md' | 'txt' | 'json') => {
-    if (note.isLocked) {
+    if (note.isLocked && !isNoteAuthorized(note)) {
+      setNotesToUnlock([note.id]);
       setSecurityModalNoteId(note.id);
       setSecurityModalMode('unlock');
       return;
     }
 
+    const formatLabel = format === 'json' ? 'Backup (.json)' : format === 'md' ? 'Markdown (.md)' : 'Plain Text (.txt)';
+
     if (isTauriEnvironment()) {
       try {
         const savedPath = await exportNoteToFileNative(note, format);
-        sendNativeAppNotification('Export Successful', `Exported to: ${savedPath}`);
+        sendNativeAppNotification('Export Successful', `Exported "${note.title || 'Untitled Note'}" as ${formatLabel} to:\n${savedPath}`);
         return;
       } catch (err) {
         console.warn('Native export failed, falling back to browser download', err);
@@ -874,12 +878,13 @@ export default function App() {
 
     if (format === 'json') {
       await exportNotesBackup([note], fileName);
+      sendNativeAppNotification('Backup Downloaded', `Exported ${fileName}`);
     } else {
       const text = `# ${note.title || 'Untitled Note'}\n\n${note.content || ''}`;
       const contentType = format === 'md' ? 'text/markdown' : 'text/plain';
-      await saveFileWithNotification(fileName, text, 'Notes', contentType);
+      await saveFileWithNotification(fileName, text, 'Exports', contentType);
     }
-  }, [setSecurityModalNoteId, setSecurityModalMode]);
+  }, [setNotesToUnlock, setSecurityModalNoteId, setSecurityModalMode]);
 
   // Global shortcut listeners (e.g. today's journal entry)
   useEffect(() => {
@@ -1110,6 +1115,22 @@ export default function App() {
                   checkForUpdatesOnLaunch: prev.checkForUpdatesOnLaunch === false ? true : false,
                 }))
               }
+              masterPasswordHash={settings.masterPasswordHash}
+              masterSecurityQuestion={settings.masterSecurityQuestion}
+              isMasterUnlocked={getSessionAuthState().isMasterUnlocked}
+              onLockSession={() => {
+                setMasterSessionUnlocked(false);
+                lockSessionVault();
+                sendNativeAppNotification('Session Locked', 'Locked notes require passcode authentication to access.');
+              }}
+              onUnlockSession={() => {
+                setSecurityModalNoteId('__global_session__');
+                setSecurityModalMode('unlock');
+              }}
+              onOpenSecurityModal={(mode) => {
+                setSecurityModalNoteId('__global_session__');
+                setSecurityModalMode(mode);
+              }}
             />
           </div>
         </motion.div>

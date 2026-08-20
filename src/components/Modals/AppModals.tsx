@@ -5,6 +5,7 @@ import { NoteContextMenu } from '../NoteContextMenu';
 import { HiddenClipboardListener } from '../HiddenClipboardListener';
 import { sendNativeAppNotification } from '../../utils';
 import { indexVaultNotesFts, clearVaultFtsIndex } from '../../lib/rustSearch';
+import { SecurityModalMode } from './SecurityModal';
 
 
 // Lazy-loaded modal components
@@ -77,7 +78,7 @@ interface AppModalsProps {
   securityModalNote: Note | null;
   securityModalNoteId: string | null;
   setSecurityModalNoteId: (id: string | null) => void;
-  securityModalMode: 'set' | 'unlock';
+  securityModalMode: SecurityModalMode;
   notesToUnlock?: string[];
   setNotesToUnlock?: (ids: string[]) => void;
   notesToLock?: string[];
@@ -257,6 +258,20 @@ export const AppModals: React.FC<AppModalsProps> = ({
             setSecurityModalNoteId(null);
             setNotesToUnlock?.([]);
             setNotesToLock?.([]);
+          }}
+          onSuccessRemove={() => {
+            setSettings((prev) => ({
+              ...prev,
+              masterPasswordHash: '',
+              masterSecurityQuestion: '',
+              masterSecurityAnswerHash: '',
+            }));
+            const locked = notes.filter((n) => n.isLocked);
+            if (locked.length > 0) {
+              const unlocked = locked.map((n) => ({ ...n, isLocked: false }));
+              handleUpdateBatchNotes(unlocked);
+              indexVaultNotesFts(unlocked);
+            }
           }}
           onSuccessSet={(masterPasswordHash, masterSecurityQuestion, masterSecurityAnswerHash) => {
             setSettings((prev) => ({
