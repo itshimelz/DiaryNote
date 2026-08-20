@@ -99,4 +99,39 @@ describe('NotesSidebar UI Component', () => {
     expect(handleAddNote).toHaveBeenCalledTimes(1);
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
+
+  it('redacts snippet and protects secret content for locked notes', () => {
+    const lockedNote: Note = {
+      id: 'note-locked-sidebar',
+      title: 'Secret Finance Note',
+      content: 'Bank account number 987654321',
+      isLocked: true,
+      x: 0,
+      y: 0,
+      width: 340,
+      height: 340,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      fontFamily: 'sans',
+      fontSize: 'md',
+      paperTheme: 'white',
+      zIndex: 3,
+    };
+
+    render(
+      <NotesSidebar
+        isOpen={true}
+        onClose={() => {}}
+        notes={[...mockNotes, lockedNote]}
+        onSelectNote={() => {}}
+        onAddNote={() => {}}
+        onDeleteNote={() => {}}
+      />
+    );
+
+    expect(screen.getByText('Secret Finance Note')).toBeDefined();
+    expect(screen.getByText('Locked')).toBeDefined();
+    expect(screen.queryByText(/987654321/i)).toBeNull();
+    expect(screen.getByText(/Passcode protected · Content hidden/i)).toBeDefined();
+  });
 });

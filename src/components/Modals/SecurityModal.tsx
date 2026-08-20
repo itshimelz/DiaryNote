@@ -10,7 +10,7 @@ import { hashSecurityInput, verifySecurityInput, sendNativeAppNotification } fro
 import { CanvasTheme } from '../../types';
 import { cacheSessionPasscode } from '../../services/cryptoVaultService';
 import { setMasterSessionUnlocked } from '../../services/authPolicyService';
-import { Dialog, DialogHeader, DialogBody, DialogFooter, Button, Input, Icon } from '../ui';
+import { Dialog, DialogHeader, DialogBody, DialogFooter, Button, Input, Icon, Select } from '../ui';
 
 export type SecurityModalMode = 'set' | 'unlock';
 
@@ -204,23 +204,17 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({
               />
             </div>
 
-            <div className="pt-2.5 border-t border-slate-200 dark:border-slate-800">
-              <label className="block font-semibold mb-1 flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
-                <Icon icon={CircleQuestionMarkIcon} size="xs" />
-                <span>Security Recovery Question</span>
-              </label>
-              <select
+            <div className="pt-2.5 border-t border-slate-200 dark:border-slate-800 space-y-2">
+              <Select
+                label="Security Recovery Question"
+                icon={CircleQuestionMarkIcon}
                 value={selectedQuestion}
                 onChange={(e) => setSelectedQuestion(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-sm border outline-none font-sans transition-colors mb-2 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-slate-200 focus:border-slate-500"
-              >
-                {DEFAULT_QUESTIONS.map((q) => (
-                  <option key={q} value={q}>
-                    {q}
-                  </option>
-                ))}
-                <option value="custom">Custom Question...</option>
-              </select>
+                options={[
+                  ...DEFAULT_QUESTIONS.map((q) => ({ value: q, label: q })),
+                  { value: 'custom', label: 'Custom Question...' },
+                ]}
+              />
 
               {selectedQuestion === 'custom' && (
                 <div className="mb-2">

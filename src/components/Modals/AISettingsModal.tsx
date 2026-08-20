@@ -29,6 +29,7 @@ import {
   Switch,
   Badge,
   Icon,
+  Select,
 } from '../ui';
 
 interface AISettingsModalProps {
@@ -307,24 +308,20 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
           )}
 
           {/* Provider Selection */}
-          <div>
-            <label className="block font-semibold mb-1 text-xs text-slate-700 dark:text-slate-200">
-              Inference Provider
-            </label>
-            <select
-              value={provider}
-              onChange={(e) => {
-                setProvider(e.target.value as AIProvider);
-                setTestResult(null);
-              }}
-              className="w-full px-3 py-1.5 rounded-sm border outline-none font-sans transition-colors text-xs bg-white dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:border-slate-500"
-            >
-              <option value="gemini">Google Gemini API (Recommended - Free Tier)</option>
-              <option value="openai">OpenAI API (GPT-4o-mini / GPT-4o)</option>
-              <option value="openrouter">OpenRouter (Unified API Gateway)</option>
-              <option value="custom">Custom / OpenAI-Compatible (DeepSeek, Qwen, Ollama)</option>
-            </select>
-          </div>
+          <Select
+            label="Inference Provider"
+            value={provider}
+            onChange={(e) => {
+              setProvider(e.target.value as AIProvider);
+              setTestResult(null);
+            }}
+            options={[
+              { value: 'gemini', label: 'Google Gemini API (Recommended - Free Tier)' },
+              { value: 'openai', label: 'OpenAI API (GPT-4o-mini / GPT-4o)' },
+              { value: 'openrouter', label: 'OpenRouter (Unified API Gateway)' },
+              { value: 'custom', label: 'Custom / OpenAI-Compatible (DeepSeek, Qwen, Ollama)' },
+            ]}
+          />
 
           {/* API Key Input */}
           <div>

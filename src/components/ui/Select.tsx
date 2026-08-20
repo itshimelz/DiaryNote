@@ -17,6 +17,7 @@ export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElemen
   icon?: IconSvgElement;
   options?: SelectOption[];
   fullWidth?: boolean;
+  selectClassName?: string;
 }
 
 export const Select: React.FC<SelectProps> = ({
@@ -29,6 +30,7 @@ export const Select: React.FC<SelectProps> = ({
   fullWidth = true,
   disabled = false,
   className = '',
+  selectClassName = '',
   id,
   ...props
 }) => {
@@ -48,7 +50,7 @@ export const Select: React.FC<SelectProps> = ({
 
       <div className="relative flex items-center">
         {icon && (
-          <div className="absolute left-2.5 pointer-events-none text-slate-400 dark:text-slate-500">
+          <div className="absolute left-2.5 pointer-events-none text-slate-400 dark:text-slate-400">
             <Icon icon={icon} size="xs" />
           </div>
         )}
@@ -56,13 +58,13 @@ export const Select: React.FC<SelectProps> = ({
         <select
           id={selectId}
           disabled={disabled}
-          className={`w-full appearance-none bg-slate-50 dark:bg-slate-850 border ${
+          className={`w-full appearance-none bg-slate-50/80 dark:bg-slate-800/90 border ${
             error
               ? 'border-rose-500 text-rose-600 focus:ring-rose-500'
-              : 'border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'
+              : 'border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 hover:border-slate-300 dark:hover:border-slate-600'
           } ${RADIUS.sm} ${icon ? 'pl-8' : 'pl-3'} pr-8 py-2 text-xs sm:text-sm font-medium ${TRANSITIONS.fast} ${FOCUS_RING} cursor-pointer outline-none ${
             disabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
-          }`}
+          } ${selectClassName}`}
           {...props}
         >
           {options
@@ -71,7 +73,7 @@ export const Select: React.FC<SelectProps> = ({
                   key={opt.value}
                   value={opt.value}
                   disabled={opt.disabled}
-                  className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                  className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
                 >
                   {opt.label}
                 </option>
@@ -79,7 +81,7 @@ export const Select: React.FC<SelectProps> = ({
             : children}
         </select>
 
-        <div className="absolute right-2.5 pointer-events-none text-slate-400 dark:text-slate-500">
+        <div className="absolute right-2.5 pointer-events-none text-slate-400 dark:text-slate-400">
           <Icon icon={ArrowDown01Icon} size="xs" />
         </div>
       </div>

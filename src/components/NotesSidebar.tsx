@@ -9,8 +9,10 @@ import {
   Delete02Icon,
   AtIcon,
   Layers01Icon,
+  SecurityLockIcon,
 } from '@hugeicons/core-free-icons';
 import { Icon, Button, Badge, Input, IconButton, Select } from './ui';
+import { isNoteAuthorized } from '../services/authPolicyService';
 
 interface NotesSidebarProps {
   isOpen: boolean;
@@ -63,7 +65,9 @@ const NotesSidebarComponent: React.FC<NotesSidebarProps> = ({
   const filteredNotes = useMemo(() => {
     const q = debouncedQuery.toLowerCase();
     const filtered = notes.filter((n) => {
-      return n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q);
+      const isAuthorized = isNoteAuthorized(n);
+      const searchableContent = isAuthorized ? (n.content || '').toLowerCase() : '';
+      return (n.title || '').toLowerCase().includes(q) || searchableContent.includes(q);
     });
 
     filtered.sort((a, b) => {
@@ -77,7 +81,7 @@ const NotesSidebarComponent: React.FC<NotesSidebarProps> = ({
         const aTime = a.updatedTimestamp || new Date(a.updatedAt).getTime();
         return bTime - aTime;
       }
-      return a.title.localeCompare(b.title);
+      return (a.title || '').localeCompare(b.title || '');
     });
     return filtered;
   }, [notes, debouncedQuery, sortBy]);
@@ -208,8 +212,10 @@ const NotesSidebarComponent: React.FC<NotesSidebarProps> = ({
             className="space-y-1.5"
           >
             {visibleNotes.map((note) => {
-              const hasMentions = note.content.includes('@');
-              const plainSnippet = note.isLocked
+              const isAuthorized = isNoteAuthorized(note);
+              const isLockedAndUnauthorized = Boolean(note.isLocked && !isAuthorized);
+              const hasMentions = isAuthorized && (note.content || '').includes('@');
+              const plainSnippet = isLockedAndUnauthorized
                 ? ''
                 : (note.content || '')
                     .replace(/^#+\s+/gm, '')
@@ -251,13 +257,20 @@ const NotesSidebarComponent: React.FC<NotesSidebarProps> = ({
                       >
                         <Icon icon={File01Icon} size="xs" />
                       </div>
-                      <h4
-                        className={`font-semibold text-xs leading-snug break-words flex-1 ${
-                          isDark ? 'text-slate-100' : 'text-slate-900'
-                        }`}
-                      >
-                        {note.isLocked ? 'Locked Note' : note.title || 'Untitled Note'}
-                      </h4>
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
+                        <h4
+                          className={`font-semibold text-xs leading-snug break-words ${
+                            isDark ? 'text-slate-100' : 'text-slate-900'
+                          }`}
+                        >
+                          {note.title || 'Untitled Note'}
+                        </h4>
+                        {note.isLocked && (
+                          <Badge variant="warning" size="xs" icon={SecurityLockIcon}>
+                            Locked
+                          </Badge>
+                        )}
+                      </div>
                     </div>
 
                     <IconButton
@@ -279,8 +292,8 @@ const NotesSidebarComponent: React.FC<NotesSidebarProps> = ({
                       isDark ? 'text-slate-400' : 'text-slate-600'
                     }`}
                   >
-                    {note.isLocked ? (
-                      <span className="italic">Passcode required</span>
+                    {isLockedAndUnauthorized ? (
+                      <span className="italic opacity-80">Passcode protected · Content hidden</span>
                     ) : plainSnippet ? (
                       plainSnippet
                     ) : (

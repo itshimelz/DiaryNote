@@ -198,7 +198,7 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
   const addInputRef = useRef<HTMLInputElement>(null);
   const isInternalChangeRef = useRef(false);
 
-  // Parse markdown checklist lines: "- [x] Task", "- [ ] Task", or "# Heading"
+  // Parse markdown checklist lines: "- [x] Task", "- [ ] Task", "* Task", or "# Heading"
   const parseItemsFromContent = (rawText: string): ChecklistItem[] => {
     if (!rawText.trim()) {
       return [];
@@ -209,8 +209,8 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
       const headingMatch = line.match(/^(#{1,6})\s+(.*)/);
       if (headingMatch) {
         return {
-          id: `item-heading-${headingMatch[2].trim()}-${idx}`,
-          text: headingMatch[2],
+          id: `item-heading-${idx}`,
+          text: headingMatch[2].trim(),
           completed: false,
           isHeading: true,
           headingLevel: headingMatch[1].length,
@@ -218,9 +218,13 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
       }
 
       const isChecked = /- \[[xX]\]/.test(line);
-      const text = line.replace(/^- \[[xX\s]?\]\s*/, '').replace(/^- \s*/, '');
+      const text = line
+        .replace(/^[-*+]\s*\[[xX\s]?\]\s*/, '')
+        .replace(/^[-*+]\s+/, '')
+        .replace(/^\d+[.)]\s+/, '')
+        .trim();
       return {
-        id: `item-task-${text.trim()}-${idx}`,
+        id: `item-task-${idx}`,
         text,
         completed: isChecked,
         isHeading: false,
@@ -241,19 +245,22 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
     setItems(parseItemsFromContent(content));
   }, [content]);
 
-  const syncBackToContent = (updatedItems: ChecklistItem[]) => {
-    isInternalChangeRef.current = true;
-    const markdown = updatedItems
-      .map((item) => {
-        if (item.isHeading) {
-          const hashes = '#'.repeat(item.headingLevel || 1);
-          return `${hashes} ${item.text}`;
-        }
-        return `- [${item.completed ? 'x' : ' '}] ${item.text}`;
-      })
-      .join('\n');
-    onChangeContent(markdown);
-  };
+  const syncBackToContent = useCallback(
+    (updatedItems: ChecklistItem[]) => {
+      isInternalChangeRef.current = true;
+      const markdown = updatedItems
+        .map((item) => {
+          if (item.isHeading) {
+            const hashes = '#'.repeat(item.headingLevel || 1);
+            return `${hashes} ${item.text}`;
+          }
+          return `- [${item.completed ? 'x' : ' '}] ${item.text}`;
+        })
+        .join('\n');
+      onChangeContent(markdown);
+    },
+    [onChangeContent]
+  );
 
   const handleToggleItem = useCallback(
     (id: string) => {

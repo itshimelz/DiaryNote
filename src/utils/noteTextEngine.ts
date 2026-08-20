@@ -11,6 +11,70 @@ export const normalizeNoteText = (value: string | undefined): string =>
 export const isNoteTextEmpty = (value: string | undefined): boolean =>
   normalizeNoteText(value).trim().length === 0;
 
+/**
+ * Preserves note tabs, leading line indentation, and multiple consecutive blank lines
+ * in Markdown preview mode without accidentally triggering CommonMark 4-space indented code blocks.
+ *
+ * Rules:
+ * 1. Fenced code blocks (``` or ~~~) are left untouched.
+ * 2. Markdown structural prefixes (lists -, *, +, 1., blockquotes >, headings #) preserve their indentation for hierarchy.
+ * 3. Leading tabs (\t) and multiple spaces on normal lines are converted to non-breaking whitespace so they render with exact visual indentation and never collapse or switch to monospace code blocks.
+ * 4. Multiple consecutive blank lines (e.g. 3+ Enters) preserve visual empty space via &nbsp; paragraphs instead of CommonMark collapsing them into a single gap.
+ */
+export function preserveNoteTabsAndIndentation(text: string | undefined): string {
+  if (!text) return '';
+
+  const lines = text.split('\n');
+  let inFencedCode = false;
+
+  const processedLines = lines.map((line) => {
+    // Check for fenced code block toggle
+    if (/^\s*```/.test(line) || /^\s*~~~/.test(line)) {
+      inFencedCode = !inFencedCode;
+      return line;
+    }
+    if (inFencedCode) {
+      return line;
+    }
+
+    // Preserve markdown structural prefixes for list hierarchy, quotes, and headings
+    if (
+      /^\s*[-*+]\s+/.test(line) ||
+      /^\s*\d+[.)]\s+/.test(line) ||
+      /^\s*>/.test(line) ||
+      /^\s*#{1,6}\s+/.test(line)
+    ) {
+      return line;
+    }
+
+    // Convert leading tabs and spaces on normal text lines to non-breaking whitespace
+    const match = line.match(/^([ \t]+)(.*)$/);
+    if (match) {
+      const leading = match[1];
+      const rest = match[2];
+      // 1 tab = 4 non-breaking spaces; 1 space = 1 non-breaking space
+      const converted = leading.replace(/\t/g, '\u00A0\u00A0\u00A0\u00A0').replace(/ /g, '\u00A0');
+      return converted + rest;
+    }
+
+    return line;
+  });
+
+  const joined = processedLines.join('\n');
+
+  // Preserve multiple consecutive empty lines (beyond standard paragraph separation)
+  return joined.replace(/\n([ \t]*\n)+/g, (match) => {
+    const count = (match.match(/\n/g) || []).length;
+    if (count <= 2) return match;
+    const extraLines = count - 2;
+    let res = '\n\n';
+    for (let i = 0; i < extraLines; i++) {
+      res += '&nbsp;\n\n';
+    }
+    return res;
+  });
+}
+
 export const getEditorHeight = (textarea: HTMLTextAreaElement, minimum = 180): number => {
   textarea.style.height = 'auto';
   return Math.max(minimum, textarea.scrollHeight);

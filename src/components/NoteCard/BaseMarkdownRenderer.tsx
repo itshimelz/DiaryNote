@@ -5,10 +5,17 @@ import remarkBreaks from 'remark-breaks';
 import { Tick02Icon } from '@hugeicons/core-free-icons';
 import { Icon } from '../ui';
 import { Note, PaperTheme } from '../../types';
-import { processMarkdownMentions } from '../../utils';
+import { processMarkdownMentions, preserveNoteTabsAndIndentation } from '../../utils';
 import { PAPER_THEMES } from './types';
 
-const REMARK_PLUGINS = [remarkGfm, remarkBreaks];
+function disableIndentedCodePlugin(this: any) {
+  const data = this.data();
+  data.micromarkExtensions = (data.micromarkExtensions || []).concat({
+    disable: { null: ['codeIndented'] },
+  });
+}
+
+const REMARK_PLUGINS = [remarkGfm, remarkBreaks, disableIndentedCodePlugin];
 
 export interface BaseMarkdownRendererProps {
   content: string;
@@ -43,9 +50,8 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
 
   const processedContent = useMemo(() => {
     const withMentions = processMarkdownMentions(content || '', allNotes);
-    if (!isRuled) return withMentions;
-    return withMentions.replace(/(\n[ \t]*\n)((?=[ \t]*[-*+] ))/g, '\n\n---\n\n');
-  }, [content, allNotes, isRuled]);
+    return preserveNoteTabsAndIndentation(withMentions);
+  }, [content, allNotes]);
 
   const isEmpty = !content || content.trim().length === 0;
 
@@ -68,7 +74,7 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
             className={`font-inherit ${
               isRuled
                 ? 'ruled-text-alignment'
-                : 'mb-3.5 last:mb-0 leading-relaxed'
+                : 'my-1.5 first:mt-0 last:mb-0 leading-relaxed'
             }`}
           >
             {children}
@@ -77,7 +83,7 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
       h1: ({ children }: any) => (
         <h1
           className={`font-bold tracking-tight text-xl ${
-            isRuled ? 'ruled-text-alignment m-0' : 'my-2'
+            isRuled ? 'ruled-text-alignment m-0' : 'my-2 first:mt-0'
           }`}
         >
           {children}
@@ -86,7 +92,7 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
       h2: ({ children }: any) => (
         <h2
           className={`font-bold tracking-tight text-lg ${
-            isRuled ? 'ruled-text-alignment m-0' : 'my-1.5'
+            isRuled ? 'ruled-text-alignment m-0' : 'my-1.5 first:mt-0'
           }`}
         >
           {children}
@@ -95,7 +101,7 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
       h3: ({ children }: any) => (
         <h3
           className={`font-semibold text-base ${
-            isRuled ? 'ruled-text-alignment m-0' : 'my-1'
+            isRuled ? 'ruled-text-alignment m-0' : 'my-1 first:mt-0'
           }`}
         >
           {children}
@@ -104,7 +110,7 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
       h4: ({ children }: any) => (
         <h4
           className={`font-semibold text-sm ${
-            isRuled ? 'ruled-text-alignment m-0' : 'my-1'
+            isRuled ? 'ruled-text-alignment m-0' : 'my-0.5 first:mt-0'
           }`}
         >
           {children}
@@ -121,7 +127,7 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
         return (
           <ul
             className={`${
-              isRuled ? 'ruled-text-alignment m-0 space-y-0' : 'my-0.5 first:mt-0 last:mb-0 space-y-0.5'
+              isRuled ? 'ruled-text-alignment m-0 space-y-0' : 'my-1 first:mt-0 last:mb-0 space-y-0.5'
             } ${isTaskList ? 'pl-0 list-none' : 'list-disc pl-5'}`}
           >
             {children}
@@ -131,7 +137,7 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
       ol: ({ children }: any) => (
         <ol
           className={`${
-            isRuled ? 'ruled-text-alignment m-0 space-y-0' : 'my-0.5 first:mt-0 last:mb-0 space-y-0.5'
+            isRuled ? 'ruled-text-alignment m-0 space-y-0' : 'my-1 first:mt-0 last:mb-0 space-y-0.5'
           } list-decimal pl-5`}
         >
           {children}

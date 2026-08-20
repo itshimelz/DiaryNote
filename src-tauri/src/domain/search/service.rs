@@ -76,7 +76,7 @@ impl SearchService {
         // 1. If query is empty, return latest notes matching filter
         if clean_query.is_empty() {
             let mut sql = String::from(
-                "SELECT id, title, content, paper_theme, mood, entry_date, is_daily_entry, is_pinned, updated_at FROM notes WHERE 1=1",
+                "SELECT id, title, content, paper_theme, mood, entry_date, is_daily_entry, is_pinned, updated_at, is_locked FROM notes WHERE 1=1",
             );
 
             if let Some(ref f) = filter {
@@ -107,8 +107,12 @@ impl SearchService {
                 let is_daily_entry: Option<i32> = row.get(6)?;
                 let is_pinned: Option<i32> = row.get(7)?;
                 let updated_at: String = row.get(8)?;
+                let is_locked: Option<i32> = row.get(9)?;
+                let is_vault_locked = is_locked.unwrap_or(0) != 0;
 
-                let snippet = if content.chars().count() > 120 {
+                let snippet = if is_vault_locked {
+                    String::new()
+                } else if content.chars().count() > 120 {
                     format!("{}...", content.chars().take(120).collect::<String>())
                 } else {
                     content
@@ -160,7 +164,7 @@ impl SearchService {
         let mut meta_stmt = conn.prepare(
             r#"
             SELECT 
-                id, title, paper_theme, mood, entry_date, is_daily_entry, is_pinned, updated_at
+                id, title, paper_theme, mood, entry_date, is_daily_entry, is_pinned, updated_at, is_locked
             FROM notes 
             WHERE id = ?1
             "#,
@@ -185,6 +189,7 @@ impl SearchService {
                     let is_daily_entry: Option<i32> = row.get(5)?;
                     let is_pinned: Option<i32> = row.get(6)?;
                     let updated_at: String = row.get(7)?;
+                    let is_locked: Option<i32> = row.get(8)?;
 
                     Ok((
                         id,
@@ -195,6 +200,7 @@ impl SearchService {
                         is_daily_entry.unwrap_or(0) != 0,
                         is_pinned.unwrap_or(0) != 0,
                         updated_at,
+                        is_locked.unwrap_or(0) != 0,
                     ))
                 })
                 .ok();
@@ -208,6 +214,7 @@ impl SearchService {
                 is_daily,
                 is_pinned,
                 updated_at,
+                is_locked_note,
             )) = row_opt
             {
                 // Apply filter if requested
@@ -234,10 +241,16 @@ impl SearchService {
                     }
                 }
 
+                let final_snippet = if is_locked_note && !m.is_vault {
+                    String::new()
+                } else {
+                    m.snippet
+                };
+
                 enriched.push(SearchItemMatch {
                     note_id: id,
                     title: if title.is_empty() { m.title } else { title },
-                    snippet: m.snippet,
+                    snippet: final_snippet,
                     rank: m.rank,
                     is_vault: m.is_vault,
                     paper_theme,

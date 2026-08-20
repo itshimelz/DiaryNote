@@ -78,6 +78,12 @@ export function useNoteResize({
       let rawW = resizeStartRef.current.w + dx;
       let rawH = resizeStartRef.current.h + dy;
 
+      if (moveEvent.shiftKey && resizeStartRef.current.w > 0 && resizeStartRef.current.h > 0) {
+        const scale = Math.max(rawW / resizeStartRef.current.w, rawH / resizeStartRef.current.h);
+        rawW = resizeStartRef.current.w * scale;
+        rawH = resizeStartRef.current.h * scale;
+      }
+
       if (snapToGrid) {
         rawW = Math.round(rawW / GRID_SIZE) * GRID_SIZE;
         rawH = Math.round(rawH / GRID_SIZE) * GRID_SIZE;

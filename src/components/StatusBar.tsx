@@ -201,7 +201,7 @@ const StatusBarComponent: React.FC<StatusBarProps> = ({
       aria-label="Workspace status and statistics bar"
       className={`fixed bottom-0 inset-x-0 h-7 border-t z-30 px-3 flex items-center justify-between font-sans text-xs select-none transition-colors backdrop-blur-md ${
         isDark
-          ? 'bg-slate-950/90 border-slate-850 text-slate-400'
+          ? 'bg-slate-950/90 border-slate-800 text-slate-400'
           : 'bg-white/90 border-slate-200 text-slate-600'
       }`}
     >

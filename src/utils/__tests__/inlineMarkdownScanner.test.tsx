@@ -85,4 +85,12 @@ describe('renderInlineMarkdown', () => {
     expect(link.getAttribute('href')).toBe('https://github.com');
     expect(link.getAttribute('target')).toBe('_blank');
   });
+
+  it('renders nested inline tokens like code inside bold without infinite loops', () => {
+    const { container } = render(
+      <div>{renderInlineMarkdown('**Borrow (`&T`)** → **R**ead only')}</div>
+    );
+    expect(container.querySelector('strong')?.textContent).toContain('Borrow');
+    expect(container.querySelector('code')?.textContent).toBe('&T');
+  });
 });

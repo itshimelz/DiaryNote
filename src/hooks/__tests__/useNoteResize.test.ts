@@ -142,4 +142,45 @@ describe('useNoteResize Hook', () => {
       })
     );
   });
+
+  it('locks aspect ratio when Shift key is pressed during resize', () => {
+    const onUpdateNote = vi.fn();
+    const cardEl = document.createElement('div');
+    const cardRef = { current: cardEl };
+
+    const { result } = renderHook(() =>
+      useNoteResize({
+        note: { ...mockNote, width: 400, height: 200 }, // 2:1 ratio
+        zoom: 1,
+        isPanMode: false,
+        snapToGrid: false,
+        onUpdateNote,
+        cardRef,
+      })
+    );
+
+    act(() => {
+      result.current.handleResizeMouseDown({
+        button: 0,
+        clientX: 400,
+        clientY: 200,
+        stopPropagation: vi.fn(),
+        preventDefault: vi.fn(),
+      } as unknown as React.MouseEvent);
+    });
+
+    act(() => {
+      window.dispatchEvent(
+        new MouseEvent('mousemove', { clientX: 500, clientY: 200, shiftKey: true })
+      );
+      window.dispatchEvent(new MouseEvent('mouseup'));
+    });
+
+    expect(onUpdateNote).toHaveBeenCalledWith(
+      expect.objectContaining({
+        width: 500,
+        height: 250, // Preserves 2:1 ratio (400x200 -> 500x250)
+      })
+    );
+  });
 });

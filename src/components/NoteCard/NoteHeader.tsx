@@ -189,7 +189,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                 }
               }}
               autoFocus
-              className={`w-full bg-transparent font-bold text-lg sm:text-xl tracking-tight outline-none border-b border-blue-500/80 px-0 py-0.5 ${textColor}`}
+              className={`w-full bg-transparent font-bold text-lg sm:text-xl tracking-tight outline-none border-b border-blue-500/80 px-0 pt-1 pb-0.5 leading-normal ${textColor}`}
               placeholder="Untitled Note"
             />
           ) : (
@@ -198,7 +198,7 @@ export const NoteHeader: React.FC<NoteHeaderProps> = ({
                 e.stopPropagation();
                 setIsEditingTitleLocal(true);
               }}
-              className={`font-bold text-lg sm:text-xl tracking-tight truncate cursor-text hover:opacity-80 transition-opacity ${textColor}`}
+              className={`font-bold text-lg sm:text-xl tracking-tight truncate cursor-text hover:opacity-80 transition-opacity pt-1 pb-0.5 leading-normal ${textColor}`}
               title={note.title || 'Untitled Note'}
             >
               {note.title || 'Untitled Note'}

@@ -16,8 +16,9 @@ export interface InlineMarkdownOptions {
 // 8/9: **bold** / __bold__
 // 10/11: *italic* / _italic_
 // 12: ~~strikethrough~~
-const INLINE_TOKEN_REGEX =
-  /(?:@\[([^\]]+)\](?:\(([^)]+)\))?)|(?:\[([^\]]+)\]\(([^)]+)\))|(?:`([^`]+)`)|(?:\*\*\*([^*]+)\*\*\*)|(?:___([^_]+)___)|(?:\*\*([^*]+)\*\*)|(?:__([^_]+)__)|(?:\*([^*\n]+)\*)|(?:_([^_]+)_)|(?:~~([^~]+)~~)/g;
+function createInlineRegex(): RegExp {
+  return /(?:@\[([^\]]+)\](?:\(([^)]+)\))?)|(?:\[([^\]]+)\]\(([^)]+)\))|(?:`([^`]+)`)|(?:\*\*\*([^*]+)\*\*\*)|(?:___([^_]+)___)|(?:\*\*([^*]+)\*\*)|(?:__([^_]+)__)|(?:\*([^*]+)\*)|(?:_([^_]+)_)|(?:~~([^~]+)~~)/g;
+}
 
 /**
  * Fast-path inline markdown scanner.
@@ -26,14 +27,15 @@ const INLINE_TOKEN_REGEX =
  */
 export function renderInlineMarkdown(
   content: string | undefined,
-  options: InlineMarkdownOptions = {}
+  options: InlineMarkdownOptions = {},
+  depth = 0
 ): React.ReactNode {
   if (!content) return '';
 
   const { allNotes = [], linkColor = 'text-blue-500 hover:text-blue-600', onNavigateToNote } = options;
 
-  // Fast-path bypass if string contains no markdown trigger characters
-  if (!/[[*`_~#@\\]/.test(content)) {
+  // Fast-path bypass if string contains no markdown trigger characters or exceeds recursion limit
+  if (!/[[*`_~#@\\]/.test(content) || depth > 2) {
     return content;
   }
 
@@ -43,12 +45,12 @@ export function renderInlineMarkdown(
   let lastIndex = 0;
   let keyIndex = 0;
 
-  INLINE_TOKEN_REGEX.lastIndex = 0;
+  const regex = createInlineRegex();
   let match: RegExpExecArray | null;
 
-  while ((match = INLINE_TOKEN_REGEX.exec(content)) !== null) {
+  while ((match = regex.exec(content)) !== null) {
     const matchStart = match.index;
-    const matchEnd = INLINE_TOKEN_REGEX.lastIndex;
+    const matchEnd = regex.lastIndex;
 
     // Push preceding plain text
     if (matchStart > lastIndex) {
@@ -150,7 +152,7 @@ export function renderInlineMarkdown(
       const inner = bold1 ?? bold2;
       elements.push(
         <strong key={key} className="font-bold">
-          {renderInlineMarkdown(inner, options)}
+          {renderInlineMarkdown(inner, options, depth + 1)}
         </strong>
       );
     } else if (italic1 !== undefined || italic2 !== undefined) {
@@ -158,14 +160,14 @@ export function renderInlineMarkdown(
       const inner = italic1 ?? italic2;
       elements.push(
         <em key={key} className="italic">
-          {renderInlineMarkdown(inner, options)}
+          {renderInlineMarkdown(inner, options, depth + 1)}
         </em>
       );
     } else if (strikethroughText !== undefined) {
       // 7. Strikethrough: ~~text~~
       elements.push(
         <del key={key} className="line-through opacity-85">
-          {renderInlineMarkdown(strikethroughText, options)}
+          {renderInlineMarkdown(strikethroughText, options, depth + 1)}
         </del>
       );
     }

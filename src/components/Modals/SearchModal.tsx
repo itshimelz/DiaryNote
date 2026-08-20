@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Note, CanvasTheme } from '../../types';
 import { formatDate } from '../../utils';
 import { searchNotesFts, SearchItemMatch } from '../../lib/rustSearch';
+import { isNoteAuthorized } from '../../services/authPolicyService';
 import { isTauriEnvironment } from '../../hooks/useNativeFileDrop';
 import {
   Search01Icon,
@@ -116,13 +117,16 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
   const tagStats = useMemo(() => {
     const counts = new Map<string, number>();
     notes.forEach((n) => {
+      const isAuthorized = isNoteAuthorized(n);
       const noteTags = new Set<string>();
       n.tags?.forEach((t) => {
         if (!/^#?Group\s/i.test(t)) {
           noteTags.add(t.startsWith('#') ? t : `#${t}`);
         }
       });
-      const matches = (n.title + ' ' + n.content).match(/#[a-zA-Z0-9_\-\u0980-\u09FF]+/g);
+      // Zero-knowledge: only parse hashtags from content if note is authorized
+      const textToScan = isAuthorized ? `${n.title} ${n.content || ''}` : n.title;
+      const matches = textToScan.match(/#[a-zA-Z0-9_\-\u0980-\u09FF]+/g);
       if (matches) {
         matches.forEach((m) => {
           if (!/^#?Group\s/i.test(m)) {
@@ -142,15 +146,21 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
 
   // Pre-process notes once for search rendering
   const processedNotesMap = useMemo(() => {
-    const map = new Map<string, { plainSnippet: string; userHashtags: string[] }>();
+    const map = new Map<string, { plainSnippet: string; userHashtags: string[]; isLockedAndUnauthorized: boolean }>();
     notes.forEach((note) => {
+      const isAuthorized = isNoteAuthorized(note);
+      const isLockedAndUnauthorized = Boolean(note.isLocked && !isAuthorized);
+
+      const textToScan = isAuthorized ? `${note.title} ${note.content || ''}` : note.title;
       const userHashtags = (
-        (note.title + ' ' + note.content).match(/#[a-zA-Z0-9_\-\u0980-\u09FF]+/g) ||
+        textToScan.match(/#[a-zA-Z0-9_\-\u0980-\u09FF]+/g) ||
         note.tags ||
         []
       ).filter((t) => !/^#?Group\s/i.test(t));
 
-      const plainSnippet = note.content
+      const plainSnippet = isLockedAndUnauthorized
+        ? ''
+        : note.content
         ? note.content
             .replace(/^#+\s+/gm, '')
             .replace(/^[-*+]\s+\[[ xX]\]\s+/gm, '✓ ')
@@ -163,6 +173,7 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
       map.set(note.id, {
         plainSnippet,
         userHashtags: Array.from(new Set(userHashtags)),
+        isLockedAndUnauthorized,
       });
     });
     return map;
@@ -197,8 +208,15 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
     }
 
     return notes.filter((note) => {
+      const isAuthorized = isNoteAuthorized(note);
+      const searchableContent = isAuthorized ? (note.content || '').toLowerCase() : '';
+
       if (!cleanQuery) {
-        if (filterType === 'tags') return (note.tags && note.tags.length > 0) || (note.title + note.content).includes('#');
+        if (filterType === 'tags') {
+          const hasTagInArray = Boolean(note.tags && note.tags.length > 0);
+          const hasTagInText = (isAuthorized ? `${note.title} ${note.content || ''}` : note.title).includes('#');
+          return hasTagInArray || hasTagInText;
+        }
         if (filterType === 'date') return Boolean(note.entryDate || note.isDailyEntry);
         return true;
       }
@@ -207,7 +225,7 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
         const hasTag =
           note.tags?.some((t) => t.toLowerCase().includes(cleanQuery.replace('#', ''))) ||
           note.title.toLowerCase().includes(cleanQuery) ||
-          note.content.toLowerCase().includes(cleanQuery);
+          searchableContent.includes(cleanQuery);
         return hasTag;
       }
 
@@ -221,9 +239,9 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
       // Default 'all'
       return (
         note.title.toLowerCase().includes(cleanQuery) ||
-        note.content.toLowerCase().includes(cleanQuery) ||
+        searchableContent.includes(cleanQuery) ||
         note.tags?.some((t) => t.toLowerCase().includes(cleanQuery.replace('#', ''))) ||
-        (note.groupName && note.groupName.toLowerCase().includes(cleanQuery))
+        Boolean(note.groupName && note.groupName.toLowerCase().includes(cleanQuery))
       );
     });
   }, [notes, query, filterType, ftsMatches]);
@@ -279,7 +297,7 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
     >
       <div onKeyDown={handleKeyDown} className="flex flex-col h-[75vh] max-h-[640px] select-none font-sans">
         {/* Search Input Bar */}
-        <div className="p-3 border-b border-slate-100 dark:border-slate-850">
+        <div className="p-3 border-b border-slate-100 dark:border-slate-800">
           <Input
             ref={inputRef}
             prefixIcon={Search01Icon}
@@ -303,7 +321,7 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
         </div>
 
         {/* Filter Bar */}
-        <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-850 flex items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-950/30 text-xs">
+        <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-950/30 text-xs">
           <SegmentedControl
             size="xs"
             fullWidth={false}
@@ -429,13 +447,13 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
                     className={`p-2.5 rounded-sm border transition-colors cursor-pointer ${
                       isSelected
                         ? 'bg-slate-100 dark:bg-slate-800/90 border-blue-500/50 dark:border-blue-500/50 ring-1 ring-blue-500/20'
-                        : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-850'
+                        : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-800'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <Icon icon={File01Icon} size="xs" className="text-slate-400 shrink-0" />
-                        <span className="font-bold text-xs truncate text-slate-900 dark:text-slate-100">
+                        <span className="font-bold text-xs truncate py-0.5 leading-normal text-slate-900 dark:text-slate-100">
                           {highlightMatch(note.title || 'Untitled Note', query)}
                         </span>
                         {note.groupName && (
@@ -454,7 +472,11 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
                       </span>
                     </div>
 
-                    {ftsSnippetMap.get(note.id) ? (
+                    {processed?.isLockedAndUnauthorized ? (
+                      <p className="text-xs text-slate-400 dark:text-slate-500 italic mb-1.5 leading-relaxed">
+                        Passcode protected · Content hidden
+                      </p>
+                    ) : ftsSnippetMap.get(note.id) ? (
                       <p
                         className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-1.5 leading-relaxed [&>mark]:bg-amber-200 dark:[&>mark]:bg-amber-900/60 dark:[&>mark]:text-amber-200 [&>mark]:px-0.5 [&>mark]:rounded-xs"
                         dangerouslySetInnerHTML={{ __html: ftsSnippetMap.get(note.id)! }}
@@ -482,7 +504,7 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
         </div>
 
         {/* Footer shortcuts */}
-        <div className="px-4 py-2 border-t border-slate-100 dark:border-slate-850 flex items-center justify-between text-[11px] text-slate-400 bg-slate-50/50 dark:bg-slate-950/50">
+        <div className="px-4 py-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 bg-slate-50/50 dark:bg-slate-950/50">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
               <Kbd>↑</Kbd> <Kbd>↓</Kbd> Navigate

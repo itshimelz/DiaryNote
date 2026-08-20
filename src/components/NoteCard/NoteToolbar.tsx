@@ -89,43 +89,46 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
 
   return (
     <div
-      className={`relative border-t ${divider} ${toolbarBg} backdrop-blur-xs px-3.5 py-2.5 flex items-center justify-between gap-1.5 select-none rounded-b-sm`}
+      className={`relative border-t ${divider} ${toolbarBg} backdrop-blur-xs px-3 py-2 flex items-center justify-between select-none rounded-b-sm`}
     >
-      {/* 1. Text Mode Button */}
-      <button
-        type="button"
-        onClick={() => onSelectMode('text')}
-        className={getTextBtnClass(activeMode === 'text')}
-        title="Text mode"
-        aria-label="Text mode"
-      >
-        <TypeIcon />
-      </button>
+      {/* Left: Mode & Style Tool Group */}
+      <div className="flex items-center gap-1">
+        {/* 1. Text Mode Button */}
+        <button
+          type="button"
+          onClick={() => onSelectMode('text')}
+          className={getTextBtnClass(activeMode === 'text')}
+          title="Text mode"
+          aria-label="Text mode"
+        >
+          <TypeIcon />
+        </button>
 
-      {/* 2. Checklist Mode Button */}
-      <button
-        type="button"
-        onClick={() => onSelectMode('checklist')}
-        className={getChecklistBtnClass(activeMode === 'checklist')}
-        title="Checklist mode"
-        aria-label="Checklist mode"
-      >
-        <Icon icon={CheckListIcon} size="lg" />
-      </button>
+        {/* 2. Checklist Mode Button */}
+        <button
+          type="button"
+          onClick={() => onSelectMode('checklist')}
+          className={getChecklistBtnClass(activeMode === 'checklist')}
+          title="Checklist mode"
+          aria-label="Checklist mode"
+        >
+          <Icon icon={CheckListIcon} size="lg" />
+        </button>
 
-      {/* 3. Palette / Style Theme Button */}
-      <button
-        type="button"
-        onClick={onToggleStylePicker}
-        className={`flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-sm transition-colors cursor-pointer ${normalBtnClass}`}
-        title="Theme & Font settings"
-        aria-label="Theme and font settings"
-      >
-        <Icon icon={PaintBoardIcon} size="lg" />
-      </button>
+        {/* 3. Palette / Style Theme Button */}
+        <button
+          type="button"
+          onClick={onToggleStylePicker}
+          className={`flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-sm transition-colors cursor-pointer ${normalBtnClass}`}
+          title="Theme & Font settings"
+          aria-label="Theme and font settings"
+        >
+          <Icon icon={PaintBoardIcon} size="lg" />
+        </button>
+      </div>
 
-      {/* 4. More Options Button */}
-      <div className="relative" ref={moreRef}>
+      {/* Right: More Options Button */}
+      <div className="relative pr-3" ref={moreRef}>
         <button
           type="button"
           onClick={(e) => {

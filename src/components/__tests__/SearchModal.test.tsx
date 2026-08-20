@@ -93,4 +93,46 @@ describe('SearchModal UI Component', () => {
     expect(handleSelectNote).toHaveBeenCalledWith('note-1');
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
+
+  it('redacts content and prevents content keyword leakage for locked notes', () => {
+    const lockedNote: Note = {
+      id: 'note-locked-secret',
+      title: 'Secret Vault',
+      content: 'Top secret passcode is pineapple123',
+      isLocked: true,
+      x: 0,
+      y: 0,
+      width: 340,
+      height: 340,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      fontFamily: 'sans',
+      fontSize: 'md',
+      paperTheme: 'white',
+      zIndex: 3,
+    };
+
+    render(
+      <SearchModal
+        isOpen={true}
+        onClose={() => {}}
+        notes={[...mockNotes, lockedNote]}
+        onSelectNote={() => {}}
+      />
+    );
+
+    // Locked note title and locked badge should render
+    expect(screen.getByText('Secret Vault')).toBeDefined();
+    expect(screen.getByText('Locked')).toBeDefined();
+
+    // The secret content must NEVER be rendered
+    expect(screen.queryByText(/pineapple123/i)).toBeNull();
+    expect(screen.getByText(/Passcode protected · Content hidden/i)).toBeDefined();
+
+    // Searching for the secret keyword must NOT return the note
+    const input = screen.getByPlaceholderText('Search notes, dates, tags (#journal)...');
+    fireEvent.change(input, { target: { value: 'pineapple123' } });
+
+    expect(screen.queryByText('Secret Vault')).toBeNull();
+  });
 });

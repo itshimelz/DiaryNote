@@ -8,6 +8,7 @@ import {
   handleSmartClosingPair,
   handleSmartPairBackspace,
   applySmartUrlPaste,
+  preserveNoteTabsAndIndentation,
 } from '../noteTextEngine';
 
 function createMockTextarea(value: string, selectionStart = 0, selectionEnd = 0): HTMLTextAreaElement {
@@ -171,6 +172,34 @@ describe('noteTextEngine', () => {
       const textarea = createMockTextarea('Visit our website', 10, 17);
       const res = applySmartUrlPaste(textarea, 'just some plain text');
       expect(res).toBeNull();
+    });
+  });
+
+  describe('preserveNoteTabsAndIndentation', () => {
+    it('converts leading tabs on normal paragraphs to non-breaking spaces', () => {
+      const input = '\t\t\t\t\tHere in this line I gave 5 tab\n\tand 1 tab';
+      const output = preserveNoteTabsAndIndentation(input);
+      // 5 tabs = 20 non-breaking spaces; 1 tab = 4 non-breaking spaces
+      expect(output.startsWith('\u00A0'.repeat(20) + 'Here in this line I gave 5 tab')).toBe(true);
+      expect(output.includes('\n' + '\u00A0'.repeat(4) + 'and 1 tab')).toBe(true);
+    });
+
+    it('preserves list structural indentation without turning into NBSP', () => {
+      const input = '- Item 1\n  - Nested item\n  1. Ordered sub-item';
+      const output = preserveNoteTabsAndIndentation(input);
+      expect(output).toBe(input);
+    });
+
+    it('preserves fenced code block contents intact', () => {
+      const input = '```js\n    const indented = true;\n```';
+      const output = preserveNoteTabsAndIndentation(input);
+      expect(output).toBe(input);
+    });
+
+    it('preserves multiple consecutive blank lines with &nbsp; spacers', () => {
+      const input = 'Line 1\n\nLine 2\n\n\n\nLine 3';
+      const output = preserveNoteTabsAndIndentation(input);
+      expect(output).toBe('Line 1\n\nLine 2\n\n&nbsp;\n\n&nbsp;\n\nLine 3');
     });
   });
 });

@@ -165,7 +165,7 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
         <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           {isImageCard ? 'Pin & Tape Decoration' : 'Washi Tape Decoration'}
         </span>
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+        <div className="grid grid-cols-4 gap-1.5">
           {decorationOptions.map((pin) => {
             const isSelected =
               (note.pinStyle || 'none') === pin.value ||
