@@ -134,7 +134,7 @@ interface SlashCommandMenuProps {
   selectedIndex: number;
   onSelect: (command: SlashCommand) => void;
   onClose: () => void;
-  position: { top: number; left: number };
+  position: { top: number; left: number; lineHeight?: number };
   paperTheme?: string;
 }
 
@@ -149,37 +149,11 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [adjustedPos, setAdjustedPos] = React.useState<{ top: number; left: number }>({
-    top: position.top,
+    top: position.top + (position.lineHeight ?? 24) + 4,
     left: position.left,
   });
 
   const themeConfig = PAPER_THEMES[(paperTheme as PaperTheme) || 'white'];
-
-  React.useLayoutEffect(() => {
-    if (!containerRef.current) return;
-    const el = containerRef.current;
-    const parent = el.parentElement;
-    const menuHeight = el.offsetHeight || 240;
-    const menuWidth = el.offsetWidth || 270;
-
-    let newTop = position.top;
-    let newLeft = position.left;
-
-    if (parent) {
-      const parentHeight = parent.clientHeight || 300;
-      const parentWidth = parent.clientWidth || 360;
-
-      // If menu would overflow bottom of parent editor, flip to render above the cursor line
-      if (position.top + menuHeight > parentHeight - 10) {
-        newTop = Math.max(8, position.top - menuHeight - 24);
-      }
-
-      // Clamp horizontally inside parent container
-      newLeft = Math.min(Math.max(8, position.left), Math.max(8, parentWidth - menuWidth - 8));
-    }
-
-    setAdjustedPos({ top: newTop, left: newLeft });
-  }, [position.top, position.left]);
 
   const filteredCommands = useMemo(() => {
     const q = (query || '').toLowerCase().trim();
@@ -192,6 +166,61 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
       return false;
     });
   }, [query]);
+
+  React.useLayoutEffect(() => {
+    if (!containerRef.current) return;
+    const el = containerRef.current;
+    const parent = el.parentElement;
+    const menuHeight = el.offsetHeight || 180;
+    const menuWidth = el.offsetWidth || 270;
+
+    const cursorTop = position.top;
+    const cursorLeft = position.left;
+    const lineHeight = position.lineHeight ?? 24;
+
+    if (!parent) {
+      setAdjustedPos({ top: cursorTop + lineHeight + 4, left: cursorLeft });
+      return;
+    }
+
+    const parentHeight = parent.clientHeight || parent.offsetHeight || 300;
+    const parentWidth = parent.clientWidth || parent.offsetWidth || 360;
+
+    // 1. Vertical Positioning:
+    // Check available space below vs above the cursor line
+    const spaceBelow = parentHeight - (cursorTop + lineHeight + 4);
+    const spaceAbove = cursorTop - 4;
+
+    let targetTop: number;
+
+    if (spaceBelow >= menuHeight) {
+      // Fits cleanly below cursor line
+      targetTop = cursorTop + lineHeight + 4;
+    } else if (spaceAbove >= menuHeight) {
+      // Not enough room below, but fits cleanly above cursor line
+      targetTop = cursorTop - menuHeight - 4;
+    } else if (spaceAbove > spaceBelow) {
+      // Constrained space: more room above, clamp to top boundary
+      targetTop = Math.max(6, cursorTop - menuHeight - 4);
+    } else {
+      // Constrained space: more room below, clamp to bottom boundary
+      targetTop = Math.min(cursorTop + lineHeight + 4, Math.max(6, parentHeight - menuHeight - 6));
+    }
+
+    // 2. Horizontal Positioning & Note Edge Clamping:
+    // Align with cursor left, but ensure the menu fits within [8, parentWidth - menuWidth - 8]
+    let targetLeft = cursorLeft;
+    if (targetLeft + menuWidth > parentWidth - 8) {
+      targetLeft = Math.max(8, parentWidth - menuWidth - 8);
+    } else {
+      targetLeft = Math.max(8, targetLeft);
+    }
+
+    setAdjustedPos({
+      top: Math.round(targetTop),
+      left: Math.round(targetLeft),
+    });
+  }, [position.top, position.left, position.lineHeight, filteredCommands.length]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {

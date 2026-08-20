@@ -1,6 +1,8 @@
 import React from 'react';
-import { Note } from '../../types';
+import { Note, PaperTheme } from '../../types';
+import { renderInlineMarkdown } from '../../utils';
 import { BaseMarkdownRenderer } from './BaseMarkdownRenderer';
+import { PAPER_THEMES } from './types';
 
 interface SmartMarkdownTextProps {
   content: string;
@@ -25,6 +27,25 @@ const SmartMarkdownTextComponent: React.FC<SmartMarkdownTextProps> = ({
   onNavigateToNote,
   onDoubleClick,
 }) => {
+  const themeConfig = PAPER_THEMES[(paperTheme as PaperTheme) || 'white'];
+
+  if (inline) {
+    const rendered = renderInlineMarkdown(content, {
+      allNotes,
+      linkColor: themeConfig.linkColor,
+      onNavigateToNote,
+    });
+
+    return (
+      <span
+        onDoubleClick={onDoubleClick}
+        className={`inline leading-snug break-words ${fontClass} ${fontSizeClass} ${themeConfig.text} ${className}`}
+      >
+        {rendered}
+      </span>
+    );
+  }
+
   return (
     <BaseMarkdownRenderer
       content={content}

@@ -200,3 +200,162 @@ export function handleSmartEnterList(textarea: HTMLTextAreaElement): {
   return null;
 }
 
+const PAIR_MAP: Record<string, string> = {
+  '(': ')',
+  '[': ']',
+  '{': '}',
+  '"': '"',
+  "'": "'",
+  '`': '`',
+  '*': '*',
+  '_': '_',
+  '~': '~',
+};
+
+const CLOSING_CHARS = new Set([')', ']', '}', '"', "'", '`']);
+
+/**
+ * Handles typing auto-pairs (e.g. typing '[' wraps selection in '[]' or inserts '[]' with cursor inside).
+ */
+export function handleSmartAutoPairing(
+  textarea: HTMLTextAreaElement,
+  char: string
+): {
+  handled: boolean;
+  newContent: string;
+  newSelectionStart: number;
+  newSelectionEnd: number;
+} | null {
+  const closing = PAIR_MAP[char];
+  if (!closing) return null;
+
+  const value = textarea.value;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const selectedText = value.slice(start, end);
+
+  // If text is selected, wrap the selection in the pair
+  if (selectedText.length > 0) {
+    const prefix = char === '~' ? '~~' : char;
+    const suffix = char === '~' ? '~~' : closing;
+
+    const newContent = value.slice(0, start) + prefix + selectedText + suffix + value.slice(end);
+    return {
+      handled: true,
+      newContent,
+      newSelectionStart: start + prefix.length,
+      newSelectionEnd: end + prefix.length,
+    };
+  }
+
+  // If no selection and typing an opening pair: insert pair with cursor between
+  if (char === '(' || char === '[' || char === '{' || char === '`') {
+    const newContent = value.slice(0, start) + char + closing + value.slice(end);
+    return {
+      handled: true,
+      newContent,
+      newSelectionStart: start + 1,
+      newSelectionEnd: start + 1,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Handles typing a closing character when cursor is already right before that closing character (step-over).
+ */
+export function handleSmartClosingPair(
+  textarea: HTMLTextAreaElement,
+  char: string
+): { handled: boolean; newCursorPos: number } | null {
+  if (!CLOSING_CHARS.has(char)) return null;
+
+  const value = textarea.value;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+
+  if (start === end && value[start] === char) {
+    return {
+      handled: true,
+      newCursorPos: start + 1,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Handles backspace between an empty pair (e.g. '|' between '()', '[]', '{}', '""', "''", '``').
+ * Deletes both characters simultaneously.
+ */
+export function handleSmartPairBackspace(textarea: HTMLTextAreaElement): {
+  handled: boolean;
+  newContent: string;
+  newCursorPos: number;
+} | null {
+  const value = textarea.value;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+
+  if (start !== end || start === 0 || start >= value.length) return null;
+
+  const charBefore = value[start - 1];
+  const charAfter = value[start];
+
+  if (
+    (charBefore === '(' && charAfter === ')') ||
+    (charBefore === '[' && charAfter === ']') ||
+    (charBefore === '{' && charAfter === '}') ||
+    (charBefore === '"' && charAfter === '"') ||
+    (charBefore === "'" && charAfter === "'") ||
+    (charBefore === '`' && charAfter === '`')
+  ) {
+    const newContent = value.slice(0, start - 1) + value.slice(start + 1);
+    return {
+      handled: true,
+      newContent,
+      newCursorPos: start - 1,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * When text is selected and user pastes a URL from clipboard, automatically formats as [selected text](url).
+ */
+export function applySmartUrlPaste(
+  textarea: HTMLTextAreaElement,
+  clipboardText: string
+): {
+  handled: boolean;
+  newContent: string;
+  newSelectionStart: number;
+  newSelectionEnd: number;
+} | null {
+  const trimmed = (clipboardText || '').trim();
+  const isUrl = /^https?:\/\/[^\s]+$/i.test(trimmed);
+
+  if (!isUrl) return null;
+
+  const value = textarea.value;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const selectedText = value.slice(start, end);
+
+  if (!selectedText || selectedText.trim().length === 0) return null;
+
+  // Format as [selectedText](url)
+  const formatted = `[${selectedText}](${trimmed})`;
+  const newContent = value.slice(0, start) + formatted + value.slice(end);
+
+  return {
+    handled: true,
+    newContent,
+    newSelectionStart: start + formatted.length,
+    newSelectionEnd: start + formatted.length,
+  };
+}
+
+

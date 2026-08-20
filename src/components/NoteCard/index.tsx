@@ -10,7 +10,20 @@ import { NoteStylePicker } from './NoteStylePicker';
 import { NoteDecorations } from './NoteDecorations';
 import { MentionAutocomplete } from '../MentionAutocomplete';
 import { SlashCommandMenu, SlashCommand, SLASH_COMMANDS } from './SlashCommandMenu';
-import { getUniqueTitleForDay, normalizeNoteText, resizeNoteEditor, applyMarkdownFormatting, handleSmartEnterList, sendNativeAppNotification, FormattingType, getTextareaCursorCoordinates } from '../../utils';
+import {
+  getUniqueTitleForDay,
+  normalizeNoteText,
+  resizeNoteEditor,
+  applyMarkdownFormatting,
+  handleSmartEnterList,
+  handleSmartAutoPairing,
+  handleSmartClosingPair,
+  handleSmartPairBackspace,
+  applySmartUrlPaste,
+  sendNativeAppNotification,
+  FormattingType,
+  getTextareaCursorCoordinates,
+} from '../../utils';
 import { loadSettings } from '../../lib/storage';
 import { generateAutoTagsWithAI } from '../../services/ai/aiMergeService';
 import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT, DRAG_Z_INDEX } from '../../constants/canvas';
@@ -49,12 +62,12 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
 
   // Mention autocomplete state
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
-  const [mentionPos, setMentionPos] = useState({ top: 0, left: 0 });
+  const [mentionPos, setMentionPos] = useState({ top: 0, left: 0, lineHeight: 24 });
   const [mentionSelectedIndex, setMentionSelectedIndex] = useState(0);
 
   // Slash command autocomplete state
   const [slashQuery, setSlashQuery] = useState<string | null>(null);
-  const [slashPos, setSlashPos] = useState({ top: 0, left: 0 });
+  const [slashPos, setSlashPos] = useState({ top: 0, left: 0, lineHeight: 24 });
   const [slashSelectedIndex, setSlashSelectedIndex] = useState(0);
 
   const cardRef = useRef<HTMLDivElement>(null);
@@ -563,6 +576,30 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
             <textarea
               ref={textareaRef}
               value={note.content}
+              onPaste={(e) => {
+                const pasted = e.clipboardData.getData('text');
+                if (textareaRef.current && pasted) {
+                  const urlResult = applySmartUrlPaste(textareaRef.current, pasted);
+                  if (urlResult && urlResult.handled) {
+                    e.preventDefault();
+                    onUpdateNote({
+                      ...note,
+                      content: urlResult.newContent,
+                      updatedAt: new Date().toISOString(),
+                    });
+                    setTimeout(() => {
+                      if (textareaRef.current) {
+                        textareaRef.current.focus();
+                        textareaRef.current.setSelectionRange(
+                          urlResult.newSelectionStart,
+                          urlResult.newSelectionEnd
+                        );
+                        resizeNoteEditor(textareaRef.current);
+                      }
+                    }, 10);
+                  }
+                }
+              }}
               onChange={(e) => {
                 const val = normalizeNoteText(e.target.value);
                 onUpdateNote({
@@ -599,20 +636,21 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
                 // Keep typing keys inside the editor; card-level shortcuts must not receive them.
                 e.stopPropagation();
 
-                const key = e.key.toLowerCase();
+                const key = e.key;
+                const lowerKey = key.toLowerCase();
                 const isMod = e.ctrlKey || e.metaKey;
 
                 // Rich text formatting shortcuts inside note editor
                 let formatType: FormattingType | null = null;
-                if (isMod && key === 'b') {
+                if (isMod && lowerKey === 'b') {
                   formatType = 'bold';
-                } else if (isMod && key === 'i') {
+                } else if (isMod && lowerKey === 'i') {
                   formatType = 'italic';
-                } else if (isMod && (key === 'x' && e.shiftKey)) {
+                } else if (isMod && (lowerKey === 'x' && e.shiftKey)) {
                   formatType = 'strikethrough';
-                } else if (isMod && (key === 'e' || key === '`')) {
+                } else if (isMod && (lowerKey === 'e' || lowerKey === '`')) {
                   formatType = 'code';
-                } else if (isMod && key === 'k' && !mentionQuery) {
+                } else if (isMod && lowerKey === 'k' && !mentionQuery) {
                   formatType = 'link';
                 }
 
@@ -634,6 +672,61 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
                     }
                   }, 10);
                   return;
+                }
+
+                // Auto-closing step over
+                if (!isMod && !e.altKey && textareaRef.current && slashQuery === null && mentionQuery === null) {
+                  const stepResult = handleSmartClosingPair(textareaRef.current, key);
+                  if (stepResult && stepResult.handled) {
+                    e.preventDefault();
+                    textareaRef.current.setSelectionRange(stepResult.newCursorPos, stepResult.newCursorPos);
+                    return;
+                  }
+                }
+
+                // Smart auto-pairing and selection wrapping on character typing
+                if (!isMod && !e.altKey && textareaRef.current && slashQuery === null && mentionQuery === null) {
+                  const pairResult = handleSmartAutoPairing(textareaRef.current, key);
+                  if (pairResult && pairResult.handled) {
+                    e.preventDefault();
+                    onUpdateNote({
+                      ...note,
+                      content: pairResult.newContent,
+                      updatedAt: new Date().toISOString(),
+                    });
+                    setTimeout(() => {
+                      if (textareaRef.current) {
+                        textareaRef.current.focus();
+                        textareaRef.current.setSelectionRange(
+                          pairResult.newSelectionStart,
+                          pairResult.newSelectionEnd
+                        );
+                        resizeNoteEditor(textareaRef.current);
+                      }
+                    }, 10);
+                    return;
+                  }
+                }
+
+                // Smart pair backspace
+                if (key === 'Backspace' && !isMod && textareaRef.current && slashQuery === null && mentionQuery === null) {
+                  const bsResult = handleSmartPairBackspace(textareaRef.current);
+                  if (bsResult && bsResult.handled) {
+                    e.preventDefault();
+                    onUpdateNote({
+                      ...note,
+                      content: bsResult.newContent,
+                      updatedAt: new Date().toISOString(),
+                    });
+                    setTimeout(() => {
+                      if (textareaRef.current) {
+                        textareaRef.current.focus();
+                        textareaRef.current.setSelectionRange(bsResult.newCursorPos, bsResult.newCursorPos);
+                        resizeNoteEditor(textareaRef.current);
+                      }
+                    }, 10);
+                    return;
+                  }
                 }
 
                 // Handle smart enter for numbered lists, checklists, and bullet points

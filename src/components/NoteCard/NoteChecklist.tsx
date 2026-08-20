@@ -326,18 +326,37 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
 
   const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newItemText.trim()) {
-      const newId = `item-task-${crypto.randomUUID()}`;
-      const newItem: ChecklistItem = {
-        id: newId,
-        text: newItemText.trim(),
-        completed: false,
+    if (!newItemText.trim()) return;
+
+    const rawLines = newItemText.split('\n').map((l) => l.trim()).filter(Boolean);
+    const newItems: ChecklistItem[] = rawLines.map((line) => {
+      const headingMatch = line.match(/^(#{1,6})\s+(.*)/);
+      if (headingMatch) {
+        return {
+          id: `item-heading-${crypto.randomUUID()}`,
+          text: headingMatch[2],
+          completed: false,
+          isHeading: true,
+          headingLevel: headingMatch[1].length,
+        };
+      }
+      const isChecked = /- \[[xX]\]/.test(line);
+      const cleanText = line
+        .replace(/^-\s*\[[xX\s]?\]\s*/, '')
+        .replace(/^[-*+]\s*/, '')
+        .replace(/^\d+[.)]\s*/, '');
+      return {
+        id: `item-task-${crypto.randomUUID()}`,
+        text: cleanText,
+        completed: isChecked,
+        isHeading: false,
       };
-      const updated = [...items, newItem];
-      setItems(updated);
-      setNewItemText('');
-      syncBackToContent(updated);
-    }
+    });
+
+    const updated = [...items, ...newItems];
+    setItems(updated);
+    setNewItemText('');
+    syncBackToContent(updated);
   };
 
   return (
@@ -388,6 +407,42 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
           placeholder="Add task item..."
           value={newItemText}
           onChange={(e) => setNewItemText(e.target.value)}
+          onPaste={(e) => {
+            const pasteText = e.clipboardData.getData('text');
+            if (pasteText && pasteText.includes('\n')) {
+              e.preventDefault();
+              const rawLines = pasteText.split('\n').map((l) => l.trim()).filter(Boolean);
+              const newItems: ChecklistItem[] = rawLines.map((line) => {
+                const headingMatch = line.match(/^(#{1,6})\s+(.*)/);
+                if (headingMatch) {
+                  return {
+                    id: `item-heading-${crypto.randomUUID()}`,
+                    text: headingMatch[2],
+                    completed: false,
+                    isHeading: true,
+                    headingLevel: headingMatch[1].length,
+                  };
+                }
+                const isChecked = /- \[[xX]\]/.test(line);
+                const cleanText = line
+                  .replace(/^-\s*\[[xX\s]?\]\s*/, '')
+                  .replace(/^[-*+]\s*/, '')
+                  .replace(/^\d+[.)]\s*/, '');
+                return {
+                  id: `item-task-${crypto.randomUUID()}`,
+                  text: cleanText,
+                  completed: isChecked,
+                  isHeading: false,
+                };
+              });
+              if (newItems.length > 0) {
+                const updated = [...items, ...newItems];
+                setItems(updated);
+                setNewItemText('');
+                syncBackToContent(updated);
+              }
+            }
+          }}
           onKeyDown={(e) => {
             e.stopPropagation();
             if (e.key === 'Escape') {

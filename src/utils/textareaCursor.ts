@@ -1,14 +1,18 @@
+export interface CursorCoordinates {
+  top: number;
+  left: number;
+  lineHeight: number;
+}
+
 /**
- * Computes exact { top, left } pixel coordinates of text cursor inside a <textarea>
- * using a DOM mirror calculation, with automatic directional flipping (above/below cursor)
- * to ensure popup menus fit cleanly inside available space.
+ * Computes exact { top, left, lineHeight } pixel coordinates of text cursor inside a <textarea>
+ * using an exact DOM mirror calculation.
  */
 export function getTextareaCursorCoordinates(
   textarea: HTMLTextAreaElement,
-  cursorIndex: number,
-  menuHeight: number = 240
-): { top: number; left: number } {
-  if (!textarea) return { top: 32, left: 10 };
+  cursorIndex: number
+): CursorCoordinates {
+  if (!textarea) return { top: 32, left: 10, lineHeight: 24 };
 
   const mirror = document.createElement('div');
   const style = window.getComputedStyle(textarea);
@@ -72,22 +76,10 @@ export function getTextareaCursorCoordinates(
   document.body.removeChild(mirror);
 
   const lineHeight = parseInt(style.lineHeight, 10) || 24;
-  const containerHeight = textarea.clientHeight || textarea.offsetHeight || 300;
 
-  // Measure available space above and below the current cursor line
-  const spaceBelow = containerHeight - (spanTop + lineHeight);
-  const spaceAbove = spanTop;
-
-  let topPos: number;
-
-  // If menu does not fit below and there is more room above, flip menu ABOVE cursor
-  if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
-    topPos = Math.max(4, spanTop - menuHeight - 4);
-  } else {
-    topPos = spanTop + lineHeight + 4;
-  }
-
-  const leftPos = Math.min(Math.max(spanLeft, 10), Math.max(textarea.clientWidth - 260, 10));
-
-  return { top: topPos, left: leftPos };
+  return {
+    top: spanTop,
+    left: spanLeft,
+    lineHeight,
+  };
 }

@@ -1,10 +1,20 @@
 import { Note } from '../types';
 
+let lastNotesRef: Note[] | null = null;
+let cachedIdMap = new Map<string, Note>();
+let cachedTitleMap = new Map<string, Note>();
+
 /**
- * Replaces @[Title] patterns with custom markdown links [@[Title]](#note-targetId)
+ * Returns O(1) indexed lookup maps for note IDs and lowercase titles.
+ * Uses reference caching to avoid reconstructing maps on unchanged note arrays.
  */
-export function processMarkdownMentions(content: string, notes: Note[]): string {
-  if (!content) return '';
+export function getNoteLookupMaps(notes: Note[]): {
+  idMap: Map<string, Note>;
+  titleMap: Map<string, Note>;
+} {
+  if (notes === lastNotesRef) {
+    return { idMap: cachedIdMap, titleMap: cachedTitleMap };
+  }
 
   const idMap = new Map<string, Note>();
   const titleMap = new Map<string, Note>();
@@ -17,6 +27,21 @@ export function processMarkdownMentions(content: string, notes: Note[]): string 
       }
     }
   });
+
+  lastNotesRef = notes;
+  cachedIdMap = idMap;
+  cachedTitleMap = titleMap;
+
+  return { idMap, titleMap };
+}
+
+/**
+ * Replaces @[Title] patterns with custom markdown links [@[Title]](#note-targetId)
+ */
+export function processMarkdownMentions(content: string, notes: Note[]): string {
+  if (!content) return '';
+
+  const { idMap, titleMap } = getNoteLookupMaps(notes);
 
   return content.replace(/@\[([^\]]+)\](?:\(([^)]+)\))?/g, (fullMatch, title, explicitId) => {
     let targetNote = explicitId ? idMap.get(explicitId) : null;
