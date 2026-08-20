@@ -7,12 +7,15 @@ import {
   ViewIcon,
   ViewOffIcon,
   Globe02Icon,
-  CpuIcon,
   CheckmarkCircle02Icon,
   Key01Icon,
   Loading03Icon,
+  RotateLeft01Icon,
+  Cancel01Icon,
+  CpuIcon,
+  CheckmarkBadge01Icon,
 } from '@hugeicons/core-free-icons';
-import { CanvasTheme, AIProvider } from '../../types';
+import { CanvasTheme, AIProvider, AIProviderProfile, AIModelsCatalog } from '../../types';
 import { testAIConnection } from '../../services/ai/aiMergeService';
 import { encryptApiKey, decryptApiKey } from '../../utils/aiSecurity';
 import {
@@ -20,6 +23,12 @@ import {
   getLastNDaysAIUsage,
   DayUsage,
 } from '../../utils/aiUsageTracker';
+import {
+  getCachedModelsCatalog,
+  fetchRemoteModelsCatalog,
+  getSuggestedModelsForProvider,
+} from '../../services/ai/aiModelsCatalogService';
+import { DEFAULT_AI_PROFILES, getProviderProfile } from '../../lib/storage';
 import {
   Dialog,
   DialogHeader,
@@ -29,7 +38,6 @@ import {
   Switch,
   Badge,
   Icon,
-  Select,
 } from '../ui';
 
 interface AISettingsModalProps {
@@ -41,6 +49,7 @@ interface AISettingsModalProps {
   apiKeyIv: string;
   customBaseUrl?: string;
   customModelName?: string;
+  aiProviderProfiles?: Record<string, AIProviderProfile>;
   onSaveAISettings: (settings: {
     enableAIServices: boolean;
     aiProvider: AIProvider;
@@ -48,9 +57,17 @@ interface AISettingsModalProps {
     apiKeyIv: string;
     customBaseUrl?: string;
     customModelName?: string;
+    aiProviderProfiles?: Record<string, AIProviderProfile>;
   }) => void;
   themeMode?: CanvasTheme;
 }
+
+const PROVIDER_TABS: { id: AIProvider; label: string }[] = [
+  { id: 'gemini', label: 'Google Gemini' },
+  { id: 'openai', label: 'OpenAI' },
+  { id: 'openrouter', label: 'OpenRouter' },
+  { id: 'custom', label: 'Custom / Ollama' },
+];
 
 export const AISettingsModal: React.FC<AISettingsModalProps> = ({
   isOpen,
@@ -61,54 +78,82 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
   apiKeyIv,
   customBaseUrl,
   customModelName,
+  aiProviderProfiles,
   onSaveAISettings,
   themeMode: _themeMode,
 }) => {
   const [enabled, setEnabled] = useState(enableAIServices);
-  const [provider, setProvider] = useState<AIProvider>(aiProvider || 'gemini');
-  const [rawApiKey, setRawApiKey] = useState('');
-  const [showKey, setShowKey] = useState(false);
-  const [baseUrl, setBaseUrl] = useState(customBaseUrl || '');
-  const [modelName, setModelName] = useState(customModelName || 'gemini-2.5-flash');
+  const [activeProvider, setActiveProvider] = useState<AIProvider>(aiProvider || 'gemini');
+  const [selectedTab, setSelectedTab] = useState<AIProvider>(aiProvider || 'gemini');
 
+  // Multi-provider profile maps
+  const [profiles, setProfiles] = useState<Record<AIProvider, AIProviderProfile>>(() => ({
+    gemini: getProviderProfile({ aiProvider, encryptedApiKey, apiKeyIv, customBaseUrl, customModelName, aiProviderProfiles }, 'gemini'),
+    openai: getProviderProfile({ aiProvider, encryptedApiKey, apiKeyIv, customBaseUrl, customModelName, aiProviderProfiles }, 'openai'),
+    openrouter: getProviderProfile({ aiProvider, encryptedApiKey, apiKeyIv, customBaseUrl, customModelName, aiProviderProfiles }, 'openrouter'),
+    custom: getProviderProfile({ aiProvider, encryptedApiKey, apiKeyIv, customBaseUrl, customModelName, aiProviderProfiles }, 'custom'),
+  }));
+
+  // Decrypted in-memory raw keys per provider
+  const [rawApiKeys, setRawApiKeys] = useState<Record<AIProvider, string>>({
+    gemini: '',
+    openai: '',
+    openrouter: '',
+    custom: '',
+  });
+
+  const [showKey, setShowKey] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string; latencyMs?: number } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Dynamic Catalog state
+  const [catalog, setCatalog] = useState<AIModelsCatalog>(() => getCachedModelsCatalog());
+  const [isRefreshingCatalog, setIsRefreshingCatalog] = useState(false);
 
   // AI Usage & Activity History State
   const [todayCount, setTodayCount] = useState<number>(() => getTodayAICount());
   const [usageHistory, setUsageHistory] = useState<DayUsage[]>(() => getLastNDaysAIUsage(28));
 
-  // Initialize and decrypt API key on mount/open
+  // Initialize and decrypt all provider keys on modal open
   useEffect(() => {
-    if (isOpen) {
-      setEnabled(enableAIServices);
-      setProvider(aiProvider || 'gemini');
-      setBaseUrl(customBaseUrl || '');
-      setModelName(
-        customModelName ||
-          (aiProvider === 'openai'
-            ? 'gpt-4o-mini'
-            : aiProvider === 'openrouter'
-            ? 'google/gemini-2.5-flash'
-            : 'gemini-2.5-flash')
-      );
-      setTestResult(null);
-      setErrorMessage(null);
-      setTodayCount(getTodayAICount());
-      setUsageHistory(getLastNDaysAIUsage(28));
+    if (!isOpen) return;
 
-      if (encryptedApiKey && apiKeyIv) {
-        decryptApiKey(encryptedApiKey, apiKeyIv)
-          .then((key) => setRawApiKey(key))
-          .catch(() => {
-            setRawApiKey('');
-            setErrorMessage('Could not decrypt stored API key. Please re-enter.');
-          });
+    setEnabled(enableAIServices);
+    const initialActive = aiProvider || 'gemini';
+    setActiveProvider(initialActive);
+    setSelectedTab(initialActive);
+    setTestResult(null);
+    setErrorMessage(null);
+    setTodayCount(getTodayAICount());
+    setUsageHistory(getLastNDaysAIUsage(28));
+
+    const initialProfiles: Record<AIProvider, AIProviderProfile> = {
+      gemini: getProviderProfile({ aiProvider, encryptedApiKey, apiKeyIv, customBaseUrl, customModelName, aiProviderProfiles }, 'gemini'),
+      openai: getProviderProfile({ aiProvider, encryptedApiKey, apiKeyIv, customBaseUrl, customModelName, aiProviderProfiles }, 'openai'),
+      openrouter: getProviderProfile({ aiProvider, encryptedApiKey, apiKeyIv, customBaseUrl, customModelName, aiProviderProfiles }, 'openrouter'),
+      custom: getProviderProfile({ aiProvider, encryptedApiKey, apiKeyIv, customBaseUrl, customModelName, aiProviderProfiles }, 'custom'),
+    };
+    setProfiles(initialProfiles);
+
+    // Decrypt keys for all providers in parallel
+    const providersList: AIProvider[] = ['gemini', 'openai', 'openrouter', 'custom'];
+    providersList.forEach(async (p) => {
+      const prof = initialProfiles[p];
+      if (prof.encryptedApiKey && prof.apiKeyIv) {
+        try {
+          const dec = await decryptApiKey(prof.encryptedApiKey, prof.apiKeyIv);
+          setRawApiKeys((prev) => ({ ...prev, [p]: dec }));
+        } catch {
+          setRawApiKeys((prev) => ({ ...prev, [p]: '' }));
+        }
       } else {
-        setRawApiKey('');
+        setRawApiKeys((prev) => ({ ...prev, [p]: '' }));
       }
-    }
+    });
+
+    // Check remote catalog quietly in background if cache expired
+    fetchRemoteModelsCatalog(false).then((cat) => setCatalog(cat));
   }, [
     isOpen,
     enableAIServices,
@@ -117,9 +162,10 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
     apiKeyIv,
     customBaseUrl,
     customModelName,
+    aiProviderProfiles,
   ]);
 
-  // Listen for real-time usage updates when AI requests complete
+  // Real-time usage listener
   useEffect(() => {
     if (!isOpen) return;
     const handleUsageUpdate = () => {
@@ -132,54 +178,126 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
 
   if (!isOpen) return null;
 
+  const currentProfile = profiles[selectedTab] || DEFAULT_AI_PROFILES[selectedTab];
+  const currentRawKey = rawApiKeys[selectedTab] || '';
+  const suggestedModels = getSuggestedModelsForProvider(selectedTab, catalog);
+
+  const handleUpdateCurrentProfile = (updates: Partial<AIProviderProfile>) => {
+    setProfiles((prev) => ({
+      ...prev,
+      [selectedTab]: {
+        ...prev[selectedTab],
+        ...updates,
+      },
+    }));
+    setTestResult(null);
+  };
+
+  const handleRawKeyChange = (value: string) => {
+    setRawApiKeys((prev) => ({ ...prev, [selectedTab]: value }));
+    setTestResult(null);
+  };
+
+  const handleSelectModel = (modelId: string) => {
+    handleUpdateCurrentProfile({ activeModel: modelId });
+  };
+
+  const handleRemoveHistoryModel = (modelId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updatedHistory = (currentProfile.modelHistory || []).filter((m) => m !== modelId);
+    handleUpdateCurrentProfile({ modelHistory: updatedHistory });
+  };
+
+  const handleManualRefreshCatalog = async () => {
+    setIsRefreshingCatalog(true);
+    try {
+      const freshCatalog = await fetchRemoteModelsCatalog(true);
+      setCatalog(freshCatalog);
+    } finally {
+      setIsRefreshingCatalog(false);
+    }
+  };
+
   const handleTestConnection = async () => {
     setTestResult(null);
     setErrorMessage(null);
 
-    if (!rawApiKey.trim()) {
-      setErrorMessage('Please enter an API Key to test connection.');
+    if (selectedTab !== 'custom' && !currentRawKey.trim()) {
+      setErrorMessage(`Please enter an API Key for ${PROVIDER_TABS.find((t) => t.id === selectedTab)?.label || selectedTab} to test.`);
       return;
     }
 
     setIsTesting(true);
+    const startTime = performance.now();
     const result = await testAIConnection(
       {
-        aiProvider: provider,
+        aiProvider: selectedTab,
         encryptedApiKey: '',
         apiKeyIv: '',
-        customBaseUrl: baseUrl,
-        customModelName: modelName,
+        customBaseUrl: currentProfile.customBaseUrl,
+        customModelName: currentProfile.activeModel,
       },
-      rawApiKey
+      currentRawKey
     );
+    const latency = Math.round(performance.now() - startTime);
     setIsTesting(false);
-    setTestResult(result);
+    setTestResult({ ...result, latencyMs: latency });
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
-    let finalEncryptedKey = encryptedApiKey;
-    let finalIv = apiKeyIv;
+    // Validate that if enabled, the active provider has credentials or endpoint
+    const activeProf = profiles[activeProvider];
+    const activeKey = rawApiKeys[activeProvider];
 
-    if (rawApiKey.trim()) {
-      const { ciphertext, iv } = await encryptApiKey(rawApiKey.trim());
-      finalEncryptedKey = ciphertext;
-      finalIv = iv;
-    } else if (enabled) {
-      setErrorMessage('API Key is required when AI Services are enabled.');
+    if (enabled && activeProvider !== 'custom' && !activeKey.trim() && !activeProf.encryptedApiKey) {
+      setErrorMessage(`API Key is required for the active provider (${PROVIDER_TABS.find((t) => t.id === activeProvider)?.label}).`);
       return;
     }
 
+    // Encrypt any modified keys across all providers
+    const updatedProfiles = { ...profiles };
+    for (const p of ['gemini', 'openai', 'openrouter', 'custom'] as AIProvider[]) {
+      const raw = rawApiKeys[p];
+      let finalEncrypted = profiles[p].encryptedApiKey;
+      let finalIv = profiles[p].apiKeyIv;
+
+      if (raw && raw.trim()) {
+        const { ciphertext, iv } = await encryptApiKey(raw.trim());
+        finalEncrypted = ciphertext;
+        finalIv = iv;
+      }
+
+      // Add active model to modelHistory if not present
+      const model = profiles[p].activeModel?.trim();
+      const currentHistory = profiles[p].modelHistory || [];
+      const updatedHistory = model && !currentHistory.includes(model)
+        ? [model, ...currentHistory].slice(0, 10)
+        : currentHistory;
+
+      updatedProfiles[p] = {
+        ...profiles[p],
+        encryptedApiKey: finalEncrypted,
+        apiKeyIv: finalIv,
+        modelHistory: updatedHistory,
+      };
+    }
+
+    const currentActiveProfile = updatedProfiles[activeProvider];
+
+    // ZERO DATA LOSS: Even when enabled is false, all keys and profiles are preserved!
     onSaveAISettings({
       enableAIServices: enabled,
-      aiProvider: provider,
-      encryptedApiKey: finalEncryptedKey,
-      apiKeyIv: finalIv,
-      customBaseUrl: baseUrl,
-      customModelName: modelName,
+      aiProvider: activeProvider,
+      encryptedApiKey: currentActiveProfile.encryptedApiKey,
+      apiKeyIv: currentActiveProfile.apiKeyIv,
+      customBaseUrl: currentActiveProfile.customBaseUrl,
+      customModelName: currentActiveProfile.activeModel,
+      aiProviderProfiles: updatedProfiles,
     });
+
     onClose();
   };
 
@@ -189,14 +307,14 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
         title={
           <span className="flex items-center gap-2">
             <Icon icon={SparklesIcon} size="md" />
-            <span>AI Intelligence Settings</span>
+            <span>AI Settings</span>
           </span>
         }
         onClose={onClose}
       />
 
       <form onSubmit={handleSave} className="flex flex-col gap-4">
-        <DialogBody className="space-y-4 text-xs max-h-[65vh] overflow-y-auto pr-2">
+        <DialogBody className="space-y-4 text-xs max-h-[65vh] overflow-y-auto pr-1">
           {/* Error Alert */}
           {errorMessage && (
             <div className="p-2.5 rounded-sm flex items-start gap-2 text-xs border bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/60 text-rose-800 dark:text-rose-300">
@@ -205,32 +323,18 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
             </div>
           )}
 
-          {/* Security Notice */}
-          <div className="p-3 rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex items-start gap-2.5">
-            <Icon
-              icon={Shield01Icon}
-              size="md"
-              className="shrink-0 mt-0.5 text-slate-700 dark:text-slate-300"
-            />
-            <div>
-              <p className="font-semibold text-[11px] uppercase tracking-wider mb-0.5 text-slate-900 dark:text-slate-200">
-                Client-Side AES-256-GCM Encrypted
-              </p>
-              <p className="leading-relaxed text-[11px] text-slate-600 dark:text-slate-400">
-                Your API key is encrypted at rest in local storage and never leaves your desktop
-                except to contact the configured inference endpoint.
-              </p>
-            </div>
-          </div>
-
-          {/* Toggle Enable AI */}
-          <div className="p-3 rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
+          {/* Master Enable AI Switch & Privacy Guarantee */}
+          <div className="p-3 rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 space-y-2">
             <Switch
-              label="Enable AI Synthesis & Auto-Tagging"
-              description="Unlocks multi-card merging and AI utilities on canvas"
+              label="Enable AI Services"
+              description="Enables note merging and tagging on canvas. Your encrypted keys and models remain saved when disabled."
               checked={enabled}
               onChange={() => setEnabled(!enabled)}
             />
+            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-200 dark:border-slate-700/60">
+              <Icon icon={Shield01Icon} size="xs" className="text-slate-400 dark:text-slate-500 shrink-0" />
+              <span>All keys and custom models are encrypted and stored locally on your device.</span>
+            </div>
           </div>
 
           {/* AI Usage & Activity Dashboard (28-day Activity Grid) */}
@@ -242,7 +346,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
                   <span className="text-slate-800 dark:text-slate-200">Activity Tracker</span>
                 </div>
                 <Badge variant="subtle" size="xs">
-                  {provider === 'openrouter' ? 'Free Tier Quota' : 'Direct API'}
+                  {activeProvider === 'openrouter' ? 'OpenRouter' : 'Direct API'}
                 </Badge>
               </div>
 
@@ -251,7 +355,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-slate-600 dark:text-slate-400">Requests Today</span>
                   <span className="font-bold text-slate-900 dark:text-slate-100">
-                    {todayCount} {provider === 'openrouter' ? '/ 50 daily' : 'requests'}
+                    {todayCount} requests
                   </span>
                 </div>
                 <div className="w-full h-1.5 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700">
@@ -307,209 +411,256 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
             </div>
           )}
 
-          {/* Provider Selection */}
-          <Select
-            label="Inference Provider"
-            value={provider}
-            onChange={(e) => {
-              setProvider(e.target.value as AIProvider);
-              setTestResult(null);
-            }}
-            options={[
-              { value: 'gemini', label: 'Google Gemini API (Recommended - Free Tier)' },
-              { value: 'openai', label: 'OpenAI API (GPT-4o-mini / GPT-4o)' },
-              { value: 'openrouter', label: 'OpenRouter (Unified API Gateway)' },
-              { value: 'custom', label: 'Custom / OpenAI-Compatible (DeepSeek, Qwen, Ollama)' },
-            ]}
-          />
-
-          {/* API Key Input */}
+          {/* Provider Tabs Navigation */}
           <div>
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between mb-1.5">
               <label className="font-semibold text-xs text-slate-700 dark:text-slate-200">
-                API Secret Key
+                Inference Provider
               </label>
-              <button
-                type="button"
-                onClick={() => setShowKey(!showKey)}
-                className="text-[11px] flex items-center gap-1 hover:underline cursor-pointer text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-              >
-                <Icon icon={showKey ? ViewOffIcon : ViewIcon} size="xs" />
-                <span>{showKey ? 'Hide' : 'Reveal'}</span>
-              </button>
+              <div className="flex items-center gap-2">
+                {activeProvider !== selectedTab && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveProvider(selectedTab)}
+                    className="text-[11px] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium cursor-pointer underline underline-offset-2"
+                  >
+                    Set as Active
+                  </button>
+                )}
+                <button
+                  type="button"
+                  title="Check GitHub for latest models"
+                  onClick={handleManualRefreshCatalog}
+                  disabled={isRefreshingCatalog}
+                  className="p-1 rounded-sm text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                >
+                  <Icon
+                    icon={RotateLeft01Icon}
+                    size="xs"
+                    className={isRefreshingCatalog ? 'animate-spin' : ''}
+                  />
+                </button>
+              </div>
             </div>
-            <div className="relative">
-              <input
-                type={showKey ? 'text' : 'password'}
-                value={rawApiKey}
-                onChange={(e) => {
-                  setRawApiKey(e.target.value);
-                  setTestResult(null);
-                }}
-                placeholder={provider === 'gemini' ? 'AIzaSy...' : 'sk-...'}
-                className="w-full px-3 py-1.5 rounded-sm border outline-none font-mono text-xs transition-colors bg-white dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:border-slate-500"
-              />
+
+            <div className="grid grid-cols-4 gap-1 p-1 rounded-sm bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+              {PROVIDER_TABS.map((tab) => {
+                const isTabSelected = selectedTab === tab.id;
+                const isActive = activeProvider === tab.id;
+
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedTab(tab.id);
+                      setTestResult(null);
+                    }}
+                    className={`px-2.5 py-1.5 rounded-sm text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                      isTabSelected
+                        ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700/80 shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    {isActive && (
+                      <Icon
+                        icon={CheckmarkBadge01Icon}
+                        size="xs"
+                        className="shrink-0 opacity-80"
+                      />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Base URL for Custom / OpenRouter Provider */}
-          {(provider === 'openrouter' || provider === 'custom') && (
+          {/* Selected Provider Form Fields */}
+          <div className="space-y-3.5 p-3 rounded-sm border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60">
+            {/* API Key Field (Optional for Custom local Ollama) */}
             <div>
-              <label className="block font-semibold mb-1 text-xs flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
-                <Icon icon={Globe02Icon} size="xs" className="text-slate-400" />
-                <span>Custom Endpoint Base URL</span>
+              <div className="flex items-center justify-between mb-1">
+                <label className="font-semibold text-xs text-slate-700 dark:text-slate-200 flex items-center gap-1">
+                  <Icon icon={Key01Icon} size="xs" className="text-slate-400" />
+                  <span>
+                    {selectedTab === 'custom' ? 'API Key (Optional for Local Ollama)' : 'API Secret Key'}
+                  </span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowKey(!showKey)}
+                  className="text-[11px] flex items-center gap-1 hover:underline cursor-pointer text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                >
+                  <Icon icon={showKey ? ViewOffIcon : ViewIcon} size="xs" />
+                  <span>{showKey ? 'Hide' : 'Reveal'}</span>
+                </button>
+              </div>
+              <input
+                type={showKey ? 'text' : 'password'}
+                value={currentRawKey}
+                onChange={(e) => handleRawKeyChange(e.target.value)}
+                placeholder={
+                  selectedTab === 'gemini'
+                    ? 'AIzaSy...'
+                    : selectedTab === 'openai'
+                    ? 'sk-proj-...'
+                    : selectedTab === 'openrouter'
+                    ? 'sk-or-v1-...'
+                    : 'Optional auth token...'
+                }
+                className="w-full px-3 py-1.5 rounded-sm border outline-none font-mono text-xs transition-colors bg-slate-50/80 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-slate-500 dark:focus:border-slate-400"
+              />
+            </div>
+
+            {/* Custom Base URL (For Custom or OpenRouter) */}
+            {(selectedTab === 'custom' || selectedTab === 'openrouter') && (
+              <div>
+                <label className="block font-semibold mb-1 text-xs flex items-center gap-1 text-slate-700 dark:text-slate-200">
+                  <Icon icon={Globe02Icon} size="xs" className="text-slate-400" />
+                  <span>Custom Endpoint Base URL</span>
+                </label>
+                <input
+                  type="text"
+                  value={currentProfile.customBaseUrl || ''}
+                  onChange={(e) => handleUpdateCurrentProfile({ customBaseUrl: e.target.value })}
+                  placeholder={
+                    selectedTab === 'openrouter'
+                      ? 'https://openrouter.ai/api/v1'
+                      : 'http://localhost:11434/v1 or https://api.deepseek.com/v1'
+                  }
+                  className="w-full px-3 py-1.5 rounded-sm border outline-none font-mono text-xs transition-colors bg-slate-50/80 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-slate-500 dark:focus:border-slate-400"
+                />
+              </div>
+            )}
+
+            {/* Active Model Name Input */}
+            <div>
+              <label className="block font-semibold mb-1 text-xs flex items-center gap-1 text-slate-700 dark:text-slate-200">
+                <Icon icon={CpuIcon} size="xs" className="text-slate-400" />
+                <span>Active Model Identifier</span>
               </label>
               <input
                 type="text"
-                value={baseUrl}
-                onChange={(e) => setBaseUrl(e.target.value)}
+                value={currentProfile.activeModel}
+                onChange={(e) => handleUpdateCurrentProfile({ activeModel: e.target.value })}
                 placeholder={
-                  provider === 'openrouter'
-                    ? 'https://openrouter.ai/api/v1'
-                    : 'https://api.deepseek.com'
+                  suggestedModels.length > 0
+                    ? `Enter model identifier (e.g. ${suggestedModels.slice(0, 3).map((m) => m.id).join(', ')})...`
+                    : 'Enter model identifier...'
                 }
-                className="w-full px-3 py-1.5 rounded-sm border outline-none font-mono text-xs transition-colors bg-white dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:border-slate-500"
+                className="w-full px-3 py-1.5 rounded-sm border outline-none font-mono text-xs transition-colors bg-slate-50/80 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-slate-500 dark:focus:border-slate-400"
               />
+
+              {/* Suggested Model Chips from GitHub / Bundled Catalog (BORDERLESS & NO SCALE) */}
+              {suggestedModels.length > 0 && (
+                <div className="mt-2.5">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-1 font-medium">
+                    Suggested Models:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {suggestedModels.map((sug) => {
+                      const isSelected = currentProfile.activeModel === sug.id;
+                      return (
+                        <button
+                          key={sug.id}
+                          type="button"
+                          onClick={() => handleSelectModel(sug.id)}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-xs transition-colors cursor-pointer ${
+                            isSelected
+                              ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-medium'
+                              : 'bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-300 font-normal'
+                          }`}
+                        >
+                          <span>{sug.name}</span>
+                          {sug.reasoning && (
+                            <span
+                              className={`text-[9px] px-1 py-0.2 rounded-xs ${
+                                isSelected
+                                  ? 'bg-slate-800 text-slate-300 dark:bg-slate-200 dark:text-slate-700'
+                                  : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                              }`}
+                            >
+                              Reasoning
+                            </span>
+                          )}
+                          {sug.recommended && (
+                            <span
+                              className={`text-[9px] px-1 py-0.2 rounded-xs ${
+                                isSelected
+                                  ? 'bg-slate-800 text-slate-300 dark:bg-slate-200 dark:text-slate-700'
+                                  : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                              }`}
+                            >
+                              Fast
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Recent Model History Chips (BORDERLESS & NO SCALE) */}
+              {currentProfile.modelHistory && currentProfile.modelHistory.length > 0 && (
+                <div className="mt-2.5 pt-2 border-t border-slate-200/80 dark:border-slate-800">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-1 font-medium">
+                    Recent History:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {currentProfile.modelHistory.map((hist) => {
+                      const isSelected = currentProfile.activeModel === hist;
+                      return (
+                        <span
+                          key={hist}
+                          onClick={() => handleSelectModel(hist)}
+                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm font-mono text-[10px] cursor-pointer transition-colors ${
+                            isSelected
+                              ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-medium'
+                              : 'bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                          }`}
+                        >
+                          <span>{hist}</span>
+                          <button
+                            type="button"
+                            title="Remove from history"
+                            onClick={(e) => handleRemoveHistoryModel(hist, e)}
+                            className="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+                          >
+                            <Icon icon={Cancel01Icon} size="xs" />
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-
-          {/* Model Selection for ALL AI Providers */}
-          <div>
-            <label className="block font-semibold mb-1 text-xs flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
-              <Icon icon={CpuIcon} size="xs" className="text-slate-400" />
-              <span>Model Architecture</span>
-            </label>
-
-            {provider === 'gemini' && (
-              <select
-                value={
-                  [
-                    'gemini-2.5-flash',
-                    'gemini-2.5-pro',
-                    'gemini-2.0-flash-lite',
-                    'gemini-1.5-flash',
-                  ].includes(modelName)
-                    ? modelName
-                    : 'custom'
-                }
-                onChange={(e) => {
-                  if (e.target.value !== 'custom') {
-                    setModelName(e.target.value);
-                  }
-                  setTestResult(null);
-                }}
-                className="w-full px-3 py-1.5 rounded-sm border outline-none font-sans text-xs transition-colors mb-1.5 bg-white dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:border-slate-500"
-              >
-                <option value="gemini-2.5-flash">gemini-2.5-flash (Recommended - Free Tier)</option>
-                <option value="gemini-2.5-pro">gemini-2.5-pro (High Reasoning)</option>
-                <option value="gemini-2.0-flash-lite">
-                  gemini-2.0-flash-lite (Fast & Lightweight)
-                </option>
-                <option value="gemini-1.5-flash">gemini-1.5-flash (Legacy Stable)</option>
-                <option value="custom">Enter Custom Model Identifier...</option>
-              </select>
-            )}
-
-            {provider === 'openai' && (
-              <select
-                value={
-                  ['gpt-4o-mini', 'gpt-4o', 'o3-mini'].includes(modelName) ? modelName : 'custom'
-                }
-                onChange={(e) => {
-                  if (e.target.value !== 'custom') {
-                    setModelName(e.target.value);
-                  }
-                  setTestResult(null);
-                }}
-                className="w-full px-3 py-1.5 rounded-sm border outline-none font-sans text-xs transition-colors mb-1.5 bg-white dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:border-slate-500"
-              >
-                <option value="gpt-4o-mini">gpt-4o-mini (Recommended - Fast & Affordable)</option>
-                <option value="gpt-4o">gpt-4o (High Intelligence)</option>
-                <option value="o3-mini">o3-mini (Reasoning)</option>
-                <option value="custom">Enter Custom Model Identifier...</option>
-              </select>
-            )}
-
-            {provider === 'openrouter' && (
-              <select
-                value={
-                  [
-                    'google/gemini-2.5-flash',
-                    'anthropic/claude-3.5-sonnet',
-                    'deepseek/deepseek-chat',
-                    'meta-llama/llama-3.3-70b-instruct',
-                  ].includes(modelName)
-                    ? modelName
-                    : 'custom'
-                }
-                onChange={(e) => {
-                  if (e.target.value !== 'custom') {
-                    setModelName(e.target.value);
-                  }
-                  setTestResult(null);
-                }}
-                className="w-full px-3 py-1.5 rounded-sm border outline-none font-sans text-xs transition-colors mb-1.5 bg-white dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:border-slate-500"
-              >
-                <option value="google/gemini-2.5-flash">
-                  google/gemini-2.5-flash (Recommended)
-                </option>
-                <option value="anthropic/claude-3.5-sonnet">anthropic/claude-3.5-sonnet</option>
-                <option value="deepseek/deepseek-chat">deepseek/deepseek-chat</option>
-                <option value="meta-llama/llama-3.3-70b-instruct">
-                  meta-llama/llama-3.3-70b-instruct
-                </option>
-                <option value="custom">Enter Custom Model Identifier...</option>
-              </select>
-            )}
-
-            {/* Input field for custom model name or custom provider */}
-            {(provider === 'custom' ||
-              ![
-                'gemini-2.5-flash',
-                'gemini-2.5-pro',
-                'gemini-2.0-flash-lite',
-                'gemini-1.5-flash',
-                'gpt-4o-mini',
-                'gpt-4o',
-                'o3-mini',
-                'google/gemini-2.5-flash',
-                'anthropic/claude-3.5-sonnet',
-                'deepseek/deepseek-chat',
-                'meta-llama/llama-3.3-70b-instruct',
-              ].includes(modelName)) && (
-              <input
-                type="text"
-                value={modelName}
-                onChange={(e) => setModelName(e.target.value)}
-                placeholder={
-                  provider === 'gemini'
-                    ? 'gemini-2.5-flash'
-                    : provider === 'openai'
-                    ? 'gpt-4o-mini'
-                    : provider === 'openrouter'
-                    ? 'google/gemini-2.5-flash'
-                    : 'deepseek-chat'
-                }
-                className="w-full px-3 py-1.5 rounded-sm border outline-none font-mono text-xs transition-colors bg-white dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:border-slate-500"
-              />
-            )}
           </div>
 
           {/* Connection Test Result Feedback */}
           {testResult && (
             <div
-              className={`p-2.5 rounded-sm border flex items-center gap-2 text-xs ${
+              className={`p-2.5 rounded-sm border flex items-center justify-between text-xs ${
                 testResult.success
-                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300'
+                  ? 'bg-slate-50 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100'
                   : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/60 text-rose-800 dark:text-rose-300'
               }`}
             >
-              <Icon
-                icon={testResult.success ? CheckmarkCircle02Icon : Alert02Icon}
-                size="xs"
-                className={`shrink-0 ${testResult.success ? 'text-emerald-500' : 'text-rose-500'}`}
-              />
-              <span>{testResult.message}</span>
+              <div className="flex items-center gap-2">
+                <Icon
+                  icon={testResult.success ? CheckmarkCircle02Icon : Alert02Icon}
+                  size="xs"
+                  className={`shrink-0 ${testResult.success ? 'text-slate-700 dark:text-slate-300' : 'text-rose-500'}`}
+                />
+                <span>{testResult.message}</span>
+              </div>
+              {testResult.latencyMs !== undefined && (
+                <span className="font-mono text-[10px] font-semibold opacity-70">
+                  {testResult.latencyMs}ms
+                </span>
+              )}
             </div>
           )}
         </DialogBody>
@@ -522,10 +673,10 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
               size="xs"
               icon={isTesting ? Loading03Icon : Key01Icon}
               onClick={handleTestConnection}
-              disabled={isTesting || !rawApiKey.trim()}
+              disabled={isTesting || (selectedTab !== 'custom' && !currentRawKey.trim())}
               className={isTesting ? '[&>svg]:animate-spin' : ''}
             >
-              {isTesting ? 'Testing...' : 'Test Connection'}
+              {isTesting ? 'Testing...' : `Test ${PROVIDER_TABS.find((t) => t.id === selectedTab)?.label}`}
             </Button>
 
             <div className="flex items-center gap-2">

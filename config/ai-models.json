@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "lastUpdated": "2026-08-20",
+
+  "providers": {
+    "gemini": {
+      "defaultModel": "gemini-3.7-flash",
+
+      "suggestedModels": [
+        {
+          "id": "gemini-3.7-flash",
+          "name": "Gemini 3.7 Flash",
+          "category": "Fast & Smart",
+          "recommended": true
+        },
+        {
+          "id": "gemini-3.6-flash",
+          "name": "Gemini 3.6 Flash",
+          "category": "Balanced"
+        },
+        {
+          "id": "gemini-3.5-flash",
+          "name": "Gemini 3.5 Flash",
+          "category": "Fast & Reliable"
+        },
+        {
+          "id": "gemini-3.1-pro-preview",
+          "name": "Gemini 3.1 Pro",
+          "category": "Deep Reasoning",
+          "reasoning": true
+        }
+      ]
+    },
+
+    "openai": {
+      "defaultModel": "gpt-5.5",
+
+      "suggestedModels": [
+        {
+          "id": "gpt-5.5",
+          "name": "GPT-5.5",
+          "category": "Frontier Reasoning",
+          "recommended": true,
+          "reasoning": true
+        },
+        {
+          "id": "gpt-5.5-pro",
+          "name": "GPT-5.5 Pro",
+          "category": "Maximum Reasoning",
+          "reasoning": true
+        },
+        {
+          "id": "gpt-5.4-mini",
+          "name": "GPT-5.4 Mini",
+          "category": "Fast & Efficient"
+        },
+        {
+          "id": "gpt-5.4-nano",
+          "name": "GPT-5.4 Nano",
+          "category": "Low Cost & High Speed"
+        }
+      ]
+    },
+
+    "openrouter": {
+      "defaultModel": "anthropic/claude-opus-5",
+
+      "suggestedModels": [
+        {
+          "id": "anthropic/claude-opus-5",
+          "name": "Claude Opus 5",
+          "category": "Frontier Reasoning",
+          "recommended": true,
+          "reasoning": true
+        },
+        {
+          "id": "openai/gpt-5.5",
+          "name": "GPT-5.5",
+          "category": "Reasoning & Coding",
+          "reasoning": true
+        },
+        {
+          "id": "google/gemini-3.7-flash",
+          "name": "Gemini 3.7 Flash",
+          "category": "Fast & Smart"
+        },
+        {
+          "id": "deepseek/deepseek-v4-pro",
+          "name": "DeepSeek V4 Pro",
+          "category": "Open Reasoning",
+          "reasoning": true
+        },
+        {
+          "id": "meta-llama/llama-4-maverick",
+          "name": "Llama 4 Maverick",
+          "category": "Open Weights & Multimodal"
+        }
+      ]
+    },
+
+    "custom": {
+      "defaultModel": "deepseek-v4-flash",
+
+      "suggestedModels": [
+        {
+          "id": "deepseek-v4-flash",
+          "name": "DeepSeek V4 Flash",
+          "category": "Online Endpoint",
+          "recommended": true
+        },
+        {
+          "id": "deepseek-v4-pro",
+          "name": "DeepSeek V4 Pro",
+          "category": "Online Reasoning",
+          "reasoning": true
+        },
+        {
+          "id": "llama4:maverick",
+          "name": "Llama 4 Maverick",
+          "category": "Local Ollama"
+        },
+        {
+          "id": "qwen3-coder-next",
+          "name": "Qwen3-Coder-Next",
+          "category": "Local Coding"
+        }
+      ]
+    }
+  }
+}

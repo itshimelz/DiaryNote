@@ -13,6 +13,7 @@ import {
   AUTO_TAGGING_SYSTEM_PROMPT,
   getAutoTaggingUserPrompt,
 } from '../../constants/aiPrompts';
+import { getDefaultModelForProvider } from './aiModelsCatalogService';
 
 export interface AIServiceConfig {
   aiProvider: AIProvider;
@@ -91,18 +92,7 @@ export function getModelName(config: AIServiceConfig): string {
   if (config.customModelName && config.customModelName.trim()) {
     return config.customModelName.trim();
   }
-  switch (config.aiProvider) {
-    case 'gemini':
-      return 'gemini-2.5-flash';
-    case 'openai':
-      return 'gpt-4o-mini';
-    case 'openrouter':
-      return 'google/gemini-2.5-flash';
-    case 'custom':
-      return 'deepseek-chat';
-    default:
-      return 'gemini-2.5-flash';
-  }
+  return getDefaultModelForProvider(config.aiProvider || 'gemini');
 }
 
 /**

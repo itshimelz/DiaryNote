@@ -1,8 +1,9 @@
-import { Note, CanvasTransform, GridType, CanvasTheme, AIProvider } from '../types';
+import { Note, CanvasTransform, GridType, CanvasTheme, AIProvider, AIProviderProfile } from '../types';
 import { invoke } from '@tauri-apps/api/core';
 import { sendNativeAppNotification } from '../utils';
 import { authorizeNotes } from '../services/authPolicyService';
 import { validateAndParseBackupContent } from '../schemas/backupSchema';
+import { DEFAULT_AI_MODELS_CATALOG } from '../constants/aiModelsCatalog';
 
 const NOTES_STORAGE_KEY = 'infinite_notes_v1_notes';
 const CANVAS_TRANSFORM_KEY = 'infinite_notes_v1_transform';
@@ -29,7 +30,41 @@ export interface AppSettings {
   apiKeyIv?: string;
   customBaseUrl?: string;
   customModelName?: string;
+  aiProviderProfiles?: Record<string, AIProviderProfile>;
 }
+
+export const DEFAULT_AI_PROFILES: Record<AIProvider, AIProviderProfile> = {
+  gemini: {
+    provider: 'gemini',
+    encryptedApiKey: '',
+    apiKeyIv: '',
+    activeModel: DEFAULT_AI_MODELS_CATALOG.providers.gemini?.defaultModel || 'gemini-3.7-flash',
+    modelHistory: DEFAULT_AI_MODELS_CATALOG.providers.gemini?.suggestedModels?.map((m) => m.id) || [],
+  },
+  openai: {
+    provider: 'openai',
+    encryptedApiKey: '',
+    apiKeyIv: '',
+    activeModel: DEFAULT_AI_MODELS_CATALOG.providers.openai?.defaultModel || 'gpt-5.5',
+    modelHistory: DEFAULT_AI_MODELS_CATALOG.providers.openai?.suggestedModels?.map((m) => m.id) || [],
+  },
+  openrouter: {
+    provider: 'openrouter',
+    encryptedApiKey: '',
+    apiKeyIv: '',
+    customBaseUrl: 'https://openrouter.ai/api/v1',
+    activeModel: DEFAULT_AI_MODELS_CATALOG.providers.openrouter?.defaultModel || 'anthropic/claude-opus-5',
+    modelHistory: DEFAULT_AI_MODELS_CATALOG.providers.openrouter?.suggestedModels?.map((m) => m.id) || [],
+  },
+  custom: {
+    provider: 'custom',
+    encryptedApiKey: '',
+    apiKeyIv: '',
+    customBaseUrl: 'http://localhost:11434/v1',
+    activeModel: DEFAULT_AI_MODELS_CATALOG.providers.custom?.defaultModel || 'deepseek-v4-flash',
+    modelHistory: DEFAULT_AI_MODELS_CATALOG.providers.custom?.suggestedModels?.map((m) => m.id) || [],
+  },
+};
 
 export const DEFAULT_SETTINGS: AppSettings = {
   gridType: 'dots',
@@ -43,7 +78,63 @@ export const DEFAULT_SETTINGS: AppSettings = {
   aiProvider: 'gemini',
   customBaseUrl: '',
   customModelName: '',
+  aiProviderProfiles: DEFAULT_AI_PROFILES,
 };
+
+/**
+ * Returns the profile for a given AI provider from settings, seamlessly migrating legacy single-key settings if needed.
+ */
+export function getProviderProfile(settings: Partial<AppSettings>, provider: AIProvider): AIProviderProfile {
+  const profile = settings.aiProviderProfiles?.[provider];
+  if (profile) return profile;
+
+  // Fallback / legacy migration for active provider
+  if (settings.aiProvider === provider && settings.encryptedApiKey && settings.apiKeyIv) {
+    return {
+      provider,
+      encryptedApiKey: settings.encryptedApiKey,
+      apiKeyIv: settings.apiKeyIv,
+      customBaseUrl: settings.customBaseUrl || undefined,
+      activeModel: settings.customModelName || DEFAULT_AI_PROFILES[provider].activeModel,
+      modelHistory: [
+        ...(settings.customModelName ? [settings.customModelName] : []),
+        ...DEFAULT_AI_PROFILES[provider].modelHistory,
+      ],
+    };
+  }
+
+  return DEFAULT_AI_PROFILES[provider] || {
+    provider,
+    encryptedApiKey: '',
+    apiKeyIv: '',
+    activeModel: DEFAULT_AI_MODELS_CATALOG.providers[provider]?.defaultModel || 'gemini-3.7-flash',
+    modelHistory: [],
+  };
+}
+
+/**
+ * Updates a specific provider's profile inside settings while keeping all other providers and legacy fields in sync.
+ */
+export function updateProviderProfile(
+  settings: AppSettings,
+  updatedProfile: AIProviderProfile
+): AppSettings {
+  const existingProfiles = settings.aiProviderProfiles || { ...DEFAULT_AI_PROFILES };
+  const newProfiles = {
+    ...existingProfiles,
+    [updatedProfile.provider]: updatedProfile,
+  };
+
+  return {
+    ...settings,
+    aiProvider: updatedProfile.provider,
+    encryptedApiKey: updatedProfile.encryptedApiKey,
+    apiKeyIv: updatedProfile.apiKeyIv,
+    customBaseUrl: updatedProfile.customBaseUrl || '',
+    customModelName: updatedProfile.activeModel || '',
+    aiProviderProfiles: newProfiles,
+  };
+}
 
 
 export function getInitialTransform(notes: Note[] = SAMPLE_NOTES): CanvasTransform {

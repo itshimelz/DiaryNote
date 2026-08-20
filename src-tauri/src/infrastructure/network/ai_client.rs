@@ -50,11 +50,11 @@ impl AiClient {
         }
 
         match provider.to_lowercase().as_str() {
-            "gemini" => "gemini-2.5-flash".to_string(),
-            "openai" => "gpt-4o-mini".to_string(),
-            "openrouter" => "google/gemini-2.5-flash".to_string(),
-            "custom" => "deepseek-chat".to_string(),
-            _ => "gemini-2.5-flash".to_string(),
+            "gemini" => "gemini-3.7-flash".to_string(),
+            "openai" => "gpt-5.5".to_string(),
+            "openrouter" => "anthropic/claude-opus-5".to_string(),
+            "custom" => "deepseek-v4-flash".to_string(),
+            _ => "gemini-3.7-flash".to_string(),
         }
     }
 
@@ -85,7 +85,7 @@ impl AiClient {
     pub async fn test_connection(&self, config: &AiRequestConfig) -> Result<AiConnectionTestResult, AiError> {
         let provider = config.provider.to_lowercase();
         let api_key = config.api_key.trim();
-        if api_key.is_empty() {
+        if api_key.is_empty() && provider != "custom" {
             return Ok(AiConnectionTestResult {
                 success: false,
                 message: "API key is missing or empty.".to_string(),
@@ -139,7 +139,7 @@ impl AiClient {
             .trim_end_matches('/')
             .to_string();
 
-            if !base_url.ends_with("/v1") && !base_url.contains("/v1") && provider != "custom" {
+            if !base_url.ends_with("/v1") && !base_url.contains("/v1") {
                 base_url.push_str("/v1");
             }
 
@@ -190,7 +190,7 @@ impl AiClient {
     {
         let provider = config.provider.to_lowercase();
         let api_key = config.api_key.trim();
-        if api_key.is_empty() {
+        if api_key.is_empty() && provider != "custom" {
             return Err(AiError::Auth("API key is missing or empty.".to_string()));
         }
 
@@ -385,10 +385,10 @@ mod tests {
 
     #[test]
     fn test_resolve_model_name_defaults() {
-        assert_eq!(AiClient::resolve_model_name("gemini", None), "gemini-2.5-flash");
-        assert_eq!(AiClient::resolve_model_name("openai", None), "gpt-4o-mini");
-        assert_eq!(AiClient::resolve_model_name("openrouter", None), "google/gemini-2.5-flash");
-        assert_eq!(AiClient::resolve_model_name("custom", None), "deepseek-chat");
+        assert_eq!(AiClient::resolve_model_name("gemini", None), "gemini-3.7-flash");
+        assert_eq!(AiClient::resolve_model_name("openai", None), "gpt-5.5");
+        assert_eq!(AiClient::resolve_model_name("openrouter", None), "anthropic/claude-opus-5");
+        assert_eq!(AiClient::resolve_model_name("custom", None), "deepseek-v4-flash");
 
         // Custom override takes priority
         assert_eq!(

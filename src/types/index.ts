@@ -57,6 +57,20 @@ export type JournalMood = 'happy' | 'calm' | 'focused' | 'reflective' | 'low';
 
 export type AIProvider = 'gemini' | 'openai' | 'openrouter' | 'custom';
 
+export interface AIProviderProfile {
+  provider: AIProvider;
+  encryptedApiKey: string;
+  apiKeyIv: string;
+  customBaseUrl?: string;
+  activeModel: string;
+  modelHistory: string[];
+}
+
+export type {
+  AIModelSuggestion,
+  AIProviderCatalog,
+  AIModelsCatalog,
+} from '../constants/aiModelsCatalog';
 
 export interface Note {
   id: string;

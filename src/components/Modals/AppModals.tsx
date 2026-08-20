@@ -223,6 +223,7 @@ export const AppModals: React.FC<AppModalsProps> = ({
           apiKeyIv={settings.apiKeyIv}
           customBaseUrl={settings.customBaseUrl}
           customModelName={settings.customModelName}
+          aiProviderProfiles={settings.aiProviderProfiles}
           onClose={() => setIsAISettingsOpen(false)}
           onSaveAISettings={handleSaveAISettings}
         />

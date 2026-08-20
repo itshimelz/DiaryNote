@@ -39,9 +39,9 @@ describe('AI Merge Service Privacy & Transport Security (aiMergeService.ts)', ()
   });
 
   it('resolves correct model names per provider', () => {
-    expect(getModelName({ aiProvider: 'gemini', encryptedApiKey: '', apiKeyIv: '' })).toBe('gemini-2.5-flash');
-    expect(getModelName({ aiProvider: 'openai', encryptedApiKey: '', apiKeyIv: '' })).toBe('gpt-4o-mini');
-    expect(getModelName({ aiProvider: 'openrouter', encryptedApiKey: '', apiKeyIv: '' })).toBe('google/gemini-2.5-flash');
+    expect(getModelName({ aiProvider: 'gemini', encryptedApiKey: '', apiKeyIv: '' })).toBe('gemini-3.7-flash');
+    expect(getModelName({ aiProvider: 'openai', encryptedApiKey: '', apiKeyIv: '' })).toBe('gpt-5.5');
+    expect(getModelName({ aiProvider: 'openrouter', encryptedApiKey: '', apiKeyIv: '' })).toBe('anthropic/claude-opus-5');
     expect(getModelName({ aiProvider: 'custom', encryptedApiKey: '', apiKeyIv: '', customModelName: 'custom-llm' })).toBe('custom-llm');
   });
 });
