@@ -273,13 +273,15 @@ export function useNoteSelection(
         return;
       }
 
-      // Toggle Note Cover on Selected Note(s) Shortcut (Alt+C, Shift+C, or Ctrl+Shift+C)
+      // Toggle Note Cover on Selected Note(s) Shortcut (Alt+C)
       if (
         !isEditingText &&
         curSelectedNoteIds.length > 0 &&
-        ((e.altKey && (key === 'c' || key === 'C')) ||
-         ((e.ctrlKey || e.metaKey) && e.shiftKey && (key === 'c' || key === 'C')) ||
-         (e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && (key === 'c' || key === 'C')))
+        e.altKey &&
+        !e.shiftKey &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        (key === 'c' || key === 'C')
       ) {
         e.preventDefault();
         onToggleCoverSelectedNotesRef.current?.(curSelectedNoteIds);

@@ -123,6 +123,7 @@ interface AppModalsProps {
   handleOpenOrCreateTodayJournal: (dateStr?: string) => void;
   handleNavigateToNote: (id: string, setSelectedNoteIds: any) => void;
   handleLockSelectedNotes: (ids: string[]) => void;
+  handleToggleCoverSelectedNotes: (ids: string[]) => void;
   handleExportNote: (note: Note, format: 'md' | 'txt' | 'json') => void;
   requestDeleteNotes: (ids: string[]) => void;
   handleSaveAISettings: (newSettings: Partial<AppSettings>) => void;
@@ -184,6 +185,7 @@ export const AppModals: React.FC<AppModalsProps> = ({
   handleOpenOrCreateTodayJournal,
   handleNavigateToNote,
   handleLockSelectedNotes,
+  handleToggleCoverSelectedNotes,
   handleExportNote,
   requestDeleteNotes,
   handleSaveAISettings,
@@ -292,13 +294,6 @@ export const AppModals: React.FC<AppModalsProps> = ({
               const updated = targets.map((n) => ({ ...n, isLocked: true }));
               handleUpdateBatchNotes(updated);
               clearVaultFtsIndex();
-              const count = updated.length;
-              sendNativeAppNotification(
-                'Note Locked',
-                count === 1
-                  ? `Locked note "${updated[0].title || 'Untitled Note'}"`
-                  : `Locked ${count} notes`
-              );
             }
             setNotesToLock?.([]);
           }}
@@ -327,13 +322,6 @@ export const AppModals: React.FC<AppModalsProps> = ({
               const updated = targetsToUnlock.map((n) => ({ ...n, isLocked: false }));
               handleUpdateBatchNotes(updated);
               indexVaultNotesFts(updated);
-              const count = updated.length;
-              sendNativeAppNotification(
-                'Note Unlocked',
-                count === 1
-                  ? `Unlocked note "${updated[0].title || 'Untitled Note'}"`
-                  : `Unlocked ${count} notes`
-              );
               setNotesToUnlock?.([]);
             }
           }}
@@ -389,12 +377,9 @@ export const AppModals: React.FC<AppModalsProps> = ({
           const allPinned = targets.every((n) => n.isPinned);
           const updated = targets.map((n) => ({ ...n, isPinned: !allPinned }));
           handleUpdateBatchNotes(updated);
-          sendNativeAppNotification(
-            allPinned ? 'Notes Unpinned' : 'Notes Pinned',
-            `${targets.length} notes ${allPinned ? 'unpinned' : 'pinned to top layer'}`
-          );
         }}
         onLockNotes={(ids) => handleLockSelectedNotes(ids)}
+        onToggleCover={(ids) => handleToggleCoverSelectedNotes(ids)}
         onGroupNotes={() => {
           if (selectedNoteIds.length < 2) return;
           const targets = notes.filter((n) => selectedNoteIds.includes(n.id));
@@ -406,10 +391,6 @@ export const AppModals: React.FC<AppModalsProps> = ({
             groupName,
           }));
           handleUpdateBatchNotes(updated);
-          sendNativeAppNotification(
-            'Notes Grouped',
-            `Grouped ${targets.length} notes into "${groupName}"`
-          );
         }}
         onUngroupNotes={() => {
           const targets = notes.filter((n) => selectedNoteIds.includes(n.id) && n.groupId);
@@ -419,10 +400,6 @@ export const AppModals: React.FC<AppModalsProps> = ({
             groupName: undefined,
           }));
           handleUpdateBatchNotes(updated);
-          sendNativeAppNotification(
-            'Notes Ungrouped',
-            `Removed ${targets.length} notes from their groups`
-          );
         }}
         onDuplicateNotes={(ids) => {
           const newDuplicates: Note[] = [];
@@ -448,10 +425,6 @@ export const AppModals: React.FC<AppModalsProps> = ({
           if (newDuplicates.length > 0) {
             newDuplicates.forEach((n) => handleUpdateNote(n));
             setSelectedNoteIds(newIds);
-            sendNativeAppNotification(
-              'Notes Duplicated',
-              `Duplicated ${newDuplicates.length} note(s)`
-            );
           }
         }}
         onExportNotes={(ids, format) => {
@@ -490,10 +463,6 @@ export const AppModals: React.FC<AppModalsProps> = ({
           onConfirm={(pastedTitle, pastedContent) => {
             const newId = handleAddNote(transform, settings, undefined, undefined, pastedTitle, pastedContent);
             setSelectedNoteIds([newId]);
-            sendNativeAppNotification(
-              'Note Created',
-              `Created note "${pastedTitle}" from clipboard paste`
-            );
           }}
         />
 

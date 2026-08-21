@@ -290,7 +290,7 @@ describe('useNoteSelection Hook & Shortcuts', () => {
     expect(result.current.selectedNoteIds).toEqual(['note-2']);
   });
 
-  it('triggers onToggleCoverSelectedNotes when Alt+C or Shift+C is pressed on selected notes', () => {
+  it('triggers onToggleCoverSelectedNotes when Alt+C is pressed on selected notes', () => {
     const handleUndo = vi.fn();
     const handleRedo = vi.fn();
     const requestDeleteNotes = vi.fn();
@@ -343,7 +343,8 @@ describe('useNoteSelection Hook & Shortcuts', () => {
 
     expect(onToggleCoverSelectedNotes).toHaveBeenCalledWith(['note-1']);
 
-    // Press Shift+C
+    // Shift+C alone no longer toggles the cover (collapsed to Alt+C only)
+    const callCountAfterAltC = onToggleCoverSelectedNotes.mock.calls.length;
     act(() => {
       const event = new KeyboardEvent('keydown', {
         key: 'c',
@@ -353,7 +354,7 @@ describe('useNoteSelection Hook & Shortcuts', () => {
       window.dispatchEvent(event);
     });
 
-    expect(onToggleCoverSelectedNotes).toHaveBeenCalledWith(['note-1']);
+    expect(onToggleCoverSelectedNotes).toHaveBeenCalledTimes(callCountAfterAltC);
   });
 
   it('ensures handleSelectMultipleNotes clears editingNoteId', () => {

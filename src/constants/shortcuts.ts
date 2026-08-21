@@ -43,7 +43,7 @@ export const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
       { keys: ['Enter'], description: 'Edit selected note' },
       { keys: ['Delete'], description: 'Delete selected note(s)' },
       { keys: ['Ctrl', 'L'], description: 'Lock / unlock selected note(s)' },
-      { keys: ['Alt', 'C'], description: 'Add / remove note cover (or Shift+C)' },
+      { keys: ['Alt', 'C'], description: 'Add / remove note cover' },
       { keys: ['@'], description: 'Mention & link another note in content' },
       { keys: ['#'], description: 'Add tag to note' },
     ],

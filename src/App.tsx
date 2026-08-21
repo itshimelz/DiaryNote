@@ -216,13 +216,6 @@ export default function App() {
         if (getSessionAuthState().isMasterUnlocked) {
           const notesToUnlockBatch = targetNotes.map((n) => ({ ...n, isLocked: false }));
           handleUpdateBatchNotes(notesToUnlockBatch);
-          const count = notesToUnlockBatch.length;
-          sendNativeAppNotification(
-            'Note Unlocked',
-            count === 1
-              ? `Unlocked note "${notesToUnlockBatch[0].title || 'Untitled Note'}"`
-              : `Unlocked ${count} notes`
-          );
         } else {
           setNotesToUnlock(ids);
           setSecurityModalNoteId(ids[0]);
@@ -236,13 +229,6 @@ export default function App() {
             .map((n) => ({ ...n, isLocked: true }));
           if (notesToLockBatch.length > 0) {
             handleUpdateBatchNotes(notesToLockBatch);
-            const count = notesToLockBatch.length;
-            sendNativeAppNotification(
-              'Note Locked',
-              count === 1
-                ? `Locked note "${notesToLockBatch[0].title || 'Untitled Note'}"`
-                : `Locked ${count} notes`
-            );
           }
         } else {
           setNotesToLock(ids);
@@ -261,10 +247,6 @@ export default function App() {
         saveSettingsToDB(updated);
         return updated;
       });
-      sendNativeAppNotification(
-        'AI Settings Saved',
-        'AI service settings and key encryption updated successfully.'
-      );
     },
     [setSettings]
   );
@@ -308,14 +290,6 @@ export default function App() {
       setCutNoteIds([...targetIds]);
       // Instantly deselect so the semi-transparent cut ghost styling appears immediately
       setSelectedNoteIdsRef.current([]);
-      const count = targetIds.length;
-      const titleText = targetedNotes.map((n) => n.title || 'Untitled Note').join(', ');
-      sendNativeAppNotification(
-        'Note(s) Cut',
-        count === 1
-          ? `Cut "${titleText}". Move cursor and press Ctrl+Shift+V or Ctrl+V to place.`
-          : `Cut ${count} notes. Move cursor and press Ctrl+Shift+V or Ctrl+V to place.`
-      );
     },
     [notes]
   );
@@ -403,7 +377,6 @@ export default function App() {
   const handleCancelCutNotes = useCallback(() => {
     if (cutNoteIdsRef.current.length > 0) {
       setCutNoteIds([]);
-      sendNativeAppNotification('Cut Cancelled', 'Note relocation cancelled.');
     }
   }, []);
 
@@ -426,12 +399,6 @@ export default function App() {
       }));
 
       handleUpdateBatchNotes(updated);
-      sendNativeAppNotification(
-        newCoveredState ? 'Note Covered' : 'Note Cover Removed',
-        `${targetNotes.length} note${targetNotes.length > 1 ? 's' : ''} ${
-          newCoveredState ? 'covered with seal' : 'cover removed'
-        }`
-      );
     },
     [notes, handleUpdateBatchNotes]
   );
@@ -553,10 +520,6 @@ export default function App() {
             aspectRatio
           );
           setSelectedNoteIds([newId]);
-          sendNativeAppNotification(
-            'Photo Note Created',
-            `Added photo "${rawTitle}" to canvas`
-          );
         };
         img.src = imgData.data_url;
       });
@@ -628,10 +591,6 @@ export default function App() {
               aspectRatio
             );
             setSelectedNoteIds([newId]);
-            sendNativeAppNotification(
-              'Photo Note Created',
-              `Added photo "${rawTitle}" to canvas`
-            );
           };
           img.src = dataUrl;
         };
@@ -681,10 +640,6 @@ export default function App() {
     setMergedSelectionKeys((prev) => new Set(prev).add(selKey));
 
     const targetCount = notesToMerge.length;
-    sendNativeAppNotification(
-      'AI Merge Started',
-      `Synthesizing ${targetCount} notes in real-time...`
-    );
 
     const avgX = Math.round(notesToMerge.reduce((sum, n) => sum + n.x, 0) / notesToMerge.length);
     const avgY = Math.round(notesToMerge.reduce((sum, n) => sum + (n.y + (n.height || 340)), 0) / notesToMerge.length) + 40;
@@ -942,6 +897,104 @@ export default function App() {
     };
   }, [handleOpenOrCreateTodayJournal]);
 
+  // P0 perf: latest-ref pattern keeps InfiniteCanvas callback props referentially stable so
+  // React.memo(InfiniteCanvas) holds across every App render, while handlers still read
+  // fresh state at invocation time.
+  const canvasHandlersRef = useRef({
+    navigateToNote: (_id: string) => {},
+    dropImageFiles: (_files: File[], _clientX: number, _clientY: number) => {},
+    requestLockNote: (_id: string) => {},
+    requestUnlockNote: (_id: string) => {},
+    contextMenuNote: (_e: React.MouseEvent, _noteId: string) => {},
+    contextMenuCanvas: (_e: React.MouseEvent) => {},
+  });
+  canvasHandlersRef.current.navigateToNote = (id) => handleNavigateToNote(id, setSelectedNoteIds);
+  canvasHandlersRef.current.dropImageFiles = (files, clientX, clientY) =>
+    handleAddImageFiles(files, clientX, clientY);
+  canvasHandlersRef.current.requestLockNote = (id) => {
+    if (settings.masterPasswordHash) {
+      const note = notes.find((n) => n.id === id);
+      if (note) {
+        handleUpdateNote({
+          ...note,
+          isLocked: true,
+        });
+      }
+    } else {
+      setNotesToLock([id]);
+      setSecurityModalNoteId(id);
+      setSecurityModalMode('set');
+    }
+  };
+  canvasHandlersRef.current.requestUnlockNote = (id) => {
+    if (getSessionAuthState().isMasterUnlocked) {
+      const note = notes.find((n) => n.id === id);
+      if (note) {
+        handleUpdateNote({
+          ...note,
+          isLocked: false,
+        });
+      }
+    } else {
+      setNotesToUnlock([id]);
+      setSecurityModalNoteId(id);
+      setSecurityModalMode('unlock');
+    }
+  };
+  canvasHandlersRef.current.contextMenuNote = (e, noteId) => {
+    e.preventDefault();
+    const nextSelected = selectedNoteIds.includes(noteId)
+      ? selectedNoteIds
+      : e.shiftKey
+      ? [...selectedNoteIds, noteId]
+      : [noteId];
+
+    setSelectedNoteIds(nextSelected);
+    setContextMenuState({
+      isOpen: true,
+      x: e.clientX,
+      y: e.clientY,
+    });
+  };
+  canvasHandlersRef.current.contextMenuCanvas = (e) => {
+    e.preventDefault();
+    setSelectedNoteIds([]);
+    setContextMenuState({
+      isOpen: true,
+      x: e.clientX,
+      y: e.clientY,
+    });
+  };
+
+  const handleNavigateToNoteStable = useCallback(
+    (id: string) => canvasHandlersRef.current.navigateToNote(id),
+    []
+  );
+  const handleDropImageFilesStable = useCallback(
+    (files: File[], clientX: number, clientY: number) =>
+      canvasHandlersRef.current.dropImageFiles(files, clientX, clientY),
+    []
+  );
+  const handleRequestLockNoteStable = useCallback(
+    (id: string) => canvasHandlersRef.current.requestLockNote(id),
+    []
+  );
+  const handleRequestUnlockNoteStable = useCallback(
+    (id: string) => canvasHandlersRef.current.requestUnlockNote(id),
+    []
+  );
+  const handleContextMenuNoteStable = useCallback(
+    (e: React.MouseEvent, noteId: string) => canvasHandlersRef.current.contextMenuNote(e, noteId),
+    []
+  );
+  const handleContextMenuCanvasStable = useCallback(
+    (e: React.MouseEvent) => canvasHandlersRef.current.contextMenuCanvas(e),
+    []
+  );
+  const handleMouseMoveCoordStable = useCallback((clientX: number, clientY: number) => {
+    mouseCoordRef.current = { clientX, clientY };
+  }, []);
+
   return (
     <div className={`relative w-screen h-screen overflow-hidden ${
       settings.themeMode === 'dark'
@@ -976,80 +1029,20 @@ export default function App() {
         onTransformChange={handleCanvasTransformChange}
         onSelectNote={handleSelectNote}
         onSelectMultipleNotes={handleSelectMultipleNotes}
-        onNavigateToNote={(id) => handleNavigateToNote(id, setSelectedNoteIds)}
+        onNavigateToNote={handleNavigateToNoteStable}
         onUpdateNote={handleUpdateNote}
         onUpdateBatchNotes={handleUpdateBatchNotes}
         onDeleteNote={handleDeleteProtectedNote}
         onBringToFront={bringToFront}
         onDoubleClickCanvas={handleCreateNote}
-        onDropImageFiles={(files, clientX, clientY) => handleAddImageFiles(files, clientX, clientY)}
-        onRequestLockNote={(id) => {
-          if (settings.masterPasswordHash) {
-            const note = notes.find((n) => n.id === id);
-            if (note) {
-              handleUpdateNote({
-                ...note,
-                isLocked: true,
-              });
-              sendNativeAppNotification(
-                'Note Locked',
-                `Locked note "${note.title || 'Untitled Note'}"`
-              );
-            }
-          } else {
-            setNotesToLock([id]);
-            setSecurityModalNoteId(id);
-            setSecurityModalMode('set');
-          }
-        }}
-        onRequestUnlockNote={(id) => {
-          if (getSessionAuthState().isMasterUnlocked) {
-            const note = notes.find((n) => n.id === id);
-            if (note) {
-              handleUpdateNote({
-                ...note,
-                isLocked: false,
-              });
-              sendNativeAppNotification(
-                'Note Unlocked',
-                `Unlocked note "${note.title || 'Untitled Note'}"`
-              );
-            }
-          } else {
-            setNotesToUnlock([id]);
-            setSecurityModalNoteId(id);
-            setSecurityModalMode('unlock');
-          }
-        }}
+        onDropImageFiles={handleDropImageFilesStable}
+        onRequestLockNote={handleRequestLockNoteStable}
+        onRequestUnlockNote={handleRequestUnlockNoteStable}
         onExportNote={handleExportNote}
-        onContextMenuNote={(e, noteId) => {
-          e.preventDefault();
-          const nextSelected = selectedNoteIds.includes(noteId)
-            ? selectedNoteIds
-            : e.shiftKey
-            ? [...selectedNoteIds, noteId]
-            : [noteId];
-
-          setSelectedNoteIds(nextSelected);
-          setContextMenuState({
-            isOpen: true,
-            x: e.clientX,
-            y: e.clientY,
-          });
-        }}
-        onContextMenuCanvas={(e) => {
-          e.preventDefault();
-          setSelectedNoteIds([]);
-          setContextMenuState({
-            isOpen: true,
-            x: e.clientX,
-            y: e.clientY,
-          });
-        }}
+        onContextMenuNote={handleContextMenuNoteStable}
+        onContextMenuCanvas={handleContextMenuCanvasStable}
         cutNoteIds={cutNoteIds}
-        onMouseMoveCoord={(clientX, clientY) => {
-          mouseCoordRef.current = { clientX, clientY };
-        }}
+        onMouseMoveCoord={handleMouseMoveCoordStable}
       />
 
       {/* Docked Bottom Control Bar Container */}
@@ -1060,10 +1053,10 @@ export default function App() {
           transition={{
             layout: { duration: 0.22, ease: [0.16, 1, 0.3, 1] },
           }}
-          className={`fixed ${showStatusBar ? 'bottom-10' : 'bottom-6'} left-1/2 -translate-x-1/2 z-40 flex flex-col items-center border shadow-sm select-none rounded-sm min-w-[320px] sm:min-w-[540px] md:min-w-[640px] w-auto max-w-[calc(100vw-24px)] transition-[bottom] duration-200 overflow-hidden backdrop-blur-md ${
+          className={`fixed ${showStatusBar ? 'bottom-10' : 'bottom-6'} left-1/2 -translate-x-1/2 z-40 flex flex-col items-center border shadow-sm select-none rounded-sm min-w-[320px] sm:min-w-[540px] md:min-w-[640px] w-auto max-w-[calc(100vw-24px)] transition-[bottom] duration-200 overflow-hidden ${
             settings.themeMode === 'light'
-              ? 'bg-white/95 border-slate-200 text-slate-800'
-              : 'bg-slate-900/90 border-slate-800 text-slate-200'
+              ? 'bg-white border-slate-200 text-slate-800'
+              : 'bg-slate-900 border-slate-800 text-slate-200'
           }`}
         >
           {/* Integrated Batch Action Bar Header */}
@@ -1093,6 +1086,7 @@ export default function App() {
                     setNotesToDelete(ids);
                     setIsDeleteModalOpen(true);
                   }}
+                  onToggleCover={handleToggleCoverSelectedNotes}
                   onClearSelection={() => setSelectedNoteIds([])}
                 />
               </motion.div>
@@ -1259,6 +1253,7 @@ export default function App() {
         handleOpenOrCreateTodayJournal={handleOpenOrCreateTodayJournal}
         handleNavigateToNote={handleNavigateToNote}
         handleLockSelectedNotes={handleLockSelectedNotes}
+        handleToggleCoverSelectedNotes={handleToggleCoverSelectedNotes}
         handleExportNote={handleExportNote}
         requestDeleteNotes={requestDeleteNotes}
         handleSaveAISettings={handleSaveAISettings}

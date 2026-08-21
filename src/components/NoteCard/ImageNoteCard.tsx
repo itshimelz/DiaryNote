@@ -23,7 +23,6 @@ import { useNoteDrag } from '../../hooks/useNoteDrag';
 import { useNoteResize } from '../../hooks/useNoteResize';
 import { DEFAULT_NOTE_WIDTH, DRAG_Z_INDEX } from '../../constants/canvas';
 import { FONT_CLASSES } from './types';
-import { sendNativeAppNotification } from '../../utils';
 
 export interface ImageNoteCardProps {
   note: Note;
@@ -336,10 +335,6 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
                   e.stopPropagation();
                   const targetState = !note.isPinned;
                   onUpdateNote({ ...note, isPinned: targetState });
-                  sendNativeAppNotification(
-                    targetState ? 'Photo Pinned' : 'Photo Unpinned',
-                    `"${note.title || 'Photo'}" ${targetState ? 'pinned to top layer' : 'unpinned'}`
-                  );
                 }}
                 aria-label={note.isPinned ? 'Unpin' : 'Pin'}
                 title={note.isPinned ? 'Unpin Note' : 'Pin Note'}

@@ -20,6 +20,8 @@ import {
   Add01Icon,
   Image01Icon,
   ArrowAllDirectionIcon,
+  Book01Icon,
+  BookOpen01Icon,
 } from '@hugeicons/core-free-icons';
 import { Menu, MenuItem, MenuDivider, MenuGroupHeader, Badge } from './ui';
 
@@ -37,6 +39,7 @@ interface NoteContextMenuProps {
   onEditNote?: (id: string) => void;
   onTogglePin?: (ids: string[]) => void;
   onLockNotes?: (ids: string[]) => void;
+  onToggleCover?: (ids: string[]) => void;
   onGroupNotes?: () => void;
   onUngroupNotes?: () => void;
   onDuplicateNotes?: (ids: string[]) => void;
@@ -65,6 +68,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
   onEditNote,
   onTogglePin,
   onLockNotes,
+  onToggleCover,
   onGroupNotes,
   onUngroupNotes,
   onDuplicateNotes,
@@ -92,6 +96,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
   const singleNote = isSingle ? selectedNotes[0] : null;
   const isAllPinned = selectedNotes.length > 0 && selectedNotes.every((n) => n.isPinned);
   const isAllLocked = selectedNotes.length > 0 && selectedNotes.every((n) => n.isLocked);
+  const isAllCovered = selectedNotes.length > 0 && selectedNotes.every((n) => Boolean(n.isCovered));
   const isAllImageNotes =
     selectedNotes.length > 0 && selectedNotes.every((n) => Boolean(n.imageUrl));
   const isAllGrouped =
@@ -266,6 +271,20 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
               label={isAllLocked ? `Unlock ${isAllImageNotes ? 'Photo' : 'Note'}${selectedNoteIds.length > 1 ? 's' : ''}` : `Lock Access`}
               onClick={() => {
                 onLockNotes?.(selectedNoteIds);
+                onClose();
+              }}
+            />
+
+            <MenuItem
+              icon={isAllCovered ? BookOpen01Icon : Book01Icon}
+              label={
+                isAllCovered
+                  ? `Remove Cover${selectedNoteIds.length > 1 ? 's' : ''}`
+                  : `Cover ${isAllImageNotes ? 'Photo' : 'Note'}${selectedNoteIds.length > 1 ? 's' : ''}`
+              }
+              shortcut={`${getPlatformAltKey()}+C`}
+              onClick={() => {
+                onToggleCover?.(selectedNoteIds);
                 onClose();
               }}
             />

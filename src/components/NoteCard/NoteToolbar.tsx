@@ -89,7 +89,7 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
 
   return (
     <div
-      className={`relative border-t ${divider} ${toolbarBg} backdrop-blur-xs px-3 py-2 flex items-center justify-between select-none rounded-b-sm`}
+      className={`relative border-t ${divider} ${toolbarBg} px-3 py-2 flex items-center justify-between select-none rounded-b-sm`}
     >
       {/* Left: Mode & Style Tool Group */}
       <div className="flex items-center gap-1">

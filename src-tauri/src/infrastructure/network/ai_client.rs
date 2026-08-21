@@ -36,7 +36,9 @@ impl Default for AiClient {
 impl AiClient {
     pub fn new() -> Self {
         let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(60))
+            .connect_timeout(Duration::from_secs(5))
+            // Applies to the whole streamed response; long synthesis outputs need headroom.
+            .timeout(Duration::from_secs(180))
             .build()
             .unwrap_or_default();
         Self { client }

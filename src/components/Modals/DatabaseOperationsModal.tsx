@@ -246,7 +246,6 @@ export const DatabaseOperationsModal: React.FC<DatabaseOperationsModalProps> = (
                 type="button"
                 onClick={() => {
                   navigator.clipboard.writeText(stats.dbPath);
-                  sendNativeAppNotification('Path Copied', 'Copied database path to clipboard');
                 }}
                 className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline shrink-0 cursor-pointer"
               >

@@ -26,6 +26,8 @@ import {
   SparklesIcon,
   Loading03Icon,
   LayoutGridIcon,
+  Book01Icon,
+  BookOpen01Icon,
 } from '@hugeicons/core-free-icons';
 import { Button, IconButton, Badge, Menu, MenuItem, MenuDivider, MenuGroupHeader } from './ui';
 
@@ -39,6 +41,7 @@ interface BatchActionBarProps {
   onMergeNotesAI?: () => void;
   onUpdateBatchNotes: (updatedNotes: Note[]) => void;
   onDeleteNotes: (ids: string[]) => void;
+  onToggleCover?: (ids: string[]) => void;
   onClearSelection: () => void;
 }
 
@@ -52,6 +55,7 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
   onMergeNotesAI,
   onUpdateBatchNotes,
   onDeleteNotes,
+  onToggleCover,
   onClearSelection,
 }) => {
   const [showThemePicker, setShowThemePicker] = useState(false);
@@ -107,6 +111,7 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
   );
 
   const isAllPinned = selectedNotes.every((n) => n.isPinned);
+  const isAllCovered = selectedNotes.length > 0 && selectedNotes.every((n) => Boolean(n.isCovered));
 
   // Click outside popovers cleanup
   useEffect(() => {
@@ -129,7 +134,6 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
       paperTheme: newTheme,
     }));
     onUpdateBatchNotes(updated);
-    sendNativeAppNotification('Theme Updated', `Applied theme to ${selectedNotes.length} notes`);
     setShowThemePicker(false);
   };
 
@@ -141,10 +145,6 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
       isPinned: targetState,
     }));
     onUpdateBatchNotes(updated);
-    sendNativeAppNotification(
-      targetState ? 'Notes Pinned' : 'Notes Unpinned',
-      `${selectedNotes.length} notes ${targetState ? 'pinned to top' : 'unpinned'}`
-    );
   };
 
   // Unified Batch Layout Handler (Native Rust Accelerated with JS fallback)
@@ -383,6 +383,16 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
           onClick={handleBatchTogglePin}
         >
           <span className="hidden sm:inline">{isAllPinned ? 'Unpin' : 'Pin'}</span>
+        </Button>
+
+        {/* 4b. Bulk Cover / Uncover */}
+        <Button
+          size="xs"
+          variant="ghost"
+          icon={isAllCovered ? BookOpen01Icon : Book01Icon}
+          onClick={() => onToggleCover?.(selectedNoteIds)}
+        >
+          <span className="hidden sm:inline">{isAllCovered ? 'Uncover' : 'Cover'}</span>
         </Button>
 
         {/* 5. Backup Selected Notes (.json) */}

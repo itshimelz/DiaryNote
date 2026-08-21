@@ -170,8 +170,8 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
     : 'border-2 border-dashed border-blue-500/40 bg-blue-500/[0.04] backdrop-blur-[0.5px]';
 
   const badgeStyle = isLight
-    ? 'bg-white/95 border border-slate-200/90 text-slate-900 shadow-sm backdrop-blur-md hover:border-slate-300'
-    : 'bg-slate-900/95 border border-slate-800/90 text-slate-100 shadow-sm backdrop-blur-md hover:border-slate-700';
+    ? 'bg-white border border-slate-200/90 text-slate-900 shadow-sm hover:border-slate-300'
+    : 'bg-slate-900 border border-slate-800/90 text-slate-100 shadow-sm hover:border-slate-700';
 
   const handleSaveTitle = () => {
     if (isSavingRef.current) return;

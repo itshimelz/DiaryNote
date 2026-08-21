@@ -439,8 +439,14 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
             <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Cover Style & Seal
             </span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-xs bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-              Alt+C
+            <span
+              className={`text-[10px] font-medium px-1.5 py-0.5 rounded-xs border ${
+                note.isCovered
+                  ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+              }`}
+            >
+              {note.isCovered ? 'Covered · Alt+C to unseal' : 'Not covered · Alt+C to seal'}
             </span>
           </div>
 

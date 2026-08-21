@@ -156,7 +156,9 @@ export const PAPER_THEMES: Record<PaperTheme, PaperThemeConfig> = {
     isDark: true,
   },
   transparent: {
-    bg: 'bg-white/95 backdrop-blur-md',
+    // ponytail: translucent solid instead of backdrop-blur — blur per card re-samples the
+    // canvas beneath every panned frame; restore frosted glass only if ever measured cheap.
+    bg: 'bg-white/85',
     text: 'text-slate-900',
     subtext: 'text-slate-400',
     border: 'border-slate-200/80',

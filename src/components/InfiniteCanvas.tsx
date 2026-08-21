@@ -50,6 +50,36 @@ interface InfiniteCanvasProps {
  * 1. Background notes layer: cached and redrawn only when notes/theme change.
  * 2. Foreground viewport layer: draws active viewport rectangle in O(1) time on pan/zoom.
  */
+/**
+ * Draws the active viewport rectangle on the minimap foreground canvas.
+ * Shared by the reactive effect (state-driven transforms) and the imperative
+ * pan-gesture path (direct DOM transforms that bypass React).
+ */
+function drawMinimapViewport(
+  ctx: CanvasRenderingContext2D,
+  transform: CanvasTransform,
+  minX: number,
+  minY: number,
+  minimapScale: number,
+  viewportWidth: number,
+  viewportHeight: number,
+  themeMode: CanvasTheme
+) {
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+  const isCork = themeMode === 'cork';
+  const vpX = (-transform.x / transform.zoom - minX) * minimapScale;
+  const vpY = (-transform.y / transform.zoom - minY) * minimapScale;
+  const vpW = (viewportWidth / transform.zoom) * minimapScale;
+  const vpH = (viewportHeight / transform.zoom) * minimapScale;
+
+  ctx.fillStyle = isCork ? 'rgba(217, 119, 6, 0.2)' : 'rgba(59, 130, 246, 0.15)';
+  ctx.fillRect(vpX, vpY, vpW, vpH);
+  ctx.strokeStyle = isCork ? '#d97706' : '#3b82f6';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(vpX, vpY, vpW, vpH);
+}
+
 const MinimapCanvas: React.FC<{
   notes: Note[];
   transform: CanvasTransform;
@@ -60,6 +90,7 @@ const MinimapCanvas: React.FC<{
   viewportHeight: number;
   selectedNoteId: string | null;
   themeMode?: CanvasTheme;
+  fgCanvasRef: React.RefObject<HTMLCanvasElement | null>;
 }> = ({
   notes,
   transform,
@@ -70,9 +101,9 @@ const MinimapCanvas: React.FC<{
   viewportHeight,
   selectedNoteId,
   themeMode = 'dark',
+  fgCanvasRef,
 }) => {
   const bgCanvasRef = useRef<HTMLCanvasElement>(null);
-  const fgCanvasRef = useRef<HTMLCanvasElement>(null);
 
   // Pass 1: Draw background notes layer only when notes, spatial bounds, selection, or canvas theme changes
   useEffect(() => {
@@ -111,20 +142,8 @@ const MinimapCanvas: React.FC<{
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    const isCork = themeMode === 'cork';
-    const vpX = (-transform.x / transform.zoom - minX) * minimapScale;
-    const vpY = (-transform.y / transform.zoom - minY) * minimapScale;
-    const vpW = (viewportWidth / transform.zoom) * minimapScale;
-    const vpH = (viewportHeight / transform.zoom) * minimapScale;
-
-    ctx.fillStyle = isCork ? 'rgba(217, 119, 6, 0.2)' : 'rgba(59, 130, 246, 0.15)';
-    ctx.fillRect(vpX, vpY, vpW, vpH);
-    ctx.strokeStyle = isCork ? '#d97706' : '#3b82f6';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(vpX, vpY, vpW, vpH);
-  }, [transform, minX, minY, minimapScale, viewportWidth, viewportHeight, themeMode]);
+    drawMinimapViewport(ctx, transform, minX, minY, minimapScale, viewportWidth, viewportHeight, themeMode);
+  }, [transform, minX, minY, minimapScale, viewportWidth, viewportHeight, themeMode, fgCanvasRef]);
 
   return (
     <div className="relative w-full h-full">
@@ -180,6 +199,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const worldLayerRef = useRef<HTMLDivElement>(null);
   const gridBgRef = useRef<HTMLDivElement>(null);
+  const minimapFgRef = useRef<HTMLCanvasElement>(null);
   const [isPanning, setIsPanning] = useState(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [isDragOverCanvas, setIsDragOverCanvas] = useState(false);
@@ -478,11 +498,15 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
       e.stopPropagation();
     }
     setIsPanning(true);
+    // Cancel any running navigation glide immediately: its per-frame state writes would
+    // otherwise fight the direct-DOM pan writes below until the first throttled commit.
+    onTransformChange({ ...transform });
     panStartRef.current = { x: e.clientX, y: e.clientY, transformX: transform.x, transformY: transform.y };
     
     let panFrame: number | null = null;
     let pendingTransform: CanvasTransform | null = null;
-    let lastThrottledSyncTime = 0;
+    let lastSyncX = transform.x;
+    let lastSyncY = transform.y;
 
     const handleMouseMove = (moveEvt: MouseEvent) => {
       onMouseMoveCoord?.(moveEvt.clientX, moveEvt.clientY);
@@ -499,16 +523,28 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
 
       if (panFrame === null) {
         panFrame = requestAnimationFrame(() => {
+          panFrame = null;
+          if (!pendingTransform) return;
+
           // Direct DOM transform: 0ms latency hardware-accelerated GPU translation
-          if (worldLayerRef.current && pendingTransform) {
+          if (worldLayerRef.current) {
             worldLayerRef.current.style.transform = `translate3d(${pendingTransform.x}px, ${pendingTransform.y}px, 0) scale(${pendingTransform.zoom})`;
           }
-          panFrame = null;
 
-          // Throttled background sync every 120ms for long continuous pans
-          const now = performance.now();
-          if (now - lastThrottledSyncTime > 120 && pendingTransform) {
-            lastThrottledSyncTime = now;
+          // Keep the minimap viewport rect glued to the gesture without React commits
+          const fgCtx = minimapFgRef.current?.getContext('2d');
+          if (fgCtx) {
+            drawMinimapViewport(fgCtx, pendingTransform, minX, minY, minimapScale, viewport.width, viewport.height, themeMode);
+          }
+
+          // Frustum-hysteresis sync: commit to React only after travelling ~1/3 of a
+          // viewport dimension. Keeps frustum culling correct during long pans with
+          // near-zero mid-gesture renders.
+          const travelledX = Math.abs(pendingTransform.x - lastSyncX);
+          const travelledY = Math.abs(pendingTransform.y - lastSyncY);
+          if (travelledX > viewport.width * 0.33 || travelledY > viewport.height * 0.33) {
+            lastSyncX = pendingTransform.x;
+            lastSyncY = pendingTransform.y;
             onTransformChange(pendingTransform);
           }
         });
@@ -812,10 +848,10 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
       {/* Floating 2D HTML5 Canvas Minimap */}
       <div className="absolute top-4 right-4 z-20 hidden md:block">
         <div
-          className={`p-2 rounded-sm border backdrop-blur-md shadow-sm transition-all select-none w-48 ${
+          className={`p-2 rounded-sm border shadow-sm transition-all select-none w-48 ${
             themeMode === 'light'
-              ? 'bg-white/80 border-slate-200 text-slate-900'
-              : 'bg-slate-900/85 border-slate-800 text-slate-100'
+              ? 'bg-white border-slate-200 text-slate-900'
+              : 'bg-slate-900 border-slate-800 text-slate-100'
           }`}
         >
           <div className="flex items-center justify-between text-[10px] font-sans font-medium text-slate-400 mb-1.5 px-0.5">
@@ -852,6 +888,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
               viewportHeight={viewport.height}
               selectedNoteId={selectedNoteId}
               themeMode={themeMode}
+              fgCanvasRef={minimapFgRef}
             />
           </div>
         </div>

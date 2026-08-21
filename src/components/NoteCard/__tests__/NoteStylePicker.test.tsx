@@ -115,7 +115,7 @@ describe('NoteStylePicker component', () => {
     );
 
     expect(screen.getByText('Cover Style & Seal')).toBeTruthy();
-    expect(screen.getByText('Alt+C')).toBeTruthy();
+    expect(screen.getByText('Not covered · Alt+C to seal')).toBeTruthy();
     expect(screen.getByText('Cover Style')).toBeTruthy();
     expect(screen.getByText('Seal SVG Emblem')).toBeTruthy();
 

@@ -244,10 +244,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         return;
       }
 
-      sendNativeAppNotification('Generating Tags', 'Analyzing note content with AI...');
-
-      try {
-        const generatedTags = await generateAutoTagsWithAI(
+      try {        const generatedTags = await generateAutoTagsWithAI(
           note.title,
           cleanedBaseContent,
           {
@@ -280,8 +277,6 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
           tags: updatedTags,
           updatedAt: new Date().toISOString(),
         });
-
-        sendNativeAppNotification('Auto Tag Complete', `Appended tags: ${tagsMarkdown}`);
       } catch (err: any) {
         console.error('Failed to generate auto-tags:', err);
         sendNativeAppNotification(
@@ -452,9 +447,6 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
           : ''
       }`}
     >
-      {/* Washi Tape Decoration for Text Notes */}
-      <NoteDecorations pinStyle={note.pinStyle} allowedTypes="tape-only" />
-
       {/* Smart Quick-Action Pill: Add to Overlapping Group */}
       {isSelected && overlappingGroup && (
         <div className="absolute -top-7 left-2 z-50 pointer-events-auto select-none">
@@ -522,10 +514,6 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
             ...note,
             isPinned: targetState,
           });
-          sendNativeAppNotification(
-            targetState ? 'Note Pinned' : 'Note Unpinned',
-            `"${note.title || 'Note'}" ${targetState ? 'pinned to top layer' : 'unpinned'}`
-          );
         }}
         onDeleteNote={() => onDeleteNote(note.id)}
         onDeselectNote={() => onSelectNote(null)}

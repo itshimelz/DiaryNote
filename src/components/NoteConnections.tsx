@@ -271,5 +271,23 @@ const NoteConnectionsComponent: React.FC<NoteConnectionsProps> = ({
   );
 };
 
-export const NoteConnections = React.memo(NoteConnectionsComponent);
+export const NoteConnections = React.memo(
+  NoteConnectionsComponent,
+  (prevProps, nextProps) => {
+    if (
+      prevProps.notes !== nextProps.notes ||
+      prevProps.selectedNoteId !== nextProps.selectedNoteId ||
+      prevProps.themeMode !== nextProps.themeMode ||
+      prevProps.onSelectNote !== nextProps.onSelectNote
+    ) {
+      return false;
+    }
+    // viewportBounds is a fresh object every parent render; compare numerically so
+    // identity-only changes (e.g. hysteresis pan commits with identical bounds) skip re-render.
+    const a = prevProps.viewportBounds;
+    const b = nextProps.viewportBounds;
+    if (!a || !b) return a === b;
+    return a.minX === b.minX && a.maxX === b.maxX && a.minY === b.minY && a.maxY === b.maxY;
+  }
+);
 
