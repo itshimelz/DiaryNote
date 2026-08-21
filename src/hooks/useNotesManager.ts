@@ -425,10 +425,10 @@ export function useNotesManager(
       const currentMap = new Map(currentNotes.map((n) => [n.id, n]));
       const restoredMap = new Map(restoredNotes.map((n) => [n.id, n]));
 
-      // Mark modified or restored notes dirty
+      // Mark modified or restored notes dirty (identity compare — note objects are immutable)
       for (const [id, note] of restoredMap.entries()) {
         const curr = currentMap.get(id);
-        if (!curr || JSON.stringify(curr) !== JSON.stringify(note)) {
+        if (!curr || curr !== note) {
           dirtyNoteIdsRef.current.add(id);
         }
       }

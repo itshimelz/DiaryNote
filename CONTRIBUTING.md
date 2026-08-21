@@ -43,8 +43,7 @@ Have an idea to make DiaryNote even better? Feature requests are always welcome!
 ## Local Development Setup
 
 ### Prerequisites
-- **Node.js**: `v18+` or `v20+` / `bun`
-- **npm** or **bun**
+- **Bun**: `v1.2+`
 - **Rust Toolchain**: `rustc` & `cargo` (required for native desktop Tauri builds)
 
 ### Setup Steps
@@ -57,18 +56,18 @@ Have an idea to make DiaryNote even better? Feature requests are always welcome!
 
 2. **Install Dependencies**:
    ```bash
-   npm install   # or bun install
+   bun install
    ```
 
 3. **Run Web Dev Server**:
    ```bash
-   npm run dev
+   bun run dev
    ```
    Open your browser at `http://localhost:3000`.
 
 4. **Run Desktop Dev Mode (Tauri)**:
    ```bash
-   npm run tauri:dev
+   bun run tauri:dev
    ```
 
 ---
@@ -79,10 +78,10 @@ Before submitting a Pull Request, verify that all type checking and production b
 
 ```bash
 # Typecheck TypeScript definitions
-npm run lint
+bun run lint
 
 # Verify Production Web Build
-npm run build
+bun run build
 ```
 
 ---

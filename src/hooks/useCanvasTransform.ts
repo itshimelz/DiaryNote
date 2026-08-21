@@ -84,7 +84,13 @@ export function useCanvasTransform(notes: Note[], bringToFront: (noteId: string)
       navigationFrameRef.current = null;
     }
     fitRestoreRef.current = null;
-    setTransform(nextTransform);
+    // Bail on value-identical commits (glide-cancel at pan mousedown, zero-distance
+    // mouseup) — returning the same reference makes React skip the render entirely.
+    setTransform((prev) =>
+      prev.x === nextTransform.x && prev.y === nextTransform.y && prev.zoom === nextTransform.zoom
+        ? prev
+        : nextTransform
+    );
   }, []);
 
   const getViewport = useCallback(() => ({

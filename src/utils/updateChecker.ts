@@ -54,8 +54,6 @@ export async function checkForAppUpdates(): Promise<{
         cache: 'no-cache',
         headers: {
           Accept: 'application/vnd.github.v3+json',
-          'User-Agent': 'DiaryNote-App',
-          'Cache-Control': 'no-cache',
         },
       }
     );
@@ -70,8 +68,6 @@ export async function checkForAppUpdates(): Promise<{
           cache: 'no-cache',
           headers: {
             Accept: 'application/vnd.github.v3+json',
-            'User-Agent': 'DiaryNote-App',
-            'Cache-Control': 'no-cache',
           },
         }
       );

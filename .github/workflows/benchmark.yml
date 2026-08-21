@@ -16,25 +16,23 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Install Dependencies
-        run: npm install
+        run: bun install --frozen-lockfile
 
       - name: Generate 50,000 Synthetic Notes Dataset
-        run: node scripts/seedBenchmark.mjs
+        run: bun scripts/seedBenchmark.mjs
 
       - name: Type Check & Production Build Verification
         run: |
-          npx tsc --noEmit
-          npm run build
+          bunx tsc --noEmit
+          bun run build
 
       - name: Calculate Dataset & Heap Metrics
         run: |
-          node -e "
+          bun -e "
             const fs = require('fs');
             const data = JSON.parse(fs.readFileSync('benchmark-50k-notes.json'));
             console.log('✅ Generated notes count:', data.length);

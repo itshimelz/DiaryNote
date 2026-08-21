@@ -1,4 +1,5 @@
-use tauri::{AppHandle, Emitter};
+use std::sync::Arc;
+use tauri::{AppHandle, Emitter, State};
 
 use crate::domain::ai::{
     AiConnectionTestResult, AiRequestConfig, AiStreamChunkPayload, AiSynthesisResult,
@@ -8,19 +9,19 @@ use crate::infrastructure::network::AiClient;
 
 #[tauri::command]
 pub async fn ai_test_connection(
+    client: State<'_, Arc<AiClient>>,
     config: AiRequestConfig,
 ) -> Result<AiConnectionTestResult, AppError> {
-    let client = AiClient::new();
     Ok(client.test_connection(&config).await?)
 }
 
 #[tauri::command]
 pub async fn ai_stream_synthesis(
     app: AppHandle,
+    client: State<'_, Arc<AiClient>>,
     config: AiRequestConfig,
     request_id: String,
 ) -> Result<AiSynthesisResult, AppError> {
-    let client = AiClient::new();
     let req_id_clone = request_id.clone();
     let app_clone = app.clone();
 
@@ -71,11 +72,11 @@ pub async fn ai_stream_synthesis(
 
 #[tauri::command]
 pub async fn ai_generate_tags(
+    client: State<'_, Arc<AiClient>>,
     config: AiRequestConfig,
     title: String,
     content: String,
 ) -> Result<Vec<String>, AppError> {
-    let client = AiClient::new();
     Ok(client.generate_tags(&config, &title, &content).await?)
 }
 

@@ -19,8 +19,7 @@ interface UseNoteDragOptions {
 
 function updateGroupFramesDOM(
   allNotes: Note[],
-  updatedPosMap: Map<string, { x: number; y: number }>,
-  cardDimsMap: Map<string, { width: number; height: number }>
+  updatedPosMap: Map<string, { x: number; y: number }>
 ) {
   const affectedGroupIds = new Set<string>();
   allNotes.forEach((n) => {
@@ -39,14 +38,17 @@ function updateGroupFramesDOM(
     let maxX = -Infinity;
     let maxY = -Infinity;
 
+    // ponytail: persisted widths/heights only — measuring offsetWidth here forces layout
+    // every frame; GroupFrame's own ResizeObserver corrects any auto-height drift after drop.
     groupNotes.forEach((n) => {
       const pos = updatedPosMap.get(n.id) || { x: n.x, y: n.y };
-      const dims = cardDimsMap.get(n.id) || { width: n.width || DEFAULT_NOTE_WIDTH, height: n.height || DEFAULT_NOTE_HEIGHT };
+      const w = n.width || DEFAULT_NOTE_WIDTH;
+      const h = n.height || DEFAULT_NOTE_HEIGHT;
 
       minX = Math.min(minX, pos.x);
       minY = Math.min(minY, pos.y);
-      maxX = Math.max(maxX, pos.x + dims.width);
-      maxY = Math.max(maxY, pos.y + dims.height);
+      maxX = Math.max(maxX, pos.x + w);
+      maxY = Math.max(maxY, pos.y + h);
     });
 
     if (minX === Infinity) return;
@@ -172,14 +174,17 @@ export function useNoteDrag({
       groupDragStartRef.current = [];
     }
 
-    const cardDimsMap = new Map<string, { width: number; height: number }>();
-    allNotesRef.current.forEach((n) => {
-      const cardEl = document.getElementById(`note-card-${n.id}`);
-      cardDimsMap.set(n.id, {
-        width: cardEl ? cardEl.offsetWidth : n.width || DEFAULT_NOTE_WIDTH,
-        height: cardEl ? cardEl.offsetHeight : n.height || DEFAULT_NOTE_HEIGHT,
-      });
-    });
+    // Element handles for the dragged note(s), captured once per gesture —
+    // processMoveDOM must never re-query the DOM per frame.
+    const dragEls = new Map<string, HTMLElement>();
+    const getDragEl = (id: string): HTMLElement | null => {
+      let el = dragEls.get(id);
+      if (el === undefined) {
+        el = document.getElementById(`note-card-${id}`);
+        if (el) dragEls.set(id, el);
+      }
+      return el || null;
+    };
 
     let hasMoved = false;
     let moveFrame: number | null = null;
@@ -203,7 +208,7 @@ export function useNoteDrag({
               rawX = Math.round(rawX / GRID_SIZE) * GRID_SIZE;
               rawY = Math.round(rawY / GRID_SIZE) * GRID_SIZE;
             }
-            const el = document.getElementById(`note-card-${n.id}`);
+            const el = getDragEl(n.id);
             if (el) {
               const rot = n.rotation || 0;
               el.style.transform = `translate3d(${Math.round(rawX)}px, ${Math.round(rawY)}px, 0)${rot ? ` rotate(${rot}deg)` : ''}`;
@@ -220,7 +225,7 @@ export function useNoteDrag({
           newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
         }
         currentPosRef.current = { x: newX, y: newY };
-        const el = document.getElementById(`note-card-${noteRef.current.id}`);
+        const el = getDragEl(noteRef.current.id);
         if (el) {
           const rot = noteRef.current.rotation || 0;
           el.style.transform = `translate3d(${Math.round(newX)}px, ${Math.round(newY)}px, 0)${rot ? ` rotate(${rot}deg)` : ''}`;
@@ -228,7 +233,7 @@ export function useNoteDrag({
         updatedMap.set(noteRef.current.id, { x: newX, y: newY });
       }
 
-      updateGroupFramesDOM(allNotesRef.current, updatedMap, cardDimsMap);
+      updateGroupFramesDOM(allNotesRef.current, updatedMap);
     };
 
     const handleMouseMove = (moveEvent: MouseEvent) => {

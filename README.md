@@ -111,12 +111,20 @@ Press `Ctrl + /` (or `Cmd + /`) inside the app to open the built-in hotkey cheat
 
 #### Linux & macOS
 ```bash
+# Stable
 curl -fsSL https://raw.githubusercontent.com/itshimelz/DiaryNote/main/install.sh | bash
+
+# Latest (incl. pre-release)
+curl -fsSL https://raw.githubusercontent.com/itshimelz/DiaryNote/main/install.sh | bash -s -- --prerelease
 ```
 
 #### Windows (PowerShell)
 ```powershell
+# Stable
 irm https://raw.githubusercontent.com/itshimelz/DiaryNote/main/install.ps1 | iex
+
+# Latest (incl. pre-release)
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/itshimelz/DiaryNote/main/install.ps1))) -Prerelease
 ```
 
 ---
@@ -142,8 +150,7 @@ cd DiaryNote
 ### Building from Source
 
 #### Prerequisites
-- **Node.js**: `v18+` or `v20+`
-- **npm**, **bun**, or **yarn**
+- **Bun**: `v1.2+`
 - **Rust Toolchain**: `rustc` & `cargo` (for Tauri builds)
 
 #### Build Steps
@@ -156,13 +163,13 @@ cd DiaryNote
 
 2. **Install Dependencies & Start Dev Mode**:
    ```bash
-   npm install
-   npm run dev
+   bun install
+   bun run dev
    ```
 
 3. **Build Production Binary**:
    ```bash
-   npm run tauri:build
+   bun run tauri:build
    ```
 
 ---

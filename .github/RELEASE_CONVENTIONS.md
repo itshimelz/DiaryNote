@@ -11,7 +11,7 @@ DiaryNote uses **Semantic Versioning 2.0.0** (`MAJOR.MINOR.PATCH[-PRERELEASE]`).
 - **Stable Release Source**: `main` branch.
 - **Pre-Release Source**: Feature branches (`feature/*`).
 - **Single Source of Truth**: `package.json` (`version` field).
-  - Version numbers across `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json` must always be kept strictly in sync via `node scripts/sync-version.mjs`.
+  - Version numbers across `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json` must always be kept strictly in sync via `bun scripts/sync-version.mjs`.
 
 ---
 
@@ -56,7 +56,7 @@ When cutting a pre-release from a non-main feature branch:
 For every pre-release `vX.Y.Z-beta.N`:
 
 - [ ] Release notes file exists at `.github/releases/RELEASE_NOTES_vX.Y.Z-beta.N.md`.
-- [ ] Version is set via `node scripts/sync-version.mjs --set X.Y.Z-beta.N`.
-- [ ] Version validation passes cleanly via `node scripts/sync-version.mjs --check`.
+- [ ] Version is set via `bun scripts/sync-version.mjs --set X.Y.Z-beta.N`.
+- [ ] Version validation passes cleanly via `bun scripts/sync-version.mjs --check`.
 - [ ] `Cargo.lock` is refreshed via `cd src-tauri && cargo check`.
 - [ ] Tag `vX.Y.Z-beta.N` is pushed to feature branch.

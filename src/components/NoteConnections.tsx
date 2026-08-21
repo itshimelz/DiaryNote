@@ -82,6 +82,51 @@ const NoteConnectionsComponent: React.FC<NoteConnectionsProps> = ({
 
   const isDarkCanvas = themeMode === 'dark';
 
+  // Geometry is position-derived only: compute once per connections/notes change so
+  // viewport-culling re-renders (every hysteresis pan commit) skip all path math.
+  const edgeGeometries = useMemo(() => {
+    return connections
+      .map((conn, idx) => {
+        const fromNote = noteMap.get(conn.fromNoteId);
+        const toNote = noteMap.get(conn.toNoteId);
+        if (!fromNote || !toNote) return null;
+
+        const fromWidth = fromNote.width || DEFAULT_NOTE_WIDTH;
+        const fromHeight = fromNote.height || DEFAULT_NOTE_HEIGHT;
+        const toWidth = toNote.width || DEFAULT_NOTE_WIDTH;
+        const toHeight = toNote.height || DEFAULT_NOTE_HEIGHT;
+
+        const fromCenterX = fromNote.x + fromWidth / 2;
+        const fromCenterY = fromNote.y + fromHeight / 2;
+        const toCenterX = toNote.x + toWidth / 2;
+        const toCenterY = toNote.y + toHeight / 2;
+
+        const fromEdge = getRectEdgePoint(fromCenterX, fromCenterY, toCenterX, toCenterY, fromWidth, fromHeight);
+        const toEdge = getRectEdgePoint(toCenterX, toCenterY, fromCenterX, fromCenterY, toWidth, toHeight);
+
+        const dx = toEdge.x - fromEdge.x;
+        const dy = toEdge.y - fromEdge.y;
+        const controlOffset = Math.min(Math.hypot(dx, dy) * 0.3, 150);
+
+        const cx1 = fromEdge.x + (dx > 0 ? controlOffset : -controlOffset);
+        const cx2 = toEdge.x - (dx > 0 ? controlOffset : -controlOffset);
+
+        const labelText = conn.label || toNote.title || 'Note';
+
+        return {
+          key: `${conn.fromNoteId}-${conn.toNoteId}-${idx}`,
+          conn,
+          pathData: `M ${fromEdge.x} ${fromEdge.y} C ${cx1} ${fromEdge.y}, ${cx2} ${toEdge.y}, ${toEdge.x} ${toEdge.y}`,
+          midX: (fromEdge.x + toEdge.x) / 2,
+          midY: (fromEdge.y + toEdge.y) / 2,
+          labelText,
+          fromBox: { x: fromNote.x, y: fromNote.y, w: fromWidth, h: fromHeight },
+          toBox: { x: toNote.x, y: toNote.y, w: toWidth, h: toHeight },
+        };
+      })
+      .filter((e): e is NonNullable<typeof e> => e !== null);
+  }, [connections, noteMap]);
+
   if (connections.length === 0) return null;
 
   return (
@@ -113,81 +158,29 @@ const NoteConnectionsComponent: React.FC<NoteConnectionsProps> = ({
         </marker>
       </defs>
 
-      {connections.map((conn, idx) => {
-        const fromNote = noteMap.get(conn.fromNoteId);
-        const toNote = noteMap.get(conn.toNoteId);
-
-        if (!fromNote || !toNote) return null;
-
-        const fromWidth = fromNote.width || DEFAULT_NOTE_WIDTH;
-        const fromHeight = fromNote.height || DEFAULT_NOTE_HEIGHT;
-        const toWidth = toNote.width || DEFAULT_NOTE_WIDTH;
-        const toHeight = toNote.height || DEFAULT_NOTE_HEIGHT;
+      {edgeGeometries.map((edge) => {
+        const { conn, pathData, midX, midY, labelText, fromBox, toBox } = edge;
 
         // Viewport culling: do not render SVG path if both ends are completely off-screen
         if (viewportBounds) {
           const fromVisible =
-            fromNote.x + fromWidth >= viewportBounds.minX &&
-            fromNote.x <= viewportBounds.maxX &&
-            fromNote.y + fromHeight >= viewportBounds.minY &&
-            fromNote.y <= viewportBounds.maxY;
+            fromBox.x + fromBox.w >= viewportBounds.minX &&
+            fromBox.x <= viewportBounds.maxX &&
+            fromBox.y + fromBox.h >= viewportBounds.minY &&
+            fromBox.y <= viewportBounds.maxY;
 
           const toVisible =
-            toNote.x + toWidth >= viewportBounds.minX &&
-            toNote.x <= viewportBounds.maxX &&
-            toNote.y + toHeight >= viewportBounds.minY &&
-            toNote.y <= viewportBounds.maxY;
+            toBox.x + toBox.w >= viewportBounds.minX &&
+            toBox.x <= viewportBounds.maxX &&
+            toBox.y + toBox.h >= viewportBounds.minY &&
+            toBox.y <= viewportBounds.maxY;
 
           if (!fromVisible && !toVisible) {
             return null;
           }
         }
 
-        // Calculate center points in world coordinates
-        const fromCenterX = fromNote.x + fromWidth / 2;
-        const fromCenterY = fromNote.y + fromHeight / 2;
-        const toCenterX = toNote.x + toWidth / 2;
-        const toCenterY = toNote.y + toHeight / 2;
-
-        // Compute exact edge intersection points on note card borders
-        const fromEdge = getRectEdgePoint(
-          fromCenterX,
-          fromCenterY,
-          toCenterX,
-          toCenterY,
-          fromWidth,
-          fromHeight
-        );
-        const toEdge = getRectEdgePoint(
-          toCenterX,
-          toCenterY,
-          fromCenterX,
-          fromCenterY,
-          toWidth,
-          toHeight
-        );
-
-        // Use world coordinates directly (parent div applies viewport zoom & pan transform)
-        const worldFromX = fromEdge.x;
-        const worldFromY = fromEdge.y;
-        const worldToX = toEdge.x;
-        const worldToY = toEdge.y;
-
         const isHighlighted = selectedNoteId === conn.fromNoteId || selectedNoteId === conn.toNoteId;
-
-        // Calculate cubic bezier control points
-        const dx = worldToX - worldFromX;
-        const dy = worldToY - worldFromY;
-        const controlOffset = Math.min(Math.hypot(dx, dy) * 0.3, 150);
-
-        const cx1 = worldFromX + (dx > 0 ? controlOffset : -controlOffset);
-        const cy1 = worldFromY;
-        const cx2 = worldToX - (dx > 0 ? controlOffset : -controlOffset);
-        const cy2 = worldToY;
-
-        const pathData = `M ${worldFromX} ${worldFromY} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${worldToX} ${worldToY}`;
-        const midX = (worldFromX + worldToX) / 2;
-        const midY = (worldFromY + worldToY) / 2;
 
         // Theme adaptive stroke colors
         const strokeColor = isHighlighted
@@ -221,10 +214,8 @@ const NoteConnectionsComponent: React.FC<NoteConnectionsProps> = ({
           ? '#cbd5e1'
           : '#475569';
 
-        const labelText = conn.label || toNote.title || 'Note';
-
         return (
-          <g key={`${conn.fromNoteId}-${conn.toNoteId}-${idx}`} className="group pointer-events-auto">
+          <g key={edge.key} className="group pointer-events-auto">
             <path
               d={pathData}
               fill="none"

@@ -60,6 +60,49 @@ impl AiClient {
         }
     }
 
+    /// ponytail: name-heuristic reasoning-model detector, not a capability probe — extend the
+    /// matchers if a provider ships new reasoning families.
+    pub fn is_reasoning_model(provider: &str, model_name: &str) -> bool {
+        let m = model_name.to_lowercase();
+        match provider {
+            "gemini" => m.contains("pro") || m.contains("thinking") || m.contains("2.5"),
+            "openai" => {
+                (m.starts_with("o") && m.chars().nth(1).is_some_and(|c| c.is_ascii_digit()))
+                    || m.starts_with("gpt-5")
+            }
+            "openrouter" => {
+                m.contains("thinking")
+                    || m.contains("claude-opus")
+                    || m.contains("claude-4")
+                    || m.contains("o1")
+                    || m.contains("o3")
+                    || m.contains("-r1")
+            }
+            _ => false,
+        }
+    }
+
+    /// Suppresses/minimizes hidden reasoning latency on models that support the knob.
+    /// Gemini gets thinking fully off; OpenAI/OpenRouter get low effort.
+    fn apply_reasoning_suppression(body: &mut serde_json::Value, provider: &str, model_name: &str) {
+        if !Self::is_reasoning_model(provider, model_name) {
+            return;
+        }
+        match provider {
+            "gemini" => {
+                body["generationConfig"] =
+                    serde_json::json!({ "thinkingConfig": { "thinkingBudget": 0 } });
+            }
+            "openai" => {
+                body["reasoning_effort"] = serde_json::json!("low");
+            }
+            "openrouter" => {
+                body["reasoning"] = serde_json::json!({ "effort": "low" });
+            }
+            _ => {}
+        }
+    }
+
     fn build_headers(provider: &str, api_key: &str) -> HeaderMap {
         let mut headers = HeaderMap::new();
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
@@ -102,9 +145,10 @@ impl AiClient {
                 "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent",
                 model_name
             );
-            let body = serde_json::json!({
+            let mut body = serde_json::json!({
                 "contents": [{ "parts": [{ "text": "Respond with OK" }] }]
             });
+            Self::apply_reasoning_suppression(&mut body, &provider, &model_name);
 
             let res = self
                 .client
@@ -146,11 +190,12 @@ impl AiClient {
             }
 
             let endpoint = format!("{}/chat/completions", base_url);
-            let body = serde_json::json!({
+            let mut body = serde_json::json!({
                 "model": model_name,
                 "messages": [{ "role": "user", "content": "Say OK" }],
                 "max_tokens": 10
             });
+            Self::apply_reasoning_suppression(&mut body, &provider, &model_name);
 
             let res = self
                 .client
@@ -218,11 +263,14 @@ impl AiClient {
                 serde_json::json!([{ "parts": [{ "text": config.user_prompt }] }]),
             );
 
+            let mut body = serde_json::Value::Object(body_map);
+            Self::apply_reasoning_suppression(&mut body, &provider, &model_name);
+
             let res = self
                 .client
                 .post(&url)
                 .headers(headers)
-                .json(&serde_json::Value::Object(body_map))
+                .json(&body)
                 .send()
                 .await?;
 
@@ -282,13 +330,14 @@ impl AiClient {
             }
             messages.push(serde_json::json!({ "role": "user", "content": config.user_prompt }));
 
-            let body = serde_json::json!({
+            let mut body = serde_json::json!({
                 "model": model_name,
                 "messages": messages,
                 "stream": true,
                 "temperature": config.temperature.unwrap_or(0.3),
                 "max_tokens": config.max_tokens
             });
+            Self::apply_reasoning_suppression(&mut body, &provider, &model_name);
 
             let res = self
                 .client
@@ -397,6 +446,37 @@ mod tests {
             AiClient::resolve_model_name("openai", Some("gpt-4.5-preview")),
             "gpt-4.5-preview"
         );
+    }
+
+    #[test]
+    fn test_reasoning_model_detection() {
+        // gemini: pro/thinking/2.5+ flagged, flash not
+        assert!(AiClient::is_reasoning_model("gemini", "gemini-3.1-pro-preview"));
+        assert!(AiClient::is_reasoning_model("gemini", "gemini-2.5-flash"));
+        assert!(!AiClient::is_reasoning_model("gemini", "gemini-3.7-flash"));
+
+        // openai: o-series and gpt-5 family
+        assert!(AiClient::is_reasoning_model("openai", "o3-mini"));
+        assert!(AiClient::is_reasoning_model("openai", "gpt-5.5-pro"));
+        assert!(!AiClient::is_reasoning_model("openai", "gpt-4o-mini"));
+        assert!(!AiClient::is_reasoning_model("openai", "text-embedding-3-small"));
+
+        // openrouter reasoning families (vendor-prefixed ids)
+        assert!(AiClient::is_reasoning_model(
+            "openrouter",
+            "anthropic/claude-opus-5"
+        ));
+        assert!(AiClient::is_reasoning_model(
+            "openrouter",
+            "deepseek/deepseek-r1"
+        ));
+        assert!(!AiClient::is_reasoning_model(
+            "openrouter",
+            "anthropic/claude-haiku-4"
+        ));
+
+        // custom providers never get suppression params
+        assert!(!AiClient::is_reasoning_model("custom", "anything"));
     }
 
     #[test]

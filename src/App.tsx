@@ -29,7 +29,7 @@ import { AppModals } from './components/Modals/AppModals';
 import { sendNativeAppNotification } from './utils';
 import { checkForAppUpdates } from './utils/updateChecker';
 import { saveAppSettingsToDB as saveSettingsToDB, saveDirtyNotesToDB as saveImportedNotesToDB, exportNoteToFileNative } from './lib/rustStorage';
-import { mergeNotesWithAI } from './services/ai/aiMergeService';
+import { mergeNotesWithAI, type StreamProgress } from './services/ai/aiMergeService';
 import { getSessionAuthState, setMasterSessionUnlocked, isNoteAuthorized } from './services/authPolicyService';
 import { lockSessionVault } from './services/cryptoVaultService';
 import { AppSettings } from './lib/storage';
@@ -670,6 +670,35 @@ export default function App() {
     setSelectedNoteIds([newNoteId]);
 
     (async () => {
+      // Coalesce per-token stream updates: flush the accumulated text to React at most
+      // every ~80ms instead of once per SSE chunk (100+ commits/s starved the canvas).
+      let pendingProgress: StreamProgress | null = null;
+      let flushTimer: ReturnType<typeof setTimeout> | null = null;
+      const flushProgress = () => {
+        flushTimer = null;
+        if (!pendingProgress) return;
+        const { accumulated } = pendingProgress;
+        pendingProgress = null;
+
+        let displayTitle = 'Synthesizing Notes...';
+        let displayContent = accumulated;
+
+        if (displayContent.startsWith('# ')) {
+          const firstNewline = displayContent.indexOf('\n');
+          if (firstNewline !== -1) {
+            displayTitle = displayContent.slice(2, firstNewline).trim();
+            displayContent = displayContent.slice(firstNewline + 1).trim();
+          }
+        }
+
+        handleUpdateNote({
+          ...initialNote,
+          title: displayTitle || 'Synthesizing Notes...',
+          content: displayContent,
+          updatedAt: new Date().toISOString(),
+        });
+      };
+
       try {
         const result = await mergeNotesWithAI(
           notesToMerge,
@@ -681,25 +710,17 @@ export default function App() {
             customModelName: settings.customModelName,
           },
           (progress) => {
-            let displayTitle = 'Synthesizing Notes...';
-            let displayContent = progress.accumulated;
-
-            if (displayContent.startsWith('# ')) {
-              const firstNewline = displayContent.indexOf('\n');
-              if (firstNewline !== -1) {
-                displayTitle = displayContent.slice(2, firstNewline).trim();
-                displayContent = displayContent.slice(firstNewline + 1).trim();
-              }
+            pendingProgress = progress;
+            if (flushTimer === null) {
+              flushTimer = setTimeout(flushProgress, 80);
             }
-
-            handleUpdateNote({
-              ...initialNote,
-              title: displayTitle || 'Synthesizing Notes...',
-              content: displayContent,
-              updatedAt: new Date().toISOString(),
-            });
           }
         );
+
+        if (flushTimer !== null) {
+          clearTimeout(flushTimer);
+        }
+        flushProgress();
 
         handleUpdateNote({
           ...initialNote,
@@ -713,6 +734,12 @@ export default function App() {
           `Created "${result.title}" from ${targetCount} notes.`
         );
       } catch (err: any) {
+        // Drop any pending coalesced flush so it cannot resurrect the deleted placeholder
+        if (flushTimer !== null) {
+          clearTimeout(flushTimer);
+          flushTimer = null;
+        }
+        pendingProgress = null;
         console.error('Failed to merge notes with AI:', err);
         handleDeleteMultipleNotes([newNoteId]);
         setMergedSelectionKeys((prev) => {

@@ -260,24 +260,6 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
     return () => clearTimeout(timer);
   }, [notes]);
 
-  // Synchronize CSS custom properties directly on the world element
-  useEffect(() => {
-    if (worldLayerRef.current) {
-      worldLayerRef.current.style.setProperty('--canvas-x', `${transform.x}px`);
-      worldLayerRef.current.style.setProperty('--canvas-y', `${transform.y}px`);
-      worldLayerRef.current.style.setProperty('--canvas-zoom', `${transform.zoom}`);
-    }
-  }, [transform.x, transform.y, transform.zoom]);
-
-  // Synchronize CSS custom properties directly on the background element
-  useEffect(() => {
-    if (gridBgRef.current) {
-      gridBgRef.current.style.setProperty('--grid-pos-x', `${transform.x}px`);
-      gridBgRef.current.style.setProperty('--grid-pos-y', `${transform.y}px`);
-      gridBgRef.current.style.setProperty('--grid-size', `${24 * transform.zoom}px`);
-    }
-  }, [transform.x, transform.y, transform.zoom]);
-
   // Track dragging state from child NoteCards
   const handleDragStateChange = useCallback((ids: string[]) => {
     setDraggingNoteIds(ids);

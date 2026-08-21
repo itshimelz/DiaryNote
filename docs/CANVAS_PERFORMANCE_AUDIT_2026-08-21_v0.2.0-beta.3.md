@@ -8,6 +8,31 @@
 
 ---
 
+## Remediation Progress
+
+> Status legend: ✅ shipped · 🔶 partially shipped · ⬜ open · ❌ won't do
+
+### Batch 1 — P0 remediation (shipped 2026-08-21, same day as report)
+
+| Item | Status | Notes |
+|---|---|---|
+| P0-1 memo defeated by inline props | ✅ | Latest-ref stable callbacks for all 7 inline props in App (`App.tsx`); `React.memo(InfiniteCanvas)` now holds |
+| P0-2 mid-gesture commits | ✅ | Replaced fixed 120ms throttle with ~⅓-viewport **frustum-hysteresis commits**; one-shot glide-cancel commit at pan mousedown; minimap FG rect drawn imperatively inside pan rAF via shared `drawMinimapViewport`. Naive "commit only at mouseup" was rejected: it breaks culling on long pans and lets nav-glide fight direct-DOM writes |
+| P0-3 backdrop-filter overlays | ✅ | Blur removed from dock, minimap panel, StatusBar, NoteToolbar, GroupFrame badge; Glass theme → translucent solid `bg-white/85` |
+| P2-9 (memo half) | ✅ | `NoteConnections` numeric `viewportBounds` comparator added (identity-only changes skip re-render). Debounce-deps fix still open |
+| Cover paint cheapening (follow-up audit) | ✅ | Duplicate washi `NoteDecorations` removed (uncovered notes painted tapes twice); airmail barber-pole de-rotated into axis-aligned 51×51 SVG pattern tile (no `patternTransform`); cover shadows `shadow-md/lg` → `shadow-sm` |
+| AI latency (separate audit) | ✅ | Pooled `Arc<AiClient>` in Tauri state, connect timeout 5s / total 180s, reasoning-model suppression, merge-preview stream coalescing ≥80ms |
+
+### Batch 1 deferred items → carried into Batch 2
+
+P1-4 (incremental spatial index), P1-5 (bringToFront timing), P1-6 (group/resize rAF), P1-7 remainder, P1-8 (marquee DOM), P2-8/P2-9 (graph IPC deps), P2-10 (dead CSS vars), P2-11 misc.
+
+### Batch 2 — trace-driven fixes (2026-08-22)
+
+Triggered by a real 12.8s DevTools trace (`localhost-recording.json`): stutter is **main-thread React render cost at gesture boundaries** (mousedown ≤149ms, mouseup ≤85ms, scheduler/microtask flushes ≈0.9s combined), NOT compositor paint (Paint share 8.2%; pointermove handling measured at 0.06ms/event). See Batch 2 section at bottom of this file for outcomes.
+
+---
+
 ## Executive Summary
 
 The architecture is **fundamentally sound**: gestures write directly to the DOM inside `requestAnimationFrame`, note cards are `React.memo`'d with a field-level comparator, there is an R-tree spatial index with frustum culling, and persistence is debounced and dirty-tracked. Someone did real optimization work here.
@@ -319,6 +344,39 @@ Measure:
 4. **Linux specifically**: repeat at 100% and 125% scaling; toggles from B-4 as diagnostics.
 
 Success criteria: zero long tasks >16ms attributable to gesture handlers at N=500; no invoke traffic during typing pauses beyond debounced saves; pan frame time variance < ±2ms after P0 batch.
+
+---
+
+## Batch 2 Outcomes — Trace-Driven Gesture-Boundary Fixes (2026-08-22)
+
+**Evidence:** 12.8s DevTools trace (`localhost-recording.json`, dev build + StrictMode) captured while panning around a covered note. Key measurements that redirected this batch:
+
+| Signal | Value | Implication |
+|---|---|---|
+| pointermove/mousemove handling | 729 events / **45ms total** (~0.06ms each) | The rAF direct-DOM fast path was already correct — motion itself was never the cost |
+| `mousedown` handlers | 9 events / **260ms**, max **148.6ms** | Press-time cascade (bringToFront `setNotes` + selection + all-notes `offsetWidth` scan) |
+| `mouseup` handlers | 9 events / **196ms**, max 85ms | Final commit renders + `JSON.stringify` history diffs |
+| scheduler `message` + microtask flushes | ≈**0.9s combined**, max single flush 136/118ms | React render commits landing mid-gesture via hysteresis commits |
+| Forced synchronous layouts | 12 reflows | The drag-start `offsetWidth` scan for every note |
+| GC | 45 collections / **140ms** | Allocation churn from per-render array copies |
+| Frames >100ms | 45 of 228; only 60 rAF ticks fired in ~13s | Long tasks starved the frame loop |
+
+### Shipped in Batch 2
+
+| # | Fix | File(s) | Audit item closed |
+|---|---|---|---|
+| 1 | Drag start no longer measures any DOM: group frames size from persisted dims during drag (ResizeObserver corrects drift after drop); dragged-note element handles cached once per gesture instead of `getElementById` per frame | `useNoteDrag.ts` | P1-7 ✅ (canvas half), part of mousedown spike |
+| 2 | `handleCanvasTransformChange` bails on value-identical transforms → glide-cancel commit and zero-distance mouseup render nothing | `useCanvasTransform.ts` | P0-2 remainder ✅ |
+| 3 | History diff + undo dirty-marking compare object identity (notes are immutable) instead of `JSON.stringify` pairs | `useHistoryState.ts`, `useNotesManager.ts` | P2-9(second) ✅ |
+| 4 | Deleted both dead CSS-custom-property effects (wrote vars consumed nowhere; invalidated world-subtree styles every commit) | `InfiniteCanvas.tsx` | P2-10 ✅ (static-grid visual quirk remains by design — decorative texture) |
+| 5 | `NoteConnections` hoists all edge geometry (edge points, bezier path, badge position, cull boxes) into a `[connections, noteMap]` memo; per-commit renders only run culling checks + color picks | `NoteConnections.tsx` | per-commit SVG rebuild ✅ |
+| 6 | Airmail border: live inline SVG `<pattern>` replaced with pre-rendered seamless 2× bitmap tile (**682 bytes**, Vite-inlined), painted as `background-image: repeat`; negative-z-index stacking removed from cover decorations | `NoteCoverDecorations.tsx`, new asset | covered-card mount rasterization ✅ |
+
+Verification at close of batch: `bun run lint` ✅ · `bun run test` 232/232 ✅ · `bun run build` ✅.
+
+### Still open (unchanged priority)
+
+P1-4 incremental spatial index · P1-5 bringToFront timing · P1-6 group-drag/resize rAF coalescing · P1-8 marquee direct-DOM · P2-8 graph IPC deps fix (`[connectionsContentKey]`) · P2-11 misc (ImageNoteCard comparator, zoom staleness, wheel-listener churn). Re-profile against a **production build** before pulling further levers — the Batch 2 trace was dev-mode inflated and the remaining items should be sized against prod numbers first.
 
 ---
 

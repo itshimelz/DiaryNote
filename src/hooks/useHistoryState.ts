@@ -21,7 +21,9 @@ function computeDiff(prevNotes: Note[], nextNotes: Note[]): HistoryDiff | null {
     const prevNote = prevMap.get(id);
     if (!prevNote) {
       upserted.push(nextNote);
-    } else if (JSON.stringify(prevNote) !== JSON.stringify(nextNote)) {
+    } else if (prevNote !== nextNote) {
+      // ponytail: reference compare — every note mutation spreads into a new object,
+      // so identity inequality is a complete change signal (was: JSON.stringify pair).
       upserted.push(nextNote);
       prevUpserted.push(prevNote);
     }

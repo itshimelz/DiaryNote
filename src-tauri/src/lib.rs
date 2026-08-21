@@ -25,6 +25,7 @@ use domain::graph::GraphService;
 use domain::note::NoteService;
 use domain::search::SearchService;
 use domain::vault::VaultService;
+use infrastructure::network::AiClient;
 use infrastructure::{init_sqlite_db_pool, AppPaths, AssetStore, SqliteNoteRepository};
 use tauri::Manager;
 
@@ -189,12 +190,16 @@ pub fn run() {
             let search_service = Arc::new(SearchService::new(db_pool.reader_arc()));
             let graph_service = Arc::new(GraphService::new());
 
+            // Shared AI client: one connection pool reused across every AI request
+            let ai_client = Arc::new(AiClient::new());
+
             // Direct state injection into Tauri
             app.manage(note_service);
             app.manage(asset_service);
             app.manage(vault_service);
             app.manage(search_service);
             app.manage(graph_service);
+            app.manage(ai_client);
             app.manage(db_pool);
             app.manage(app_paths);
 
