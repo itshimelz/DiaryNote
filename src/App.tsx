@@ -5,7 +5,17 @@ import { exportBackup, exportNotesBackup, importBackup, saveFileWithNotification
 
 // Custom Hooks
 import { useHistoryState } from './hooks/useHistoryState';
-import { useNotesManager } from './hooks/useNotesManager';
+import {
+  useNotesStore,
+  getNotesArray,
+  registerNotesHistoryBridge,
+  initNotesFromDB,
+} from './stores/notesStore';
+import {
+  addTextNote as handleAddNote,
+  addImageNote as handleAddImageNote,
+  createOrFocusDailyEntry as handleCreateOrFocusDailyEntry,
+} from './stores/noteActions';
 import { useCanvasTransform, screenToWorld } from './hooks/useCanvasTransform';
 import { useNoteSelection } from './hooks/useNoteSelection';
 import { useAppUIState } from './hooks/useAppUIState';
@@ -81,7 +91,7 @@ export default function App() {
     setPasteModalState,
   } = useAppUIState();
 
-  // 1. History Stack Hook
+  // 1. History (Undo / Redo) Hook
   const {
     pushHistorySnapshot,
     handleUndo: triggerUndo,
@@ -91,25 +101,28 @@ export default function App() {
     canRedo,
   } = useHistoryState();
 
-  // 2. Notes Manager Hook
-  const {
-    notes,
-    setNotes,
-    lastSavedAt,
-    isSaving,
-    saveError,
-    initAppDatabase,
-    handleAddNote,
-    handleAddImageNote,
-    handleCreateOrFocusDailyEntry,
-    handleUpdateNote,
-    handleUpdateBatchNotes,
-    handleDeleteNote: _handleDeleteNote,
-    handleDeleteMultipleNotes,
-    handleRestoreNotes,
-    bringToFront,
-    flushPendingHistory,
-  } = useNotesManager(pushHistorySnapshot, resetHistory);
+  // 2. Notes Store actions (see src/stores/notesStore.ts)
+  const handleUpdateNote = useCallback(
+    (updated: Note) => useNotesStore.getState().update(updated),
+    []
+  );
+  const handleUpdateBatchNotes = useCallback(
+    (updatedNotes: Note[]) => useNotesStore.getState().updateBatch(updatedNotes),
+    []
+  );
+  const handleDeleteMultipleNotes = useCallback(
+    (ids: string[]) => useNotesStore.getState().removeMany(ids),
+    []
+  );
+  const bringToFront = useCallback(
+    (noteId: string) => useNotesStore.getState().bringToFront(noteId),
+    []
+  );
+  const flushPendingHistory = useCallback(() => useNotesStore.getState().flushHistory(), []);
+  const handleRestoreNotes = useCallback(
+    (restoredNotes: Note[]) => useNotesStore.getState().restore(restoredNotes),
+    []
+  );
 
   const imagePickerCoordRef = useRef<{ x?: number; y?: number } | null>(null);
   const globalImageInputRef = useRef<HTMLInputElement>(null);
@@ -127,19 +140,27 @@ export default function App() {
     handleResetZoom,
     handleFitNotes,
     handleNavigateToNote,
-  } = useCanvasTransform(notes, bringToFront);
+  } = useCanvasTransform(bringToFront);
 
-  // Initialize IndexedDB Database on mount and restore persisted canvas transform & settings
+  // Initialize DB on mount and restore persisted canvas transform & settings
   useEffect(() => {
-    initAppDatabase(({ transform: dbTransform, settings: dbSettings }) => {
-      if (dbTransform) {
-        handleCanvasTransformChange(dbTransform);
-      }
-      if (dbSettings) {
-        setSettings((prev) => ({ ...prev, ...dbSettings }));
-      }
-    });
-  }, [initAppDatabase, handleCanvasTransformChange, setSettings]);
+    registerNotesHistoryBridge({ commitSnapshot: pushHistorySnapshot, resetHistory });
+    let cancelled = false;
+    initNotesFromDB()
+      .then(({ transform: dbTransform, settings: dbSettings }) => {
+        if (cancelled) return;
+        if (dbTransform) {
+          handleCanvasTransformChange(dbTransform);
+        }
+        if (dbSettings) {
+          setSettings((prev) => ({ ...prev, ...dbSettings }));
+        }
+      })
+      .catch((err) => console.error('Failed to initialize database:', err));
+    return () => {
+      cancelled = true;
+    };
+  }, [pushHistorySnapshot, resetHistory, handleCanvasTransformChange, setSettings]);
 
   // Task 14: Network Transparency — Check GitHub for updates on mount only if opted-in (deferred 3s after boot)
   useEffect(() => {
@@ -176,9 +197,10 @@ export default function App() {
   const requestDeleteNotes = useCallback(
     (ids: string[]) => {
       if (ids.length === 0) return;
-      const hasLockedNote = ids.some((id) => notes.find((n) => n.id === id)?.isLocked);
+      const storeNotes = getNotesArray();
+      const hasLockedNote = ids.some((id) => storeNotes.find((n) => n.id === id)?.isLocked);
       if (hasLockedNote) {
-        const firstLockedId = ids.find((id) => notes.find((n) => n.id === id)?.isLocked)!;
+        const firstLockedId = ids.find((id) => storeNotes.find((n) => n.id === id)?.isLocked)!;
         setSecurityModalNoteId(firstLockedId);
         setSecurityModalMode('unlock');
         setNotesToDelete(ids);
@@ -187,7 +209,7 @@ export default function App() {
       setNotesToDelete(ids);
       setIsDeleteModalOpen(true);
     },
-    [notes, setSecurityModalNoteId, setSecurityModalMode, setNotesToDelete, setIsDeleteModalOpen]
+    [setSecurityModalNoteId, setSecurityModalMode, setNotesToDelete, setIsDeleteModalOpen]
   );
 
   const handleToggleTheme = useCallback(() => {
@@ -206,7 +228,8 @@ export default function App() {
   const handleLockSelectedNotes = useCallback(
     (ids: string[]) => {
       if (ids.length === 0) return;
-      const targetNotes = notes.filter((n) => ids.includes(n.id));
+      const storeNotes = getNotesArray();
+      const targetNotes = storeNotes.filter((n) => ids.includes(n.id));
       if (targetNotes.length === 0) return;
 
       const allLocked = targetNotes.every((n) => n.isLocked);
@@ -237,7 +260,7 @@ export default function App() {
         }
       }
     },
-    [notes, settings.masterPasswordHash, handleUpdateBatchNotes, setSecurityModalNoteId, setSecurityModalMode, setNotesToUnlock, setNotesToLock]
+    [settings.masterPasswordHash, handleUpdateBatchNotes, setSecurityModalNoteId, setSecurityModalMode, setNotesToUnlock, setNotesToLock]
   );
 
   const handleSaveAISettings = useCallback(
@@ -273,7 +296,8 @@ export default function App() {
         explicitIds && explicitIds.length > 0 ? explicitIds : selectedNoteIdsRef.current;
       if (targetIds.length === 0) return;
 
-      const targetedNotes = notes.filter((n) => targetIds.includes(n.id));
+      const storeNotes = getNotesArray();
+      const targetedNotes = storeNotes.filter((n) => targetIds.includes(n.id));
 
       // SMART GROUP GUARD: Prevent cutting notes that belong to a group
       const groupedNotes = targetedNotes.filter((n) => Boolean(n.groupId));
@@ -291,7 +315,7 @@ export default function App() {
       // Instantly deselect so the semi-transparent cut ghost styling appears immediately
       setSelectedNoteIdsRef.current([]);
     },
-    [notes]
+    []
   );
 
   const handlePasteRelocateNotes = useCallback(async () => {
@@ -306,7 +330,8 @@ export default function App() {
     const targetWorldX = Math.round((targetClientX - transform.x) / transform.zoom);
     const targetWorldY = Math.round((targetClientY - transform.y) / transform.zoom);
 
-    const targetedNotes = notes.filter((n) => activeCutIds.includes(n.id));
+    const storeNotes = getNotesArray();
+    const targetedNotes = storeNotes.filter((n) => activeCutIds.includes(n.id));
     if (targetedNotes.length === 0) {
       setCutNoteIds([]);
       return;
@@ -372,7 +397,7 @@ export default function App() {
       'Note(s) Placed',
       `Relocated ${updated.length} note(s) to new canvas position.`
     );
-  }, [notes, transform, handleUpdateBatchNotes]);
+  }, [transform, handleUpdateBatchNotes]);
 
   const handleCancelCutNotes = useCallback(() => {
     if (cutNoteIdsRef.current.length > 0) {
@@ -383,7 +408,8 @@ export default function App() {
   const handleToggleCoverSelectedNotes = useCallback(
     (noteIds: string[]) => {
       if (!noteIds || noteIds.length === 0) return;
-      const targetNotes = notes.filter((n) => noteIds.includes(n.id));
+      const storeNotes = getNotesArray();
+      const targetNotes = storeNotes.filter((n) => noteIds.includes(n.id));
       if (targetNotes.length === 0) return;
 
       const allCovered = targetNotes.every((n) => Boolean(n.isCovered));
@@ -400,7 +426,7 @@ export default function App() {
 
       handleUpdateBatchNotes(updated);
     },
-    [notes, handleUpdateBatchNotes]
+    [handleUpdateBatchNotes]
   );
 
   // 4. Note Selection & Keyboard Shortcuts Hook
@@ -413,7 +439,7 @@ export default function App() {
     handleSelectNote,
     handleSelectMultipleNotes,
   } = useNoteSelection(
-    notes,
+    undefined,
     handleUndo,
     handleRedo,
     requestDeleteNotes,
@@ -430,7 +456,8 @@ export default function App() {
     (id) => handleNavigateToNote(id, setSelectedNoteIds),
     () => {
       if (selectedNoteIds.length < 2) return;
-      const selectedNotes = notes.filter((n) => selectedNoteIds.includes(n.id));
+      const storeNotes = getNotesArray();
+      const selectedNotes = storeNotes.filter((n) => selectedNoteIds.includes(n.id));
       const newGroupId = `group-${crypto.randomUUID()}`;
       const groupName = `Group ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
       const updated = selectedNotes.map((n) => ({
@@ -444,7 +471,8 @@ export default function App() {
     },
     () => {
       if (selectedNoteIds.length === 0) return;
-      const selectedNotes = notes.filter((n) => selectedNoteIds.includes(n.id) && n.groupId);
+      const storeNotes = getNotesArray();
+      const selectedNotes = storeNotes.filter((n) => selectedNoteIds.includes(n.id) && n.groupId);
       if (selectedNotes.length === 0) return;
       const updated = selectedNotes.map((n) => ({
         ...n,
@@ -614,7 +642,8 @@ export default function App() {
       return;
     }
 
-    const notesToMerge = notes.filter((n) => selectedNoteIds.includes(n.id));
+    const storeNotes = getNotesArray();
+    const notesToMerge = storeNotes.filter((n) => selectedNoteIds.includes(n.id));
     if (notesToMerge.some((n) => Boolean(n.imageUrl))) {
       sendNativeAppNotification(
         'Cannot Merge Photos',
@@ -643,7 +672,7 @@ export default function App() {
 
     const avgX = Math.round(notesToMerge.reduce((sum, n) => sum + n.x, 0) / notesToMerge.length);
     const avgY = Math.round(notesToMerge.reduce((sum, n) => sum + (n.y + (n.height || 340)), 0) / notesToMerge.length) + 40;
-    const maxZ = Math.max(0, ...notes.map((n) => n.zIndex || 0));
+    const maxZ = Math.max(0, ...storeNotes.map((n) => n.zIndex || 0));
 
     const newNoteId = `note-${crypto.randomUUID()}`;
     const initialNote: Note = {
@@ -755,7 +784,7 @@ export default function App() {
         setIsMergingAI(false);
       }
     })();
-  }, [settings, notes, selectedNoteIds, mergedSelectionKeys, handleUpdateNote, handleDeleteMultipleNotes, setSelectedNoteIds, setIsAISettingsOpen, setIsMergingAI, setMergedSelectionKeys]);
+  }, [settings, selectedNoteIds, mergedSelectionKeys, handleUpdateNote, handleDeleteMultipleNotes, setSelectedNoteIds, setIsAISettingsOpen, setIsMergingAI, setMergedSelectionKeys]);
 
   const handleOpenOrCreateTodayJournal = useCallback(
     (targetDateStr?: string) => {
@@ -824,8 +853,7 @@ export default function App() {
     async (resolvedNotes: Note[], newTransform?: CanvasTransform, newSettings?: AppSettings) => {
       try {
         await saveImportedNotesToDB(resolvedNotes);
-        setNotes(resolvedNotes);
-        resetHistory(resolvedNotes);
+        useNotesStore.getState().hydrate(resolvedNotes);
 
         if (newTransform) {
           handleCanvasTransformChange(newTransform);
@@ -846,7 +874,7 @@ export default function App() {
         );
       }
     },
-    [handleCanvasTransformChange, resetHistory, setNotes, setSettings]
+    [handleCanvasTransformChange, setSettings]
   );
 
   const handleConfirmDelete = useCallback(() => {
@@ -863,7 +891,9 @@ export default function App() {
     setIsDeleteModalOpen(false);
   }, [handleDeleteMultipleNotes, notesToDelete, setSelectedNoteIds, setNotesToDelete, setIsDeleteModalOpen]);
 
-  const securityModalNote = notes.find((n) => n.id === securityModalNoteId) || null;
+  const securityModalNote = securityModalNoteId
+    ? useNotesStore.getState().notesById[securityModalNoteId] || null
+    : null;
 
   const handleExportNote = useCallback(async (note: Note, format: 'md' | 'txt' | 'json') => {
     if (note.isLocked && !isNoteAuthorized(note)) {
@@ -940,7 +970,7 @@ export default function App() {
     handleAddImageFiles(files, clientX, clientY);
   canvasHandlersRef.current.requestLockNote = (id) => {
     if (settings.masterPasswordHash) {
-      const note = notes.find((n) => n.id === id);
+      const note = useNotesStore.getState().notesById[id];
       if (note) {
         handleUpdateNote({
           ...note,
@@ -955,7 +985,7 @@ export default function App() {
   };
   canvasHandlersRef.current.requestUnlockNote = (id) => {
     if (getSessionAuthState().isMasterUnlocked) {
-      const note = notes.find((n) => n.id === id);
+      const note = useNotesStore.getState().notesById[id];
       if (note) {
         handleUpdateNote({
           ...note,
@@ -1042,7 +1072,6 @@ export default function App() {
 
       {/* Infinite Canvas */}
       <InfiniteCanvas
-        notes={notes}
         transform={transform}
         selectedNoteId={selectedNoteId}
         selectedNoteIds={selectedNoteIds}
@@ -1102,7 +1131,6 @@ export default function App() {
               >
                 <BatchActionBar
                   selectedNoteIds={selectedNoteIds}
-                  notes={notes}
                   themeMode={settings.themeMode}
                   enableAIServices={settings.enableAIServices}
                   isMergingAI={isMergingAI}
@@ -1123,8 +1151,7 @@ export default function App() {
           {/* Primary Canvas Controls Row */}
           <div className="w-full relative z-20">
             <CanvasControls
-              notes={notes}
-              zoom={transform.zoom}
+                            zoom={transform.zoom}
               gridType={settings.gridType}
               themeMode={settings.themeMode}
               snapToGrid={settings.snapToGrid}
@@ -1156,7 +1183,7 @@ export default function App() {
               onOpenAbout={() => setIsAboutModalOpen(true)}
               onOpenNotesList={() => setIsNotesListOpen(true)}
               onOpenDatabaseOperations={() => setIsDatabaseModalOpen(true)}
-              onExportBackup={() => exportBackup(notes, transform, settings)}
+              onExportBackup={() => exportBackup(getNotesArray(), transform, settings)}
               onImportBackup={handleImportBackupFile}
               showStatusBar={showStatusBar}
               onToggleStatusBar={handleToggleStatusBar}
@@ -1225,7 +1252,6 @@ export default function App() {
       {/* Sidebar Drawer */}
       <NotesSidebar
         isOpen={isNotesListOpen}
-        notes={notes}
         themeMode={settings.themeMode}
         onClose={() => setIsNotesListOpen(false)}
         onSelectNote={(id) => handleNavigateToNote(id, setSelectedNoteIds)}
@@ -1235,8 +1261,7 @@ export default function App() {
 
       {/* Modals Container */}
       <AppModals
-        notes={notes}
-        settings={settings}
+                settings={settings}
         setSettings={setSettings}
         transform={transform}
         selectedNoteIds={selectedNoteIds}
@@ -1286,7 +1311,6 @@ export default function App() {
         handleSaveAISettings={handleSaveAISettings}
         onAddImageFiles={handleAddImageFiles}
         onTriggerImagePicker={handleTriggerImagePicker}
-        setNotes={setNotes}
         hasCutNotes={cutNoteIds.length > 0}
         onCutNotes={handleCutSelectedNotes}
         onPasteRelocateNotes={handlePasteRelocateNotes}
@@ -1312,7 +1336,6 @@ export default function App() {
       {/* Bottom Status Bar */}
       {showStatusBar && !isZenMode && (
         <StatusBar
-          notes={notes}
           themeMode={settings.themeMode}
           selectedNoteIds={selectedNoteIds}
           cutNoteIds={cutNoteIds}
@@ -1320,9 +1343,6 @@ export default function App() {
           gridType={settings.gridType}
           enableAIServices={settings.enableAIServices}
           isMergingAI={isMergingAI}
-          isSaving={isSaving}
-          saveError={saveError}
-          lastSavedAt={lastSavedAt}
           onCancelCut={handleCancelCutNotes}
           onToggleSnap={handleToggleSnapToGrid}
           onCycleGridType={() =>

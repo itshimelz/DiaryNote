@@ -1,10 +1,10 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Note, CanvasTheme } from '../types';
 import { getNoteGraphConnections, NoteConnection } from '../lib/rustGraph';
+import { useNotesList } from '../stores/notesStore';
 import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../constants/canvas';
 
 interface NoteConnectionsProps {
-  notes: Note[];
   selectedNoteId: string | null;
   onSelectNote: (noteId: string) => void;
   themeMode?: CanvasTheme;
@@ -44,20 +44,23 @@ function getRectEdgePoint(
 }
 
 const NoteConnectionsComponent: React.FC<NoteConnectionsProps> = ({
-  notes,
   selectedNoteId,
   onSelectNote,
   themeMode = 'dark',
   viewportBounds,
 }) => {
   const [connections, setConnections] = useState<NoteConnection[]>([]);
+  const notes = useNotesList();
 
   const connectionsContentKey = useMemo(
     () => (notes || []).map((n) => `${n.id}:${n.title}:${n.updatedAt || n.createdAt}`).join(';'),
     [notes]
   );
 
-  // Asynchronously compute graph connections via native Rust engine without blocking UI thread
+  // Asynchronously compute graph connections via native Rust engine without blocking UI thread.
+  // ponytail: keyed on content only — raw `notes` in deps re-armed the timer (and re-shipped the
+  // whole vault over IPC) on every keystroke/drag-end even when no edge-relevant field changed;
+  // connectionsContentKey already covers id/title/updatedAt mutations.
   useEffect(() => {
     let isMounted = true;
     const timer = window.setTimeout(() => {
@@ -72,7 +75,8 @@ const NoteConnectionsComponent: React.FC<NoteConnectionsProps> = ({
       isMounted = false;
       window.clearTimeout(timer);
     };
-  }, [connectionsContentKey, notes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connectionsContentKey]);
 
   const noteMap = useMemo(() => {
     const map = new Map<string, Note>();
@@ -266,7 +270,6 @@ export const NoteConnections = React.memo(
   NoteConnectionsComponent,
   (prevProps, nextProps) => {
     if (
-      prevProps.notes !== nextProps.notes ||
       prevProps.selectedNoteId !== nextProps.selectedNoteId ||
       prevProps.themeMode !== nextProps.themeMode ||
       prevProps.onSelectNote !== nextProps.onSelectNote

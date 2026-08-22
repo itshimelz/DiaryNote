@@ -42,4 +42,7 @@ futures-util = "0.3"
 tokio = { version = "1.38", features = ["sync", "rt", "macros"] }
 ts-rs = { version = "10.1", features = ["serde-compat", "chrono-impl"] }
 
+[features]
+devtools = ["tauri/devtools"]
+
 

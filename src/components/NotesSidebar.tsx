@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Note, CanvasTheme } from '../types';
+import { useNotesList } from '../stores/notesStore';
+import { CanvasTheme } from '../types';
 import { formatDate } from '../utils';
 import {
   Search01Icon,
@@ -17,7 +18,7 @@ import { isNoteAuthorized } from '../services/authPolicyService';
 interface NotesSidebarProps {
   isOpen: boolean;
   onClose: () => void;
-  notes: Note[];
+  
   onSelectNote: (noteId: string) => void;
   onAddNote: () => void;
   onDeleteNote: (noteId: string) => void;
@@ -30,12 +31,12 @@ const BUFFER_ITEMS = 5;
 const NotesSidebarComponent: React.FC<NotesSidebarProps> = ({
   isOpen,
   onClose,
-  notes,
-  onSelectNote,
+    onSelectNote,
   onAddNote,
   onDeleteNote,
   themeMode = 'dark',
 }) => {
+  const notes = useNotesList();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [sortBy, setSortBy] = useState<'created' | 'modified' | 'title'>('created');

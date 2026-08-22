@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { GridType, CanvasTheme, Note } from '../types';
+import { useNotesList } from '../stores/notesStore';
+import {GridType, CanvasTheme, } from '../types';
 import {
   Add01Icon,
   Image01Icon,
@@ -23,7 +24,7 @@ const CanvasSettingsModal = React.lazy(() =>
 );
 
 interface CanvasControlsProps {
-  notes?: Note[];
+  
   zoom: number;
   gridType: GridType;
   themeMode: CanvasTheme;
@@ -71,7 +72,7 @@ interface CanvasControlsProps {
 }
 
 const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
-  notes = [],
+  
   zoom,
   gridType,
   themeMode,
@@ -117,6 +118,7 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
   onUnlockSession,
   onOpenSecurityModal,
 }) => {
+  const notes = useNotesList();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);

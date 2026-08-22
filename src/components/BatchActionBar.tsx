@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useNotesList } from '../stores/notesStore';
 import { createPortal } from 'react-dom';
 import { Note, PaperTheme, CanvasTheme } from '../types';
 import { PAPER_THEMES, PAPER_THEME_OPTIONS, PAPER_THEME_LABELS } from '../constants/paperThemes';
@@ -33,7 +34,7 @@ import { Button, IconButton, Badge, Menu, MenuItem, MenuDivider, MenuGroupHeader
 
 interface BatchActionBarProps {
   selectedNoteIds: string[];
-  notes: Note[];
+  
   themeMode?: CanvasTheme;
   enableAIServices?: boolean;
   isMergingAI?: boolean;
@@ -47,8 +48,7 @@ interface BatchActionBarProps {
 
 const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
   selectedNoteIds,
-  notes,
-  themeMode = 'dark',
+    themeMode = 'dark',
   enableAIServices = false,
   isMergingAI = false,
   isAlreadyMerged = false,
@@ -58,6 +58,7 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
   onToggleCover,
   onClearSelection,
 }) => {
+  const notes = useNotesList();
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [showAlignMenu, setShowAlignMenu] = useState(false);
 

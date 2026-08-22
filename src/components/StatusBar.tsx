@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { Note, CanvasTheme, GridType } from '../types';
+import { useNotesList, useSaveStatus } from '../stores/notesStore';
+import { CanvasTheme, GridType} from '../types';
 import { calculateJournalStreak } from '../utils';
 import {
   Database01Icon,
@@ -52,7 +53,7 @@ export function formatSmartRelativeTime(isoString?: string): string {
 }
 
 interface StatusBarProps {
-  notes?: Note[];
+  
   themeMode?: CanvasTheme;
   selectedNoteIds?: string[];
   cutNoteIds?: string[];
@@ -73,7 +74,6 @@ interface StatusBarProps {
 }
 
 const StatusBarComponent: React.FC<StatusBarProps> = ({
-  notes = [],
   themeMode = 'dark',
   selectedNoteIds = [],
   cutNoteIds = [],
@@ -81,9 +81,9 @@ const StatusBarComponent: React.FC<StatusBarProps> = ({
   gridType = 'dots',
   enableAIServices = false,
   isMergingAI = false,
-  isSaving = false,
-  saveError = null,
-  lastSavedAt: _lastSavedAt = null,
+  isSaving: propIsSaving,
+  saveError: propSaveError,
+  lastSavedAt: _lastSavedAt,
   onCancelCut,
   onToggleSnap,
   onCycleGridType,
@@ -92,6 +92,10 @@ const StatusBarComponent: React.FC<StatusBarProps> = ({
   onOpenSearchModal,
   onOpenJournalCalendar,
 }) => {
+  const notes = useNotesList();
+  const storeSaveStatus = useSaveStatus();
+  const isSaving = propIsSaving !== undefined ? propIsSaving : storeSaveStatus.isSaving;
+  const saveError = propSaveError !== undefined ? propSaveError : storeSaveStatus.saveError;
   const isDark = themeMode !== 'light';
 
   // Overall workspace stats & latest updated note timestamp

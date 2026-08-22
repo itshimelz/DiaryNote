@@ -1,4 +1,5 @@
 import React, { Suspense, lazy } from 'react';
+import { useNotesList } from '../../stores/notesStore';
 import { Note, CanvasTransform } from '../../types';
 import { AppSettings, exportNotesBackup } from '../../lib/storage';
 import { NoteContextMenu } from '../NoteContextMenu';
@@ -68,7 +69,6 @@ export function prefetchAppModals() {
 }
 
 interface AppModalsProps {
-  notes: Note[];
   settings: AppSettings;
   setSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
   transform: CanvasTransform;
@@ -129,7 +129,6 @@ interface AppModalsProps {
   handleSaveAISettings: (newSettings: Partial<AppSettings>) => void;
   onAddImageFiles?: (files: File[], customClientX?: number, customClientY?: number) => void;
   onTriggerImagePicker?: (clientX?: number, clientY?: number) => void;
-  setNotes?: React.Dispatch<React.SetStateAction<Note[]>>;
   hasCutNotes?: boolean;
   onCutNotes?: (ids: string[]) => void;
   onPasteRelocateNotes?: () => void;
@@ -137,7 +136,6 @@ interface AppModalsProps {
 }
 
 export const AppModals: React.FC<AppModalsProps> = ({
-  notes,
   settings,
   setSettings,
   transform,
@@ -191,12 +189,12 @@ export const AppModals: React.FC<AppModalsProps> = ({
   handleSaveAISettings,
   onAddImageFiles,
   onTriggerImagePicker,
-  setNotes: _setNotes,
   hasCutNotes = false,
   onCutNotes,
   onPasteRelocateNotes,
   onCancelCutNotes,
 }) => {
+  const notes = useNotesList();
   React.useEffect(() => {
     prefetchAppModals();
   }, []);

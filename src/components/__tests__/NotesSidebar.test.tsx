@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { NotesSidebar } from '../NotesSidebar';
+import { useNotesStore } from '../../stores/notesStore';
 import { Note } from '../../types';
 
 const mockNotes: Note[] = [
@@ -37,6 +38,13 @@ const mockNotes: Note[] = [
   },
 ];
 
+const seedStore = (list: Note[]) =>
+  useNotesStore.setState((prev) => {
+    const byId = { ...prev.notesById };
+    list.forEach((n) => (byId[n.id] = n as any));
+    return { notesById: byId, order: list.map((n) => n.id) };
+  });
+
 describe('NotesSidebar UI Component', () => {
   it('renders notes list and header with primitive components', () => {
     const handleClose = vi.fn();
@@ -44,11 +52,11 @@ describe('NotesSidebar UI Component', () => {
     const handleAddNote = vi.fn();
     const handleDeleteNote = vi.fn();
 
-    render(
+    seedStore(mockNotes);
+        render(
       <NotesSidebar
         isOpen={true}
         onClose={handleClose}
-        notes={mockNotes}
         onSelectNote={handleSelectNote}
         onAddNote={handleAddNote}
         onDeleteNote={handleDeleteNote}
@@ -61,11 +69,11 @@ describe('NotesSidebar UI Component', () => {
   });
 
   it('filters notes based on search query input', () => {
-    render(
+    seedStore(mockNotes);
+        render(
       <NotesSidebar
         isOpen={true}
         onClose={() => {}}
-        notes={mockNotes}
         onSelectNote={() => {}}
         onAddNote={() => {}}
         onDeleteNote={() => {}}
@@ -82,11 +90,11 @@ describe('NotesSidebar UI Component', () => {
     const handleAddNote = vi.fn();
     const handleClose = vi.fn();
 
-    render(
+    seedStore(mockNotes);
+        render(
       <NotesSidebar
         isOpen={true}
         onClose={handleClose}
-        notes={mockNotes}
         onSelectNote={() => {}}
         onAddNote={handleAddNote}
         onDeleteNote={() => {}}
@@ -118,11 +126,11 @@ describe('NotesSidebar UI Component', () => {
       zIndex: 3,
     };
 
-    render(
+    seedStore([...mockNotes, lockedNote]);
+        render(
       <NotesSidebar
         isOpen={true}
         onClose={() => {}}
-        notes={[...mockNotes, lockedNote]}
         onSelectNote={() => {}}
         onAddNote={() => {}}
         onDeleteNote={() => {}}

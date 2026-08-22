@@ -28,11 +28,13 @@ const NoteCoverComponent: React.FC<NoteCoverProps> = ({
   const cardWidth = note.width || 320;
   const cardHeight = note.height || 360;
 
-  // Monotonic geometric mean: sqrt(w * h) guarantees bigger card = bigger seal, smaller card = smaller seal
+  // Smart seal sizing: geometric mean scales with overall card size, but the seal is
+  // capped at ~42% of the SHORTER side so tall-narrow cards never overflow, and
+  // floored so compact cards keep a visible emblem.
   const baseDim = Math.sqrt(cardWidth * cardHeight);
-
-  // Dynamic seal size: smoothly scales from 56px on compact cards up to 220px on huge cards
-  const sealSize = Math.max(56, Math.min(220, Math.round(baseDim * 0.24)));
+  const rawSize = Math.max(56, Math.min(220, Math.round(baseDim * 0.24)));
+  const shortSideCap = Math.max(48, Math.min(cardWidth, cardHeight) * 0.42);
+  const sealSize = Math.round(Math.min(rawSize, shortSideCap));
 
   // Dynamic title font size based on base dimensions
   const titleSizeClass =

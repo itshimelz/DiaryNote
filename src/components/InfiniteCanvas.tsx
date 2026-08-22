@@ -3,15 +3,14 @@ import { Image01Icon } from '@hugeicons/core-free-icons';
 import { Icon } from './ui';
 import { Note, CanvasTransform, GridType, CanvasTheme } from '../types';
 import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../constants/canvas';
-import { NoteCard } from './NoteCard';
-import { ImageNoteCard } from './NoteCard/ImageNoteCard';
 import { NoteConnections } from './NoteConnections';
 import { GroupFrame } from './GroupFrame';
 import { isTauriEnvironment } from '../hooks/useNativeFileDrop';
 import { SpatialIndex, getVisibleWorldFrustum } from '../canvas';
+import { useNotesStore, getNotesArray } from '../stores/notesStore';
+import { CanvasCard } from './NoteCard/ConnectedCards';
 
 interface InfiniteCanvasProps {
-  notes: Note[];
   transform: CanvasTransform;
   onTransformChange: (newTransform: CanvasTransform) => void;
   gridType: GridType;
@@ -164,7 +163,6 @@ const MinimapCanvas: React.FC<{
 };
 
 const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
-  notes,
   transform,
   onTransformChange,
   gridType,
@@ -206,7 +204,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
   const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
   const [draggingNoteIds, setDraggingNoteIds] = useState<string[]>([]);
   const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight });
-  const [minimapNotes, setMinimapNotes] = useState<Note[]>(notes);
+  const [minimapNotes, setMinimapNotes] = useState<Note[]>(() => getNotesArray());
   const wheelFrameRef = useRef<number | null>(null);
   const pendingWheelTransformRef = useRef<CanvasTransform | null>(null);
   const panStartRef = useRef<{ x: number; y: number; transformX: number; transformY: number }>({
@@ -252,13 +250,22 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
     return () => window.removeEventListener('resize', updateSize);
   }, []);
 
-  // Debounce minimap synchronization to prevent layout pressure
+  // Debounce minimap synchronization to prevent layout pressure. Subscribes outside
+  // React so content-only edits never re-render the canvas shell.
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setMinimapNotes(notes);
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [notes]);
+    let timer: number | undefined;
+    const unsub = useNotesStore.subscribe(
+      (st) => st.notesById,
+      () => {
+        if (timer !== undefined) clearTimeout(timer);
+        timer = window.setTimeout(() => setMinimapNotes(getNotesArray()), 250);
+      }
+    );
+    return () => {
+      unsub();
+      if (timer !== undefined) clearTimeout(timer);
+    };
+  }, []);
 
   // Track dragging state from child NoteCards
   const handleDragStateChange = useCallback((ids: string[]) => {
@@ -384,18 +391,16 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
       let latestMouseEvt: MouseEvent | null = null;
 
       // Pre-measure real dynamic card dimensions once on drag start (zero reflow during mousemove)
-      const noteBounds = notes.map((n) => {
-        const el = document.getElementById(`note-card-${n.id}`) || document.querySelector(`[data-note-id="${n.id}"]`);
-        const actualW = el instanceof HTMLElement ? el.offsetWidth : n.width || DEFAULT_NOTE_WIDTH;
-        const actualH = el instanceof HTMLElement ? el.offsetHeight : n.height || DEFAULT_NOTE_HEIGHT;
-        return {
-          id: n.id,
-          x: n.x,
-          y: n.y,
-          w: actualW,
-          h: actualH,
-        };
-      });
+      // ponytail: persisted dims only — an offsetWidth sweep here forced layout on every
+      // canvas mousedown (16 reflows per trace); GroupFrame's ResizeObserver keeps real
+      // auto-height sizes authoritative for group frames, which is all that reads them.
+      const noteBounds = getNotesArray().map((n) => ({
+        id: n.id,
+        x: n.x,
+        y: n.y,
+        w: n.width || DEFAULT_NOTE_WIDTH,
+        h: n.height || DEFAULT_NOTE_HEIGHT,
+      }));
 
       const areArraysEqual = (a: string[], b: string[]) => {
         if (a.length !== b.length) return false;
@@ -578,11 +583,15 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
     return isDark ? 'bg-slate-950' : 'bg-[#f8fafc]';
   };
 
+  // Canvas-shell layout scope: recompute heavy derivations only when geometry or
+  // membership changes (layoutVersion), NOT on content edits (typing) — those now
+  // touch exactly one subscribed card and nothing else in this subtree.
+  const layoutVersion = useNotesStore((st) => st.layoutVersion);
+
   // Viewport Culling & R-Tree Spatial Virtualization
   const spatialIndex = useMemo(() => {
     const index = new SpatialIndex();
-    for (let i = 0; i < notes.length; i++) {
-      const n = notes[i];
+    for (const n of getNotesArray()) {
       const w = n.width || DEFAULT_NOTE_WIDTH;
       const h = n.height || DEFAULT_NOTE_HEIGHT;
       index.insert({
@@ -594,28 +603,33 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
       });
     }
     return index;
-  }, [notes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layoutVersion]);
 
   const worldFrustum = useMemo(() => {
     return getVisibleWorldFrustum(viewport.width, viewport.height, transform);
   }, [viewport.width, viewport.height, transform]);
 
-  const visibleNotes = useMemo(() => {
+  const visibleNoteIds = useMemo(() => {
     const visibleIds = spatialIndex.searchIds(worldFrustum);
     const selectedSet = new Set(selectedNoteIds);
 
-    return notes.filter(
-      (n) =>
-        n.id === selectedNoteId ||
-        selectedSet.has(n.id) ||
-        n.id === focusedNoteId ||
-        n.isPinned ||
-        visibleIds.has(n.id)
-    );
-  }, [notes, spatialIndex, worldFrustum, selectedNoteId, selectedNoteIds, focusedNoteId]);
+    return getNotesArray()
+      .filter(
+        (n) =>
+          n.id === selectedNoteId ||
+          selectedSet.has(n.id) ||
+          n.id === focusedNoteId ||
+          n.isPinned ||
+          visibleIds.has(n.id)
+      )
+      .map((n) => n.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layoutVersion, spatialIndex, worldFrustum, selectedNoteId, selectedNoteIds, focusedNoteId]);
 
   // Minimap scale and bounds in a single memoized calculation
   const { minX, minY, minimapScale } = useMemo(() => {
+    const notes = getNotesArray();
     if (notes.length === 0) {
       return { minX: -100, minY: -100, minimapScale: 0.12 };
     }
@@ -645,11 +659,12 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
     const scale = Math.min(150 / wWidth, 90 / wHeight);
 
     return { minX: minXBoundary, minY: minYBoundary, minimapScale: scale };
-  }, [notes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layoutVersion]);
 
   const noteGroups = useMemo(() => {
     const groups = new Map<string, Note[]>();
-    for (const n of notes) {
+    for (const n of getNotesArray()) {
       if (n.groupId) {
         const list = groups.get(n.groupId);
         if (list) list.push(n);
@@ -657,7 +672,8 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
       }
     }
     return groups;
-  }, [notes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layoutVersion]);
 
   const handleSelectNoteStable = useCallback(
     (id: string | null, isMulti?: boolean) => onSelectNote(id, isMulti),
@@ -743,7 +759,6 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
         {/* Bi-directional markdown connection lines */}
         {showConnections && (
           <NoteConnections
-            notes={notes}
             selectedNoteId={selectedNoteId}
             onSelectNote={onNavigateToNote}
             themeMode={themeMode}
@@ -757,61 +772,32 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
         )}
 
         {/* Note Cards */}
-        {visibleNotes.map((note) =>
-          note.imageUrl ? (
-            <ImageNoteCard
-              key={note.id}
-              note={note}
-              allNotes={notes}
-              zoom={transform.zoom}
-              isSelected={selectedNoteId === note.id || selectedNoteIds.includes(note.id)}
-              selectedNoteIds={selectedNoteIds}
-              isFocused={focusedNoteId === note.id}
-              isCardDragging={draggingNoteIds.includes(note.id)}
-              isCut={cutNoteIds.includes(note.id)}
-              onDragStateChange={handleDragStateChange}
-              shouldStartEditing={editingNoteId === note.id && !note.isCovered}
-              onSelectNote={handleSelectNoteStable}
-              onNavigateToNote={onNavigateToNote}
-              onUpdateNote={onUpdateNote}
-              onUpdateBatchNotes={onUpdateBatchNotes}
-              onDeleteNote={onDeleteNote}
-              onBringToFront={onBringToFront}
-              isPanMode={isPanMode || isSpacePressed}
-              snapToGrid={snapToGrid}
-              onRequestLockNote={onRequestLockNote}
-              onRequestUnlockNote={onRequestUnlockNote}
-              onExportNote={onExportNote}
-              onContextMenu={onContextMenuNote}
-            />
-          ) : (
-            <NoteCard
-              key={note.id}
-              note={note}
-              allNotes={notes}
-              zoom={transform.zoom}
-              isSelected={selectedNoteId === note.id || selectedNoteIds.includes(note.id)}
-              selectedNoteIds={selectedNoteIds}
-              isFocused={focusedNoteId === note.id}
-              isCardDragging={draggingNoteIds.includes(note.id)}
-              isCut={cutNoteIds.includes(note.id)}
-              onDragStateChange={handleDragStateChange}
-              shouldStartEditing={editingNoteId === note.id && !note.isCovered}
-              onSelectNote={handleSelectNoteStable}
-              onNavigateToNote={onNavigateToNote}
-              onUpdateNote={onUpdateNote}
-              onUpdateBatchNotes={onUpdateBatchNotes}
-              onDeleteNote={onDeleteNote}
-              onBringToFront={onBringToFront}
-              isPanMode={isPanMode || isSpacePressed}
-              snapToGrid={snapToGrid}
-              onRequestLockNote={onRequestLockNote}
-              onRequestUnlockNote={onRequestUnlockNote}
-              onExportNote={onExportNote}
-              onContextMenu={onContextMenuNote}
-            />
-          )
-        )}
+        {visibleNoteIds.map((noteId) => (
+          <CanvasCard
+            key={noteId}
+            noteId={noteId}
+            editingRequested={editingNoteId === noteId}
+            zoom={transform.zoom}
+            isSelected={selectedNoteId === noteId || selectedNoteIds.includes(noteId)}
+            selectedNoteIds={selectedNoteIds}
+            isFocused={focusedNoteId === noteId}
+            isCardDragging={draggingNoteIds.includes(noteId)}
+            isCut={cutNoteIds.includes(noteId)}
+            onDragStateChange={handleDragStateChange}
+            onSelectNote={handleSelectNoteStable}
+            onNavigateToNote={onNavigateToNote}
+            onUpdateNote={onUpdateNote}
+            onUpdateBatchNotes={onUpdateBatchNotes}
+            onDeleteNote={onDeleteNote}
+            onBringToFront={onBringToFront}
+            isPanMode={isPanMode || isSpacePressed}
+            snapToGrid={snapToGrid}
+            onRequestLockNote={onRequestLockNote}
+            onRequestUnlockNote={onRequestUnlockNote}
+            onExportNote={onExportNote}
+            onContextMenu={onContextMenuNote}
+          />
+        ))}
       </div>
 
       {/* Selection Box overlay */}

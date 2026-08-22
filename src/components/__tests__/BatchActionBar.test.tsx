@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BatchActionBar } from '../BatchActionBar';
+import { useNotesStore } from '../../stores/notesStore';
 import { Note } from '../../types';
 
 const textNote1: Note = {
@@ -43,10 +44,14 @@ describe('BatchActionBar component', () => {
   it('renders AI Merge button for 2 text notes when AI services are enabled', () => {
     const onMergeNotesAI = vi.fn();
 
-    render(
+    useNotesStore.setState((prev) => {
+        const byId = { ...prev.notesById };
+        [textNote1, textNote2, imageNote].forEach((n) => (byId[n.id] = n as any));
+        return { notesById: byId, order: Object.keys(byId) };
+      });
+      render(
       <BatchActionBar
         selectedNoteIds={['n1', 'n2']}
-        notes={[textNote1, textNote2]}
         enableAIServices={true}
         onMergeNotesAI={onMergeNotesAI}
         onUpdateBatchNotes={vi.fn()}
@@ -66,10 +71,14 @@ describe('BatchActionBar component', () => {
   it('hides and disables AI Merge button when selection includes an image note', () => {
     const onMergeNotesAI = vi.fn();
 
-    render(
+    useNotesStore.setState((prev) => {
+        const byId = { ...prev.notesById };
+        [textNote1, textNote2, imageNote].forEach((n) => (byId[n.id] = n as any));
+        return { notesById: byId, order: Object.keys(byId) };
+      });
+      render(
       <BatchActionBar
         selectedNoteIds={['n1', 'img1']}
-        notes={[textNote1, imageNote]}
         enableAIServices={true}
         onMergeNotesAI={onMergeNotesAI}
         onUpdateBatchNotes={vi.fn()}
@@ -85,10 +94,14 @@ describe('BatchActionBar component', () => {
   it('handles deselecting all notes', () => {
     const onClearSelection = vi.fn();
 
-    render(
+    useNotesStore.setState((prev) => {
+        const byId = { ...prev.notesById };
+        [textNote1, textNote2, imageNote].forEach((n) => (byId[n.id] = n as any));
+        return { notesById: byId, order: Object.keys(byId) };
+      });
+      render(
       <BatchActionBar
         selectedNoteIds={['n1', 'n2']}
-        notes={[textNote1, textNote2]}
         onUpdateBatchNotes={vi.fn()}
         onDeleteNotes={vi.fn()}
         onClearSelection={onClearSelection}

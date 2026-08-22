@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Note } from '../types';
+import { getNotesArray } from '../stores/notesStore';
 import { findNearestSpatialNoteNative } from '../utils/layoutUtils';
 
 export function useNoteSelection(
-  notes: Note[],
+  notes: Note[] | undefined,
   handleUndo: () => void,
   handleRedo: () => void,
   requestDeleteNotes: (ids: string[]) => void,
@@ -138,12 +139,13 @@ export function useNoteSelection(
       setEditingNoteId(null);
     } else {
       setSelectedNoteIds([noteId]);
-      const target = notesRef.current.find((n) => n.id === noteId);
+      const targetList = notes && notes.length > 0 ? notes : getNotesArray();
+      const target = targetList.find((n) => n.id === noteId);
       if (target && target.isCovered) {
         setEditingNoteId(null);
       }
     }
-  }, []);
+  }, [notes]);
 
   const handleSelectMultipleNotes = useCallback((ids: string[]) => {
     activeNavTargetIdRef.current = ids.length > 0 ? ids[ids.length - 1] : null;
@@ -386,8 +388,9 @@ export function useNoteSelection(
 
         const isShift = e.shiftKey;
         const currentSeq = ++navSequenceRef.current;
+        const noteList = notesRef.current && notesRef.current.length > 0 ? notesRef.current : getNotesArray();
 
-        findNearestSpatialNoteNative(originId, dir, notesRef.current).then((targetId) => {
+        findNearestSpatialNoteNative(originId, dir, noteList).then((targetId) => {
           if (currentSeq !== navSequenceRef.current) return;
           if (targetId) {
             activeNavTargetIdRef.current = targetId;
@@ -405,7 +408,8 @@ export function useNoteSelection(
 
       // Enter key opens edit mode on selected note (unless note is covered)
       if (e.key === 'Enter' && curSelectedNoteId) {
-        const target = notesRef.current.find((n) => n.id === curSelectedNoteId);
+        const noteList = notesRef.current && notesRef.current.length > 0 ? notesRef.current : getNotesArray();
+        const target = noteList.find((n) => n.id === curSelectedNoteId);
         if (target && target.isCovered) {
           // Do not enter edit mode on covered note
           return;

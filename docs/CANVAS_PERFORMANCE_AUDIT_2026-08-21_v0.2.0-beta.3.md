@@ -380,6 +380,32 @@ P1-4 incremental spatial index · P1-5 bringToFront timing · P1-6 group-drag/re
 
 ---
 
-## Closing Assessment
+## Batch 3 Outcomes — State-Ownership Refactor (2026-08-22)
+
+**Trigger:** Batch 2 trace still showed 1.6s of React commit flushes + 0.5s mouseup handlers: every `setNotes` re-rendered App → canvas → all cards. Root cause was state architecture, not gesture math.
+
+### Shipped
+
+| Change | Detail |
+|---|---|
+| **External store** | New `src/stores/notesStore.ts` (zustand, ~1KB): `notesById`+`order`+`layoutVersion` replace the App-owned array; actions (`insert/update/updateBatch/remove/removeMany/bringToFront/restore/hydrate`) own persistence (dirty set, 500ms debounced save with **re-dirty guard fixing known-gap #3**, min-350ms saving display, beforeunload/blur flush) |
+| **Per-card granularity** | `CanvasCard`/`ConnectedCards` wrappers subscribe each card to its own note via `useNote(id)` — a keystroke re-renders exactly one card subtree |
+| **Shell scoped to layout** | Spatial index, frustum culling, group map, minimap bounds keyed to a new `layoutVersion` counter bumped only by geometry/membership changes — typing never touches them |
+| **Chrome decoupled** | StatusBar / NotesSidebar / BatchActionBar / CanvasControls / AppModals pull `useNotesList()` internally instead of receiving `notes` props (AppModals also dropped unused `setNotes` prop) |
+| **History via bridge** | `registerNotesHistoryBridge` keeps existing `useHistoryState` semantics; impure setState updaters eliminated (**known-gap #5 resolved**) |
+| **Legacy deleted** | `useNotesManager.ts` + tests removed after full consumer migration |
+| **Seal sizing** | Cover seal clamped to ≤42% of the card's shorter side (floored at 48px) — tall-narrow cards no longer grow oversized seals |
+
+Also landed pre-store quick wins: marquee-selection `offsetWidth` sweep removed (canvas half of P1-7 ✅) and `NoteConnections` graph effect re-keyed to `[connectionsContentKey]` only (**P2-8 ✅** — ends whole-vault IPC per keystroke/drag burst).
+
+Verification at close: `bun run lint` ✅ · vitest 232/232 ✅ · `bun run build` ✅.
+
+### Remaining open items (unchanged)
+
+P1-4 incremental spatial index (shell still scans O(n) per layout bump — now far rarer), P1-5 bringToFront timing, P1-6 group/resize rAF coalescing, P1-8 marquee direct-DOM box, P2-11 misc (ImageNoteCard comparator, zoom staleness). Next measurement must be a **production build** trace.
+
+---
+
+## Closing Assessment (original report, retained)
 
 This is a well-architected canvas wearing three or four localized anchors. The gesture core (rAF + direct DOM + deferred commit) is exactly right — the problems are all *around* it: a defeated memo boundary, mid-gesture state writes, compositor-hostile blur overlays, and a graph pipeline that re-ships the vault per keystroke. The P0 batch (~2 hours of work) should recover the majority of perceived lag on all platforms; the P1 batch hardens it for high-polling mice and large vaults; P2 is hygiene with compounding returns at scale.

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { CanvasTransform, Note } from '../types';
+import { CanvasTransform } from '../types';
+import { getNotesArray } from '../stores/notesStore';
 import { loadTransform, saveTransform, loadSettings, saveSettings, AppSettings } from '../lib/storage';
 import { saveCanvasTransformToDB as saveTransformToDB, saveAppSettingsToDB as saveSettingsToDB } from '../lib/rustStorage';
 import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../constants/canvas';
@@ -24,7 +25,7 @@ export function worldToScreen(worldX: number, worldY: number, transform: CanvasT
   };
 }
 
-export function useCanvasTransform(notes: Note[], bringToFront: (noteId: string) => void) {
+export function useCanvasTransform(bringToFront: (noteId: string) => void) {
   const [transform, setTransform] = useState<CanvasTransform>(() => loadTransform());
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
   const [focusedNoteId, setFocusedNoteId] = useState<string | null>(null);
@@ -99,12 +100,13 @@ export function useCanvasTransform(notes: Note[], bringToFront: (noteId: string)
   }), []);
 
   const getZoomBounds = useCallback(() => {
+    const notes = getNotesArray();
     if (notes.length === 0) return { min: 0.15, max: 3 };
     const minWidth = Math.min(...notes.map((n) => n.width || DEFAULT_NOTE_WIDTH));
     const minHeight = Math.min(...notes.map((n) => n.height || DEFAULT_NOTE_HEIGHT));
     const maxZoom = Math.min(2.5, Math.max(1.8, Math.min(1000 / minWidth, 800 / minHeight)));
     return { min: 0.1, max: Math.max(1.5, maxZoom) };
-  }, [notes]);
+  }, []);
 
   const animateTransformTo = useCallback((targetTransform: CanvasTransform) => {
     if (navigationFrameRef.current !== null) {
@@ -179,6 +181,7 @@ export function useCanvasTransform(notes: Note[], bringToFront: (noteId: string)
   }, [animateTransformTo, getViewport, transform]);
 
   const handleFitNotes = useCallback(() => {
+    const notes = getNotesArray();
     if (notes.length === 0) return;
 
     if (fitRestoreRef.current) {
@@ -216,10 +219,10 @@ export function useCanvasTransform(notes: Note[], bringToFront: (noteId: string)
       x: Math.round(viewport.width / 2 - centerX * targetZoom),
       y: Math.round(viewport.height / 2 - centerY * targetZoom),
     });
-  }, [animateTransformTo, getViewport, getZoomBounds, notes, transform]);
+  }, [animateTransformTo, getViewport, getZoomBounds, transform]);
 
   const handleNavigateToNote = useCallback((targetNoteId: string, setSelectedNoteIds: (ids: string[]) => void) => {
-    const targetNote = notes.find((n) => n.id === targetNoteId);
+    const targetNote = getNotesArray().find((n) => n.id === targetNoteId);
     if (!targetNote) return;
 
     setSelectedNoteIds([targetNoteId]);
@@ -250,7 +253,7 @@ export function useCanvasTransform(notes: Note[], bringToFront: (noteId: string)
       x: Math.round(screenCenterX - noteCenterX * targetZoom),
       y: Math.round(screenCenterY - noteCenterY * targetZoom),
     });
-  }, [animateTransformTo, bringToFront, getViewport, notes]);
+  }, [animateTransformTo, bringToFront, getViewport]);
 
   return {
     transform,
