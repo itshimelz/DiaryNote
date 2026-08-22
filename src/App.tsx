@@ -36,7 +36,7 @@ import {
 } from './components';
 
 import { AppModals } from './components/Modals/AppModals';
-import { sendNativeAppNotification } from './utils';
+import { sendNativeAppNotification, formatGroupTime } from './utils';
 import { checkForAppUpdates } from './utils/updateChecker';
 import { saveAppSettingsToDB as saveSettingsToDB, saveDirtyNotesToDB as saveImportedNotesToDB, exportNoteToFileNative } from './lib/rustStorage';
 import { mergeNotesWithAI, type StreamProgress } from './services/ai/aiMergeService';
@@ -459,7 +459,7 @@ export default function App() {
       const storeNotes = getNotesArray();
       const selectedNotes = storeNotes.filter((n) => selectedNoteIds.includes(n.id));
       const newGroupId = `group-${crypto.randomUUID()}`;
-      const groupName = `Group ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      const groupName = `Group ${formatGroupTime()}`;
       const updated = selectedNotes.map((n) => ({
         ...n,
         groupId: newGroupId,

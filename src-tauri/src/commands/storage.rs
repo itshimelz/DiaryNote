@@ -6,13 +6,15 @@ use crate::infrastructure::os::AppPaths;
 use crate::infrastructure::sqlite::DbPool;
 use crate::models::{AppSettings, CanvasTransform, DatabaseStats, LoadedAppState, Note};
 
+// All storage commands are async so SQLite I/O runs on the async runtime instead of
+// blocking the main/UI thread (sync Tauri commands execute on the main thread).
 #[tauri::command]
-pub fn load_app_state(note_service: State<'_, Arc<NoteService>>) -> Result<LoadedAppState, AppError> {
+pub async fn load_app_state(note_service: State<'_, Arc<NoteService>>) -> Result<LoadedAppState, AppError> {
     Ok(note_service.load_app_state()?)
 }
 
 #[tauri::command]
-pub fn save_notes_batch(
+pub async fn save_notes_batch(
     note_service: State<'_, Arc<NoteService>>,
     notes: Vec<Note>,
 ) -> Result<usize, AppError> {
@@ -20,7 +22,7 @@ pub fn save_notes_batch(
 }
 
 #[tauri::command]
-pub fn delete_notes(
+pub async fn delete_notes(
     note_service: State<'_, Arc<NoteService>>,
     ids: Vec<String>,
 ) -> Result<usize, AppError> {
@@ -28,7 +30,7 @@ pub fn delete_notes(
 }
 
 #[tauri::command]
-pub fn save_canvas_transform(
+pub async fn save_canvas_transform(
     note_service: State<'_, Arc<NoteService>>,
     transform: CanvasTransform,
 ) -> Result<(), AppError> {
@@ -36,7 +38,7 @@ pub fn save_canvas_transform(
 }
 
 #[tauri::command]
-pub fn save_app_settings(
+pub async fn save_app_settings(
     note_service: State<'_, Arc<NoteService>>,
     settings: AppSettings,
 ) -> Result<(), AppError> {
@@ -44,12 +46,12 @@ pub fn save_app_settings(
 }
 
 #[tauri::command]
-pub fn check_database_integrity(note_service: State<'_, Arc<NoteService>>) -> Result<bool, AppError> {
+pub async fn check_database_integrity(note_service: State<'_, Arc<NoteService>>) -> Result<bool, AppError> {
     Ok(note_service.check_integrity()?)
 }
 
 #[tauri::command]
-pub fn get_database_stats(
+pub async fn get_database_stats(
     db_pool: State<'_, DbPool>,
     app_paths: State<'_, AppPaths>,
 ) -> Result<DatabaseStats, AppError> {
@@ -94,7 +96,7 @@ pub fn get_database_stats(
 }
 
 #[tauri::command]
-pub fn vacuum_database(
+pub async fn vacuum_database(
     db_pool: State<'_, DbPool>,
     app_paths: State<'_, AppPaths>,
 ) -> Result<DatabaseStats, AppError> {
@@ -103,5 +105,5 @@ pub fn vacuum_database(
         conn.execute_batch("VACUUM; PRAGMA optimize;")?;
     }
 
-    get_database_stats(db_pool, app_paths)
+    get_database_stats(db_pool, app_paths).await
 }

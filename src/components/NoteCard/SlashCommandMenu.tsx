@@ -15,6 +15,7 @@ import {
 } from '@hugeicons/core-free-icons';
 import { Icon } from '../ui';
 import { PAPER_THEMES } from './types';
+import { formatSlashCommandTimestamp } from '../../utils';
 
 export interface SlashCommand {
   id: string;
@@ -97,17 +98,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     keywords: ['date', 'time', 'now', 'today', 'timestamp'],
     icon: Calendar03Icon,
     action: () => {
-      const now = new Date();
-      const dateStr = now.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: '2-digit',
-      });
-      const timeStr = now.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-      });
+      const { dateStr, timeStr } = formatSlashCommandTimestamp();
       return `**${dateStr} ${timeStr}**\n`;
     },
   },

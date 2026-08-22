@@ -1,4 +1,5 @@
 import { Note, JournalMood } from '../types';
+import { formatJournalDate } from './dateUtils';
 
 /**
  * Returns formatted ISO date YYYY-MM-DD for local timezone
@@ -14,22 +15,7 @@ export function getLocalDateString(date: Date = new Date()): string {
  * Format date into human friendly string (e.g., "Tuesday, Aug 11, 2026")
  */
 export function formatJournalDateDisplay(dateStr: string): string {
-  try {
-    const parts = dateStr.split('-');
-    if (parts.length !== 3) return dateStr;
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const day = parseInt(parts[2], 10);
-    const d = new Date(year, month, day);
-    return d.toLocaleDateString(undefined, {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
+  return formatJournalDate(dateStr);
 }
 
 /**

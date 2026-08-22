@@ -875,6 +875,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
               placeholder="Write your note here... Use @ for notes, / for formatting blocks."
               aria-label={`Edit ${note.title || 'Untitled Note'}`}
               wrap="soft"
+              style={{ fieldSizing: 'content' } as React.CSSProperties}
               className={`w-full min-h-[180px] whitespace-pre-wrap bg-transparent resize-none overflow-y-hidden outline-none border-0 shadow-none ${
                 isRuled ? 'ruled-text-alignment' : 'leading-relaxed'
               } ${fontClass} ${fontSizeClass} ${

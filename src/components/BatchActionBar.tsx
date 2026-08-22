@@ -5,7 +5,7 @@ import { Note, PaperTheme, CanvasTheme } from '../types';
 import { PAPER_THEMES, PAPER_THEME_OPTIONS, PAPER_THEME_LABELS } from '../constants/paperThemes';
 import { exportNotesBackup } from '../lib/storage';
 import { authorizeNotes, isNoteAuthorized } from '../services/authPolicyService';
-import { sendNativeAppNotification } from '../utils';
+import { sendNativeAppNotification, formatGroupTime } from '../utils';
 import { computeBatchLayoutNative } from '../utils/layoutUtils';
 import {
   CheckmarkSquare02Icon,
@@ -206,7 +206,7 @@ const BatchActionBarComponent: React.FC<BatchActionBarProps> = ({
       onUpdateBatchNotes(updated);
     } else {
       const newGroupId = `group-${crypto.randomUUID()}`;
-      const groupName = `Group ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      const groupName = `Group ${formatGroupTime()}`;
       const updated = selectedNotes.map((n) => ({
         ...n,
         groupId: newGroupId,

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Note, CanvasTheme } from '../../types';
-import { calculateJournalStreak, getLocalDateString } from '../../utils';
+import { calculateJournalStreak, getLocalDateString, formatMonthYearHeader } from '../../utils';
 import {
   Calendar03Icon,
   ArrowLeft01Icon,
@@ -126,10 +126,7 @@ export const JournalCalendarModal: React.FC<JournalCalendarModalProps> = ({
     setViewDate(new Date());
   };
 
-  const monthYearHeader = viewDate.toLocaleDateString(undefined, {
-    month: 'long',
-    year: 'numeric',
-  });
+  const monthYearHeader = formatMonthYearHeader(viewDate);
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose} maxWidthClass="max-w-lg">

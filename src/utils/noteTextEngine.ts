@@ -75,13 +75,31 @@ export function preserveNoteTabsAndIndentation(text: string | undefined): string
   });
 }
 
+const lastKnownTextLengths = new WeakMap<HTMLTextAreaElement, number>();
+
 export const getEditorHeight = (textarea: HTMLTextAreaElement, minimum = 180): number => {
+  if (!textarea) return minimum;
+  const currentLength = textarea.value?.length ?? 0;
+  const prevLength = lastKnownTextLengths.get(textarea) ?? -1;
+  lastKnownTextLengths.set(textarea, currentLength);
+
+  // If text is expanding and scrollHeight already exceeds clientHeight, we grow directly without resetting height
+  if (prevLength !== -1 && currentLength >= prevLength && textarea.scrollHeight > textarea.clientHeight) {
+    return Math.max(minimum, textarea.scrollHeight);
+  }
+
+  // Only reset style.height = 'auto' when text shrank or on initial measurement
   textarea.style.height = 'auto';
   return Math.max(minimum, textarea.scrollHeight);
 };
 
-export const resizeNoteEditor = (textarea: HTMLTextAreaElement, minimum = 180): void => {
-  textarea.style.height = `${getEditorHeight(textarea, minimum)}px`;
+export const resizeNoteEditor = (textarea: HTMLTextAreaElement | null, minimum = 180): void => {
+  if (!textarea) return;
+  const targetHeight = getEditorHeight(textarea, minimum);
+  const currentHeightPx = `${targetHeight}px`;
+  if (textarea.style.height !== currentHeightPx) {
+    textarea.style.height = currentHeightPx;
+  }
 };
 
 export type FormattingType = 'bold' | 'italic' | 'strikethrough' | 'code' | 'codeblock' | 'quote' | 'link';

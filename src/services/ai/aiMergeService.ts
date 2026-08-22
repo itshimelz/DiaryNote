@@ -4,6 +4,7 @@ import { isTauriEnvironment } from '../../lib/rustStorage';
 import { Note, AIProvider } from '../../types';
 import { decryptApiKey } from '../../utils/aiSecurity';
 import { recordAIRequest } from '../../utils/aiUsageTracker';
+import { formatShortDate } from '../../utils/dateUtils';
 import { REPO_URL, REPO_NAME } from '../../utils/updateChecker';
 import { authorizeNotes } from '../authPolicyService';
 import { isEncryptedEnvelope } from '../cryptoVaultService';
@@ -322,7 +323,7 @@ export async function mergeNotesWithAI(
   }
 
   // Parse title and clean metadata
-  let title = `Merged Note (${new Date().toLocaleDateString()})`;
+  let title = `Merged Note (${formatShortDate()})`;
   let content = rawOutput
     .replace(/^User Safety:.*$/gim, '')
     .replace(/^Safety status:.*$/gim, '')

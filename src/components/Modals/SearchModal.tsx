@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Note, CanvasTheme } from '../../types';
 import { formatDate } from '../../utils';
 import { searchNotesFts, SearchItemMatch } from '../../lib/rustSearch';
@@ -270,23 +270,64 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
     }
   };
 
-  // Helper to highlight matching terms safely
-  const highlightMatch = (text: string, searchTerm: string) => {
-    if (!searchTerm.trim()) return text;
-    const parts = text.split(new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
-    return parts.map((part, i) =>
-      part.toLowerCase() === searchTerm.toLowerCase() ? (
-        <mark
-          key={i}
-          className="bg-yellow-200 dark:bg-yellow-900/60 text-slate-900 dark:text-yellow-200 px-0.5 rounded-xs"
-        >
-          {part}
-        </mark>
-      ) : (
-        part
-      )
-    );
-  };
+  const [displayCount, setDisplayCount] = useState(50);
+
+  // Reset display count when query or filter changes
+  useEffect(() => {
+    setDisplayCount(50);
+  }, [query, filterType]);
+
+  // Ensure displayCount covers selected item during keyboard navigation
+  useEffect(() => {
+    if (selectedIndex >= displayCount) {
+      setDisplayCount(Math.min(filteredNotes.length, selectedIndex + 20));
+    }
+  }, [selectedIndex, displayCount, filteredNotes.length]);
+
+  // Pre-compile RegExp once per query change
+  const searchRegex = useMemo(() => {
+    const clean = query.trim();
+    if (!clean) return null;
+    try {
+      return new RegExp(`(${clean.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    } catch {
+      return null;
+    }
+  }, [query]);
+
+  // Fast-path helper to highlight matching terms safely without per-item regex compilation
+  const highlightMatch = useCallback(
+    (text: string, searchTerm: string) => {
+      if (!searchRegex || !text || !searchTerm.trim()) return text;
+      const cleanLower = searchTerm.trim().toLowerCase();
+      if (!text.toLowerCase().includes(cleanLower)) return text;
+      const parts = text.split(searchRegex);
+      if (parts.length <= 1) return text;
+      return parts.map((part, i) =>
+        part.toLowerCase() === cleanLower ? (
+          <mark
+            key={i}
+            className="bg-yellow-200 dark:bg-yellow-900/60 text-slate-900 dark:text-yellow-200 px-0.5 rounded-xs"
+          >
+            {part}
+          </mark>
+        ) : (
+          part
+        )
+      );
+    },
+    [searchRegex]
+  );
+
+  const handleListScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+      if (scrollHeight - scrollTop - clientHeight < 250 && displayCount < filteredNotes.length) {
+        setDisplayCount((prev) => Math.min(filteredNotes.length, prev + 30));
+      }
+    },
+    [displayCount, filteredNotes.length]
+  );
 
   return (
     <Dialog
@@ -393,7 +434,12 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
         </div>
 
         {/* Results List */}
-        <div className="flex-1 overflow-y-auto p-3" role="listbox" aria-label="Search results">
+        <div
+          className="flex-1 overflow-y-auto p-3"
+          role="listbox"
+          aria-label="Search results"
+          onScroll={handleListScroll}
+        >
           {filterType === 'tags' && !query && tagStats.length > 0 ? (
             <div className="p-1 space-y-3">
               <div className="flex items-center justify-between px-1">
@@ -429,7 +475,7 @@ const SearchModalComponent: React.FC<SearchModalProps> = ({
             </div>
           ) : (
             <div className="space-y-1">
-              {filteredNotes.map((note, index) => {
+              {filteredNotes.slice(0, displayCount).map((note, index) => {
                 const isSelected = index === selectedIndex;
                 const processed = processedNotesMap.get(note.id);
                 const plainSnippet = processed?.plainSnippet || '';

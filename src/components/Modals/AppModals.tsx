@@ -4,7 +4,7 @@ import { Note, CanvasTransform } from '../../types';
 import { AppSettings, exportNotesBackup } from '../../lib/storage';
 import { NoteContextMenu } from '../NoteContextMenu';
 import { HiddenClipboardListener } from '../HiddenClipboardListener';
-import { sendNativeAppNotification } from '../../utils';
+import { sendNativeAppNotification, formatGroupTime } from '../../utils';
 import { indexVaultNotesFts, clearVaultFtsIndex } from '../../lib/rustSearch';
 import { SecurityModalMode } from './SecurityModal';
 
@@ -382,7 +382,7 @@ export const AppModals: React.FC<AppModalsProps> = ({
           if (selectedNoteIds.length < 2) return;
           const targets = notes.filter((n) => selectedNoteIds.includes(n.id));
           const newGroupId = `group-${crypto.randomUUID()}`;
-          const groupName = `Group ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+          const groupName = `Group ${formatGroupTime()}`;
           const updated = targets.map((n) => ({
             ...n,
             groupId: newGroupId,

@@ -56,25 +56,8 @@ export function processMarkdownMentions(content: string, notes: Note[]): string 
   });
 }
 
-/**
- * Helper to format date cleanly
- */
-export function formatDate(isoString: string): string {
-  if (!isoString) return '';
-  try {
-    const d = new Date(isoString);
-    if (isNaN(d.getTime())) return isoString;
-    return d.toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return isoString;
-  }
-}
+import { formatDate } from './dateUtils';
+export { formatDate };
 
 /**
  * Ensures a note title is unique among notes created on the same calendar day.

@@ -1,3 +1,5 @@
+import { formatAIUsageDate } from './dateUtils';
+
 const STORAGE_KEY = 'diarynote_ai_usage_history';
 
 export interface DayUsage {
@@ -56,11 +58,7 @@ export function getLastNDaysAIUsage(days: number = 28): DayUsage[] {
     const dateStr = d.toISOString().split('T')[0];
     const count = history[dateStr] || 0;
 
-    const formattedDate = d.toLocaleDateString(undefined, {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
+    const formattedDate = formatAIUsageDate(d);
 
     result.push({
       date: dateStr,

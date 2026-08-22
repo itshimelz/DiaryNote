@@ -49,11 +49,17 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
   const themeConfig = PAPER_THEMES[(paperTheme as PaperTheme) || 'white'];
 
   const processedContent = useMemo(() => {
-    const withMentions = processMarkdownMentions(content || '', allNotes);
+    if (!content) return '';
+    const withMentions = content.includes('@') ? processMarkdownMentions(content, allNotes) : content;
     return preserveNoteTabsAndIndentation(withMentions);
-  }, [content, allNotes]);
+  }, [content, content?.includes('@') ? allNotes : null]);
 
   const isEmpty = !content || content.trim().length === 0;
+
+  const hasMarkdownSyntax = useMemo(() => {
+    if (!processedContent) return false;
+    return /[[*`_~#@\\>|\-+&]/.test(processedContent) || /^\d+\.\s/m.test(processedContent);
+  }, [processedContent]);
 
   const ruledLineHeight = useMemo(() => {
     if (!isRuled) return undefined;
@@ -300,6 +306,14 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
         <span className="inline leading-snug">
           {isEmpty && emptyPlaceholder ? emptyPlaceholder : processedContent}
         </span>
+      ) : !hasMarkdownSyntax ? (
+        <div className={`whitespace-pre-wrap ${isRuled ? 'ruled-text-alignment' : 'leading-relaxed'}`}>
+          {isEmpty && emptyPlaceholder ? (
+            <span className="opacity-50 italic">{emptyPlaceholder}</span>
+          ) : (
+            processedContent
+          )}
+        </div>
       ) : (
         <ReactMarkdown remarkPlugins={REMARK_PLUGINS} components={components}>
           {isEmpty && emptyPlaceholder ? emptyPlaceholder : processedContent}

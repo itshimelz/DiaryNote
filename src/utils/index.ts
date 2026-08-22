@@ -1,4 +1,5 @@
 export * from './layoutUtils';
+export * from './dateUtils';
 export * from './markdownMention';
 export * from './noteTextEngine';
 export * from './notifications';
