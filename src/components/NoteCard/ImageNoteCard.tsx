@@ -122,6 +122,39 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
     cardRef,
   });
 
+  // Dynamic height synchronization: adapts data model height to auto-expanded image card
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+
+    let rafId: number | null = null;
+    const observer = new ResizeObserver((entries) => {
+      if (isResizing) return;
+      for (const entry of entries) {
+        const measuredHeight = Math.round(entry.borderBoxSize?.[0]?.blockSize ?? entry.contentRect.height);
+        if (measuredHeight > 50) {
+          const currentHeight = note.height || 360;
+          if (Math.abs(measuredHeight - currentHeight) > 6) {
+            if (rafId !== null) cancelAnimationFrame(rafId);
+            rafId = requestAnimationFrame(() => {
+              onUpdateNote({
+                ...note,
+                height: measuredHeight,
+              });
+              rafId = null;
+            });
+          }
+        }
+      }
+    });
+
+    observer.observe(el);
+    return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      observer.disconnect();
+    };
+  }, [note.id, note.height, isResizing, onUpdateNote]);
+
   useEffect(() => {
     if (shouldStartEditing) {
       setIsEditingCaption(true);

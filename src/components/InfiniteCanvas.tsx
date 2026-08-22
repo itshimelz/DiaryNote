@@ -390,17 +390,17 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
       let selectionFrame: number | null = null;
       let latestMouseEvt: MouseEvent | null = null;
 
-      // Pre-measure real dynamic card dimensions once on drag start (zero reflow during mousemove)
-      // ponytail: persisted dims only — an offsetWidth sweep here forced layout on every
-      // canvas mousedown (16 reflows per trace); GroupFrame's ResizeObserver keeps real
-      // auto-height sizes authoritative for group frames, which is all that reads them.
-      const noteBounds = getNotesArray().map((n) => ({
-        id: n.id,
-        x: n.x,
-        y: n.y,
-        w: n.width || DEFAULT_NOTE_WIDTH,
-        h: n.height || DEFAULT_NOTE_HEIGHT,
-      }));
+      // Live card dimensions: reads mounted DOM card bounds if available, fallback to model dimensions
+      const noteBounds = getNotesArray().map((n) => {
+        const el = document.getElementById(`note-card-${n.id}`);
+        return {
+          id: n.id,
+          x: n.x,
+          y: n.y,
+          w: el && el.offsetWidth > 0 ? el.offsetWidth : (n.width || DEFAULT_NOTE_WIDTH),
+          h: el && el.offsetHeight > 0 ? el.offsetHeight : (n.height || DEFAULT_NOTE_HEIGHT),
+        };
+      });
 
       const areArraysEqual = (a: string[], b: string[]) => {
         if (a.length !== b.length) return false;
@@ -524,12 +524,12 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
             drawMinimapViewport(fgCtx, pendingTransform, minX, minY, minimapScale, viewport.width, viewport.height, themeMode);
           }
 
-          // Frustum-hysteresis sync: commit to React only after travelling ~1/3 of a
-          // viewport dimension. Keeps frustum culling correct during long pans with
-          // near-zero mid-gesture renders.
+          // Frustum-hysteresis sync: commit to React only after travelling ~0.5 of a
+          // viewport dimension. With 0.85x overscan buffer, notes are pre-mounted well
+          // before reaching the viewport boundary, eliminating mid-pan jank.
           const travelledX = Math.abs(pendingTransform.x - lastSyncX);
           const travelledY = Math.abs(pendingTransform.y - lastSyncY);
-          if (travelledX > viewport.width * 0.33 || travelledY > viewport.height * 0.33) {
+          if (travelledX > viewport.width * 0.5 || travelledY > viewport.height * 0.5) {
             lastSyncX = pendingTransform.x;
             lastSyncY = pendingTransform.y;
             onTransformChange(pendingTransform);

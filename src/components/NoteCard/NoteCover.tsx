@@ -92,7 +92,7 @@ const NoteCoverComponent: React.FC<NoteCoverProps> = ({
           onReveal();
         }
       }}
-      className={`absolute inset-0 z-25 flex flex-col justify-between ${coverPaddingClass} rounded-sm select-none cursor-pointer overflow-hidden ${coverConfig.cardClass} ${coverConfig.borderClass} ${className}`}
+      className={`absolute inset-0 z-25 flex flex-col justify-between ${coverPaddingClass} rounded-sm select-none cursor-pointer overflow-hidden [contain:paint_layout] transform-gpu will-change-transform ${coverConfig.cardClass} ${coverConfig.borderClass} ${className}`}
       title="Click to open note"
     >
       {/* Cover-Specific Artistic Overlays & Stamp Decorations */}
