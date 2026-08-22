@@ -163,4 +163,38 @@ describe('NoteStylePicker component', () => {
     expect(screen.getByText('Seal SVG Emblem')).toBeTruthy();
     expect(screen.queryByText('Handwriting & Font Family')).toBeNull();
   });
+
+  it('renders short form font size options (SM, MD, LG, XL) in typography tab and updates size on selection', () => {
+    const onUpdateNote = vi.fn();
+    const onClose = vi.fn();
+
+    render(
+      <NoteStylePicker
+        note={textNote}
+        initialTab="typography"
+        onUpdateNote={onUpdateNote}
+        onClose={onClose}
+      />
+    );
+
+    // Verify only short form labels are displayed
+    expect(screen.getByText('SM')).toBeTruthy();
+    expect(screen.getByText('MD')).toBeTruthy();
+    expect(screen.getByText('LG')).toBeTruthy();
+    expect(screen.getByText('XL')).toBeTruthy();
+
+    // Verify full form labels are NOT displayed
+    expect(screen.queryByText('Small (SM)')).toBeNull();
+    expect(screen.queryByText('Medium (MD)')).toBeNull();
+    expect(screen.queryByText('Large (LG)')).toBeNull();
+    expect(screen.queryByText('Extra Large (XL)')).toBeNull();
+
+    // Clicking LG updates font size
+    fireEvent.click(screen.getByText('LG'));
+    expect(onUpdateNote).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fontSize: 'lg',
+      })
+    );
+  });
 });

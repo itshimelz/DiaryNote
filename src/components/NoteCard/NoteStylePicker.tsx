@@ -421,10 +421,10 @@ export const NoteStylePicker: React.FC<NoteStylePickerProps> = ({
                   })
                 }
                 options={[
-                  { value: 'sm', label: 'Small (SM)' },
-                  { value: 'md', label: 'Medium (MD)' },
-                  { value: 'lg', label: 'Large (LG)' },
-                  { value: 'xl', label: 'Extra Large (XL)' },
+                  { value: 'sm', label: 'SM' },
+                  { value: 'md', label: 'MD' },
+                  { value: 'lg', label: 'LG' },
+                  { value: 'xl', label: 'XL' },
                 ]}
               />
             </div>

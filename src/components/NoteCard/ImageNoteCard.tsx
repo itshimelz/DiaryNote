@@ -73,6 +73,11 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
   onDragStateChange,
   onContextMenu,
 }) => {
+  const noteRef = useRef(note);
+  noteRef.current = note;
+  const allNotesRef = useRef(allNotes);
+  allNotesRef.current = allNotes;
+
   const [isEditingCaption, setIsEditingCaption] = useState(false);
   const [showStylePicker, setShowStylePicker] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -133,12 +138,12 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
       for (const entry of entries) {
         const measuredHeight = Math.round(entry.borderBoxSize?.[0]?.blockSize ?? entry.contentRect.height);
         if (measuredHeight > 50) {
-          const currentHeight = note.height || 360;
+          const currentHeight = noteRef.current.height || 360;
           if (Math.abs(measuredHeight - currentHeight) > 6) {
             if (rafId !== null) cancelAnimationFrame(rafId);
             rafId = requestAnimationFrame(() => {
               onUpdateNote({
-                ...note,
+                ...noteRef.current,
                 height: measuredHeight,
               });
               rafId = null;
@@ -153,7 +158,7 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
       if (rafId !== null) cancelAnimationFrame(rafId);
       observer.disconnect();
     };
-  }, [note.id, note.height, isResizing, onUpdateNote]);
+  }, [note.id, isResizing, onUpdateNote]);
 
   useEffect(() => {
     if (shouldStartEditing) {
@@ -186,7 +191,7 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
       img.onload = () => {
         const aspectRatio = img.naturalWidth / Math.max(1, img.naturalHeight);
         onUpdateNote({
-          ...note,
+          ...noteRef.current,
           imageUrl: dataUrl,
           imageType: file.type,
           imageAspectRatio: aspectRatio,

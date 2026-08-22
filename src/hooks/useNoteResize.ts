@@ -25,6 +25,8 @@ export function useNoteResize({
   cardRef,
 }: UseNoteResizeOptions) {
   const [isResizing, setIsResizing] = useState(false);
+  const noteRef = useRef(note);
+  noteRef.current = note;
   const resizeStartRef = useRef<{ x: number; y: number; w: number; h: number }>({
     x: 0,
     y: 0,
@@ -56,8 +58,8 @@ export function useNoteResize({
     e.preventDefault();
 
     setIsResizing(true);
-    const initialW = note.width || DEFAULT_NOTE_WIDTH;
-    const initialH = note.height || DEFAULT_NOTE_HEIGHT;
+    const initialW = noteRef.current.width || DEFAULT_NOTE_WIDTH;
+    const initialH = noteRef.current.height || DEFAULT_NOTE_HEIGHT;
 
     resizeStartRef.current = {
       x: e.clientX,
@@ -117,8 +119,8 @@ export function useNoteResize({
       const finalW = currentSizeRef.current.w;
       const finalH = currentSizeRef.current.h;
 
-      // Commit final size once to React and IndexedDB storage without changing note content timestamp
-      onUpdateNote({ ...note, width: finalW, height: finalH });
+      // Commit final size once to React and storage without changing note content timestamp
+      onUpdateNote({ ...noteRef.current, width: finalW, height: finalH });
     };
 
     activeMouseHandlersRef.current = { move: handleMouseMove, up: handleMouseUp };

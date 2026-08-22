@@ -57,6 +57,11 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
   onDragStateChange,
   onContextMenu,
 }) => {
+  const noteRef = useRef(note);
+  noteRef.current = note;
+  const allNotesRef = useRef(allNotes);
+  allNotesRef.current = allNotes;
+
   const [isEditing, setIsEditing] = useState(false);
   const [showStylePicker, setShowStylePicker] = useState(false);
   const [activeMode, setActiveMode] = useState<NoteMode>(note.activeMode || 'text');
@@ -189,12 +194,12 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       for (const entry of entries) {
         const measuredHeight = Math.round(entry.borderBoxSize?.[0]?.blockSize ?? entry.contentRect.height);
         if (measuredHeight > 50) {
-          const currentHeight = note.height || DEFAULT_NOTE_HEIGHT;
+          const currentHeight = noteRef.current.height || DEFAULT_NOTE_HEIGHT;
           if (Math.abs(measuredHeight - currentHeight) > 6) {
             if (rafId !== null) cancelAnimationFrame(rafId);
             rafId = requestAnimationFrame(() => {
               onUpdateNote({
-                ...note,
+                ...noteRef.current,
                 height: measuredHeight,
               });
               rafId = null;
@@ -209,7 +214,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       if (rafId !== null) cancelAnimationFrame(rafId);
       observer.disconnect();
     };
-  }, [note.id, note.height, isResizing, onUpdateNote]);
+  }, [note.id, isResizing, onUpdateNote]);
 
   useEffect(() => {
     if (!shouldStartEditing || isCoverActive) {
@@ -227,7 +232,8 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
 
   const handleSelectMention = (targetNote: Note) => {
     if (!textareaRef.current) return;
-    const val = note.content || '';
+    const currentNote = noteRef.current;
+    const val = currentNote.content || '';
     const cursorIndex = textareaRef.current.selectionStart || val.length;
     const textBeforeCursor = val.slice(0, cursorIndex);
     const textAfterCursor = val.slice(cursorIndex);
@@ -236,7 +242,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       return `${leadingSpace}@[${targetNote.title || 'Untitled Note'}](${targetNote.id}) `;
     });
     onUpdateNote({
-      ...note,
+      ...currentNote,
       content: newBefore + textAfterCursor,
       updatedAt: new Date().toISOString(),
     });
@@ -252,7 +258,8 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
 
   const handleSelectSlashCommand = async (command: SlashCommand) => {
     if (!textareaRef.current) return;
-    const val = note.content || '';
+    const currentNote = noteRef.current;
+    const val = currentNote.content || '';
     const cursorIndex = textareaRef.current.selectionStart || val.length;
     const textBeforeCursor = val.slice(0, cursorIndex);
     const textAfterCursor = val.slice(cursorIndex);
@@ -277,8 +284,9 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         return;
       }
 
-      try {        const generatedTags = await generateAutoTagsWithAI(
-          note.title,
+      try {
+        const generatedTags = await generateAutoTagsWithAI(
+          noteRef.current.title,
           cleanedBaseContent,
           {
             aiProvider: settings.aiProvider || 'gemini',
@@ -302,10 +310,10 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         const finalContent = `${cleanedBaseContent}\n\n**Tags:** ${tagsMarkdown}`;
 
         const cleanTagNames = validTags.map((t) => t.replace(/^#/, ''));
-        const updatedTags = Array.from(new Set([...(note.tags || []), ...cleanTagNames]));
+        const updatedTags = Array.from(new Set([...(noteRef.current.tags || []), ...cleanTagNames]));
 
         onUpdateNote({
-          ...note,
+          ...noteRef.current,
           content: finalContent,
           tags: updatedTags,
           updatedAt: new Date().toISOString(),
@@ -324,7 +332,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
 
     const newContent = newBefore + insertedText + textAfterCursor;
     onUpdateNote({
-      ...note,
+      ...noteRef.current,
       content: newContent,
       updatedAt: new Date().toISOString(),
     });
@@ -978,14 +986,16 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         onSelectMode={handleSelectMode}
         onToggleStylePicker={() => setShowStylePicker(!showStylePicker)}
         onDuplicateNote={() => {
+          const currentNote = noteRef.current;
+          const currentAllNotes = allNotesRef.current || allNotes || [];
           const dupId = `note-${crypto.randomUUID()}`;
-          const rawTitle = note.title ? `${note.title}` : 'Untitled Note';
-          const uniqueTitle = getUniqueTitleForDay(rawTitle, dupId, allNotes);
+          const rawTitle = currentNote.title ? `${currentNote.title}` : 'Untitled Note';
+          const uniqueTitle = getUniqueTitleForDay(rawTitle, dupId, currentAllNotes);
           const dupNote: Note = {
-            ...note,
+            ...currentNote,
             id: dupId,
-            x: note.x + 30,
-            y: note.y + 30,
+            x: currentNote.x + 30,
+            y: currentNote.y + 30,
             title: uniqueTitle,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -1020,17 +1030,20 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
 };
 
 export const NoteCard = React.memo(NoteCardComponent, (prevProps, nextProps) => {
+  const prevSelected = prevProps.selectedNoteIds || [];
+  const nextSelected = nextProps.selectedNoteIds || [];
+
   // Check whether THIS card's selection state changed (not array reference)
-  const prevInSelection = prevProps.selectedNoteIds.includes(prevProps.note.id);
-  const nextInSelection = nextProps.selectedNoteIds.includes(nextProps.note.id);
+  const prevInSelection = prevSelected.includes(prevProps.note.id);
+  const nextInSelection = nextSelected.includes(nextProps.note.id);
   if (prevInSelection !== nextInSelection) return false;
 
   // CRITICAL FIX: If this note IS selected and selectedNoteIds array updated (notes added/removed from selection),
   // this card MUST re-render so its selectedNoteIds prop inside useNoteDrag has the full fresh selection list!
   if (nextInSelection && prevProps.selectedNoteIds !== nextProps.selectedNoteIds) {
     if (
-      prevProps.selectedNoteIds.length !== nextProps.selectedNoteIds.length ||
-      !prevProps.selectedNoteIds.every((id, idx) => id === nextProps.selectedNoteIds[idx])
+      prevSelected.length !== nextSelected.length ||
+      !prevSelected.every((id, idx) => id === nextSelected[idx])
     ) {
       return false;
     }

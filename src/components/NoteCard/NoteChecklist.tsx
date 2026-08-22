@@ -456,7 +456,7 @@ export const NoteChecklist: React.FC<NoteChecklistProps> = ({
               e.currentTarget.blur();
             }
           }}
-          className={`flex-1 ${themeConfig.inputBg} border ${themeConfig.inputBorder} rounded-sm px-3 py-1.5 text-xs outline-none transition-colors`}
+          className={`flex-1 ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text} ${fontClass} rounded-sm px-3 py-2 text-sm font-medium outline-none transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-500`}
         />
         <IconButton
           size="sm"
