@@ -1,6 +1,6 @@
 import { CanvasTransform, FrameStyle, PinStyle } from '../types';
 import { AppSettings } from '../lib/storage';
-import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../constants/canvas';
+import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT, BASE_CANVAS_SCALE } from '../constants/canvas';
 import { WASHI_TAPES, PUSHPIN_OPTIONS } from '../constants/washiTapes';
 import { getUniqueTitleForDay, getLocalDateString } from '../utils';
 import { getNotesArray, useNotesStore } from './notesStore';
@@ -19,15 +19,16 @@ export function addTextNote(
   initialContent?: string
 ): string {
   const newId = `note-${crypto.randomUUID()}`;
+  const effectiveZoom = transform.zoom * BASE_CANVAS_SCALE;
 
   let viewportX =
     typeof customX === 'number' && !isNaN(customX)
       ? customX
-      : Math.round((window.innerWidth / 2 - transform.x) / transform.zoom - 180);
+      : Math.round((window.innerWidth / 2 - transform.x) / effectiveZoom - 180);
   let viewportY =
     typeof customY === 'number' && !isNaN(customY)
       ? customY
-      : Math.round((window.innerHeight / 2 - transform.y) / transform.zoom - 150);
+      : Math.round((window.innerHeight / 2 - transform.y) / effectiveZoom - 150);
 
   if (settings.snapToGrid) {
     viewportX = Math.round(viewportX / 24) * 24;
@@ -72,15 +73,16 @@ export function addImageNote(
   const newId = `image-note-${crypto.randomUUID()}`;
   const cardWidth = 340;
   const cardHeight = 360;
+  const effectiveZoom = transform.zoom * BASE_CANVAS_SCALE;
 
   let viewportX =
     typeof customX === 'number' && !isNaN(customX)
       ? customX
-      : Math.round((window.innerWidth / 2 - transform.x) / transform.zoom - cardWidth / 2);
+      : Math.round((window.innerWidth / 2 - transform.x) / effectiveZoom - cardWidth / 2);
   let viewportY =
     typeof customY === 'number' && !isNaN(customY)
       ? customY
-      : Math.round((window.innerHeight / 2 - transform.y) / transform.zoom - cardHeight / 2);
+      : Math.round((window.innerHeight / 2 - transform.y) / effectiveZoom - cardHeight / 2);
 
   if (settings.snapToGrid) {
     viewportX = Math.round(viewportX / 24) * 24;
@@ -142,8 +144,9 @@ export function createOrFocusDailyEntry(
   }
 
   const newId = `journal-${dateStr}-${crypto.randomUUID()}`;
-  let viewportX = Math.round((window.innerWidth / 2 - transform.x) / transform.zoom - 190);
-  let viewportY = Math.round((window.innerHeight / 2 - transform.y) / transform.zoom - 170);
+  const effectiveZoom = transform.zoom * BASE_CANVAS_SCALE;
+  let viewportX = Math.round((window.innerWidth / 2 - transform.x) / effectiveZoom - 190);
+  let viewportY = Math.round((window.innerHeight / 2 - transform.y) / effectiveZoom - 170);
 
   if (settings.snapToGrid) {
     viewportX = Math.round(viewportX / 24) * 24;

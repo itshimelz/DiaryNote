@@ -79,10 +79,10 @@ describe('SpatialIndex R-Tree and Canvas Viewport', () => {
   it('converts between screen and canvas coordinates seamlessly', () => {
     const transform = { x: 200, y: 100, zoom: 2.0 };
     const canvasPoint = screenToCanvas(400, 300, transform);
-    expect(canvasPoint.x).toBe(100);
-    expect(canvasPoint.y).toBe(100);
+    expect(canvasPoint.x).toBe(125);
+    expect(canvasPoint.y).toBe(125);
 
-    const screenPoint = canvasToScreen(100, 100, transform);
+    const screenPoint = canvasToScreen(125, 125, transform);
     expect(screenPoint.x).toBe(400);
     expect(screenPoint.y).toBe(300);
   });

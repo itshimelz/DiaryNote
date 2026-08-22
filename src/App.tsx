@@ -17,6 +17,7 @@ import {
   createOrFocusDailyEntry as handleCreateOrFocusDailyEntry,
 } from './stores/noteActions';
 import { useCanvasTransform, screenToWorld } from './hooks/useCanvasTransform';
+import { BASE_CANVAS_SCALE } from './constants/canvas';
 import { useNoteSelection } from './hooks/useNoteSelection';
 import { useAppUIState } from './hooks/useAppUIState';
 import { useNativeFileDrop, DroppedImageData } from './hooks/useNativeFileDrop';
@@ -327,8 +328,9 @@ export default function App() {
 
     const targetClientX = mouseCoordRef.current.clientX;
     const targetClientY = mouseCoordRef.current.clientY;
-    const targetWorldX = Math.round((targetClientX - transform.x) / transform.zoom);
-    const targetWorldY = Math.round((targetClientY - transform.y) / transform.zoom);
+    const effectiveZoom = transform.zoom * BASE_CANVAS_SCALE;
+    const targetWorldX = Math.round((targetClientX - transform.x) / effectiveZoom);
+    const targetWorldY = Math.round((targetClientY - transform.y) / effectiveZoom);
 
     const storeNotes = getNotesArray();
     const targetedNotes = storeNotes.filter((n) => activeCutIds.includes(n.id));
@@ -524,13 +526,14 @@ export default function App() {
 
           let worldX: number | undefined;
           let worldY: number | undefined;
+          const effectiveZoom = transform.zoom * BASE_CANVAS_SCALE;
 
           if (typeof customClientX === 'number' && typeof customClientY === 'number') {
-            worldX = Math.round((customClientX - transform.x) / transform.zoom - 170 + index * 24);
-            worldY = Math.round((customClientY - transform.y) / transform.zoom - 180 + index * 24);
+            worldX = Math.round((customClientX - transform.x) / effectiveZoom - 170 + index * 24);
+            worldY = Math.round((customClientY - transform.y) / effectiveZoom - 180 + index * 24);
           } else {
-            worldX = Math.round((window.innerWidth / 2 - transform.x) / transform.zoom - 170 + index * 30);
-            worldY = Math.round((window.innerHeight / 2 - transform.y) / transform.zoom - 180 + index * 30);
+            worldX = Math.round((window.innerWidth / 2 - transform.x) / effectiveZoom - 170 + index * 30);
+            worldY = Math.round((window.innerHeight / 2 - transform.y) / effectiveZoom - 180 + index * 30);
           }
 
           const rawTitle = imgData.title || imgData.filename.replace(/\.[^/.]+$/, '') || 'Photo Note';
@@ -595,13 +598,14 @@ export default function App() {
 
             let worldX: number | undefined;
             let worldY: number | undefined;
+            const effectiveZoom = transform.zoom * BASE_CANVAS_SCALE;
 
             if (typeof customClientX === 'number' && typeof customClientY === 'number') {
-              worldX = Math.round((customClientX - transform.x) / transform.zoom - 170 + index * 24);
-              worldY = Math.round((customClientY - transform.y) / transform.zoom - 180 + index * 24);
+              worldX = Math.round((customClientX - transform.x) / effectiveZoom - 170 + index * 24);
+              worldY = Math.round((customClientY - transform.y) / effectiveZoom - 180 + index * 24);
             } else {
-              worldX = Math.round((window.innerWidth / 2 - transform.x) / transform.zoom - 170 + index * 30);
-              worldY = Math.round((window.innerHeight / 2 - transform.y) / transform.zoom - 180 + index * 30);
+              worldX = Math.round((window.innerWidth / 2 - transform.x) / effectiveZoom - 170 + index * 30);
+              worldY = Math.round((window.innerHeight / 2 - transform.y) / effectiveZoom - 180 + index * 30);
             }
 
             const rawTitle = file.name.replace(/\.[^/.]+$/, '');

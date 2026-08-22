@@ -1,5 +1,6 @@
 import { BoundingBox } from './geometry';
 import { CameraTransform } from './camera';
+import { BASE_CANVAS_SCALE } from '../constants/canvas';
 
 /**
  * Calculates the dynamic overscan buffer based on viewport dimensions and camera zoom.
@@ -23,7 +24,7 @@ export function getVisibleWorldFrustum(
   viewportHeight: number,
   transform: CameraTransform
 ): BoundingBox {
-  const safeZoom = Math.max(0.05, transform.zoom);
+  const safeZoom = Math.max(0.05, transform.zoom * BASE_CANVAS_SCALE);
   const { overscanX, overscanY } = calculateDynamicOverscan(viewportWidth, viewportHeight, safeZoom);
 
   const minX = -transform.x / safeZoom - overscanX;

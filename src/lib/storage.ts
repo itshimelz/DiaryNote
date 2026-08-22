@@ -4,6 +4,7 @@ import { sendNativeAppNotification } from '../utils';
 import { authorizeNotes } from '../services/authPolicyService';
 import { validateAndParseBackupContent } from '../schemas/backupSchema';
 import { DEFAULT_AI_MODELS_CATALOG } from '../constants/aiModelsCatalog';
+import { BASE_CANVAS_SCALE } from '../constants/canvas';
 
 const NOTES_STORAGE_KEY = 'infinite_notes_v1_notes';
 const CANVAS_TRANSFORM_KEY = 'infinite_notes_v1_transform';
@@ -155,14 +156,16 @@ export function getInitialTransform(notes: Note[] = SAMPLE_NOTES): CanvasTransfo
 
   const zoomX = (width - 160) / boundingWidth;
   const zoomY = (height - 160) / boundingHeight;
-  const targetZoom = Math.min(1.0, Math.max(0.65, Math.min(zoomX, zoomY)));
+  const rawTargetZoom = Math.min(zoomX, zoomY) / BASE_CANVAS_SCALE;
+  const targetZoom = Math.min(1.0, Math.max(0.65, rawTargetZoom));
+  const effectiveTargetZoom = targetZoom * BASE_CANVAS_SCALE;
 
   const centerX = (minX + maxX) / 2;
   const centerY = (minY + maxY) / 2;
 
   return {
-    x: Math.round(width / 2 - centerX * targetZoom),
-    y: Math.round(height / 2 - centerY * targetZoom),
+    x: Math.round(width / 2 - centerX * effectiveTargetZoom),
+    y: Math.round(height / 2 - centerY * effectiveTargetZoom),
     zoom: Number(targetZoom.toFixed(3)),
   };
 }

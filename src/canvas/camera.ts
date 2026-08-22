@@ -1,3 +1,5 @@
+import { BASE_CANVAS_SCALE } from '../constants/canvas';
+
 export interface CameraTransform {
   x: number;
   y: number;
@@ -10,11 +12,13 @@ export interface CameraTransform {
 export function screenToCanvas(
   clientX: number,
   clientY: number,
-  transform: CameraTransform
+  transform: CameraTransform,
+  baseScale: number = BASE_CANVAS_SCALE
 ): { x: number; y: number } {
+  const effectiveZoom = transform.zoom * baseScale;
   return {
-    x: (clientX - transform.x) / transform.zoom,
-    y: (clientY - transform.y) / transform.zoom,
+    x: (clientX - transform.x) / effectiveZoom,
+    y: (clientY - transform.y) / effectiveZoom,
   };
 }
 
@@ -24,10 +28,12 @@ export function screenToCanvas(
 export function canvasToScreen(
   canvasX: number,
   canvasY: number,
-  transform: CameraTransform
+  transform: CameraTransform,
+  baseScale: number = BASE_CANVAS_SCALE
 ): { x: number; y: number } {
+  const effectiveZoom = transform.zoom * baseScale;
   return {
-    x: canvasX * transform.zoom + transform.x,
-    y: canvasY * transform.zoom + transform.y,
+    x: canvasX * effectiveZoom + transform.x,
+    y: canvasY * effectiveZoom + transform.y,
   };
 }

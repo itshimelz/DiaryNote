@@ -3,7 +3,7 @@ import { CanvasTransform } from '../types';
 import { getNotesArray } from '../stores/notesStore';
 import { loadTransform, saveTransform, loadSettings, saveSettings, AppSettings } from '../lib/storage';
 import { saveCanvasTransformToDB as saveTransformToDB, saveAppSettingsToDB as saveSettingsToDB } from '../lib/rustStorage';
-import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../constants/canvas';
+import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT, BASE_CANVAS_SCALE } from '../constants/canvas';
 
 export function screenToWorld(
   screenX: number,
@@ -12,16 +12,18 @@ export function screenToWorld(
   cardWidth = DEFAULT_NOTE_WIDTH,
   cardHeight = DEFAULT_NOTE_HEIGHT
 ) {
+  const effectiveZoom = transform.zoom * BASE_CANVAS_SCALE;
   return {
-    worldX: Math.round((screenX - transform.x) / transform.zoom - cardWidth / 2),
-    worldY: Math.round((screenY - transform.y) / transform.zoom - cardHeight / 2),
+    worldX: Math.round((screenX - transform.x) / effectiveZoom - cardWidth / 2),
+    worldY: Math.round((screenY - transform.y) / effectiveZoom - cardHeight / 2),
   };
 }
 
 export function worldToScreen(worldX: number, worldY: number, transform: CanvasTransform) {
+  const effectiveZoom = transform.zoom * BASE_CANVAS_SCALE;
   return {
-    screenX: Math.round(worldX * transform.zoom + transform.x),
-    screenY: Math.round(worldY * transform.zoom + transform.y),
+    screenX: Math.round(worldX * effectiveZoom + transform.x),
+    screenY: Math.round(worldY * effectiveZoom + transform.y),
   };
 }
 
@@ -143,13 +145,15 @@ export function useCanvasTransform(bringToFront: (noteId: string) => void) {
     const { max } = getZoomBounds();
     const newZoom = Math.min(max, transform.zoom * 1.25);
     const viewport = getViewport();
-    const centerWorldX = (viewport.width / 2 - transform.x) / transform.zoom;
-    const centerWorldY = (viewport.height / 2 - transform.y) / transform.zoom;
+    const effectiveZoom = transform.zoom * BASE_CANVAS_SCALE;
+    const newEffectiveZoom = newZoom * BASE_CANVAS_SCALE;
+    const centerWorldX = (viewport.width / 2 - transform.x) / effectiveZoom;
+    const centerWorldY = (viewport.height / 2 - transform.y) / effectiveZoom;
 
     animateTransformTo({
       zoom: Number(newZoom.toFixed(3)),
-      x: Math.round(viewport.width / 2 - centerWorldX * newZoom),
-      y: Math.round(viewport.height / 2 - centerWorldY * newZoom),
+      x: Math.round(viewport.width / 2 - centerWorldX * newEffectiveZoom),
+      y: Math.round(viewport.height / 2 - centerWorldY * newEffectiveZoom),
     });
   }, [animateTransformTo, getViewport, getZoomBounds, transform]);
 
@@ -157,26 +161,30 @@ export function useCanvasTransform(bringToFront: (noteId: string) => void) {
     const { min } = getZoomBounds();
     const newZoom = Math.max(min, transform.zoom / 1.25);
     const viewport = getViewport();
-    const centerWorldX = (viewport.width / 2 - transform.x) / transform.zoom;
-    const centerWorldY = (viewport.height / 2 - transform.y) / transform.zoom;
+    const effectiveZoom = transform.zoom * BASE_CANVAS_SCALE;
+    const newEffectiveZoom = newZoom * BASE_CANVAS_SCALE;
+    const centerWorldX = (viewport.width / 2 - transform.x) / effectiveZoom;
+    const centerWorldY = (viewport.height / 2 - transform.y) / effectiveZoom;
 
     animateTransformTo({
       zoom: Number(newZoom.toFixed(3)),
-      x: Math.round(viewport.width / 2 - centerWorldX * newZoom),
-      y: Math.round(viewport.height / 2 - centerWorldY * newZoom),
+      x: Math.round(viewport.width / 2 - centerWorldX * newEffectiveZoom),
+      y: Math.round(viewport.height / 2 - centerWorldY * newEffectiveZoom),
     });
   }, [animateTransformTo, getViewport, getZoomBounds, transform]);
 
   const handleResetZoom = useCallback(() => {
     const newZoom = 1;
     const viewport = getViewport();
-    const centerWorldX = (viewport.width / 2 - transform.x) / transform.zoom;
-    const centerWorldY = (viewport.height / 2 - transform.y) / transform.zoom;
+    const effectiveZoom = transform.zoom * BASE_CANVAS_SCALE;
+    const newEffectiveZoom = newZoom * BASE_CANVAS_SCALE;
+    const centerWorldX = (viewport.width / 2 - transform.x) / effectiveZoom;
+    const centerWorldY = (viewport.height / 2 - transform.y) / effectiveZoom;
 
     animateTransformTo({
       zoom: newZoom,
-      x: Math.round(viewport.width / 2 - centerWorldX * newZoom),
-      y: Math.round(viewport.height / 2 - centerWorldY * newZoom),
+      x: Math.round(viewport.width / 2 - centerWorldX * newEffectiveZoom),
+      y: Math.round(viewport.height / 2 - centerWorldY * newEffectiveZoom),
     });
   }, [animateTransformTo, getViewport, transform]);
 
@@ -207,7 +215,9 @@ export function useCanvasTransform(bringToFront: (noteId: string) => void) {
     const zoomX = availableWidth / boundingWidth;
     const zoomY = availableHeight / boundingHeight;
     const { min, max } = getZoomBounds();
-    const targetZoom = Math.max(min, Math.min(max, Math.min(zoomX, zoomY)));
+    const rawTargetZoom = Math.min(zoomX, zoomY) / BASE_CANVAS_SCALE;
+    const targetZoom = Math.max(min, Math.min(max, rawTargetZoom));
+    const targetEffectiveZoom = targetZoom * BASE_CANVAS_SCALE;
 
     const centerX = minX + boundingWidth / 2;
     const centerY = minY + boundingHeight / 2;
@@ -216,8 +226,8 @@ export function useCanvasTransform(bringToFront: (noteId: string) => void) {
 
     animateTransformTo({
       zoom: Number(targetZoom.toFixed(3)),
-      x: Math.round(viewport.width / 2 - centerX * targetZoom),
-      y: Math.round(viewport.height / 2 - centerY * targetZoom),
+      x: Math.round(viewport.width / 2 - centerX * targetEffectiveZoom),
+      y: Math.round(viewport.height / 2 - centerY * targetEffectiveZoom),
     });
   }, [animateTransformTo, getViewport, getZoomBounds, transform]);
 
@@ -246,12 +256,13 @@ export function useCanvasTransform(bringToFront: (noteId: string) => void) {
     const fitZoomX = (viewport.width - 320) / noteWidth;
     const fitZoomY = (viewport.height - 240) / noteHeight;
     const calculatedFit = Math.min(fitZoomX, fitZoomY);
-    const targetZoom = Math.min(1.1, Math.max(0.85, calculatedFit));
+    const targetZoom = Math.min(1.1, Math.max(0.85, calculatedFit / BASE_CANVAS_SCALE));
+    const targetEffectiveZoom = targetZoom * BASE_CANVAS_SCALE;
 
     animateTransformTo({
       zoom: Number(targetZoom.toFixed(3)),
-      x: Math.round(screenCenterX - noteCenterX * targetZoom),
-      y: Math.round(screenCenterY - noteCenterY * targetZoom),
+      x: Math.round(screenCenterX - noteCenterX * targetEffectiveZoom),
+      y: Math.round(screenCenterY - noteCenterY * targetEffectiveZoom),
     });
   }, [animateTransformTo, bringToFront, getViewport]);
 

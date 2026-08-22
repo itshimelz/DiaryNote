@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Image01Icon } from '@hugeicons/core-free-icons';
 import { Icon } from './ui';
 import { Note, CanvasTransform, GridType, CanvasTheme } from '../types';
-import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../constants/canvas';
+import { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT, BASE_CANVAS_SCALE } from '../constants/canvas';
 import { NoteConnections } from './NoteConnections';
 import { GroupFrame } from './GroupFrame';
 import { isTauriEnvironment } from '../hooks/useNativeFileDrop';
@@ -67,10 +67,11 @@ function drawMinimapViewport(
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
   const isCork = themeMode === 'cork';
-  const vpX = (-transform.x / transform.zoom - minX) * minimapScale;
-  const vpY = (-transform.y / transform.zoom - minY) * minimapScale;
-  const vpW = (viewportWidth / transform.zoom) * minimapScale;
-  const vpH = (viewportHeight / transform.zoom) * minimapScale;
+  const effectiveZoom = transform.zoom * BASE_CANVAS_SCALE;
+  const vpX = (-transform.x / effectiveZoom - minX) * minimapScale;
+  const vpY = (-transform.y / effectiveZoom - minY) * minimapScale;
+  const vpW = (viewportWidth / effectiveZoom) * minimapScale;
+  const vpH = (viewportHeight / effectiveZoom) * minimapScale;
 
   ctx.fillStyle = isCork ? 'rgba(217, 119, 6, 0.2)' : 'rgba(59, 130, 246, 0.15)';
   ctx.fillRect(vpX, vpY, vpW, vpH);
@@ -307,7 +308,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
         pendingWheelTransformRef.current = nextTransform;
         // Direct DOM update for 0ms latency hardware-accelerated wheel motion
         if (worldLayerRef.current) {
-          worldLayerRef.current.style.transform = `translate3d(${nextTransform.x}px, ${nextTransform.y}px, 0) scale(${nextTransform.zoom})`;
+          worldLayerRef.current.style.transform = `translate3d(${nextTransform.x}px, ${nextTransform.y}px, 0) scale(${nextTransform.zoom * BASE_CANVAS_SCALE})`;
         }
         if (wheelFrameRef.current !== null) return;
         wheelFrameRef.current = requestAnimationFrame(() => {
@@ -331,13 +332,15 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
           zoomFactor = Math.exp(-e.deltaY * 0.0025);
         }
 
+        const baseEffectiveZoom = baseTransform.zoom * BASE_CANVAS_SCALE;
         const newZoom = Math.max(minZoom, Math.min(maxZoom, baseTransform.zoom * zoomFactor));
+        const newEffectiveZoom = newZoom * BASE_CANVAS_SCALE;
 
-        const worldX = (mouseX - baseTransform.x) / baseTransform.zoom;
-        const worldY = (mouseY - baseTransform.y) / baseTransform.zoom;
+        const worldX = (mouseX - baseTransform.x) / baseEffectiveZoom;
+        const worldY = (mouseY - baseTransform.y) / baseEffectiveZoom;
 
-        const newX = mouseX - worldX * newZoom;
-        const newY = mouseY - worldY * newZoom;
+        const newX = mouseX - worldX * newEffectiveZoom;
+        const newY = mouseY - worldY * newEffectiveZoom;
 
         scheduleWheelTransform({
           x: Math.round(newX),
@@ -430,10 +433,11 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
         const selBottom = Math.max(startY, curY);
 
         // Zero-reflow world coordinate intersection calculation
-        const boxMinX = (selLeft - transform.x) / transform.zoom;
-        const boxMaxX = (selRight - transform.x) / transform.zoom;
-        const boxMinY = (selTop - transform.y) / transform.zoom;
-        const boxMaxY = (selBottom - transform.y) / transform.zoom;
+        const effectiveZoom = transform.zoom * BASE_CANVAS_SCALE;
+        const boxMinX = (selLeft - transform.x) / effectiveZoom;
+        const boxMaxX = (selRight - transform.x) / effectiveZoom;
+        const boxMinY = (selTop - transform.y) / effectiveZoom;
+        const boxMaxY = (selBottom - transform.y) / effectiveZoom;
 
         const newlyMatchedIds: string[] = [];
         for (let i = 0; i < noteBounds.length; i++) {
@@ -515,7 +519,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
 
           // Direct DOM transform: 0ms latency hardware-accelerated GPU translation
           if (worldLayerRef.current) {
-            worldLayerRef.current.style.transform = `translate3d(${pendingTransform.x}px, ${pendingTransform.y}px, 0) scale(${pendingTransform.zoom})`;
+            worldLayerRef.current.style.transform = `translate3d(${pendingTransform.x}px, ${pendingTransform.y}px, 0) scale(${pendingTransform.zoom * BASE_CANVAS_SCALE})`;
           }
 
           // Keep the minimap viewport rect glued to the gesture without React commits
@@ -738,7 +742,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
         ref={worldLayerRef}
         className={`absolute inset-0 origin-top-left will-change-transform ${isPanning ? 'pointer-events-none' : ''}`}
         style={{
-          transform: `translate3d(${transform.x}px, ${transform.y}px, 0) scale(${transform.zoom})`,
+          transform: `translate3d(${transform.x}px, ${transform.y}px, 0) scale(${transform.zoom * BASE_CANVAS_SCALE})`,
         }}
       >
         {/* Render group bounding frames */}
@@ -747,7 +751,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
             key={groupId}
             groupId={groupId}
             groupNotes={groupNotes}
-            zoom={transform.zoom}
+            zoom={transform.zoom * BASE_CANVAS_SCALE}
             themeMode={themeMode}
             snapToGrid={snapToGrid}
             onUpdateBatchNotes={onUpdateBatchNotes}
@@ -777,7 +781,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
             key={noteId}
             noteId={noteId}
             editingRequested={editingNoteId === noteId}
-            zoom={transform.zoom}
+            zoom={transform.zoom * BASE_CANVAS_SCALE}
             isSelected={selectedNoteId === noteId || selectedNoteIds.includes(noteId)}
             selectedNoteIds={selectedNoteIds}
             isFocused={focusedNoteId === noteId}
@@ -837,10 +841,11 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
               const targetWorldX = minX + clickX / minimapScale;
               const targetWorldY = minY + clickY / minimapScale;
 
+              const effectiveZoom = transform.zoom * BASE_CANVAS_SCALE;
               const nextTransform = {
                 ...transform,
-                x: Math.round(viewport.width / 2 - targetWorldX * transform.zoom),
-                y: Math.round(viewport.height / 2 - targetWorldY * transform.zoom),
+                x: Math.round(viewport.width / 2 - targetWorldX * effectiveZoom),
+                y: Math.round(viewport.height / 2 - targetWorldY * effectiveZoom),
               };
               if (onAnimateTransform) onAnimateTransform(nextTransform);
               else onTransformChange(nextTransform);
