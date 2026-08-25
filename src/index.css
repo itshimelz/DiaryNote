@@ -1,39 +1,56 @@
 @import "tailwindcss";
 
+/* Self-hosted fonts (offline-first; replaces Google Fonts CDN links in index.html) */
+@import "@fontsource-variable/caveat";
+@import "@fontsource-variable/plus-jakarta-sans";
+@import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource-variable/noto-serif-bengali";
+@import "@fontsource-variable/anek-bangla";
+@import "@fontsource/kalam/300.css";
+@import "@fontsource/kalam/400.css";
+@import "@fontsource/kalam/700.css";
+@import "@fontsource/hind-siliguri/300.css";
+@import "@fontsource/hind-siliguri/400.css";
+@import "@fontsource/hind-siliguri/500.css";
+@import "@fontsource/hind-siliguri/600.css";
+@import "@fontsource/hind-siliguri/700.css";
+@import "@fontsource/patrick-hand";
+@import "@fontsource/architects-daughter";
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer utilities {
   .font-hand-caveat {
-    font-family: 'Caveat', 'Hind Siliguri', cursive, sans-serif;
+    font-family: 'Caveat Variable', 'Caveat', 'Hind Siliguri Variable', 'Hind Siliguri', cursive, sans-serif;
   }
   .font-hand-kalam {
-    font-family: 'Kalam', 'Anek Bangla', cursive, sans-serif;
+    font-family: 'Kalam', 'Anek Bangla Variable', 'Anek Bangla', cursive, sans-serif;
   }
   .font-hand-patrick {
-    font-family: 'Patrick Hand', 'Hind Siliguri', cursive, sans-serif;
+    font-family: 'Patrick Hand', 'Hind Siliguri Variable', 'Hind Siliguri', cursive, sans-serif;
   }
   .font-hand-architect {
-    font-family: 'Architects Daughter', 'Noto Serif Bengali', cursive, sans-serif;
+    font-family: 'Architects Daughter', 'Noto Serif Bengali Variable', 'Noto Serif Bengali', cursive, sans-serif;
   }
   .font-hand-hind {
-    font-family: 'Hind Siliguri', 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Hind Siliguri Variable', 'Hind Siliguri', 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', sans-serif;
   }
   .font-hand-anek {
-    font-family: 'Anek Bangla', 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Anek Bangla Variable', 'Anek Bangla', 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', sans-serif;
   }
   .font-hand-noto-bengali {
-    font-family: 'Noto Serif Bengali', serif;
+    font-family: 'Noto Serif Bengali Variable', 'Noto Serif Bengali', serif;
   }
   .font-sans {
-    font-family: 'Google Sans Flex', 'Google Sans', 'SF Pro Text', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Ubuntu', 'Cantarell', 'Liberation Sans', 'DejaVu Sans', 'Plus Jakarta Sans', 'Hind Siliguri', Roboto, sans-serif;
+    font-family: 'Google Sans Flex', 'Google Sans', 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', 'SF Pro Text', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Ubuntu', 'Cantarell', 'Liberation Sans', 'DejaVu Sans', 'Hind Siliguri Variable', 'Hind Siliguri', Roboto, sans-serif;
   }
   .font-mono-code {
-    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Source Code Pro', 'Ubuntu Mono', 'Consolas', monospace;
+    font-family: 'JetBrains Mono Variable', 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Source Code Pro', 'Ubuntu Mono', 'Consolas', monospace;
   }
 }
 
 :root {
-  font-family: 'Google Sans Flex', 'Google Sans', 'SF Pro Text', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Ubuntu', 'Cantarell', 'Liberation Sans', 'DejaVu Sans', 'Plus Jakarta Sans', 'Hind Siliguri', Roboto, sans-serif;
+  font-family: 'Google Sans Flex', 'Google Sans', 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', 'SF Pro Text', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Ubuntu', 'Cantarell', 'Liberation Sans', 'DejaVu Sans', 'Hind Siliguri Variable', 'Hind Siliguri', Roboto, sans-serif;
   -webkit-font-smoothing: subpixel-antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: geometricPrecision;
