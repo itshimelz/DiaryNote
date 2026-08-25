@@ -19,6 +19,7 @@ export interface NoteCardProps {
   onRequestLockNote?: (noteId: string) => void;
   onRequestUnlockNote?: (noteId: string) => void;
   onExportNote?: (note: Note, format: 'md' | 'txt' | 'json') => void;
+  onExportNoteImage?: (note: Note) => void;
   isCardDragging?: boolean;
   isCut?: boolean;
   onDragStateChange?: (draggingIds: string[]) => void;

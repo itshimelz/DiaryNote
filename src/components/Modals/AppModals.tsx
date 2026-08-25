@@ -125,6 +125,7 @@ interface AppModalsProps {
   handleLockSelectedNotes: (ids: string[]) => void;
   handleToggleCoverSelectedNotes: (ids: string[]) => void;
   handleExportNote: (note: Note, format: 'md' | 'txt' | 'json') => void;
+  handleExportNoteImage?: (note: Note) => void;
   requestDeleteNotes: (ids: string[]) => void;
   handleSaveAISettings: (newSettings: Partial<AppSettings>) => void;
   onAddImageFiles?: (files: File[], customClientX?: number, customClientY?: number) => void;
@@ -185,6 +186,7 @@ export const AppModals: React.FC<AppModalsProps> = ({
   handleLockSelectedNotes,
   handleToggleCoverSelectedNotes,
   handleExportNote,
+  handleExportNoteImage,
   requestDeleteNotes,
   handleSaveAISettings,
   onAddImageFiles,
@@ -432,6 +434,12 @@ export const AppModals: React.FC<AppModalsProps> = ({
           } else if (targets.length > 1) {
             const fileName = `selected-notes-backup-${new Date().toISOString().slice(0, 10)}.json`;
             exportNotesBackup(targets, fileName);
+          }
+        }}
+        onExportNoteImage={(id) => {
+          const target = notes.find((n) => n.id === id);
+          if (target && handleExportNoteImage) {
+            handleExportNoteImage(target);
           }
         }}
         onDeleteNotes={(ids) => requestDeleteNotes(ids)}

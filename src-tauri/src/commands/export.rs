@@ -1,5 +1,31 @@
+use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
+use base64::Engine as _;
+
 use crate::error::AppError;
 use crate::utils::validate_and_resolve_export_path;
+
+/// Tauri command to securely save a base64-encoded PNG (exported note image) inside ~/DiaryNote
+#[tauri::command]
+pub fn save_png_file(filename: String, base64_content: String) -> Result<String, AppError> {
+    let bytes = BASE64_STANDARD
+        .decode(base64_content.trim().as_bytes())
+        .map_err(|e| AppError::Validation(format!("Invalid base64 image data: {}", e)))?;
+
+    let home_dir = std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .map_err(|e| AppError::Io(format!("Failed to determine home directory: {}", e)))?;
+
+    let file_path = validate_and_resolve_export_path(&home_dir, &filename, Some("Exports"))
+        .map_err(AppError::Validation)?;
+
+    if let Some(parent) = file_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+
+    std::fs::write(&file_path, bytes)?;
+
+    Ok(file_path.to_string_lossy().into_owned())
+}
 
 /// Tauri command to securely save an exported database backup file inside ~/DiaryNote
 #[tauri::command]
@@ -135,5 +161,26 @@ mod tests {
         assert!(path.ends_with("Daily Ideas.md"));
         assert!(std::path::Path::new(&path).exists());
         let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn test_save_png_file_writes_decoded_bytes() {
+        // 1x1 transparent PNG
+        let png_base64 =
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+                .to_string();
+        let res = save_png_file("export-image-test.png".to_string(), png_base64);
+        assert!(res.is_ok());
+        let path = res.unwrap();
+        assert!(path.ends_with("export-image-test.png"));
+        let bytes = std::fs::read(&path).unwrap();
+        assert_eq!(&bytes[..8], b"\x89PNG\r\n\x1a\n");
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn test_save_png_file_rejects_invalid_base64() {
+        let res = save_png_file("bad.png".to_string(), "not-base64!!!".to_string());
+        assert!(res.is_err());
     }
 }

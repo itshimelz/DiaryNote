@@ -38,8 +38,9 @@ import {
 
 import { AppModals } from './components/Modals/AppModals';
 import { sendNativeAppNotification, formatGroupTime } from './utils';
+import { exportNoteAsImage, buildExportImageFileName, downloadDataUrl } from './utils/noteImageExport';
 import { checkForAppUpdates } from './utils/updateChecker';
-import { saveAppSettingsToDB as saveSettingsToDB, saveDirtyNotesToDB as saveImportedNotesToDB, exportNoteToFileNative } from './lib/rustStorage';
+import { saveAppSettingsToDB as saveSettingsToDB, saveDirtyNotesToDB as saveImportedNotesToDB, exportNoteToFileNative, savePngFileNative } from './lib/rustStorage';
 import { mergeNotesWithAI, type StreamProgress } from './services/ai/aiMergeService';
 import { getSessionAuthState, setMasterSessionUnlocked, isNoteAuthorized } from './services/authPolicyService';
 import { lockSessionVault } from './services/cryptoVaultService';
@@ -933,6 +934,34 @@ export default function App() {
     }
   }, [setNotesToUnlock, setSecurityModalNoteId, setSecurityModalMode]);
 
+  const handleExportNoteImage = useCallback(async (note: Note) => {
+    if (note.isLocked && !isNoteAuthorized(note)) {
+      setNotesToUnlock([note.id]);
+      setSecurityModalNoteId(note.id);
+      setSecurityModalMode('unlock');
+      return;
+    }
+
+    const fileName = buildExportImageFileName(note);
+
+    try {
+      const allNotes = Object.values(useNotesStore.getState().notesById);
+      const dataUrl = await exportNoteAsImage(note, allNotes);
+
+      if (isTauriEnvironment()) {
+        const base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
+        const savedPath = await savePngFileNative(fileName, base64);
+        sendNativeAppNotification('Export Successful', `Exported "${note.title || 'Untitled Note'}" as Image (.png) to:\n${savedPath}`);
+      } else {
+        downloadDataUrl(fileName, dataUrl);
+        sendNativeAppNotification('Image Downloaded', `Exported ${fileName}`);
+      }
+    } catch (err) {
+      console.error('Failed to export note as image:', err);
+      sendNativeAppNotification('Export Failed', `Could not export "${note.title || 'Untitled Note'}" as image.`);
+    }
+  }, [setNotesToUnlock, setSecurityModalNoteId, setSecurityModalMode]);
+
   // Global shortcut listeners (e.g. today's journal entry)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -1099,6 +1128,7 @@ export default function App() {
         onRequestLockNote={handleRequestLockNoteStable}
         onRequestUnlockNote={handleRequestUnlockNoteStable}
         onExportNote={handleExportNote}
+        onExportNoteImage={handleExportNoteImage}
         onContextMenuNote={handleContextMenuNoteStable}
         onContextMenuCanvas={handleContextMenuCanvasStable}
         cutNoteIds={cutNoteIds}
@@ -1311,6 +1341,7 @@ export default function App() {
         handleLockSelectedNotes={handleLockSelectedNotes}
         handleToggleCoverSelectedNotes={handleToggleCoverSelectedNotes}
         handleExportNote={handleExportNote}
+        handleExportNoteImage={handleExportNoteImage}
         requestDeleteNotes={requestDeleteNotes}
         handleSaveAISettings={handleSaveAISettings}
         onAddImageFiles={handleAddImageFiles}

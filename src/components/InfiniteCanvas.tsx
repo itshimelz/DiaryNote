@@ -37,6 +37,7 @@ interface InfiniteCanvasProps {
   onRequestLockNote?: (noteId: string) => void;
   onRequestUnlockNote?: (noteId: string) => void;
   onExportNote?: (note: Note, format: 'md' | 'txt' | 'json') => void;
+  onExportNoteImage?: (note: Note) => void;
   onContextMenuNote?: (e: React.MouseEvent, noteId: string) => void;
   onContextMenuCanvas?: (e: React.MouseEvent) => void;
   cutNoteIds?: string[];
@@ -190,6 +191,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
   onRequestLockNote,
   onRequestUnlockNote,
   onExportNote,
+  onExportNoteImage,
   onContextMenuNote,
   onContextMenuCanvas,
   cutNoteIds = [],
@@ -799,6 +801,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
             onRequestLockNote={onRequestLockNote}
             onRequestUnlockNote={onRequestUnlockNote}
             onExportNote={onExportNote}
+            onExportNoteImage={onExportNoteImage}
             onContextMenu={onContextMenuNote}
           />
         ))}

@@ -16,7 +16,8 @@ use commands::{
     get_note_graph_connections, import_vault_archive, index_vault_notes, inspect_vault_archive,
     load_app_state, parse_note_markdown_links, read_image_files, relocate_notes, save_app_settings,
     save_asset_from_bytes, save_asset_from_path, save_canvas_transform, save_export_file,
-    save_notes_batch, search_notes, vacuum_database, vault_decrypt_note, vault_encrypt_note,
+    save_notes_batch, save_png_file, search_notes, vacuum_database, vault_decrypt_note,
+    vault_encrypt_note,
     vault_get_status, vault_hash_security_input, vault_is_unlocked, vault_lock, vault_unlock,
     vault_verify_security_input, open_external_url,
 };
@@ -125,6 +126,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             save_export_file,
             export_note_to_file,
+            save_png_file,
             compute_batch_layout,
             compute_batch_drag_snapping,
             cull_notes_in_frustum,

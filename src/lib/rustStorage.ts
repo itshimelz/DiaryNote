@@ -338,3 +338,19 @@ export async function exportNoteToFileNative(
     throw error;
   }
 }
+
+/**
+ * Saves a base64-encoded PNG (exported note image) to ~/DiaryNote/Exports via native Rust backend.
+ */
+export async function savePngFileNative(filename: string, base64Content: string): Promise<string> {
+  if (!isTauriEnvironment()) {
+    throw new Error('Native PNG export requires the desktop app');
+  }
+
+  try {
+    return await invoke<string>('save_png_file', { filename, base64Content });
+  } catch (error) {
+    console.error('Failed to save PNG natively:', error);
+    throw error;
+  }
+}

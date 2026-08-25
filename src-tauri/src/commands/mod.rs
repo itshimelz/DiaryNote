@@ -15,7 +15,7 @@ pub use ai::{ai_generate_tags, ai_stream_synthesis, ai_test_connection};
 pub use assets::{delete_asset, get_asset_info, save_asset_from_bytes, save_asset_from_path};
 pub use backup::{export_vault_archive, import_vault_archive, inspect_vault_archive};
 pub use clipboard::relocate_notes;
-pub use export::{export_note_to_file, save_export_file};
+pub use export::{export_note_to_file, save_export_file, save_png_file};
 pub use graph::{get_note_backlinks, get_note_graph_connections, parse_note_markdown_links};
 pub use image::read_image_files;
 pub use layout::{compute_batch_drag_snapping, compute_batch_layout, cull_notes_in_frustum, find_nearest_spatial_note};

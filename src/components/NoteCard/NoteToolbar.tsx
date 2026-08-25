@@ -8,6 +8,7 @@ import {
   SecurityLockIcon,
   CircleUnlock01Icon,
   Download04Icon,
+  Image01Icon,
 } from '@hugeicons/core-free-icons';
 import { Icon, Menu, MenuItem, MenuDivider } from '../ui';
 import { NoteMode, PaperThemeConfig } from './types';
@@ -22,6 +23,7 @@ interface NoteToolbarProps {
   onDeleteNote: () => void;
   onToggleLockNote?: () => void;
   onExportNote?: (format: 'md' | 'txt' | 'json') => void;
+  onExportNoteImage?: () => void;
   themeConfig?: PaperThemeConfig;
 }
 
@@ -38,6 +40,7 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
   onDeleteNote,
   onToggleLockNote,
   onExportNote,
+  onExportNoteImage,
   themeConfig,
 }) => {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -179,6 +182,17 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
                     }}
                   />
                 </>
+              )}
+
+              {onExportNoteImage && (
+                <MenuItem
+                  icon={Image01Icon}
+                  label="Export as Image (.png)"
+                  onClick={() => {
+                    onExportNoteImage();
+                    setShowMoreMenu(false);
+                  }}
+                />
               )}
 
               {onDuplicateNote && (

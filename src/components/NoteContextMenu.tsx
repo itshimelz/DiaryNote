@@ -45,6 +45,7 @@ interface NoteContextMenuProps {
   onDuplicateNotes?: (ids: string[]) => void;
   onCutNotes?: (ids: string[]) => void;
   onExportNotes?: (ids: string[], format: 'json' | 'md') => void;
+  onExportNoteImage?: (id: string) => void;
   onDeleteNotes?: (ids: string[]) => void;
   onChangePaperTheme?: (ids: string[], theme: PaperTheme) => void;
   onPasteFromClipboard?: () => void;
@@ -74,6 +75,7 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
   onDuplicateNotes,
   onCutNotes,
   onExportNotes,
+  onExportNoteImage,
   onDeleteNotes,
   onChangePaperTheme,
   onPasteFromClipboard,
@@ -351,6 +353,17 @@ const NoteContextMenuComponent: React.FC<NoteContextMenuProps> = ({
                 label="Export Markdown (.md)"
                 onClick={() => {
                   onExportNotes?.(selectedNoteIds, 'md');
+                  onClose();
+                }}
+              />
+            )}
+
+            {isSingle && onExportNoteImage && !singleNote?.imageUrl && (
+              <MenuItem
+                icon={Image01Icon}
+                label="Export as Image (.png)"
+                onClick={() => {
+                  onExportNoteImage(selectedNoteIds[0]);
                   onClose();
                 }}
               />

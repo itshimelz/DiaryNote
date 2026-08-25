@@ -52,6 +52,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
   onRequestLockNote,
   onRequestUnlockNote,
   onExportNote,
+  onExportNoteImage,
   isCardDragging = false,
   isCut = false,
   onDragStateChange,
@@ -1010,6 +1011,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
           }
         }}
         onExportNote={(format) => onExportNote?.(note, format)}
+        onExportNoteImage={() => onExportNoteImage?.(note)}
         onDeleteNote={() => onDeleteNote(note.id)}
       />
 
