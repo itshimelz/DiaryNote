@@ -95,6 +95,11 @@ pub async fn migrate_inline_images(
             )?
         };
         if changed == 1 {
+            let conn = db_pool.writer().map_err(AppError::Database)?;
+            conn.execute(
+                "INSERT OR REPLACE INTO note_assets(note_id, asset_hash) VALUES (?1, ?2)",
+                (&id, &asset.hash),
+            )?;
             patches.push(MigratedImagePatch { id, image_url: asset.asset_uri, updated_at });
         }
     }
@@ -115,6 +120,11 @@ pub async fn sweep_orphaned_assets(
             "UPDATE assets SET orphaned_at = COALESCE(orphaned_at, ?1)
              WHERE NOT EXISTS (SELECT 1 FROM note_assets WHERE asset_hash = assets.hash)",
             (&now,),
+        )?;
+        conn.execute(
+            "UPDATE assets SET orphaned_at = NULL
+             WHERE EXISTS (SELECT 1 FROM note_assets WHERE asset_hash = assets.hash)",
+            [],
         )?;
         let mut stmt = conn.prepare(
             "SELECT hash FROM assets WHERE orphaned_at IS NOT NULL AND orphaned_at <= ?1

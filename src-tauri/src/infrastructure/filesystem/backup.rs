@@ -278,10 +278,16 @@ pub fn import_vault_archive<P: AsRef<Path>>(
                     if entry_name.starts_with("assets/") && !entry_name.ends_with('/') {
                         let filename = entry_name.trim_start_matches("assets/");
                         let mut buf = Vec::new();
-                        if zip_entry.read_to_end(&mut buf).is_ok()
-                            && asset_store.save_asset(&buf, Some(filename)).is_ok()
-                        {
-                            assets_imported += 1;
+                        if zip_entry.read_to_end(&mut buf).is_ok() {
+                            if let Ok(asset) = asset_store.save_asset(&buf, Some(filename)) {
+                                dest_conn.execute(
+                                    "INSERT INTO assets(hash, mime_type, size_bytes, created_at, orphaned_at)
+                                     VALUES (?1, ?2, ?3, ?4, NULL)
+                                     ON CONFLICT(hash) DO UPDATE SET orphaned_at = NULL",
+                                    (&asset.hash, &asset.mime_type, asset.size_bytes as i64, &asset.created_at),
+                                )?;
+                                assets_imported += 1;
+                            }
                         }
                     }
                 }
