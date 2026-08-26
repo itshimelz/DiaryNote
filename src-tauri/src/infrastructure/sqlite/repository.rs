@@ -63,6 +63,11 @@ pub fn note_from_row(row: &rusqlite::Row) -> rusqlite::Result<Note> {
     })
 }
 
+fn asset_hash_from_uri(uri: &str) -> Option<&str> {
+    let hash = uri.strip_prefix("diarynote-asset://")?.split('?').next()?;
+    (hash.len() == 64 && hash.chars().all(|c| c.is_ascii_hexdigit())).then_some(hash)
+}
+
 pub struct SqliteNoteRepository {
     pool: DbPool,
 }
@@ -211,6 +216,11 @@ impl NoteRepository for SqliteNoteRepository {
             let mut existing_tags_stmt = tx.prepare("SELECT tag FROM note_tags WHERE note_id = ?1")?;
             let mut delete_tags_stmt = tx.prepare("DELETE FROM note_tags WHERE note_id = ?1")?;
             let mut insert_tag_stmt = tx.prepare("INSERT OR IGNORE INTO note_tags (note_id, tag) VALUES (?1, ?2)")?;
+            let mut delete_assets_stmt = tx.prepare("DELETE FROM note_assets WHERE note_id = ?1")?;
+            let mut insert_asset_stmt = tx.prepare(
+                "INSERT OR IGNORE INTO note_assets(note_id, asset_hash)
+                 SELECT ?1, ?2 WHERE EXISTS (SELECT 1 FROM assets WHERE hash = ?2)"
+            )?;
 
             for note in notes {
                 upsert_stmt.execute(params![
@@ -264,6 +274,12 @@ impl NoteRepository for SqliteNoteRepository {
                     for tag in incoming {
                         insert_tag_stmt.execute((&note.id, tag))?;
                     }
+                }
+
+                delete_assets_stmt.execute((&note.id,))?;
+                if let Some(hash) = note.image_url.as_deref().and_then(asset_hash_from_uri) {
+                    insert_asset_stmt.execute((&note.id, hash))?;
+                    tx.execute("UPDATE assets SET orphaned_at = NULL WHERE hash = ?1", (hash,))?;
                 }
             }
         }

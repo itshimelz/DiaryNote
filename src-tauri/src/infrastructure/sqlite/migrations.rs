@@ -1,7 +1,7 @@
 use rusqlite::{Connection, Result};
 use super::schema::INITIAL_SCHEMA_SQL;
 
-pub const CURRENT_SCHEMA_VERSION: i32 = 4;
+pub const CURRENT_SCHEMA_VERSION: i32 = 5;
 
 /// Runs all pending schema migrations inside an atomic transaction.
 pub fn run_migrations(conn: &mut Connection) -> Result<()> {
@@ -35,6 +35,18 @@ pub fn run_migrations(conn: &mut Connection) -> Result<()> {
             [],
         )?;
         conn.pragma_update(None, "user_version", 4)?;
+    }
+
+    if current_version < 5 {
+        let _ = conn.execute("ALTER TABLE assets ADD COLUMN orphaned_at TEXT", []);
+        conn.execute_batch(
+            "INSERT OR IGNORE INTO note_assets(note_id, asset_hash)
+             SELECT id, substr(image_url, 19, 64) FROM notes
+             WHERE image_url GLOB 'diarynote-asset://[0-9a-fA-F]*'
+               AND length(substr(image_url, 19, 64)) = 64
+               AND EXISTS (SELECT 1 FROM assets WHERE hash = substr(image_url, 19, 64));"
+        )?;
+        conn.pragma_update(None, "user_version", 5)?;
     }
 
     Ok(())

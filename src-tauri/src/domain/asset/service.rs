@@ -84,7 +84,9 @@ impl AssetService {
             })?;
 
             let _ = conn.execute(
-                "INSERT OR IGNORE INTO assets (hash, mime_type, size_bytes, created_at) VALUES (?1, ?2, ?3, ?4)",
+                "INSERT INTO assets (hash, mime_type, size_bytes, created_at, orphaned_at)
+                 VALUES (?1, ?2, ?3, ?4, NULL)
+                 ON CONFLICT(hash) DO UPDATE SET orphaned_at = NULL",
                 (
                     &asset.hash,
                     &asset.mime_type,

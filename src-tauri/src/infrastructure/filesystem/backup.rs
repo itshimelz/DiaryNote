@@ -87,17 +87,11 @@ pub fn export_vault_archive<P: AsRef<Path>>(
     let note_count: usize = src_conn.query_row("SELECT COUNT(*) FROM notes", [], |r| r.get(0))?;
 
     let mut asset_hashes = Vec::new();
-    if let Ok(entries) = fs::read_dir(&paths.originals_dir) {
-        for entry in entries.flatten() {
-            let p = entry.path();
-            if p.is_file() {
-                if let Some(stem) = p.file_stem().and_then(|s| s.to_str()) {
-                    if stem.len() == 64 && stem.chars().all(|c| c.is_ascii_hexdigit()) {
-                        asset_hashes.push(stem.to_string());
-                    }
-                }
-            }
-        }
+    let mut referenced_stmt = src_conn.prepare(
+        "SELECT DISTINCT asset_hash FROM note_assets ORDER BY asset_hash"
+    )?;
+    for hash in referenced_stmt.query_map([], |row| row.get::<_, String>(0))? {
+        asset_hashes.push(hash?);
     }
     asset_hashes.sort();
     asset_hashes.dedup();
@@ -137,13 +131,13 @@ pub fn export_vault_archive<P: AsRef<Path>>(
 
     // Add assets
     let mut asset_count = 0;
-    if let Ok(entries) = fs::read_dir(&paths.originals_dir) {
-        for entry in entries.flatten() {
-            let p = entry.path();
-            if p.is_file() {
-                if let Some(file_name) = p.file_name().and_then(|s| s.to_str()) {
-                    let zip_entry_path = format!("assets/{}", file_name);
-                    zip.start_file(zip_entry_path, options)?;
+    for hash in &asset_hashes {
+        if let Ok(entries) = fs::read_dir(&paths.originals_dir) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                let Some(file_name) = p.file_name().and_then(|s| s.to_str()) else { continue };
+                if p.is_file() && file_name.starts_with(hash) {
+                    zip.start_file(format!("assets/{}", file_name), options)?;
                     let mut asset_file = File::open(&p)?;
                     std::io::copy(&mut asset_file, &mut zip)?;
                     asset_count += 1;
@@ -446,11 +440,27 @@ mod tests {
         let asset_store = AssetStore::new(paths.clone());
         let asset = asset_store.save_asset(b"test-image-bytes-54321".as_slice(), Some("sample.png")).expect("Failed to save asset");
         assert_eq!(asset.hash.len(), 64);
+        conn.execute(
+            "INSERT INTO assets(hash, mime_type, size_bytes, created_at) VALUES (?1, ?2, ?3, ?4)",
+            (&asset.hash, &asset.mime_type, asset.size_bytes as i64, &asset.created_at),
+        ).unwrap();
+        // Keep one asset reachable and one deliberately orphaned. Backups must only
+        // contain the reachable asset rather than every file in originals/.
+        conn.execute(
+            "UPDATE notes SET image_url = ?1 WHERE id = 'note-101'",
+            (format!("diarynote-asset://{}", asset.hash),),
+        ).unwrap();
+        conn.execute(
+            "INSERT INTO note_assets(note_id, asset_hash) VALUES ('note-101', ?1)",
+            (&asset.hash,),
+        ).unwrap();
+        asset_store.save_asset(b"orphan-image-bytes-98765".as_slice(), Some("orphan.png")).expect("Failed to save orphan asset");
 
         // 3. Export archive
         let archive_target = paths.backups_dir.join("test_vault_backup.diarynote");
         let export_summary = export_vault_archive(&conn, &paths, &archive_target).expect("Export failed");
         assert_eq!(export_summary.note_count, 1);
+        // Unreferenced files are intentionally excluded from backups.
         assert_eq!(export_summary.asset_count, 1);
         assert!(archive_target.exists());
 

@@ -21,7 +21,7 @@ import { BASE_CANVAS_SCALE } from './constants/canvas';
 import { useNoteSelection } from './hooks/useNoteSelection';
 import { useAppUIState } from './hooks/useAppUIState';
 import { useNativeFileDrop, DroppedImageData } from './hooks/useNativeFileDrop';
-import { migrateInlineImages, saveAssetFromPath, saveAssetFromBytes } from './lib/rustAssets';
+import { migrateInlineImages, saveAssetFromPath, saveAssetFromBytes, sweepOrphanedAssets } from './lib/rustAssets';
 import { isTauriEnvironment } from './lib/rustStorage';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -165,6 +165,14 @@ export default function App() {
           window.requestIdleCallback(runMigration, { timeout: 5000 });
         } else {
           setTimeout(runMigration, 1000);
+        }
+        const runAssetSweep = () => {
+          sweepOrphanedAssets().catch((error) => console.error('Asset cleanup failed:', error));
+        };
+        if (typeof window.requestIdleCallback === 'function') {
+          window.requestIdleCallback(runAssetSweep, { timeout: 15000 });
+        } else {
+          setTimeout(runAssetSweep, 10000);
         }
       })
       .catch((err) => console.error('Failed to initialize database:', err));

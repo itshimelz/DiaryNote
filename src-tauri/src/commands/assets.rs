@@ -102,6 +102,37 @@ pub async fn migrate_inline_images(
     Ok(patches)
 }
 
+#[tauri::command]
+pub async fn sweep_orphaned_assets(
+    asset_service: State<'_, Arc<AssetService>>,
+    db_pool: State<'_, DbPool>,
+) -> Result<usize, AppError> {
+    let cutoff = (chrono::Utc::now() - chrono::Duration::days(7)).to_rfc3339();
+    let hashes: Vec<String> = {
+        let conn = db_pool.writer().map_err(AppError::Database)?;
+        let now = chrono::Utc::now().to_rfc3339();
+        conn.execute(
+            "UPDATE assets SET orphaned_at = COALESCE(orphaned_at, ?1)
+             WHERE NOT EXISTS (SELECT 1 FROM note_assets WHERE asset_hash = assets.hash)",
+            (&now,),
+        )?;
+        let mut stmt = conn.prepare(
+            "SELECT hash FROM assets WHERE orphaned_at IS NOT NULL AND orphaned_at <= ?1
+             AND NOT EXISTS (SELECT 1 FROM note_assets WHERE asset_hash = assets.hash)",
+        )?;
+        let hashes = stmt.query_map((&cutoff,), |row| row.get(0))?.flatten().collect();
+        hashes
+    };
+
+    let mut removed = 0;
+    for hash in hashes {
+        if asset_service.delete_asset(&hash).is_ok() {
+            removed += 1;
+        }
+    }
+    Ok(removed)
+}
+
 #[cfg(test)]
 mod tests {
     use super::decode_inline_image;

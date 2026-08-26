@@ -117,3 +117,8 @@ export async function migrateInlineImages(): Promise<MigratedImagePatch[]> {
   if (!isTauriAvailable()) return [];
   return invoke<MigratedImagePatch[]>('migrate_inline_images');
 }
+
+export async function sweepOrphanedAssets(): Promise<number> {
+  if (!isTauriAvailable()) return 0;
+  return invoke<number>('sweep_orphaned_assets');
+}

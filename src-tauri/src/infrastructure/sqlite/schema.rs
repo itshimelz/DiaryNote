@@ -45,7 +45,8 @@ CREATE TABLE IF NOT EXISTS assets (
     hash TEXT PRIMARY KEY NOT NULL,
     mime_type TEXT,
     size_bytes INTEGER,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    orphaned_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS note_assets (
