@@ -29,6 +29,8 @@ pub struct AssetStore {
 }
 
 impl AssetStore {
+    pub const MAX_ASSET_SIZE: usize = 50 * 1024 * 1024;
+
     pub fn new(paths: AppPaths) -> Self {
         Self { paths }
     }
@@ -68,6 +70,12 @@ impl AssetStore {
     /// Saves asset bytes into the content-addressable store.
     /// Deduplicates if the hash already exists on disk.
     pub fn save_asset(&self, data: &[u8], filename_hint: Option<&str>) -> Result<Asset, AssetError> {
+        if data.is_empty() || data.len() > Self::MAX_ASSET_SIZE {
+            return Err(AssetError::ImageProcessing(format!(
+                "Image must be between 1 byte and {} MB",
+                Self::MAX_ASSET_SIZE / 1024 / 1024
+            )));
+        }
         let hash = Self::calculate_hash(data);
         Self::validate_hash(&hash)?;
 
@@ -94,10 +102,14 @@ impl AssetStore {
         let target_filename = format!("{}.{}", hash, ext);
         let target_path = self.paths.originals_dir.join(&target_filename);
         let thumb_path = self.paths.resolve_thumbnail_path(&hash);
+        let display_path = self.paths.resolve_display_path(&hash);
 
         // Deduplication check: if file already exists, extract dimensions and return existing asset
         if target_path.exists() {
             let (width, height, aspect_ratio) = self.inspect_image_dimensions(&target_path, data);
+            if !display_path.exists() || !thumb_path.exists() {
+                self.generate_derivatives(data, &thumb_path, &display_path);
+            }
             return Ok(Asset {
                 hash,
                 mime_type,
@@ -128,7 +140,8 @@ impl AssetStore {
         }
 
         // 2. Generate thumbnail if image decoding succeeds
-        let (width, height, aspect_ratio) = self.generate_thumbnail_and_dimensions(data, &thumb_path);
+        let (width, height, aspect_ratio) =
+            self.generate_derivatives_and_dimensions(data, &thumb_path, &display_path);
 
         // 3. Atomically move staged file to originals_dir
         if let Err(_e) = fs::rename(&temp_path, &target_path) {
@@ -207,6 +220,15 @@ impl AssetStore {
         self.get_asset_file(hash)
     }
 
+    pub fn get_display_file(&self, hash: &str) -> Result<(PathBuf, String), AssetError> {
+        Self::validate_hash(hash)?;
+        let display_path = self.paths.resolve_display_path(hash);
+        if display_path.exists() {
+            return Ok((display_path, "image/webp".to_string()));
+        }
+        self.get_asset_file(hash)
+    }
+
     /// Deletes the original asset and its thumbnail.
     pub fn delete_asset(&self, hash: &str) -> Result<(), AssetError> {
         Self::validate_hash(hash)?;
@@ -220,13 +242,19 @@ impl AssetStore {
             let _ = fs::remove_file(thumb_path);
         }
 
+        let display_path = self.paths.resolve_display_path(hash);
+        if display_path.exists() {
+            let _ = fs::remove_file(display_path);
+        }
+
         Ok(())
     }
 
-    fn generate_thumbnail_and_dimensions(
+    fn generate_derivatives_and_dimensions(
         &self,
         data: &[u8],
         thumb_path: &Path,
+        display_path: &Path,
     ) -> (Option<u32>, Option<u32>, Option<f64>) {
         if let Ok(img) = image::load_from_memory(data) {
             let width = img.width();
@@ -244,10 +272,20 @@ impl AssetStore {
                 let _ = thumb.write_to(&mut thumb_file, image::ImageFormat::WebP);
             }
 
+            let display = img.thumbnail(1440, 1440);
+            if let Ok(mut display_file) = File::create(display_path) {
+                let _ = display.write_to(&mut display_file, image::ImageFormat::WebP);
+            }
+
             (Some(width), Some(height), aspect_ratio)
         } else {
             (None, None, None)
         }
+    }
+
+
+    fn generate_derivatives(&self, data: &[u8], thumb_path: &Path, display_path: &Path) {
+        let _ = self.generate_derivatives_and_dimensions(data, thumb_path, display_path);
     }
 
     fn inspect_image_dimensions(
@@ -273,9 +311,16 @@ impl AssetStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static TEST_ID: AtomicU64 = AtomicU64::new(0);
 
     fn create_test_store() -> (AssetStore, PathBuf) {
-        let temp_root = std::env::temp_dir().join(format!("diarynote_asset_test_{}", std::process::id()));
+        let temp_root = std::env::temp_dir().join(format!(
+            "diarynote_asset_test_{}_{}",
+            std::process::id(),
+            TEST_ID.fetch_add(1, Ordering::Relaxed)
+        ));
         let paths = AppPaths::from_root(temp_root.clone()).expect("Failed to init AppPaths");
         (AssetStore::new(paths), temp_root)
     }
@@ -330,6 +375,20 @@ mod tests {
         let odd = store.save_asset(b"raw-bytes".as_slice(), Some("scan.tiff")).unwrap();
         let (scanned, _) = store.get_asset_file(&odd.hash).expect("fallback hit");
         assert_eq!(scanned.extension().unwrap(), "tiff");
+
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn test_image_save_creates_display_derivatives() {
+        let (store, root) = create_test_store();
+        let image = image::DynamicImage::new_rgba8(1600, 900);
+        let mut bytes = std::io::Cursor::new(Vec::new());
+        image.write_to(&mut bytes, image::ImageFormat::Png).unwrap();
+
+        let asset = store.save_asset(bytes.get_ref(), Some("photo.png")).unwrap();
+        assert!(store.paths.resolve_thumbnail_path(&asset.hash).is_file());
+        assert!(store.paths.resolve_display_path(&asset.hash).is_file());
 
         let _ = fs::remove_dir_all(&root);
     }

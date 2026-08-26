@@ -8,6 +8,7 @@ pub struct AppPaths {
     pub assets_dir: PathBuf,
     pub originals_dir: PathBuf,
     pub thumbnails_dir: PathBuf,
+    pub display_dir: PathBuf,
     pub backups_dir: PathBuf,
     pub temp_dir: PathBuf,
 }
@@ -19,12 +20,14 @@ impl AppPaths {
         let assets_dir = root.join("assets");
         let originals_dir = assets_dir.join("originals");
         let thumbnails_dir = assets_dir.join("thumbnails");
+        let display_dir = assets_dir.join("display");
         let backups_dir = root.join("backups");
         let temp_dir = root.join("temp");
 
         std::fs::create_dir_all(&root)?;
         std::fs::create_dir_all(&originals_dir)?;
         std::fs::create_dir_all(&thumbnails_dir)?;
+        std::fs::create_dir_all(&display_dir)?;
         std::fs::create_dir_all(&backups_dir)?;
         std::fs::create_dir_all(&temp_dir)?;
 
@@ -34,6 +37,7 @@ impl AppPaths {
             assets_dir,
             originals_dir,
             thumbnails_dir,
+            display_dir,
             backups_dir,
             temp_dir,
         })
@@ -61,6 +65,10 @@ impl AppPaths {
     pub fn resolve_thumbnail_path(&self, hash: &str) -> PathBuf {
         self.thumbnails_dir.join(format!("{}_thumb.webp", hash))
     }
+
+    pub fn resolve_display_path(&self, hash: &str) -> PathBuf {
+        self.display_dir.join(format!("{}_display.webp", hash))
+    }
 }
 
 #[cfg(test)]
@@ -75,6 +83,7 @@ mod tests {
         assert!(paths.app_data_dir.exists());
         assert!(paths.originals_dir.exists());
         assert!(paths.thumbnails_dir.exists());
+        assert!(paths.display_dir.exists());
         assert!(paths.backups_dir.exists());
         assert!(paths.temp_dir.exists());
 
@@ -84,6 +93,9 @@ mod tests {
 
         let thumb_file = paths.resolve_thumbnail_path("abc123hash");
         assert!(thumb_file.ends_with("abc123hash_thumb.webp"));
+
+        let display_file = paths.resolve_display_path("abc123hash");
+        assert!(display_file.ends_with("abc123hash_display.webp"));
 
         // Cleanup
         let _ = std::fs::remove_dir_all(&temp_root);

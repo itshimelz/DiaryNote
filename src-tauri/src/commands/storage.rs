@@ -76,7 +76,7 @@ pub async fn get_database_stats(
         .unwrap_or(0);
 
     let total_assets_size_bytes: u64 = conn
-        .query_row("SELECT COALESCE(SUM(byte_size), 0) FROM assets", [], |r| r.get(0))
+        .query_row("SELECT COALESCE(SUM(size_bytes), 0) FROM assets", [], |r| r.get(0))
         .unwrap_or(0);
 
     let is_integrity_ok: bool = conn

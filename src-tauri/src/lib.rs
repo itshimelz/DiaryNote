@@ -41,7 +41,7 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_notification::init())
-        .register_uri_scheme_protocol("diarynote-asset", |ctx, request| {
+        .register_asynchronous_uri_scheme_protocol("diarynote-asset", |ctx, request, responder| {
             let uri = request.uri();
             let uri_str = uri.to_string();
             let raw_path = uri.path();
@@ -64,40 +64,36 @@ pub fn run() {
             if let Some(pos) = candidate.find('/') {
                 candidate = &candidate[..pos];
             }
-            let hash = candidate.trim();
+            let hash = candidate.trim().to_string();
 
             let is_thumb = uri.query().map(|q| q.contains("thumb=1")).unwrap_or(false)
                 || uri_str.contains("thumb=1");
+            let is_display = uri.query().map(|q| q.contains("display=1")).unwrap_or(false)
+                || uri_str.contains("display=1");
 
-            if AssetStore::validate_hash(hash).is_err() {
-                return tauri::http::Response::builder()
+            if AssetStore::validate_hash(&hash).is_err() {
+                responder.respond(tauri::http::Response::builder()
                     .status(tauri::http::StatusCode::BAD_REQUEST)
                     .header("Access-Control-Allow-Origin", "*")
                     .body(Vec::new())
-                    .unwrap();
+                    .unwrap());
+                return;
             }
 
-            let app_paths = match AppPaths::from_app(ctx.app_handle()) {
-                Ok(p) => p,
-                Err(_) => {
-                    return tauri::http::Response::builder()
-                        .status(tauri::http::StatusCode::INTERNAL_SERVER_ERROR)
-                        .header("Access-Control-Allow-Origin", "*")
-                        .body(Vec::new())
-                        .unwrap();
-                }
-            };
+            let app_paths = ctx.app_handle().state::<AppPaths>().inner().clone();
+            std::thread::spawn(move || {
+                let store = AssetStore::new(app_paths);
+                let file_result = if is_thumb {
+                    store.get_thumbnail_file(&hash)
+                } else if is_display {
+                    store.get_display_file(&hash)
+                } else {
+                    store.get_asset_file(&hash)
+                };
 
-            let store = AssetStore::new(app_paths);
-            let file_result = if is_thumb {
-                store.get_thumbnail_file(hash)
-            } else {
-                store.get_asset_file(hash)
-            };
-
-            match file_result {
-                Ok((path, mime)) => match std::fs::read(&path) {
-                    Ok(bytes) => tauri::http::Response::builder()
+                let response = match file_result {
+                    Ok((path, mime)) => match std::fs::read(&path) {
+                        Ok(bytes) => tauri::http::Response::builder()
                         .status(tauri::http::StatusCode::OK)
                         .header("Content-Type", mime)
                         .header("Cache-Control", "public, max-age=31536000, immutable")
@@ -110,18 +106,20 @@ pub fn run() {
                                 .body(Vec::new())
                                 .unwrap()
                         }),
-                    Err(_) => tauri::http::Response::builder()
+                        Err(_) => tauri::http::Response::builder()
                         .status(tauri::http::StatusCode::INTERNAL_SERVER_ERROR)
                         .header("Access-Control-Allow-Origin", "*")
                         .body(Vec::new())
                         .unwrap(),
-                },
-                Err(_) => tauri::http::Response::builder()
-                    .status(tauri::http::StatusCode::NOT_FOUND)
-                    .header("Access-Control-Allow-Origin", "*")
-                    .body(Vec::new())
-                    .unwrap(),
-            }
+                    },
+                    Err(_) => tauri::http::Response::builder()
+                        .status(tauri::http::StatusCode::NOT_FOUND)
+                        .header("Access-Control-Allow-Origin", "*")
+                        .body(Vec::new())
+                        .unwrap(),
+                };
+                responder.respond(response);
+            });
         })
         .invoke_handler(tauri::generate_handler![
             save_export_file,

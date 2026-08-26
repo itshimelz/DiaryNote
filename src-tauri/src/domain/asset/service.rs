@@ -27,6 +27,13 @@ impl AssetService {
     }
 
     pub fn save_asset_from_path(&self, path: &Path) -> Result<AssetInfo, AssetError> {
+        let size = std::fs::metadata(path).map_err(AssetError::Io)?.len() as usize;
+        if size == 0 || size > AssetStore::MAX_ASSET_SIZE {
+            return Err(AssetError::ImageProcessing(format!(
+                "Image must be between 1 byte and {} MB",
+                AssetStore::MAX_ASSET_SIZE / 1024 / 1024
+            )));
+        }
         let data = std::fs::read(path).map_err(AssetError::Io)?;
         let filename = path.file_name().and_then(|n| n.to_str());
         self.save_asset_from_bytes(data.as_slice(), filename)

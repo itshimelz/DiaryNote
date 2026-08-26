@@ -12,6 +12,7 @@ export interface AssetInfo {
   extension?: string;
   assetUri: string;
   thumbnailUri?: string;
+  displayUri?: string;
 }
 
 
@@ -40,6 +41,10 @@ export function getAssetUri(hash: string, isThumbnail = false): string {
   return `diarynote-asset://${cleanHash}${isThumbnail ? '?thumb=1' : ''}`;
 }
 
+export function getAssetDisplayUri(uri: string): string {
+  return `${uri.replace(/\?.*$/, '')}?display=1`;
+}
+
 /**
  * Saves raw byte array into the native Content-Addressable Asset Store.
  */
@@ -58,6 +63,7 @@ export async function saveAssetFromBytes(
       createdAt: new Date().toISOString(),
       assetUri: `diarynote-asset://${mockHash}`,
       thumbnailUri: `diarynote-asset://${mockHash}?thumb=1`,
+      displayUri: `diarynote-asset://${mockHash}?display=1`,
     };
   }
 

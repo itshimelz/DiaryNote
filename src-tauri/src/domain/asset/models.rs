@@ -16,6 +16,7 @@ pub struct AssetInfo {
     pub extension: Option<String>,
     pub asset_uri: String,
     pub thumbnail_uri: Option<String>,
+    pub display_uri: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -43,6 +44,7 @@ impl Asset {
             extension: self.extension.clone(),
             asset_uri: format!("diarynote-asset://{}", self.hash),
             thumbnail_uri: Some(format!("diarynote-asset://{}?thumb=1", self.hash)),
+            display_uri: Some(format!("diarynote-asset://{}?display=1", self.hash)),
         }
     }
 }

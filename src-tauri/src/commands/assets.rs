@@ -5,7 +5,7 @@ use crate::domain::asset::{AssetInfo, AssetService};
 use crate::error::AppError;
 
 #[tauri::command]
-pub fn save_asset_from_bytes(
+pub async fn save_asset_from_bytes(
     asset_service: State<'_, Arc<AssetService>>,
     data: Vec<u8>,
     filename: Option<String>,
@@ -14,7 +14,7 @@ pub fn save_asset_from_bytes(
 }
 
 #[tauri::command]
-pub fn save_asset_from_path(
+pub async fn save_asset_from_path(
     asset_service: State<'_, Arc<AssetService>>,
     path: String,
 ) -> Result<AssetInfo, AppError> {
@@ -22,7 +22,7 @@ pub fn save_asset_from_path(
 }
 
 #[tauri::command]
-pub fn get_asset_info(
+pub async fn get_asset_info(
     asset_service: State<'_, Arc<AssetService>>,
     hash: String,
 ) -> Result<AssetInfo, AppError> {
@@ -30,7 +30,7 @@ pub fn get_asset_info(
 }
 
 #[tauri::command]
-pub fn delete_asset(
+pub async fn delete_asset(
     asset_service: State<'_, Arc<AssetService>>,
     hash: String,
 ) -> Result<(), AppError> {
