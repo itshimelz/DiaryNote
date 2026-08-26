@@ -23,6 +23,8 @@ import { useNoteDrag } from '../../hooks/useNoteDrag';
 import { useNoteResize } from '../../hooks/useNoteResize';
 import { DEFAULT_NOTE_WIDTH, DRAG_Z_INDEX } from '../../constants/canvas';
 import { FONT_CLASSES } from './types';
+import { getAssetDisplayUri, isAssetUri, saveAssetFromBytes } from '../../lib/rustAssets';
+import { isTauriEnvironment } from '../../lib/rustStorage';
 
 export interface ImageNoteCardProps {
   note: Note;
@@ -178,9 +180,26 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (isTauriEnvironment()) {
+      try {
+        const asset = await saveAssetFromBytes(new Uint8Array(await file.arrayBuffer()), file.name);
+        onUpdateNote({
+          ...noteRef.current,
+          imageUrl: asset.assetUri,
+          imageType: asset.mimeType,
+          imageAspectRatio: asset.aspectRatio,
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.error('Failed to replace image:', error);
+      }
+      e.target.value = '';
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -201,7 +220,12 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
       img.src = dataUrl;
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
   };
+
+  const imageSrc = note.imageUrl && isAssetUri(note.imageUrl)
+    ? getAssetDisplayUri(note.imageUrl)
+    : note.imageUrl;
 
   // Group Overlap Detection
   const overlappingGroup = React.useMemo(() => {
@@ -465,13 +489,13 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
                 </div>
               ) : (
                 <img
-                  src={note.imageUrl}
+                  src={imageSrc}
                   alt={note.title || 'Polaroid photo'}
                   draggable={false}
                   className={`w-full h-full object-cover select-none pointer-events-none transition-opacity duration-150 ${
                     imageLoaded ? 'opacity-100' : 'opacity-90'
                   }`}
-                  loading="eager"
+                  loading="lazy"
                   decoding="async"
                   onLoad={() => setImageLoaded(true)}
                   onError={() => setImageError(true)}
@@ -548,13 +572,13 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
                 </div>
               ) : (
                 <img
-                  src={note.imageUrl}
+                  src={imageSrc}
                   alt={note.title || 'Photo'}
                   draggable={false}
                   className={`w-full h-full object-cover select-none pointer-events-none transition-opacity duration-150 ${
                     imageLoaded ? 'opacity-100' : 'opacity-90'
                   }`}
-                  loading="eager"
+                  loading="lazy"
                   decoding="async"
                   onLoad={() => setImageLoaded(true)}
                   onError={() => setImageError(true)}
@@ -585,13 +609,13 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
               </div>
             ) : (
               <img
-                src={note.imageUrl}
+                  src={imageSrc}
                 alt={note.title || 'Frameless photo'}
                 draggable={false}
                 className={`w-full h-full object-cover rounded-sm select-none pointer-events-none transition-opacity duration-150 ${
                   imageLoaded ? 'opacity-100' : 'opacity-90'
                 }`}
-                loading="eager"
+                  loading="lazy"
                 decoding="async"
                 onLoad={() => setImageLoaded(true)}
                 onError={() => setImageError(true)}
@@ -634,4 +658,44 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
   );
 };
 
-export const ImageNoteCard = React.memo(ImageNoteCardComponent);
+export const ImageNoteCard = React.memo(ImageNoteCardComponent, (prev, next) => {
+  const prevSelected = prev.selectedNoteIds || [];
+  const nextSelected = next.selectedNoteIds || [];
+  const wasSelected = prevSelected.includes(prev.note.id);
+  const isSelected = nextSelected.includes(next.note.id);
+  if (wasSelected !== isSelected) return false;
+  if (isSelected && (prevSelected.length !== nextSelected.length || !prevSelected.every((id, i) => id === nextSelected[i]))) {
+    return false;
+  }
+
+  return (
+    prev.isCardDragging === next.isCardDragging &&
+    prev.isCut === next.isCut &&
+    prev.isSelected === next.isSelected &&
+    prev.shouldStartEditing === next.shouldStartEditing &&
+    prev.snapToGrid === next.snapToGrid &&
+    prev.isPanMode === next.isPanMode &&
+    prev.note.id === next.note.id &&
+    prev.note.x === next.note.x &&
+    prev.note.y === next.note.y &&
+    prev.note.width === next.note.width &&
+    prev.note.height === next.note.height &&
+    prev.note.zIndex === next.note.zIndex &&
+    prev.note.title === next.note.title &&
+    prev.note.content === next.note.content &&
+    prev.note.imageUrl === next.note.imageUrl &&
+    prev.note.imageAspectRatio === next.note.imageAspectRatio &&
+    prev.note.frameStyle === next.note.frameStyle &&
+    prev.note.pinStyle === next.note.pinStyle &&
+    prev.note.rotation === next.note.rotation &&
+    prev.note.fontFamily === next.note.fontFamily &&
+    prev.note.isPinned === next.note.isPinned &&
+    prev.note.groupId === next.note.groupId &&
+    prev.note.groupName === next.note.groupName &&
+    prev.note.isLocked === next.note.isLocked &&
+    prev.note.isCovered === next.note.isCovered &&
+    prev.note.coverStyle === next.note.coverStyle &&
+    prev.note.sealStyle === next.note.sealStyle &&
+    prev.note.coverPrompt === next.note.coverPrompt
+  );
+});

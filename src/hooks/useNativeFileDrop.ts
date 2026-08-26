@@ -8,7 +8,6 @@ export interface DroppedImageData {
   filename: string;
   title: string;
   mime_type: string;
-  data_url: string;
   file_size: number;
   width?: number;
   height?: number;

@@ -72,7 +72,8 @@ export function addImageNote(
 ): string {
   const newId = `image-note-${crypto.randomUUID()}`;
   const cardWidth = 340;
-  const cardHeight = 360;
+  const safeAspectRatio = aspectRatio && Number.isFinite(aspectRatio) ? Math.max(0.25, Math.min(4, aspectRatio)) : 1;
+  const cardHeight = Math.round(Math.max(300, Math.min(520, cardWidth / safeAspectRatio + 100)));
   const effectiveZoom = transform.zoom * BASE_CANVAS_SCALE;
 
   let viewportX =

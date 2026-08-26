@@ -499,63 +499,62 @@ export default function App() {
     setSelectedNoteIdsRef.current = setSelectedNoteIds;
   }, [selectedNoteIds, setSelectedNoteIds]);
 
+  const addImageNoteFromSource = useCallback((
+    imageUrl: string,
+    mimeType: string,
+    aspectRatio: number,
+    fileName: string,
+    index: number,
+    customClientX?: number,
+    customClientY?: number,
+  ) => {
+    const effectiveZoom = transform.zoom * BASE_CANVAS_SCALE;
+    const worldX = typeof customClientX === 'number'
+      ? Math.round((customClientX - transform.x) / effectiveZoom - 170 + index * 24)
+      : Math.round((window.innerWidth / 2 - transform.x) / effectiveZoom - 170 + index * 30);
+    const worldY = typeof customClientY === 'number'
+      ? Math.round((customClientY - transform.y) / effectiveZoom - 180 + index * 24)
+      : Math.round((window.innerHeight / 2 - transform.y) / effectiveZoom - 180 + index * 30);
+    const newId = handleAddImageNote(
+      transform,
+      settings,
+      imageUrl,
+      mimeType,
+      worldX,
+      worldY,
+      fileName.replace(/\.[^/.]+$/, '') || 'Photo Note',
+      '',
+      'polaroid',
+      undefined,
+      aspectRatio,
+    );
+    setSelectedNoteIds([newId]);
+  }, [transform, settings, handleAddImageNote, setSelectedNoteIds]);
+
   // Native OS File Drag-and-Drop Image Creation Handler via Rust
   const handleAddDroppedImages = useCallback(
     (images: DroppedImageData[], customClientX?: number, customClientY?: number) => {
       if (!images || images.length === 0) return;
 
       images.forEach(async (imgData, index) => {
-        let finalImageUrl = imgData.data_url;
-        let precalculatedAspect: number | undefined;
-
-        if (isTauriEnvironment() && imgData.file_path) {
-          try {
-            const assetInfo = await saveAssetFromPath(imgData.file_path);
-            if (assetInfo && assetInfo.assetUri) {
-              finalImageUrl = assetInfo.assetUri;
-              precalculatedAspect = assetInfo.aspectRatio;
-            }
-          } catch (e) {
-            console.warn('Native asset save from path failed, using data_url fallback:', e);
-          }
-        }
-
-        const img = new Image();
-        img.onload = () => {
-          const aspectRatio = precalculatedAspect || (img.naturalWidth / Math.max(1, img.naturalHeight));
-
-          let worldX: number | undefined;
-          let worldY: number | undefined;
-          const effectiveZoom = transform.zoom * BASE_CANVAS_SCALE;
-
-          if (typeof customClientX === 'number' && typeof customClientY === 'number') {
-            worldX = Math.round((customClientX - transform.x) / effectiveZoom - 170 + index * 24);
-            worldY = Math.round((customClientY - transform.y) / effectiveZoom - 180 + index * 24);
-          } else {
-            worldX = Math.round((window.innerWidth / 2 - transform.x) / effectiveZoom - 170 + index * 30);
-            worldY = Math.round((window.innerHeight / 2 - transform.y) / effectiveZoom - 180 + index * 30);
-          }
-
-          const rawTitle = imgData.title || imgData.filename.replace(/\.[^/.]+$/, '') || 'Photo Note';
-          const newId = handleAddImageNote(
-            transform,
-            settings,
-            finalImageUrl,
-            imgData.mime_type,
-            worldX,
-            worldY,
-            rawTitle,
-            '',
-            'polaroid',
-            undefined,
-            aspectRatio
+        try {
+          const assetInfo = await saveAssetFromPath(imgData.file_path);
+          addImageNoteFromSource(
+            assetInfo.assetUri,
+            assetInfo.mimeType,
+            assetInfo.aspectRatio || 1,
+            imgData.filename,
+            index,
+            customClientX,
+            customClientY,
           );
-          setSelectedNoteIds([newId]);
-        };
-        img.src = imgData.data_url;
+        } catch (e) {
+          console.error('Native image import failed:', e);
+          sendNativeAppNotification('Image Import Failed', `Could not import ${imgData.filename}.`);
+        }
       });
     },
-    [transform, settings, handleAddImageNote, setSelectedNoteIds]
+    [addImageNoteFromSource]
   );
 
   // Subscribe to Tauri Native OS Drag-Drop Events
@@ -570,20 +569,25 @@ export default function App() {
       if (!files || files.length === 0) return;
 
       files.forEach(async (file, index) => {
-        let finalImageUrl = '';
-        let precalculatedAspect: number | undefined;
-
         if (isTauriEnvironment()) {
           try {
             const arrayBuffer = await file.arrayBuffer();
             const bytes = new Uint8Array(arrayBuffer);
             const assetInfo = await saveAssetFromBytes(bytes, file.name);
-            if (assetInfo && assetInfo.assetUri) {
-              finalImageUrl = assetInfo.assetUri;
-              precalculatedAspect = assetInfo.aspectRatio;
-            }
+            addImageNoteFromSource(
+              assetInfo.assetUri,
+              assetInfo.mimeType,
+              assetInfo.aspectRatio || 1,
+              file.name,
+              index,
+              customClientX,
+              customClientY
+            );
+            return;
           } catch (e) {
-            console.warn('Native saveAssetFromBytes failed, fallback to data url:', e);
+            console.error('Native image import failed:', e);
+            sendNativeAppNotification('Image Import Failed', `Could not import ${file.name}.`);
+            return;
           }
         }
 
@@ -594,42 +598,14 @@ export default function App() {
 
           const img = new Image();
           img.onload = () => {
-            const aspectRatio = precalculatedAspect || (img.naturalWidth / Math.max(1, img.naturalHeight));
-
-            let worldX: number | undefined;
-            let worldY: number | undefined;
-            const effectiveZoom = transform.zoom * BASE_CANVAS_SCALE;
-
-            if (typeof customClientX === 'number' && typeof customClientY === 'number') {
-              worldX = Math.round((customClientX - transform.x) / effectiveZoom - 170 + index * 24);
-              worldY = Math.round((customClientY - transform.y) / effectiveZoom - 180 + index * 24);
-            } else {
-              worldX = Math.round((window.innerWidth / 2 - transform.x) / effectiveZoom - 170 + index * 30);
-              worldY = Math.round((window.innerHeight / 2 - transform.y) / effectiveZoom - 180 + index * 30);
-            }
-
-            const rawTitle = file.name.replace(/\.[^/.]+$/, '');
-            const newId = handleAddImageNote(
-              transform,
-              settings,
-              finalImageUrl || dataUrl,
-              file.type,
-              worldX,
-              worldY,
-              rawTitle,
-              '',
-              'polaroid',
-              undefined,
-              aspectRatio
-            );
-            setSelectedNoteIds([newId]);
+            addImageNoteFromSource(dataUrl, file.type, img.naturalWidth / Math.max(1, img.naturalHeight), file.name, index, customClientX, customClientY);
           };
           img.src = dataUrl;
         };
         reader.readAsDataURL(file);
       });
     },
-    [transform, settings, handleAddImageNote, setSelectedNoteIds]
+    [addImageNoteFromSource]
   );
 
   const handleTriggerImagePicker = useCallback((clientX?: number, clientY?: number) => {

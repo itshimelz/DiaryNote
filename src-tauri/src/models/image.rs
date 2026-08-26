@@ -14,8 +14,6 @@ pub struct DroppedImageData {
     pub title: String,
     /// MIME type string (e.g., "image/png", "image/jpeg", "image/webp")
     pub mime_type: String,
-    /// Base64 data URL string ready to be assigned directly to an <img> src or storage
-    pub data_url: String,
     /// Total file size in bytes
     #[ts(type = "number")]
     pub file_size: u64,

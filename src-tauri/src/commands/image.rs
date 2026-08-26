@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use base64::prelude::*;
 
 use crate::error::AppError;
 use crate::models::DroppedImageData;
@@ -59,9 +58,6 @@ pub fn read_image_files(paths: Vec<String>) -> Result<Vec<DroppedImageData>, App
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_else(|| "Photo Note".to_string());
 
-        let base64_str = BASE64_STANDARD.encode(&bytes);
-        let data_url = format!("data:{};base64,{}", mime, base64_str);
-
         let (width, height, aspect_ratio) = match image::ImageReader::new(std::io::Cursor::new(&bytes))
             .with_guessed_format()
         {
@@ -80,7 +76,6 @@ pub fn read_image_files(paths: Vec<String>) -> Result<Vec<DroppedImageData>, App
             filename,
             title,
             mime_type: mime.to_string(),
-            data_url,
             file_size,
             width,
             height,
@@ -115,7 +110,7 @@ mod tests {
         assert_eq!(list.len(), 1);
         assert_eq!(list[0].mime_type, "image/png");
         assert_eq!(list[0].title, "diarynote_test_img");
-        assert!(list[0].data_url.starts_with("data:image/png;base64,"));
+        assert_eq!(list[0].mime_type, "image/png");
 
         let _ = std::fs::remove_file(test_file);
     }

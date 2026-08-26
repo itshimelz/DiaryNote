@@ -21,10 +21,6 @@ title: string,
  */
 mimeType: string, 
 /**
- * Base64 data URL string ready to be assigned directly to an <img> src or storage
- */
-dataUrl: string, 
-/**
  * Total file size in bytes
  */
 fileSize: number, 
