@@ -129,10 +129,12 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
     cardRef,
   });
 
+  const isCoverActive = Boolean(note.isCovered && !isRevealed);
+
   // Dynamic height synchronization: adapts data model height to auto-expanded image card
   useEffect(() => {
     const el = cardRef.current;
-    if (!el || typeof ResizeObserver === 'undefined') return;
+    if (!el || isCoverActive || typeof ResizeObserver === 'undefined') return;
 
     let rafId: number | null = null;
     const observer = new ResizeObserver((entries) => {
@@ -160,7 +162,7 @@ const ImageNoteCardComponent: React.FC<ImageNoteCardProps> = ({
       if (rafId !== null) cancelAnimationFrame(rafId);
       observer.disconnect();
     };
-  }, [note.id, isResizing, onUpdateNote]);
+  }, [note.id, isResizing, isCoverActive, onUpdateNote]);
 
   useEffect(() => {
     if (shouldStartEditing) {

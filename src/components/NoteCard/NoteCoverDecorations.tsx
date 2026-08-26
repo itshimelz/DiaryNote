@@ -2,6 +2,11 @@ import React from 'react';
 import { CoverStyle } from '../../types';
 import airmailBorderTile from '../../assets/note-covers/covers/airmail-border-tile@2x.png';
 
+const AIRMAIL_STYLE: React.CSSProperties = {
+  backgroundImage: `url(${airmailBorderTile})`,
+  backgroundSize: '51px 51px',
+};
+
 interface NoteCoverDecorationsProps {
   coverStyle?: CoverStyle;
   accentColor?: string;
@@ -19,10 +24,7 @@ const NoteCoverDecorationsComponent: React.FC<NoteCoverDecorationsProps> = ({
             re-rasterize through cairo on every covered-card mount; a decoded bitmap blits. */}
         <div
           className="absolute inset-0"
-          style={{
-            backgroundImage: `url(${airmailBorderTile})`,
-            backgroundSize: '51px 51px',
-          }}
+          style={AIRMAIL_STYLE}
         />
         {/* Inner Aerogramme Paper Background */}
         <div className="relative w-full h-full rounded-xs bg-[#f7f3e8]" />

@@ -187,7 +187,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
   // Dynamic height synchronization: adapts data model height to auto-expanded content (AI merge, markdown, etc.)
   useEffect(() => {
     const el = cardRef.current;
-    if (!el || typeof ResizeObserver === 'undefined') return;
+    if (!el || isCoverActive || typeof ResizeObserver === 'undefined') return;
 
     let rafId: number | null = null;
     const observer = new ResizeObserver((entries) => {
@@ -215,7 +215,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       if (rafId !== null) cancelAnimationFrame(rafId);
       observer.disconnect();
     };
-  }, [note.id, isResizing, onUpdateNote]);
+  }, [note.id, isResizing, isCoverActive, onUpdateNote]);
 
   useEffect(() => {
     if (!shouldStartEditing || isCoverActive) {
@@ -375,7 +375,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
 
   // Check if un-grouped note is spatially positioned over an existing Group Frame
   const overlappingGroup = useMemo(() => {
-    if (note.groupId || !allNotes || allNotes.length === 0) return null;
+    if (isCoverActive || note.groupId || !allNotes || allNotes.length === 0) return null;
     const groupsMap = new Map<string, { id: string; name: string; notes: Note[] }>();
     allNotes.forEach((n) => {
       if (n.groupId && n.id !== note.id) {
@@ -422,7 +422,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       }
     }
     return null;
-  }, [allNotes, note.x, note.y, note.width, note.height, note.groupId, note.id]);
+  }, [allNotes, note.x, note.y, note.width, note.height, note.groupId, note.id, isCoverActive]);
 
   const ruledLineHeight = useMemo(() => {
     if (!isRuled) return undefined;
