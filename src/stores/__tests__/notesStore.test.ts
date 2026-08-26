@@ -88,6 +88,21 @@ describe('notesStore', () => {
     expect(second[0].title).toBe('edited');
   });
 
+  it('patches migrated image URLs only when the note is unchanged', () => {
+    useNotesStore.getState().hydrate([
+      makeNote('same', { imageUrl: 'data:image/png;base64,abc', updatedAt: 't1' }),
+      makeNote('edited', { imageUrl: 'data:image/png;base64,def', updatedAt: 't2' }),
+    ]);
+
+    useNotesStore.getState().patchImageUrls([
+      { id: 'same', imageUrl: 'diarynote-asset://same', updatedAt: 't1' },
+      { id: 'edited', imageUrl: 'diarynote-asset://edited', updatedAt: 'stale' },
+    ]);
+
+    expect(useNotesStore.getState().notesById.same.imageUrl).toBe('diarynote-asset://same');
+    expect(useNotesStore.getState().notesById.edited.imageUrl).toBe('data:image/png;base64,def');
+  });
+
   it('update coalesces history pushes within the debounce window', async () => {
     useNotesStore.getState().insert(makeNote('a'));
     await vi.advanceTimersByTimeAsync(500); // flush insert's autosave

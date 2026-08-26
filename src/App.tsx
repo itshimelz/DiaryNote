@@ -21,7 +21,7 @@ import { BASE_CANVAS_SCALE } from './constants/canvas';
 import { useNoteSelection } from './hooks/useNoteSelection';
 import { useAppUIState } from './hooks/useAppUIState';
 import { useNativeFileDrop, DroppedImageData } from './hooks/useNativeFileDrop';
-import { saveAssetFromPath, saveAssetFromBytes } from './lib/rustAssets';
+import { migrateInlineImages, saveAssetFromPath, saveAssetFromBytes } from './lib/rustAssets';
 import { isTauriEnvironment } from './lib/rustStorage';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -155,6 +155,16 @@ export default function App() {
         }
         if (dbSettings) {
           setSettings((prev) => ({ ...prev, ...dbSettings }));
+        }
+        const runMigration = () => {
+          migrateInlineImages()
+            .then((patches) => useNotesStore.getState().patchImageUrls(patches))
+            .catch((error) => console.error('Inline image migration failed:', error));
+        };
+        if (typeof window.requestIdleCallback === 'function') {
+          window.requestIdleCallback(runMigration, { timeout: 5000 });
+        } else {
+          setTimeout(runMigration, 1000);
         }
       })
       .catch((err) => console.error('Failed to initialize database:', err));

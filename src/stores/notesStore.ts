@@ -40,6 +40,7 @@ interface NotesState {
   removeMany: (ids: string[]) => void;
   bringToFront: (noteId: string) => void;
   restore: (restoredNotes: Note[]) => void;
+  patchImageUrls: (patches: Array<{ id: string; imageUrl: string; updatedAt: string }>) => void;
   flushHistory: () => void;
 }
 
@@ -399,6 +400,22 @@ export const useNotesStore = create<NotesState>()(
         }
         scheduleSave();
         return { notesById, order, listVersion: s.listVersion + 1, ...bumpLayout(s) };
+      });
+    },
+
+    patchImageUrls: (patches) => {
+      if (patches.length === 0) return;
+      useNotesStore.setState((state) => {
+        const nextById = { ...state.notesById };
+        let changed = false;
+        for (const patch of patches) {
+          const note = nextById[patch.id];
+          if (note?.updatedAt === patch.updatedAt && note.imageUrl?.startsWith('data:image/')) {
+            nextById[patch.id] = { ...note, imageUrl: patch.imageUrl };
+            changed = true;
+          }
+        }
+        return changed ? { notesById: nextById, listVersion: state.listVersion + 1 } : state;
       });
     },
 

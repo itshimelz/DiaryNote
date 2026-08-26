@@ -106,3 +106,14 @@ export async function deleteAsset(hash: string): Promise<void> {
 
   await invoke<void>('delete_asset', { hash });
 }
+
+export interface MigratedImagePatch {
+  id: string;
+  imageUrl: string;
+  updatedAt: string;
+}
+
+export async function migrateInlineImages(): Promise<MigratedImagePatch[]> {
+  if (!isTauriAvailable()) return [];
+  return invoke<MigratedImagePatch[]>('migrate_inline_images');
+}
