@@ -95,7 +95,13 @@ CREATE TRIGGER IF NOT EXISTS notes_ad AFTER DELETE ON notes BEGIN
     DELETE FROM notes_fts WHERE id = old.id;
 END;
 
-CREATE TRIGGER IF NOT EXISTS notes_au AFTER UPDATE ON notes BEGIN
+-- WHEN guard: geometry/style-only saves (drag, resize, auto-height, pin, theme) must NOT
+-- rewrite the trigram index of the whole body. Only indexed fields trigger a reindex.
+CREATE TRIGGER IF NOT EXISTS notes_au AFTER UPDATE ON notes
+WHEN old.title IS NOT new.title
+    OR old.content IS NOT new.content
+    OR old.is_locked IS NOT new.is_locked
+BEGIN
     DELETE FROM notes_fts WHERE id = old.id;
     INSERT INTO notes_fts(id, title, content, tags) 
     VALUES (

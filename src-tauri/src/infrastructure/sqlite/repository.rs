@@ -208,6 +208,7 @@ impl NoteRepository for SqliteNoteRepository {
                 "#
             )?;
 
+            let mut existing_tags_stmt = tx.prepare("SELECT tag FROM note_tags WHERE note_id = ?1")?;
             let mut delete_tags_stmt = tx.prepare("DELETE FROM note_tags WHERE note_id = ?1")?;
             let mut insert_tag_stmt = tx.prepare("INSERT OR IGNORE INTO note_tags (note_id, tag) VALUES (?1, ?2)")?;
 
@@ -248,10 +249,19 @@ impl NoteRepository for SqliteNoteRepository {
                     note.cover_prompt,
                 ])?;
 
-                // Re-create tags
-                delete_tags_stmt.execute((&note.id,))?;
-                if let Some(ref tags) = note.tags {
-                    for tag in tags {
+                // Re-create tags only when they actually changed: every dirty save (drag,
+                // resize, typing) previously rewrote these rows and their index.
+                let incoming = note.tags.as_deref().unwrap_or(&[]);
+                let existing: Vec<String> = existing_tags_stmt
+                    .query_map((&note.id,), |row| row.get(0))?
+                    .flatten()
+                    .collect();
+                let unchanged = existing.len() == incoming.len()
+                    && incoming.iter().all(|tag| existing.contains(tag));
+
+                if !unchanged {
+                    delete_tags_stmt.execute((&note.id,))?;
+                    for tag in incoming {
                         insert_tag_stmt.execute((&note.id, tag))?;
                     }
                 }
