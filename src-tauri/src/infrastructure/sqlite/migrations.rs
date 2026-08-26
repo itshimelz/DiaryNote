@@ -1,7 +1,7 @@
 use rusqlite::{Connection, Result};
 use super::schema::INITIAL_SCHEMA_SQL;
 
-pub const CURRENT_SCHEMA_VERSION: i32 = 3;
+pub const CURRENT_SCHEMA_VERSION: i32 = 4;
 
 /// Runs all pending schema migrations inside an atomic transaction.
 pub fn run_migrations(conn: &mut Connection) -> Result<()> {
@@ -27,6 +27,14 @@ pub fn run_migrations(conn: &mut Connection) -> Result<()> {
         conn.execute("DROP TRIGGER IF EXISTS notes_au", [])?;
         conn.execute_batch(INITIAL_SCHEMA_SQL)?;
         conn.pragma_update(None, "user_version", 3)?;
+    }
+
+    if current_version < 4 {
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_notes_canvas_order ON notes(z_index ASC, created_timestamp ASC)",
+            [],
+        )?;
+        conn.pragma_update(None, "user_version", 4)?;
     }
 
     Ok(())

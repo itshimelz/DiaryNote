@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use tauri::{AppHandle, Emitter, State};
 
 use crate::domain::ai::{
@@ -9,7 +9,7 @@ use crate::infrastructure::network::AiClient;
 
 #[tauri::command]
 pub async fn ai_test_connection(
-    client: State<'_, Arc<AiClient>>,
+    client: State<'_, Arc<LazyLock<AiClient>>>,
     config: AiRequestConfig,
 ) -> Result<AiConnectionTestResult, AppError> {
     Ok(client.test_connection(&config).await?)
@@ -18,7 +18,7 @@ pub async fn ai_test_connection(
 #[tauri::command]
 pub async fn ai_stream_synthesis(
     app: AppHandle,
-    client: State<'_, Arc<AiClient>>,
+    client: State<'_, Arc<LazyLock<AiClient>>>,
     config: AiRequestConfig,
     request_id: String,
 ) -> Result<AiSynthesisResult, AppError> {
@@ -72,7 +72,7 @@ pub async fn ai_stream_synthesis(
 
 #[tauri::command]
 pub async fn ai_generate_tags(
-    client: State<'_, Arc<AiClient>>,
+    client: State<'_, Arc<LazyLock<AiClient>>>,
     config: AiRequestConfig,
     title: String,
     content: String,

@@ -23,12 +23,6 @@ pub fn init_sqlite_connection<P: AsRef<Path>>(db_path: P) -> Result<Connection> 
     // Run schema migrations
     run_migrations(&mut conn)?;
 
-    // Quick integrity check
-    let integrity: String = conn.query_row("PRAGMA quick_check", [], |row| row.get(0))?;
-    if integrity != "ok" {
-        log::warn!("SQLite database quick_check warning: {}", integrity);
-    }
-
     Ok(conn)
 }
 

@@ -7,7 +7,7 @@ pub mod utils;
 
 pub use error::AppError;
 
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use commands::{
     ai_generate_tags, ai_stream_synthesis, ai_test_connection, check_database_integrity,
     clear_vault_fts_index, compute_batch_layout, compute_batch_drag_snapping, cull_notes_in_frustum,
@@ -192,8 +192,8 @@ pub fn run() {
             let search_service = Arc::new(SearchService::new(db_pool.reader_arc()));
             let graph_service = Arc::new(GraphService::new());
 
-            // Shared AI client: one connection pool reused across every AI request
-            let ai_client = Arc::new(AiClient::new());
+            // Shared AI client: build the TLS pool only when AI is first used.
+            let ai_client = Arc::new(LazyLock::new(AiClient::new));
 
             // Direct state injection into Tauri
             app.manage(note_service);

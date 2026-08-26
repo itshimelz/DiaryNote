@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS canvas_transform (
 -- Indexes for lightning-fast lookups
 CREATE INDEX IF NOT EXISTS idx_notes_updated_timestamp ON notes(updated_timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_notes_daily ON notes(is_daily_entry, entry_date);
+CREATE INDEX IF NOT EXISTS idx_notes_canvas_order ON notes(z_index ASC, created_timestamp ASC);
 CREATE INDEX IF NOT EXISTS idx_note_tags_tag ON note_tags(tag);
 
 -- Persistent FTS5 Full-Text Search Virtual Table (Trigram for multi-language substring matching)

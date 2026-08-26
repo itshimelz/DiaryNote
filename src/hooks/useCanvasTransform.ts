@@ -37,6 +37,8 @@ export function useCanvasTransform(bringToFront: (noteId: string) => void) {
   const settingsSaveTimerRef = useRef<number>(0);
   const focusedNoteTimerRef = useRef<number>(0);
   const fitRestoreRef = useRef<CanvasTransform | null>(null);
+  const didMountTransformRef = useRef(false);
+  const didMountSettingsRef = useRef(false);
 
   // Sync dark mode root class with settings
   useEffect(() => {
@@ -51,6 +53,10 @@ export function useCanvasTransform(bringToFront: (noteId: string) => void) {
 
   // Save transform to DB & localStorage (debounced to avoid thrashing during animations)
   useEffect(() => {
+    if (!didMountTransformRef.current) {
+      didMountTransformRef.current = true;
+      return;
+    }
     window.clearTimeout(transformSaveTimerRef.current);
     transformSaveTimerRef.current = window.setTimeout(() => {
       saveTransformToDB(transform);
@@ -61,6 +67,10 @@ export function useCanvasTransform(bringToFront: (noteId: string) => void) {
 
   // Save settings to DB & localStorage (debounced)
   useEffect(() => {
+    if (!didMountSettingsRef.current) {
+      didMountSettingsRef.current = true;
+      return;
+    }
     window.clearTimeout(settingsSaveTimerRef.current);
     settingsSaveTimerRef.current = window.setTimeout(() => {
       saveSettingsToDB(settings);
