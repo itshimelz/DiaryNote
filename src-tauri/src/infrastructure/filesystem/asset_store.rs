@@ -157,17 +157,23 @@ impl AssetStore {
     pub fn get_asset_file(&self, hash: &str) -> Result<(PathBuf, String), AssetError> {
         Self::validate_hash(hash)?;
 
-        // Search originals_dir for a file starting with hash
+        // Direct probe of the extensions save_asset can emit: a handful of stat calls instead
+        // of listing originals_dir, which cost O(stored assets) on every image request.
+        for ext in Self::KNOWN_EXTENSIONS {
+            let candidate = self.paths.originals_dir.join(format!("{}.{}", hash, ext));
+            if candidate.is_file() {
+                let mime = Self::sniff_mime(&candidate);
+                return Ok((candidate, mime));
+            }
+        }
+
+        // Fallback for assets stored with an extension taken from a filename hint.
         if let Ok(entries) = fs::read_dir(&self.paths.originals_dir) {
             for entry in entries.flatten() {
                 let path = entry.path();
                 if let Some(file_name) = path.file_name().and_then(|n| n.to_str()) {
                     if file_name.starts_with(hash) {
-                        let mut header = [0u8; 32];
-                        let _ = File::open(&path).and_then(|mut f| f.read(&mut header));
-                        let mime = detect_image_mime_type(&path, &header)
-                            .unwrap_or("application/octet-stream")
-                            .to_string();
+                        let mime = Self::sniff_mime(&path);
                         return Ok((path, mime));
                     }
                 }
@@ -175,6 +181,18 @@ impl AssetStore {
         }
 
         Err(AssetError::NotFound(hash.to_string()))
+    }
+
+    /// Extensions `save_asset` writes for every MIME type it recognizes.
+    const KNOWN_EXTENSIONS: &'static [&'static str] =
+        &["png", "jpg", "webp", "gif", "svg", "bmp", "avif", "ico"];
+
+    fn sniff_mime(path: &Path) -> String {
+        let mut header = [0u8; 32];
+        let _ = File::open(path).and_then(|mut f| f.read(&mut header));
+        detect_image_mime_type(path, &header)
+            .unwrap_or("application/octet-stream")
+            .to_string()
     }
 
     /// Resolves thumbnail path if available, or falls back to original asset path.
@@ -297,6 +315,22 @@ mod tests {
         // Cleanup
         let _ = store.delete_asset(&asset1.hash);
         assert!(store.get_asset_file(&asset1.hash).is_err());
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    /// The fast extension probe must resolve the same file the directory-scan fallback would.
+    #[test]
+    fn test_get_asset_file_resolves_probe_and_fallback() {
+        let (store, root) = create_test_store();
+        let png = store.save_asset(b"png-bytes".as_slice(), Some("a.png")).unwrap();
+        let (probed, _) = store.get_asset_file(&png.hash).expect("probe hit");
+        assert_eq!(probed.extension().unwrap(), "png");
+
+        // Unknown MIME keeps the hint extension, so only the fallback scan can find it.
+        let odd = store.save_asset(b"raw-bytes".as_slice(), Some("scan.tiff")).unwrap();
+        let (scanned, _) = store.get_asset_file(&odd.hash).expect("fallback hit");
+        assert_eq!(scanned.extension().unwrap(), "tiff");
+
         let _ = fs::remove_dir_all(&root);
     }
 }
