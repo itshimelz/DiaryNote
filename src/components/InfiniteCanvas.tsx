@@ -748,7 +748,10 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
       <div
         ref={worldLayerRef}
         className={`absolute inset-0 origin-top-left will-change-transform ${isPanning ? 'pointer-events-none' : ''}`}
-        style={isPanning ? undefined : {
+        style={{
+          // Keep a valid transform in React's tree. During a gesture, the rAF writer
+          // updates this same property directly; removing it causes a one-frame jump
+          // to world origin when isPanning changes.
           transform: `translate3d(${transform.x}px, ${transform.y}px, 0) scale(${transform.zoom * BASE_CANVAS_SCALE})`,
         }}
       >
