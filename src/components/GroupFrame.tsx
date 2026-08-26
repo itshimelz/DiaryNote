@@ -106,32 +106,35 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
       notePositions: groupNotes.map((n) => ({ id: n.id, x: n.x, y: n.y })),
     };
 
-    let pendingUpdate: Note[] | null = null;
+    const entries = groupNotes.map((note) => ({
+      note,
+      start: dragStartRef.current!.notePositions.find((position) => position.id === note.id)!,
+      element: document.getElementById(`note-card-${note.id}`),
+    }));
+    const frameEl = document.getElementById(`group-frame-${groupId}`);
+    const pendingPositions = new Map<string, { x: number; y: number }>();
+    let frameId: number | null = null;
+    let latestMove: MouseEvent | null = null;
 
-    const handleMouseMove = (moveEvt: MouseEvent) => {
+    const processMove = (moveEvt: MouseEvent) => {
       if (!dragStartRef.current) return;
       const dx = (moveEvt.clientX - dragStartRef.current.startX) / zoom;
       const dy = (moveEvt.clientY - dragStartRef.current.startY) / zoom;
 
-      pendingUpdate = groupNotes.map((n) => {
-        const startPos = dragStartRef.current?.notePositions.find((item) => item.id === n.id);
-        if (!startPos) return n;
-        let rawX = startPos.x + dx;
-        let rawY = startPos.y + dy;
+      for (const { note, start, element } of entries) {
+        let rawX = start.x + dx;
+        let rawY = start.y + dy;
         if (snapToGrid) {
           rawX = Math.round(rawX / GRID_SIZE) * GRID_SIZE;
           rawY = Math.round(rawY / GRID_SIZE) * GRID_SIZE;
         }
-        // Direct DOM update for note card elements
-        const cardEl = document.getElementById(`note-card-${n.id}`);
-        if (cardEl) {
-          cardEl.style.transform = `translate3d(${Math.round(rawX)}px, ${Math.round(rawY)}px, 0)`;
+        if (element) {
+          const rotation = note.rotation || 0;
+          element.style.transform = `translate3d(${Math.round(rawX)}px, ${Math.round(rawY)}px, 0)${rotation ? ` rotate(${rotation}deg)` : ''}`;
         }
-        return { ...n, x: rawX, y: rawY };
-      });
+        pendingPositions.set(note.id, { x: rawX, y: rawY });
+      }
 
-      // Direct DOM update for group frame boundary element
-      const frameEl = document.getElementById(`group-frame-${groupId}`);
       if (frameEl) {
         const frameX = Math.round(initialFrameBounds.minX + dx);
         const frameY = Math.round(initialFrameBounds.minY + dy);
@@ -139,11 +142,25 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
       }
     };
 
+    const handleMouseMove = (moveEvt: MouseEvent) => {
+      latestMove = moveEvt;
+      if (frameId === null) {
+        frameId = requestAnimationFrame(() => {
+          frameId = null;
+          if (latestMove) processMove(latestMove);
+        });
+      }
+    };
+
     const handleMouseUp = () => {
+      if (frameId !== null) cancelAnimationFrame(frameId);
       onDragStateChange?.([]);
 
-      if (pendingUpdate && onUpdateBatchNotes) {
-        onUpdateBatchNotes(pendingUpdate);
+      if (pendingPositions.size > 0 && onUpdateBatchNotes) {
+        onUpdateBatchNotes(entries.flatMap(({ note }) => {
+          const position = pendingPositions.get(note.id);
+          return position ? [{ ...note, ...position }] : [];
+        }));
       }
       dragStartRef.current = null;
       window.removeEventListener('mousemove', handleMouseMove);
@@ -166,8 +183,8 @@ const GroupFrameComponent: React.FC<GroupFrameProps> = ({
   const isLight = themeMode === 'light';
 
   const containerBorder = isLight
-    ? 'border-2 border-dashed border-blue-500/35 bg-blue-500/[0.03] backdrop-blur-[0.5px]'
-    : 'border-2 border-dashed border-blue-500/40 bg-blue-500/[0.04] backdrop-blur-[0.5px]';
+    ? 'border-2 border-dashed border-blue-500/35 bg-blue-500/[0.03]'
+    : 'border-2 border-dashed border-blue-500/40 bg-blue-500/[0.04]';
 
   const badgeStyle = isLight
     ? 'bg-white border border-slate-200/90 text-slate-900 shadow-sm hover:border-slate-300'

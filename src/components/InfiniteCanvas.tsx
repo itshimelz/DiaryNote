@@ -199,12 +199,12 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const worldLayerRef = useRef<HTMLDivElement>(null);
+  const selectionBoxRef = useRef<HTMLDivElement>(null);
   const gridBgRef = useRef<HTMLDivElement>(null);
   const minimapFgRef = useRef<HTMLCanvasElement>(null);
   const [isPanning, setIsPanning] = useState(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [isDragOverCanvas, setIsDragOverCanvas] = useState(false);
-  const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
   const [draggingNoteIds, setDraggingNoteIds] = useState<string[]>([]);
   const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight });
   const [minimapNotes, setMinimapNotes] = useState<Note[]>(() => getNotesArray());
@@ -427,7 +427,12 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
 
         if (!hasDragged) return;
 
-        setSelectionBox({ startX, startY, currentX: curX, currentY: curY });
+        if (selectionBoxRef.current) {
+          selectionBoxRef.current.style.transform = `translate3d(${Math.min(startX, curX)}px, ${Math.min(startY, curY)}px, 0)`;
+          selectionBoxRef.current.style.width = `${Math.abs(curX - startX)}px`;
+          selectionBoxRef.current.style.height = `${Math.abs(curY - startY)}px`;
+          selectionBoxRef.current.hidden = false;
+        }
 
         const selLeft = Math.min(startX, curX);
         const selRight = Math.max(startX, curX);
@@ -473,7 +478,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
 
       const handleMouseUp = () => {
         if (selectionFrame !== null) cancelAnimationFrame(selectionFrame);
-        setSelectionBox(null);
+        if (selectionBoxRef.current) selectionBoxRef.current.hidden = true;
         if (!hasDragged && !e.shiftKey) {
           onSelectNote(null);
         }
@@ -743,7 +748,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
       <div
         ref={worldLayerRef}
         className={`absolute inset-0 origin-top-left will-change-transform ${isPanning ? 'pointer-events-none' : ''}`}
-        style={{
+        style={isPanning ? undefined : {
           transform: `translate3d(${transform.x}px, ${transform.y}px, 0) scale(${transform.zoom * BASE_CANVAS_SCALE})`,
         }}
       >
@@ -808,17 +813,11 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
       </div>
 
       {/* Selection Box overlay */}
-      {selectionBox && (
-        <div
-          className="absolute border border-blue-500 bg-blue-500/10 pointer-events-none rounded-xs z-30"
-          style={{
-            left: Math.min(selectionBox.startX, selectionBox.currentX),
-            top: Math.min(selectionBox.startY, selectionBox.currentY),
-            width: Math.abs(selectionBox.currentX - selectionBox.startX),
-            height: Math.abs(selectionBox.currentY - selectionBox.startY),
-          }}
-        />
-      )}
+      <div
+        ref={selectionBoxRef}
+        hidden
+        className="absolute border border-blue-500 bg-blue-500/10 pointer-events-none rounded-xs z-30"
+      />
 
       {/* Floating 2D HTML5 Canvas Minimap */}
       <div className="absolute top-4 right-4 z-20 hidden md:block">

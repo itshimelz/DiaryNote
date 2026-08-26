@@ -18,21 +18,16 @@ interface UseNoteDragOptions {
 }
 
 function updateGroupFramesDOM(
-  allNotes: Note[],
+  groupedNotes: Map<string, Note[]>,
+  groupElements: Map<string, HTMLElement>,
+  affectedGroupIds: Set<string>,
   updatedPosMap: Map<string, { x: number; y: number }>
 ) {
-  const affectedGroupIds = new Set<string>();
-  allNotes.forEach((n) => {
-    if (n.groupId && updatedPosMap.has(n.id)) {
-      affectedGroupIds.add(n.groupId);
-    }
-  });
-
   affectedGroupIds.forEach((gId) => {
-    const frameEl = document.getElementById(`group-frame-${gId}`);
+    const frameEl = groupElements.get(gId);
     if (!frameEl) return;
 
-    const groupNotes = allNotes.filter((n) => n.groupId === gId);
+    const groupNotes = groupedNotes.get(gId) || [];
     let minX = Infinity;
     let minY = Infinity;
     let maxX = -Infinity;
@@ -150,7 +145,8 @@ export function useNoteDrag({
       : [note.id];
 
     const currentPosRef = { current: { x: noteRef.current.x, y: noteRef.current.y } };
-    const currentBatchRef = { current: [] as Note[] };
+    const currentBatchPositions = new Map<string, { x: number; y: number }>();
+    const notesById = new Map(allNotesRef.current.map((n) => [n.id, n]));
 
     dragStartRef.current = {
       x: e.clientX,
@@ -161,7 +157,7 @@ export function useNoteDrag({
 
     if (activeSelectedIds.length > 1) {
       groupDragStartRef.current = activeSelectedIds.map((id) => {
-        const targetNote = allNotesRef.current.find((n) => n.id === id);
+        const targetNote = notesById.get(id);
         const fallbackX = id === noteRef.current.id ? noteRef.current.x : 0;
         const fallbackY = id === noteRef.current.id ? noteRef.current.y : 0;
         return {
@@ -186,6 +182,22 @@ export function useNoteDrag({
       return el || null;
     };
 
+    const activeIdSet = new Set(activeSelectedIds);
+    const groupedNotes = new Map<string, Note[]>();
+    const groupElements = new Map<string, HTMLElement>();
+    const affectedGroupIds = new Set<string>();
+    for (const n of allNotesRef.current) {
+      if (!n.groupId) continue;
+      const notes = groupedNotes.get(n.groupId);
+      if (notes) notes.push(n);
+      else groupedNotes.set(n.groupId, [n]);
+      if (activeIdSet.has(n.id)) affectedGroupIds.add(n.groupId);
+    }
+    for (const groupId of affectedGroupIds) {
+      const frame = document.getElementById(`group-frame-${groupId}`);
+      if (frame) groupElements.set(groupId, frame);
+    }
+
     let hasMoved = false;
     let moveFrame: number | null = null;
     let latestMoveEvt: MouseEvent | null = null;
@@ -197,11 +209,9 @@ export function useNoteDrag({
       const updatedMap = new Map<string, { x: number; y: number }>();
 
       if (groupDragStartRef.current.length > 1) {
-        const updatedBatch = allNotesRef.current
-          .filter((n) => activeSelectedIds.includes(n.id))
-          .map((n) => {
-            const startPos = groupDragStartRef.current.find((item) => item.id === n.id);
-            if (!startPos) return n;
+        for (const startPos of groupDragStartRef.current) {
+            const n = notesById.get(startPos.id);
+            if (!n) continue;
             let rawX = startPos.startX + dx;
             let rawY = startPos.startY + dy;
             if (snapToGrid) {
@@ -214,9 +224,8 @@ export function useNoteDrag({
               el.style.transform = `translate3d(${Math.round(rawX)}px, ${Math.round(rawY)}px, 0)${rot ? ` rotate(${rot}deg)` : ''}`;
             }
             updatedMap.set(n.id, { x: rawX, y: rawY });
-            return { ...n, x: rawX, y: rawY };
-          });
-        currentBatchRef.current = updatedBatch;
+            currentBatchPositions.set(n.id, { x: rawX, y: rawY });
+        }
       } else {
         let newX = dragStartRef.current.noteX + dx;
         let newY = dragStartRef.current.noteY + dy;
@@ -233,7 +242,9 @@ export function useNoteDrag({
         updatedMap.set(noteRef.current.id, { x: newX, y: newY });
       }
 
-      updateGroupFramesDOM(allNotesRef.current, updatedMap);
+      if (affectedGroupIds.size > 0) {
+        updateGroupFramesDOM(groupedNotes, groupElements, affectedGroupIds, updatedMap);
+      }
     };
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
@@ -274,13 +285,13 @@ export function useNoteDrag({
         if (
           groupDragStartRef.current.length > 1 &&
           onUpdateBatchNotes &&
-          currentBatchRef.current.length > 0
+          currentBatchPositions.size > 0
         ) {
-          const finalBatch = currentBatchRef.current.map((n) => ({
-            ...n,
-            x: snapToGrid ? Math.round(n.x / GRID_SIZE) * GRID_SIZE : n.x,
-            y: snapToGrid ? Math.round(n.y / GRID_SIZE) * GRID_SIZE : n.y,
-          }));
+          const finalBatch = groupDragStartRef.current.flatMap(({ id }) => {
+            const n = notesById.get(id);
+            const position = currentBatchPositions.get(id);
+            return n && position ? [{ ...n, x: position.x, y: position.y }] : [];
+          });
           onUpdateBatchNotes(finalBatch);
         } else {
           const finalX = snapToGrid
@@ -298,7 +309,7 @@ export function useNoteDrag({
       } else if (!isMulti && isAlreadySelected && selectedNoteIds.length > 1) {
         onSelectNote(note.id, false);
       }
-      currentBatchRef.current = [];
+      currentBatchPositions.clear();
       activeFrameRef.current = null;
       activeMouseHandlersRef.current = null;
 
