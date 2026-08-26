@@ -38,7 +38,6 @@ import {
 
 import { AppModals } from './components/Modals/AppModals';
 import { sendNativeAppNotification, formatGroupTime } from './utils';
-import { exportNoteAsImage, buildExportImageFileName, downloadDataUrl } from './utils/noteImageExport';
 import { checkForAppUpdates } from './utils/updateChecker';
 import { saveAppSettingsToDB as saveSettingsToDB, saveDirtyNotesToDB as saveImportedNotesToDB, exportNoteToFileNative, savePngFileNative } from './lib/rustStorage';
 import { mergeNotesWithAI, type StreamProgress } from './services/ai/aiMergeService';
@@ -942,9 +941,9 @@ export default function App() {
       return;
     }
 
-    const fileName = buildExportImageFileName(note);
-
     try {
+      const { exportNoteAsImage, buildExportImageFileName, downloadDataUrl } = await import('./utils/noteImageExport');
+      const fileName = buildExportImageFileName(note);
       const allNotes = Object.values(useNotesStore.getState().notesById);
       const dataUrl = await exportNoteAsImage(note, allNotes);
 

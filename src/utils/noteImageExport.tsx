@@ -4,7 +4,6 @@
  * markdown, checklists, fonts, and paper textures match the canvas exactly.
  */
 import React, { createRoot } from 'react-dom/client';
-import { domToPng } from 'modern-screenshot';
 import { Note } from '../types';
 import { FONT_CLASSES } from '../constants/fonts';
 import { PAPER_THEMES } from '../constants/paperThemes';
@@ -105,6 +104,7 @@ export async function exportNoteAsImage(note: Note, allNotes: Note[]): Promise<s
     await document.fonts.ready;
     await nextFrame();
 
+    const { domToPng } = await import('modern-screenshot');
     const cardEl = host.firstElementChild as HTMLElement;
     const dataUrl = await domToPng(cardEl, { scale: EXPORT_SCALE });
     return dataUrl;

@@ -1,21 +1,13 @@
-import React, { useMemo } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkBreaks from 'remark-breaks';
+import React, { lazy, Suspense, useMemo } from 'react';
 import { Tick02Icon } from '@hugeicons/core-free-icons';
 import { Icon } from '../ui';
 import { Note, PaperTheme } from '../../types';
 import { processMarkdownMentions, preserveNoteTabsAndIndentation, openExternalUrl } from '../../utils';
 import { PAPER_THEMES } from './types';
 
-function disableIndentedCodePlugin(this: any) {
-  const data = this.data();
-  data.micromarkExtensions = (data.micromarkExtensions || []).concat({
-    disable: { null: ['codeIndented'] },
-  });
-}
-
-const REMARK_PLUGINS = [remarkGfm, remarkBreaks, disableIndentedCodePlugin];
+const MarkdownContent = lazy(() =>
+  import('./MarkdownContent').then((module) => ({ default: module.MarkdownContent }))
+);
 
 export interface BaseMarkdownRendererProps {
   content: string;
@@ -315,9 +307,12 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
           )}
         </div>
       ) : (
-        <ReactMarkdown remarkPlugins={REMARK_PLUGINS} components={components}>
-          {isEmpty && emptyPlaceholder ? emptyPlaceholder : processedContent}
-        </ReactMarkdown>
+        <Suspense fallback={<div className="whitespace-pre-wrap leading-relaxed">{processedContent}</div>}>
+          <MarkdownContent
+            content={isEmpty && emptyPlaceholder ? emptyPlaceholder : processedContent}
+            components={components}
+          />
+        </Suspense>
       )}
     </div>
   );
