@@ -12,6 +12,22 @@ interface NoteConnectionsProps {
 }
 
 /**
+ * 32-bit FNV-1a over the only fields that can change graph edges (title + content).
+ * Avoids copying the whole vault's text into a memo key on every store mutation.
+ * A collision costs one stale refresh until the next edit; correctness of drawn edges
+ * still comes from the Rust parser.
+ */
+function linkFieldsHash(note: Note): number {
+  let h = 0x811c9dc5;
+  const text = `${note.title || ''}\u0000${note.content || ''}`;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
+/**
  * Calculates the exact point where a line from center to target intersects
  * the outer border bounding box of a rectangular note card.
  */
@@ -53,14 +69,13 @@ const NoteConnectionsComponent: React.FC<NoteConnectionsProps> = ({
   const notes = useNotesList();
 
   const connectionsContentKey = useMemo(
-    () => (notes || []).map((n) => `${n.id}:${n.title}:${n.updatedAt || n.createdAt}`).join(';'),
+    () => (notes || []).map((n) => `${n.id}:${linkFieldsHash(n)}`).join(';'),
     [notes]
   );
 
   // Asynchronously compute graph connections via native Rust engine without blocking UI thread.
-  // ponytail: keyed on content only — raw `notes` in deps re-armed the timer (and re-shipped the
-  // whole vault over IPC) on every keystroke/drag-end even when no edge-relevant field changed;
-  // connectionsContentKey already covers id/title/updatedAt mutations.
+  // ponytail: keyed on a hash of title+content — `updatedAt` changes on every geometry save, so
+  // keying on it re-shipped and re-parsed the whole vault on each drag/resize/pin/style commit.
   useEffect(() => {
     let isMounted = true;
     const timer = window.setTimeout(() => {

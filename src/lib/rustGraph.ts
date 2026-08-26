@@ -130,7 +130,14 @@ export async function getNoteGraphConnections(notes: Note[]): Promise<NoteConnec
     return connections;
   }
 
-  return await invoke<NoteConnection[]>('get_note_graph_connections', { notes });
+  return await invoke<NoteConnection[]>('get_note_graph_connections', {
+    // Only id/title/content drive edges. Image data URLs are frequently megabytes each and
+    // embeddings are large float arrays, so shipping them makes the IPC payload scale with
+    // photos instead of text. Cloned only for notes that actually carry them.
+    notes: notes.map((n) =>
+      n.imageUrl || n.embedding ? { ...n, imageUrl: undefined, embedding: undefined } : n
+    ),
+  });
 }
 
 /**
