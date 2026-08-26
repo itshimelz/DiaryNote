@@ -420,9 +420,20 @@ export const useNotesStore = create<NotesState>()(
 // Hooks / selectors
 // ---------------------------------------------------------------------------
 
+/** Identity-keyed snapshot cache. Every mutator returns a fresh `notesById`/`order`, so
+ *  reference equality is an exact freshness check — no version counter can go stale here.
+ *  Without it each mounted card built its own array on every coarse tick (O(cards x notes))
+ *  and thrashed the single-slot lookup-map cache in `getNoteLookupMaps`. */
+let arraySnapshot: { byId: Record<string, Note>; order: string[]; arr: Note[] } | null = null;
+
 export const getNotesArray = (): Note[] => {
   const s = useNotesStore.getState();
-  return s.order.map((id) => s.notesById[id]);
+  if (arraySnapshot && arraySnapshot.byId === s.notesById && arraySnapshot.order === s.order) {
+    return arraySnapshot.arr;
+  }
+  const arr = s.order.map((id) => s.notesById[id]);
+  arraySnapshot = { byId: s.notesById, order: s.order, arr };
+  return arr;
 };
 
 /** Coarse list snapshot — identity stable while map/order references are unchanged. */

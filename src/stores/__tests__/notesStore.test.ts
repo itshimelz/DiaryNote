@@ -76,6 +76,18 @@ describe('notesStore', () => {
     expect(commitLog.at(-1)).toEqual(['a', 'b']);
   });
 
+  it('getNotesArray shares one snapshot per state but never serves a stale note', () => {
+    useNotesStore.getState().insert(makeNote('a'));
+
+    const first = getNotesArray();
+    expect(getNotesArray()).toBe(first); // repeat readers reuse the same array
+
+    useNotesStore.getState().update(makeNote('a', { title: 'edited' }));
+    const second = getNotesArray();
+    expect(second).not.toBe(first);
+    expect(second[0].title).toBe('edited');
+  });
+
   it('update coalesces history pushes within the debounce window', async () => {
     useNotesStore.getState().insert(makeNote('a'));
     await vi.advanceTimersByTimeAsync(500); // flush insert's autosave
