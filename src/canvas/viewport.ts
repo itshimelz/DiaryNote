@@ -11,8 +11,8 @@ export function calculateDynamicOverscan(
   zoom: number
 ): { overscanX: number; overscanY: number } {
   const safeZoom = Math.max(0.05, zoom);
-  const overscanX = Math.min(2500, Math.max(600, (viewportWidth * 0.85) / safeZoom));
-  const overscanY = Math.min(2500, Math.max(600, (viewportHeight * 0.85) / safeZoom));
+  const overscanX = Math.min(3500, Math.max(900, (viewportWidth * 1.25) / safeZoom));
+  const overscanY = Math.min(3500, Math.max(900, (viewportHeight * 1.25) / safeZoom));
   return { overscanX, overscanY };
 }
 

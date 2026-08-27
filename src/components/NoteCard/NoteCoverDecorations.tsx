@@ -19,7 +19,10 @@ const NoteCoverDecorationsComponent: React.FC<NoteCoverDecorationsProps> = ({
 }) => {
   if (coverStyle === 'vintage-airmail') {
     return (
-      <div className={`pointer-events-none absolute inset-0 rounded-sm overflow-hidden z-0 p-[7px] ${className}`}>
+      <div
+        className={`pointer-events-none absolute inset-0 rounded-sm overflow-hidden z-0 p-[7px] ${className}`}
+        style={{ contain: 'paint layout' }}
+      >
         {/* Airmail Border: pre-rendered seamless 2x bitmap tile (682B). Live SVG patterns
             re-rasterize through cairo on every covered-card mount; a decoded bitmap blits. */}
         <div

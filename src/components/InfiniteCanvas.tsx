@@ -535,12 +535,12 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
             drawMinimapViewport(fgCtx, pendingTransform, minX, minY, minimapScale, viewport.width, viewport.height, themeMode);
           }
 
-          // Frustum-hysteresis sync: commit to React only after travelling ~0.5 of a
-          // viewport dimension. With 0.85x overscan buffer, notes are pre-mounted well
-          // before reaching the viewport boundary, eliminating mid-pan jank.
+          // Frustum-hysteresis sync: commit to React only after travelling ~0.9 of a
+          // viewport dimension. With 1.25x overscan buffer, notes are pre-mounted well
+          // before reaching the viewport boundary, eliminating mid-pan mount/unmount jank.
           const travelledX = Math.abs(pendingTransform.x - lastSyncX);
           const travelledY = Math.abs(pendingTransform.y - lastSyncY);
-          if (travelledX > viewport.width * 0.5 || travelledY > viewport.height * 0.5) {
+          if (travelledX > viewport.width * 0.9 || travelledY > viewport.height * 0.9) {
             lastSyncX = pendingTransform.x;
             lastSyncY = pendingTransform.y;
             onTransformChange(pendingTransform);

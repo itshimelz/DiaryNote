@@ -50,6 +50,13 @@ const NoteCoverComponent: React.FC<NoteCoverProps> = ({
   const centerGapClass = baseDim >= 480 ? 'gap-6' : 'gap-4';
   const coverPaddingClass = baseDim >= 480 ? 'p-6' : 'p-5';
 
+  const sealIcon = React.useMemo(() => {
+    return sealConfig.renderIcon({
+      size: sealSize,
+      color: coverConfig.accentColor || 'currentColor',
+    });
+  }, [sealConfig, sealSize, coverConfig.accentColor]);
+
   return (
     <div
       role="button"
@@ -92,7 +99,8 @@ const NoteCoverComponent: React.FC<NoteCoverProps> = ({
           onReveal();
         }
       }}
-      className={`absolute inset-0 z-25 flex flex-col justify-between ${coverPaddingClass} rounded-sm select-none cursor-pointer overflow-hidden [contain:paint_layout] ${coverConfig.cardClass} ${coverConfig.borderClass} ${className}`}
+      className={`absolute inset-0 z-25 flex flex-col justify-between ${coverPaddingClass} rounded-sm select-none cursor-pointer overflow-hidden transform-gpu will-change-transform ${coverConfig.cardClass} ${coverConfig.borderClass} ${className}`}
+      style={{ contain: 'paint layout' }}
       title="Click to open note"
     >
       {/* Cover-Specific Artistic Overlays & Stamp Decorations */}
@@ -112,10 +120,7 @@ const NoteCoverComponent: React.FC<NoteCoverProps> = ({
       <div className={`relative z-10 my-auto flex flex-col items-center justify-center text-center px-3 py-2 ${centerGapClass}`}>
         {/* Seal SVG Artwork - Proportional dimension scaling */}
         <div className="flex items-center justify-center pointer-events-none">
-          {sealConfig.renderIcon({
-            size: sealSize,
-            color: coverConfig.accentColor || 'currentColor',
-          })}
+          {sealIcon}
         </div>
 
         {/* Note Title - Proportional dimension scaling */}
