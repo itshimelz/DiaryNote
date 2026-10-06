@@ -82,6 +82,22 @@ p, h1, h2, h3, h4, span, div {
   background-size: 32px 32px;
 }
 
+.bg-canvas-graph-light {
+  background-image: linear-gradient(to right, #dbe5f0 1px, transparent 1px),
+                    linear-gradient(to bottom, #dbe5f0 1px, transparent 1px),
+                    linear-gradient(to right, #b8cbe0 1px, transparent 1px),
+                    linear-gradient(to bottom, #b8cbe0 1px, transparent 1px);
+  background-size: 24px 24px, 24px 24px, 120px 120px, 120px 120px;
+}
+
+.bg-canvas-graph-dark {
+  background-image: linear-gradient(to right, #1b2a3d 1px, transparent 1px),
+                    linear-gradient(to bottom, #1b2a3d 1px, transparent 1px),
+                    linear-gradient(to right, #2b405a 1px, transparent 1px),
+                    linear-gradient(to bottom, #2b405a 1px, transparent 1px);
+  background-size: 24px 24px, 24px 24px, 120px 120px, 120px 120px;
+}
+
 .bg-canvas-ruled-light {
   background-image: repeating-linear-gradient(transparent, transparent 27px, #e2e8f0 28px);
   background-size: 100% 28px;
@@ -109,6 +125,17 @@ p, h1, h2, h3, h4, span, div {
   background-position: 0 4px;
 }
 
+.bg-note-graph {
+  background-color: #f8fbff;
+  background-image: linear-gradient(to right, #e3eaf2 1px, transparent 1px),
+                    linear-gradient(to bottom, #e3eaf2 1px, transparent 1px),
+                    linear-gradient(to right, #c3d4e7 1px, transparent 1px),
+                    linear-gradient(to bottom, #c3d4e7 1px, transparent 1px);
+  background-size: 32px 32px, 32px 32px, 160px 160px, 160px 160px;
+  background-origin: content-box;
+  background-position: 0 4px;
+}
+
 .bg-note-dotted {
   background-color: #fdfdf8;
   background-image: radial-gradient(#94a3b8 0.85px, transparent 0.85px);
@@ -117,12 +144,15 @@ p, h1, h2, h3, h4, span, div {
 }
 
 /* Perfect alignment for ruled lined notes */
-.ruled-text-alignment {
+.ruled-text-alignment,
+.graph-text-alignment {
   line-height: 32px !important;
 }
 
 .ruled-text-alignment,
-textarea.ruled-text-alignment {
+textarea.ruled-text-alignment,
+.graph-text-alignment,
+textarea.graph-text-alignment {
   line-height: 32px !important;
   padding: 0 !important;
   padding-top: 0px !important;
@@ -131,19 +161,24 @@ textarea.ruled-text-alignment {
 
 .ruled-text-alignment div,
 .ruled-text-alignment span,
-.ruled-text-alignment li {
+.ruled-text-alignment li,
+.graph-text-alignment div,
+.graph-text-alignment span,
+.graph-text-alignment li {
   line-height: 32px !important;
   margin-top: 0 !important;
   margin-bottom: 0 !important;
 }
 
-.ruled-text-alignment p {
+.ruled-text-alignment p,
+.graph-text-alignment p {
   line-height: 32px !important;
   margin-top: 0 !important;
   margin-bottom: 32px !important;
 }
 
-.ruled-text-alignment p:last-child {
+.ruled-text-alignment p:last-child,
+.graph-text-alignment p:last-child {
   margin-bottom: 0 !important;
 }
 
@@ -151,10 +186,19 @@ textarea.ruled-text-alignment {
 .ruled-text-alignment h2,
 .ruled-text-alignment h3,
 .ruled-text-alignment h4,
-.ruled-text-alignment blockquote {
+.ruled-text-alignment blockquote,
+.graph-text-alignment h1,
+.graph-text-alignment h2,
+.graph-text-alignment h3,
+.graph-text-alignment h4,
+.graph-text-alignment blockquote {
   line-height: 32px !important;
   margin-top: 0 !important;
   margin-bottom: 0 !important;
+}
+
+.graph-checklist-row {
+  line-height: 32px !important;
 }
 
 /* Custom scrollbars inside notes */

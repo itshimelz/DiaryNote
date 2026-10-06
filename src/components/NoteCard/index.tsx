@@ -231,6 +231,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
   const themeConfig = PAPER_THEMES[note.paperTheme || 'white'];
   const fontClass = FONT_CLASSES[note.fontFamily || 'sans'];
   const isRuled = note.paperTheme === 'ruled' || note.paperTheme === 'ruled-dark';
+  const isGraph = note.paperTheme === 'graph';
 
   const fontSizeClass =
     note.fontSize === 'sm'
@@ -491,7 +492,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
                 if (match) {
                   setMentionQuery(match[1]);
                   const lineCount = textBeforeCursor.split('\n').length;
-                  const lineH = isRuled ? 32 : 24;
+                  const lineH = isRuled || isGraph ? 32 : 24;
                   const topPos = Math.min(lineCount * lineH + 6, 190);
                   setMentionPos({ top: topPos, left: 10 });
                   setSlashQuery(null);
@@ -503,7 +504,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
                   if (slashMatch) {
                     setSlashQuery(slashMatch[1]);
                     const lineCount = textBeforeCursor.split('\n').length;
-                    const lineH = isRuled ? 32 : 24;
+                    const lineH = isRuled || isGraph ? 32 : 24;
                     const topPos = Math.min(lineCount * lineH + 6, 190);
                     setSlashPos({ top: topPos, left: 10 });
                   } else {
@@ -673,7 +674,11 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
               aria-label={`Edit ${note.title || 'Untitled Note'}`}
               wrap="soft"
               className={`w-full min-h-[180px] whitespace-pre-wrap bg-transparent resize-none overflow-y-hidden outline-none border-0 shadow-none ${
-                isRuled ? 'ruled-text-alignment' : 'leading-relaxed'
+                isRuled
+                  ? 'ruled-text-alignment'
+                  : isGraph
+                  ? 'graph-text-alignment'
+                  : 'leading-relaxed'
               } ${fontClass} ${fontSizeClass} ${
                 themeConfig.text
               }`}

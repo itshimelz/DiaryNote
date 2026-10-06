@@ -544,8 +544,8 @@ const CanvasControlsComponent: React.FC<CanvasControlsProps> = ({
                   >
                     Canvas Grid Pattern
                   </label>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {(['dots', 'grid', 'ruled', 'blank'] as GridType[]).map((g) => (
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {(['dots', 'grid', 'ruled', 'blank', 'graph'] as GridType[]).map((g) => (
                       <button
                         key={g}
                         onClick={() => onChangeGridType(g)}

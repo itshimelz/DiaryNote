@@ -10,11 +10,12 @@ interface NoteStylePickerProps {
 }
 
 // Graphite remains supported for existing notes, but is intentionally omitted here because Dark provides the same use case.
-const PAPER_THEME_OPTIONS: PaperTheme[] = ['white', 'cream', 'ruled', 'dotted', 'kraft', 'dark', 'ruled-dark', 'transparent'];
+const PAPER_THEME_OPTIONS: PaperTheme[] = ['white', 'cream', 'ruled', 'graph', 'dotted', 'kraft', 'dark', 'ruled-dark', 'transparent'];
 const PAPER_THEME_LABELS: Record<PaperTheme, string> = {
   white: 'White',
   cream: 'Cream',
   ruled: 'Ruled',
+  graph: 'Graph',
   dotted: 'Dotted',
   kraft: 'Kraft',
   dark: 'Dark',

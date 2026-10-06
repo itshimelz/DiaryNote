@@ -376,6 +376,7 @@ const InfiniteCanvasComponent: React.FC<InfiniteCanvasProps> = ({
     if (gridType === 'dots') return isDark ? 'bg-canvas-dots-dark bg-slate-950' : 'bg-canvas-dots-light bg-[#f8fafc]';
     if (gridType === 'grid') return isDark ? 'bg-canvas-grid-dark bg-slate-950' : 'bg-canvas-grid-light bg-[#f8fafc]';
     if (gridType === 'ruled') return isDark ? 'bg-canvas-ruled-dark bg-slate-950' : 'bg-canvas-ruled-light bg-[#f8fafc]';
+    if (gridType === 'graph') return isDark ? 'bg-canvas-graph-dark bg-slate-950' : 'bg-canvas-graph-light bg-[#f8fafc]';
     return isDark ? 'bg-slate-950' : 'bg-[#f8fafc]';
   };
 

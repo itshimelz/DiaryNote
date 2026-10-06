@@ -13,6 +13,7 @@ export type PaperTheme =
   | 'white' 
   | 'cream' 
   | 'ruled' 
+  | 'graph'
   | 'dotted' 
   | 'ruled-dark' 
   | 'dark' 
@@ -20,7 +21,7 @@ export type PaperTheme =
   | 'transparent' 
   | 'kraft';
 
-export type GridType = 'dots' | 'grid' | 'ruled' | 'blank';
+export type GridType = 'dots' | 'grid' | 'ruled' | 'blank' | 'graph';
 
 export type CanvasTheme = 'dark' | 'light' | 'gradient';
 

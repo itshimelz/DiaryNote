@@ -39,6 +39,13 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
   emptyPlaceholder,
 }) => {
   const themeConfig = PAPER_THEMES[(paperTheme as PaperTheme) || 'white'];
+  const isGraph = paperTheme === 'graph';
+  const hasGridAlignedText = isRuled || isGraph;
+  const textAlignmentClass = isRuled
+    ? 'ruled-text-alignment'
+    : isGraph
+    ? 'graph-text-alignment'
+    : '';
 
   const processedContent = useMemo(() => {
     const withMentions = processMarkdownMentions(content || '', allNotes);
@@ -56,8 +63,8 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
         ) : (
           <p
             className={`font-inherit ${
-              isRuled
-                ? 'ruled-text-alignment mb-8 last:mb-0'
+              hasGridAlignedText
+                ? `${textAlignmentClass} mb-8 last:mb-0`
                 : 'mb-3.5 last:mb-0 leading-relaxed'
             }`}
           >
@@ -67,7 +74,7 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
       h1: ({ children }: any) => (
         <h1
           className={`font-bold tracking-tight text-xl my-2 ${
-            isRuled ? 'ruled-text-alignment' : ''
+            textAlignmentClass
           }`}
         >
           {children}
@@ -76,7 +83,7 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
       h2: ({ children }: any) => (
         <h2
           className={`font-bold tracking-tight text-lg my-1.5 ${
-            isRuled ? 'ruled-text-alignment' : ''
+            textAlignmentClass
           }`}
         >
           {children}
@@ -85,7 +92,7 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
       h3: ({ children }: any) => (
         <h3
           className={`font-semibold text-base my-1 ${
-            isRuled ? 'ruled-text-alignment' : ''
+            textAlignmentClass
           }`}
         >
           {children}
@@ -94,14 +101,14 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
       h4: ({ children }: any) => (
         <h4
           className={`font-semibold text-sm my-1 ${
-            isRuled ? 'ruled-text-alignment' : ''
+            textAlignmentClass
           }`}
         >
           {children}
         </h4>
       ),
       hr: () =>
-        isRuled ? (
+        hasGridAlignedText ? (
           <div className="h-8" aria-hidden="true" />
         ) : (
           <div className="h-3.5" aria-hidden="true" />
@@ -137,20 +144,20 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
           return (
             <li
               className={`list-none flex items-start gap-2.5 leading-relaxed ${
-                isRuled ? 'ruled-text-alignment' : ''
+                textAlignmentClass
               }`}
             >
               {checkbox && (
                 <span
                   className="shrink-0 flex items-center"
-                  style={isRuled ? { height: '32px' } : { height: '24px' }}
+                  style={hasGridAlignedText ? { height: '32px' } : { height: '24px' }}
                 >
                   {checkbox}
                 </span>
               )}
               <div
                 className={`flex-1 min-w-0 font-inherit break-words ${
-                  isRuled ? '' : 'leading-relaxed'
+                  hasGridAlignedText ? '' : 'leading-relaxed'
                 }`}
               >
                 {textChildren}
@@ -162,7 +169,7 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
         return (
           <li
             className={`leading-relaxed ${
-              isRuled ? 'ruled-text-alignment' : ''
+              textAlignmentClass
             }`}
           >
             {children}
@@ -172,7 +179,7 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
       blockquote: ({ children }: any) => (
         <blockquote
           className={`border-l-3 border-blue-500/70 pl-3 my-2 italic opacity-95 ${
-            isRuled ? 'ruled-text-alignment' : ''
+            textAlignmentClass
           }`}
         >
           {children}
@@ -250,7 +257,7 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
         );
       },
     }),
-    [inline, isRuled, themeConfig, onNavigateToNote]
+    [inline, isRuled, isGraph, hasGridAlignedText, textAlignmentClass, themeConfig, onNavigateToNote]
   );
 
   const isPlainInlineText = useMemo(
@@ -266,7 +273,7 @@ const BaseMarkdownRendererComponent: React.FC<BaseMarkdownRendererProps> = ({
         if (onDoubleClick) onDoubleClick(e);
       }}
       className={`break-words ${
-        isRuled ? 'ruled-text-alignment' : ''
+        textAlignmentClass
       } ${fontClass} ${fontSizeClass} ${themeConfig.text} ${className}`}
     >
       {isPlainInlineText ? (

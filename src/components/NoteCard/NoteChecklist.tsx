@@ -57,10 +57,12 @@ const ChecklistItemRowComponent: React.FC<ChecklistItemRowProps> = ({
   onStopEditing,
   onNavigateToNote,
 }) => {
+  const isGraph = paperTheme === 'graph';
+
   if (item.isHeading) {
     return (
       <div className="flex items-center justify-between group pt-3 pb-1 border-b border-slate-200/40 dark:border-slate-800/40">
-        <div className={`flex-1 font-bold text-sm uppercase tracking-wider ${themeConfig.text}`}>
+        <div className={`flex-1 font-bold text-sm uppercase tracking-wider ${themeConfig.text} ${isGraph ? 'graph-text-alignment' : ''}`}>
           {item.text}
         </div>
         <button
@@ -77,15 +79,15 @@ const ChecklistItemRowComponent: React.FC<ChecklistItemRowProps> = ({
 
   return (
     <div
-      className={`flex items-start gap-2.5 px-2 py-1.5 rounded-xl ${themeConfig.hoverBg} group ${
-        isRuled ? 'ruled-text-alignment' : ''
+      className={`flex items-start gap-2.5 rounded-xl ${isGraph ? 'px-2 py-0' : 'px-2 py-1.5'} ${themeConfig.hoverBg} group ${
+        isRuled ? 'ruled-text-alignment' : isGraph ? 'graph-checklist-row' : ''
       }`}
     >
       {/* Custom rounded square checkbox */}
       <button
         type="button"
         onClick={() => onToggleItem(item.id)}
-        style={isRuled ? { marginTop: '6px' } : { marginTop: '2px' }}
+        style={isRuled || isGraph ? { marginTop: '6px' } : { marginTop: '2px' }}
         className={`shrink-0 w-4.5 h-4.5 rounded-md border-2 flex items-center justify-center ${
           item.completed ? themeConfig.checkboxChecked : themeConfig.checkboxUnchecked
         }`}
@@ -138,12 +140,12 @@ const ChecklistItemRowComponent: React.FC<ChecklistItemRowProps> = ({
             }
           }}
           placeholder="Task item..."
-          className={`flex-1 bg-transparent border-0 outline-none ${themeConfig.text} font-medium text-sm tracking-tight resize-none overflow-hidden break-words whitespace-pre-wrap py-0`}
+          className={`flex-1 bg-transparent border-0 outline-none ${themeConfig.text} font-medium text-sm tracking-tight resize-none overflow-hidden break-words whitespace-pre-wrap py-0 ${isGraph ? 'graph-text-alignment' : ''}`}
         />
       ) : (
         <div
           onClick={() => onStartEditing(item.id)}
-          className={`flex-1 cursor-text min-h-[22px] font-medium tracking-tight ${
+          className={`flex-1 cursor-text min-h-[22px] font-medium tracking-tight ${isGraph ? 'graph-text-alignment' : ''} ${
             item.completed ? 'line-through opacity-50' : themeConfig.text
           }`}
         >
